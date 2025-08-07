@@ -30,10 +30,13 @@
   - [ ] `shared/analysis_tools/`
   - [ ] `shared/data_processors/`
   - [ ] `shared/utilities/`
-- [ ] 创建 `api/` 目录结构
-  - [ ] `api/models/`
-  - [ ] `api/routes/`
-  - [ ] `api/services/`
+    - [ ] `shared/utilities/taz_tools/`
+- [ ] 创建 `api/` 目录结构（简化版本）
+  - [ ] `api/main.py` - FastAPI主程序入口
+  - [ ] `api/models.py` - 所有Pydantic数据模型
+  - [ ] `api/routes.py` - 所有API路由
+  - [ ] `api/services.py` - 业务逻辑
+  - [ ] `api/utils.py` - 工具函数
 - [ ] 创建 `frontend/` 目录结构
   - [ ] `frontend/test_pages/`
 - [ ] 创建 `docs/` 目录结构
@@ -65,6 +68,15 @@
 - [ ] 迁移分析工具到 `shared/analysis_tools/`
 - [ ] 迁移数据处理器到 `shared/data_processors/`
 - [ ] 迁移通用工具到 `shared/utilities/`
+- [ ] 迁移TAZ分析工具到 `shared/utilities/taz_tools/`
+  - [ ] 移动 `analyze_duplicate_taz.py`
+  - [ ] 移动 `compare_taz_files.py`
+  - [ ] 移动 `fix_duplicate_taz.py`
+  - [ ] 移动 `fix_taz.bat`
+  - [ ] 移动 `taz_validator.py`
+  - [ ] 移动 `README.md`
+  - [ ] 创建 `output/` 子目录
+  - [ ] 移动输出文件到 `output/` 目录
 
 ### **1.2 设计并实现案例元数据模型**
 
@@ -82,40 +94,64 @@
 - [ ] 实现元数据读取功能
 - [ ] 实现元数据验证功能
 
-### **1.3 实现基础的案例管理API**
+### **1.3 实现基础的案例管理API（简化结构）**
 
-#### **案例创建API**
+#### **API文件结构创建**
 
+- [ ] 创建 `api/main.py` - FastAPI应用入口
+  - [ ] 配置FastAPI应用
+  - [ ] 添加CORS中间件
+  - [ ] 注册路由
+- [ ] 创建 `api/models.py` - 数据模型
+  - [ ] 迁移现有Pydantic模型
+  - [ ] 添加新的案例管理模型
+  - [ ] 添加请求/响应模型
+- [ ] 创建 `api/routes.py` - API路由
+  - [ ] 创建路由器
+  - [ ] 定义数据处理路由
+  - [ ] 定义案例管理路由
+  - [ ] 定义文件管理路由
+- [ ] 创建 `api/services.py` - 业务逻辑
+  - [ ] 迁移现有业务逻辑
+  - [ ] 实现案例管理服务
+  - [ ] 实现文件管理服务
+- [ ] 创建 `api/utils.py` - 工具函数
+  - [ ] 迁移现有工具函数
+  - [ ] 添加新的工具函数
+
+#### **核心API端点实现（预估10个左右）**
+
+##### **数据处理API**
+- [ ] 实现 `POST /process_od_data/` 端点
+- [ ] 实现 `POST /run_simulation/` 端点
+- [ ] 实现 `POST /analyze_accuracy/` 端点
+
+##### **案例管理API**
 - [ ] 实现 `POST /create_case/` 端点
+- [ ] 实现 `GET /list_cases/` 端点
+- [ ] 实现 `GET /case/{case_id}` 端点
+- [ ] 实现 `DELETE /case/{case_id}` 端点
+- [ ] 实现 `POST /case/{case_id}/clone` 端点
+
+##### **文件管理API**
+- [ ] 实现 `GET /get_folders/{prefix}` 端点
+- [ ] 实现 `GET /accuracy_analysis_status/{result_folder}` 端点
+
+**注：** 以上API端点为预估数量，实际开发过程中可能会根据需求调整增加或减少。
+
+#### **API功能实现**
+
 - [ ] 实现案例目录创建逻辑
 - [ ] 实现模板文件复制逻辑
 - [ ] 实现元数据初始化逻辑
-
-#### **案例查询API**
-
-- [ ] 实现 `GET /list_cases/` 端点
-- [ ] 实现 `GET /case/{case_id}` 端点
 - [ ] 实现案例列表排序功能
 - [ ] 实现案例搜索功能
-
-#### **案例管理API**
-
-- [ ] 实现 `DELETE /case/{case_id}` 端点
-- [ ] 实现 `POST /case/{case_id}/clone` 端点
 - [ ] 实现案例备份功能
 - [ ] 实现案例恢复功能
 
 ### **1.4 创建模板文件管理机制**
 
-#### **模板管理API**
-
-- [ ] 实现 `GET /templates/list` 端点
-- [ ] 实现 `GET /templates/{template_type}` 端点
-- [ ] 实现 `POST /templates/{template_type}` 端点
-- [ ] 实现 `PUT /templates/{template_type}` 端点
-- [ ] 实现 `DELETE /templates/{template_type}` 端点
-
-#### **模板验证功能**
+#### **模板管理功能**
 
 - [ ] 实现模板文件格式验证
 - [ ] 实现模板文件完整性检查
@@ -124,20 +160,16 @@
 
 ### **1.5 建立共享资源管理框架**
 
-#### **共享资源API**
-
-- [ ] 实现 `GET /shared/resources` 端点
-- [ ] 实现 `GET /shared/e1_detectors` 端点
-- [ ] 实现 `GET /shared/gantry_locations` 端点
-- [ ] 实现 `PUT /shared/e1_detectors` 端点
-- [ ] 实现 `PUT /shared/gantry_locations` 端点
-
 #### **共享资源管理功能**
 
 - [ ] 实现共享资源更新机制
 - [ ] 实现共享资源版本控制
 - [ ] 实现共享资源备份功能
 - [ ] 实现共享资源同步功能
+- [ ] 实现TAZ工具管理功能
+  - [ ] 实现TAZ工具版本控制
+  - [ ] 实现TAZ工具配置管理
+  - [ ] 实现TAZ工具输出管理
 
 ---
 
@@ -158,6 +190,7 @@
 - [ ] 编写 `accuracy_analysis` 文件夹迁移脚本
 - [ ] 编写配置文件迁移脚本
 - [ ] 编写元数据生成脚本
+- [ ] 编写 `taz_analysis` 文件夹迁移脚本
 
 ### **2.2 保持现有API的兼容性**
 
@@ -231,14 +264,15 @@
 
 #### **OD数据处理迁移**
 
-- [ ] 迁移OD数据查询功能
-- [ ] 迁移OD数据过滤功能
-- [ ] 迁移OD数据转换功能
-- [ ] 迁移OD数据验证功能
+- [ ] 迁移OD数据查询功能到 `api/services.py`
+- [ ] 迁移OD数据过滤功能到 `api/services.py`
+- [ ] 迁移OD数据转换功能到 `api/services.py`
+- [ ] 迁移OD数据验证功能到 `api/services.py`
+- [ ] 迁移TAZ数据处理功能到 `shared/utilities/taz_tools/`
 
 #### **OD数据API更新**
 
-- [ ] 更新OD数据处理API
+- [ ] 更新OD数据处理API路由
 - [ ] 实现新的OD数据格式
 - [ ] 优化OD数据处理性能
 - [ ] 添加OD数据处理日志
@@ -247,14 +281,14 @@
 
 #### **仿真功能迁移**
 
-- [ ] 迁移仿真配置生成功能
-- [ ] 迁移仿真执行功能
-- [ ] 迁移仿真结果收集功能
-- [ ] 迁移仿真状态监控功能
+- [ ] 迁移仿真配置生成功能到 `api/services.py`
+- [ ] 迁移仿真执行功能到 `api/services.py`
+- [ ] 迁移仿真结果收集功能到 `api/services.py`
+- [ ] 迁移仿真状态监控功能到 `api/services.py`
 
 #### **仿真API更新**
 
-- [ ] 更新仿真运行API
+- [ ] 更新仿真运行API路由
 - [ ] 实现新的仿真参数格式
 - [ ] 优化仿真执行性能
 - [ ] 添加仿真执行日志
@@ -263,14 +297,14 @@
 
 #### **精度分析迁移**
 
-- [ ] 迁移精度分析算法
-- [ ] 迁移数据预处理功能
-- [ ] 迁移结果生成功能
-- [ ] 迁移报告生成功能
+- [ ] 迁移精度分析算法到 `api/services.py`
+- [ ] 迁移数据预处理功能到 `api/services.py`
+- [ ] 迁移结果生成功能到 `api/services.py`
+- [ ] 迁移报告生成功能到 `api/services.py`
 
 #### **精度分析API更新**
 
-- [ ] 更新精度分析API
+- [ ] 更新精度分析API路由
 - [ ] 实现新的分析参数格式
 - [ ] 优化分析执行性能
 - [ ] 添加分析执行日志
@@ -315,10 +349,15 @@
 
 #### **API功能测试**
 
-- [ ] 测试案例管理API
-- [ ] 测试仿真运行API
-- [ ] 测试精度分析API
-- [ ] 测试文件管理API
+- [ ] 测试数据处理API（3个端点）
+- [ ] 测试案例管理API（5个端点）
+- [ ] 测试文件管理API（2个端点）
+- [ ] 测试API错误处理
+- [ ] 测试新增API端点（如有）
+- [ ] 测试TAZ工具功能
+  - [ ] 测试TAZ文件验证功能
+  - [ ] 测试TAZ文件修复功能
+  - [ ] 测试TAZ文件比较功能
 
 #### **前端功能测试**
 
@@ -334,7 +373,23 @@
 - [ ] 测试错误处理
 - [ ] 测试边界条件
 
-### **4.2 文档完善**
+### **4.2 性能测试**
+
+#### **API性能测试**
+
+- [ ] 测试API响应时间
+- [ ] 测试并发处理能力
+- [ ] 测试内存使用情况
+- [ ] 测试数据库连接池性能
+
+#### **系统性能测试**
+
+- [ ] 测试文件处理性能
+- [ ] 测试仿真运行性能
+- [ ] 测试分析计算性能
+- [ ] 测试系统资源使用
+
+### **4.3 文档完善**
 
 #### **技术文档**
 
@@ -351,7 +406,6 @@
 - [ ] 完善常见问题解答
 
 ---
-
 
 ## 📊 **进度跟踪模板**
 
@@ -400,7 +454,7 @@
 
 ---
 
-**文档版本**: v1.0
+**文档版本**: v1.1
 **创建日期**: 2025-01-08
 **最后更新**: 2025-01-08
 **负责人**: 开发团队
