@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+  <input>
+    <net-file value="../sichuan202503v6.net.xml"/>
+    <route-files value="dwd_od_weekly_20250721080000_20250721090000.rou.xml"/>
+    <additional-files value="../TAZ_5_validated.add.xml"/>
+  </input>
+  <time>
+    <begin value="0"/>
+    <end value="3600"/>
+  </time>
+  <output>
+    <statistic-output value="static.xml"/>
+    <duration-log.statistics value="true"/>
+    <summary-output value="summary.xml"/>
+  </output>
+  <gui_only>
+    <start value="true"/>
+    <quit-on-end value="false"/>
+  </gui_only>
+</configuration>

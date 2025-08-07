@@ -1,0 +1,507 @@
+point_id,od_type,square_gantry,name,total_flow,name_en,ori_taz_type,opp_point_id,network_issue
+G000551002000110010,all,gantry,川北广元站-川北昭化站门架,134790,chuanbei(guangyuan-zhaohua),,,
+G000551002000120010,all,gantry,川北昭化站-川北广元站门架,159971,chuanbei(zhaohua-guangyuan),,,
+G000551002000210010,all,gantry,川北昭化站-川北罗家沟枢纽门架,54049,chuanbei(zhaohua-luojiagou),,,
+G000551002000220010,all,gantry,川北罗家沟枢纽-川北昭化站门架,64807,chuanbei(luojiagou-zhaohua),,,
+G000551002000310010,all,gantry,川北罗家沟枢纽-川北剑门关站门架,60663,chuanbei(luojiagou-jianmenguan),,,
+G000551002000320010,all,gantry,川北剑门关站-川北罗家沟枢纽门架,64394,chuanbei(jianmenguan-luojiagou),,,
+G00055100200104010,all,square,川北广元站入口广场,60245,chuanbeiguangyuan toll(entrance),tazSource,G00055100200104020,
+G00055100200104020,all,square,川北广元站出口广场,64846,chuanbeiguangyuan toll(exit),tazSink,G00055100200104010,
+G00055100200204010,all,square,川北昭化站入口广场,52395,chuanbeizhaohua toll(entrance),tazSource,G00055100200204020,
+G00055100200204020,destination,square,川北昭化站出口广场,54397,chuanbeizhaohua toll(exit),,,
+G00055100200301010,origin,square,川北剑门关站入口广场,104409,chuanbeijianmenguan toll(entrance),,,
+G00055100200302010,destination,square,川北剑门关站出口广场,117434,chuanbeijianmenguan toll(exit),,,
+G000551003000110010,all,gantry,绵广沙溪坝枢纽-绵广金子山站门架,1649,mianguang(shaxiba-jinzishan),,,
+G000551003000120010,all,gantry,绵广金子山站-绵广沙溪坝枢纽门架,1789,mianguang(jinzishan-shaxiba),,,
+G000551003000210010,all,gantry,绵广金子山站-绵广二郎庙站门架,778,mianguang(jinzishan-erlangmiao),,,
+G000551003000220010,all,gantry,绵广二郎庙站-绵广金子山站门架,994,mianguang(erlangmiao-jinzishan),,,
+G000551003000310010,all,gantry,绵广二郎庙站-绵广厚坝站门架,721,mianguang(erlangmiao-houba),,,
+G000551003000320010,all,gantry,绵广厚坝站-绵广二郎庙站门架,863,mianguang(houba-erlangmiao),,,
+G000551003000410010,all,gantry,绵广厚坝站-绵广小溪坝站门架,545,mianguang(houba-xiaoxiba),,,
+G000551003000420010,all,gantry,绵广小溪坝站-绵广厚坝站门架,1113,mianguang(xiaoxiba-houba),,,
+G000551003000510010,all,gantry,绵广小溪坝站-绵广江油北站门架,1481,mianguang(xiaoxiba-jiangyoubei),,,
+G000551003000520010,all,gantry,绵广江油北站-绵广小溪坝站门架,759,mianguang(jiangyoubei-xiaoxiba),,,
+G000551003000610010,all,gantry,绵广江油北站-绵广贯山站门架,772,mianguang(jiangyoubei-guanshan),,,
+G000551003000620010,all,gantry,绵广贯山站-绵广江油北站门架,1277,mianguang(guanshan-jiangyoubei),,,
+G000551003000710010,all,gantry,绵广贯山站-绵广江油站门架,1228,mianguang(guanshan-jiangyou),,,
+G000551003000720010,all,gantry,绵广江油站-绵广贯山站门架,1706,mianguang(jiangyou-guanshan),,,
+G000551003000810010,all,gantry,绵广江油站-绵广张家坪枢纽门架,54340,mianguang(jiangyou-zhangjiaping),,,
+G000551003000820010,all,gantry,绵广张家坪枢纽-绵广江油站门架,59104,mianguang(zhangjiaping-jiangyou),,,
+G000551003000910010,all,gantry,绵广张家坪枢纽-绵广科学城站门架,88270,mianguang(zhangjiaping-kexuecheng),,,
+G000551003000920010,all,gantry,绵广科学城站-绵广张家坪枢纽门架,91657,mianguang(kexuecheng-zhangjiaping),,,
+G000551003001010010,all,gantry,绵广科学城站-绵广绵阳北站门架,1891,mianguang(kexuecheng-mianyangbei),,,
+G000551003001020010,all,gantry,绵广绵阳北站-绵广科学城站门架,1758,mianguang(mianyangbei-kexuecheng),,,
+G00055100300104010,all,square,绵广金子山站入口广场,83112,mianguangjinzishan toll(entrance),tazSource,G00055100300104020,
+G00055100300104020,destination,square,绵广金子山站出口广场,20762,mianguangjinzishan toll(exit),,,
+G000551003001110010,all,gantry,绵广绵阳北站-绵广绵阳站门架,2029,mianguang(mianyangbei-mianyang),,,
+G000551003001120010,all,gantry,绵广绵阳站-绵广绵阳北站门架,1907,mianguang(mianyang-mianyangbei),,,
+G000551003001210010,all,gantry,绵广绵阳站-绵广绵阳南站门架,4900,mianguang(mianyang-mianyangnan),,,
+G000551003001220010,all,gantry,绵广绵阳南站-绵广绵阳站门架,56003,mianguang(mianyangnan-mianyang),,,
+G000551003001310010,all,gantry,绵广绵阳南站-绵广磨家枢纽门架,355143,mianguang(mianyangnan-mojia),,,
+G000551003001320010,all,gantry,绵广磨家枢纽-绵广绵阳南站门架,293557,mianguang(mojia-mianyangnan),,,
+G00055100300204010,origin,square,绵广二郎庙站入口广场,5921,mianguangerlangmiao toll(entrance),,,
+G00055100300204020,destination,square,绵广二郎庙站出口广场,3701,mianguangerlangmiao toll(exit),,,
+G00055100300304010,all,square,绵广厚坝站入口广场,41773,mianguanghouba toll(entrance),tazSource,G00055100300304020,
+G00055100300304020,destination,square,绵广厚坝站出口广场,32276,mianguanghouba toll(exit),,,
+G00055100300404010,all,square,绵广小溪坝站入口广场,29395,mianguangxiaoxiba toll(entrance),tazSource,G00055100300404020,
+G00055100300404020,destination,square,绵广小溪坝站出口广场,30511,mianguangxiaoxiba toll(exit),,,
+G00055100300504010,all,square,绵广江油北站入口广场,29399,mianguangjiangyoubei toll(entrance),tazSource,G00055100300504020,
+G00055100300504020,destination,square,绵广江油北站出口广场,29018,mianguangjiangyoubei toll(exit),,,
+G00055100300604010,origin,square,绵广贯山站入口广场,13574,mianguangguanshan toll(entrance),,,
+G00055100300604020,destination,square,绵广贯山站出口广场,14360,mianguangguanshan toll(exit),,,
+G00055100300704010,all,square,绵广江油站入口广场,47093,mianguangjiangyou toll(entrance),tazSource,G00055100300704020,
+G00055100300704020,destination,square,绵广江油站出口广场,43472,mianguangjiangyou toll(exit),,,
+G00055100300804010,all,square,绵广科学城站入口广场,18597,mianguangkexuecheng toll(entrance),tazSource,G00055100300804020,
+G00055100300804020,destination,square,绵广科学城站出口广场,23733,mianguangkexuecheng toll(exit),,,
+G00055100300904010,all,square,绵广绵阳北站入口广场,37595,mianguangmianyangbei toll(entrance),tazSource,G00055100300904020,
+G00055100300904020,all,square,绵广绵阳北站出口广场,76740,mianguangmianyangbei toll(exit),tazSink,G00055100300904010,
+G00055100301004010,all,square,绵广绵阳站入口广场,205015,mianguangmianyang toll(entrance),tazSource,G00055100301004020,
+G00055100301004020,all,square,绵广绵阳站出口广场,220327,mianguangmianyang toll(exit),tazSink,G00055100301004010,
+G00055100301104010,all,square,绵广绵阳南站入口广场,301820,mianguangmianyangnan toll(entrance),tazSource,G00055100301104020,
+G00055100301104020,destination,square,绵广绵阳南站出口广场,287225,mianguangmianyangnan toll(exit),,,
+G000551005000210010,all,gantry,成雅双流北站-成雅双流南站门架,135594,chengyashuang(liubei-liunan),,,
+G000551005000220010,all,gantry,成雅双流南站-成雅双流北站门架,102123,chengyashuang(liunan-liubei),,,
+G000551005000310010,all,gantry,成雅双流南站-成雅二绕枢纽门架,126929,chengya(shuangliunan-errao),,,
+G000551005000320010,all,gantry,成雅二绕枢纽-成雅双流南站门架,152410,chengya(errao-shuangliunan),,,
+G000551005000410010,all,gantry,成雅二绕枢纽-成雅新津东站门架,323004,chengya(errao-xinjindong),,,
+G000551005000420010,all,gantry,成雅新津东站-成雅二绕枢纽门架,300235,chengya(xinjindong-errao),,,
+G000551005000510010,all,gantry,成雅新津东站-成雅新津南站门架,11258,chengyaxin(jindong-jinnan),,,
+G000551005000520010,all,gantry,成雅新津南站-成雅新津东站门架,26544,chengyaxin(jinnan-jindong),,,
+G000551005000610010,all,gantry,成雅新津南站-成雅青龙枢纽门架,893336,chengya(xinjinnan-qinglong),,,
+G000551005000620010,all,gantry,成雅青龙枢纽-成雅新津南站门架,863599,chengya(qinglong-xinjinnan),,,
+G000551005000710010,all,gantry,成雅青龙枢纽-成雅邛崃站门架,10262,chengya(qinglong-qionglai),,,
+G000551005000720010,all,gantry,成雅邛崃站-成雅青龙枢纽门架,17613,chengya(qionglai-qinglong),,,
+G000551005000810010,all,gantry,成雅邛崃站-成雅蒲江东站门架,3173,chengya(qionglai-pujiangdong),,,
+G000551005000820010,all,gantry,成雅蒲江东站-成雅邛崃站门架,532,chengya(pujiangdong-qionglai),,,
+G000551005000910010,all,gantry,成雅蒲江东站-成雅简蒲枢纽门架,14745,chengya(pujiangdong-jianpu),,,
+G000551005000920010,all,gantry,成雅简蒲枢纽-成雅蒲江东站门架,11927,chengya(jianpu-pujiangdong),,,
+G000551005001010010,all,gantry,成雅简蒲枢纽-成雅蒲江站门架,99413,chengya(jianpu-pujiang),,,
+G00055100500101010,origin,square,成都主线入口,795387,chengdu toll(entrance),,,无点位
+G000551005001020010,all,gantry,成雅蒲江站-成雅简蒲枢纽门架,86252,chengya(pujiang-jianpu),,,
+G00055100500102010,all,square,成都主线出口,881779,chengdu toll(exit),tazSink,G00055100500101010,无点位
+G000551005001110010,all,gantry,成雅蒲江站-成雅石象湖站门架,605,chengya(pujiang-shixianghu),,,
+G000551005001120010,all,gantry,成雅石象湖站-成雅蒲江站门架,1412,chengya(shixianghu-pujiang),,,
+G000551005001210010,all,gantry,成雅石象湖站-成雅成佳站门架,609,chengya(shixianghu-chengjia),,,
+G000551005001220010,all,gantry,成雅成佳站-成雅石象湖站门架,554,chengya(chengjia-shixianghu),,,
+G000551005001310010,all,gantry,成雅成佳站-成雅太平站门架,448,chengya(chengjia-taiping),,,
+G000551005001320010,all,gantry,成雅太平站-成雅成佳站门架,429,chengya(taiping-chengjia),,,
+G000551005001410010,all,gantry,成雅太平站-成雅邛名枢纽门架,5372,chengya(taiping-qiongming),,,
+G000551005001420010,all,gantry,成雅邛名枢纽-成雅太平站门架,4398,chengya(qiongming-taiping),,,
+G000551005001610010,all,gantry,成雅名山站-成雅乐雅枢纽门架,286147,chengya(mingshan-leya),,,
+G000551005001620010,all,gantry,成雅乐雅枢纽-成雅名山站门架,260202,chengya(leya-mingshan),,,
+G000551005001710010,all,gantry,成雅乐雅枢纽-成雅雅安金鸡关站门架,15259,chengya(leya-yaanjinjiguan),,,
+G000551005001720010,all,gantry,成雅雅安金鸡关站-成雅乐雅枢纽门架,14039,chengya(yaanjinjiguan-leya),,,
+G000551005001810010,all,gantry,成雅雅安金鸡关站-成雅雅安北站门架,1673,chengyaya(anjinjiguan-anbei),,,
+G000551005001820010,all,gantry,成雅雅安北站-成雅雅安金鸡关站门架,1913,chengyaya(anbei-anjinjiguan),,,
+G000551005001910010,all,gantry,成雅雅安北站-成雅西康大桥站门架,5094,chengya(yaanbei-xikangdaqiao),,,
+G000551005001920010,all,gantry,成雅西康大桥站-成雅雅安北站门架,5722,chengya(xikangdaqiao-yaanbei),,,
+G000551005002010010,all,gantry,成雅西康大桥站-成雅雅安南枢纽门架,301767,chengya(xikangdaqiao-yaannan),,,
+G00055100500201010,origin,square,双流北站主站入口广场,364735,shuangliubei toll(main-entrance),,,无点位
+G000551005002020010,all,gantry,成雅雅安南枢纽-成雅西康大桥站门架,292220,chengya(yaannan-xikangdaqiao),,,
+G00055100500202010,destination,square,双流北站副站出口广场,255156,shuangliubei toll(sub-exit),,,无点位
+G00055100500202020,destination,square,双流北站主站出口广场,216396,shuangliubei toll(main-exit),,,无点位
+G00055100500301010,all,square,双流南站C匝道入口广场,668368,shuangliunanzhanczadao toll(entrance),tazSource,G00055100500302010,无点位
+G00055100500301020,origin,square,双流南站A匝道入口广场,83367,shuangliunanzhanazadao toll(entrance),,,无点位
+G00055100500302010,destination,square,双流南站D匝道出口广场,441106,shuangliunanzhandzadao toll(exit),,,无点位
+G00055100500302020,destination,square,双流南站B匝道出口广场,61731,shuangliunanzhanbzadao toll(exit),,,无点位
+G000551005003710010,all,gantry,成雅白家站-成雅双流北站门架,804362,chengya(baijia-shuangliubei),,,
+G000551005003720010,all,gantry,成雅双流北站-成雅白家站门架,730676,chengya(shuangliubei-baijia),,,
+G00055100500401010,origin,square,新津东站A站入口广场,250936,xinjindongzhana toll(entrance),,,无点位
+G00055100500401020,origin,square,新津东站D站入口广场,48574,xinjindongzhand toll(entrance),,,无点位
+G00055100500402010,destination,square,新津东站A站出口广场,271093,xinjindongzhana toll(exit),,,无点位
+G00055100500402030,destination,square,新津东站D站出口广场,35161,xinjindongzhand toll(exit),,,无点位
+G00055100500501010,origin,square,新津南站副站入口广场,145983,xinjinnan toll(sub-entrance),,,无点位
+G00055100500501020,origin,square,新津南站主站入口广场,38534,xinjinnan toll(main-entrance),,,无点位
+G00055100500502010,destination,square,新津南站主站出口广场,122,xinjinnan toll(main-exit),,,无点位
+G00055100500502020,destination,square,新津南主站出口,132725,xinjinnanzhu toll(exit),,,无点位
+G00055100500601010,origin,square,邛崃站主站入口广场,9699,qionglai toll(main-entrance),,,无点位
+G00055100500602010,destination,square,邛崃站副站出口广场,11272,qionglai toll(sub-exit),,,无点位
+G00055100500701010,origin,square,蒲江东主站入口广场,36332,pujiangdong toll(main-entrance),,,无点位
+G00055100500701020,origin,square,蒲江东副站入口广场,51263,pujiangdong toll(sub-entrance),,,无点位
+G00055100500702010,destination,square,蒲江东主站出口广场,55096,pujiangdong toll(main-exit),,,无点位
+G00055100500702020,destination,square,蒲江东副站出口广场,36193,pujiangdong toll(sub-exit),,,无点位
+G00055100500801010,origin,square,蒲江站入口广场,90324,pujiang toll(entrance),,,无点位
+G00055100500802010,all,square,蒲江站出口广场,218974,pujiang toll(exit),tazSink,G00055100500801010,无点位
+G00055100500901010,origin,square,石象湖站成都入口广场,13477,shixianghuzhanchengdu toll(entrance),,,无点位
+G00055100500902010,destination,square,石象湖站成都出口广场,12247,shixianghuzhanchengdu toll(exit),,,无点位
+G00055100501001010,origin,square,成佳站副站入口广场,25347,chengjia toll(sub-entrance),,,无点位
+G00055100501001020,origin,square,成佳站主站入口广场,7000,chengjia toll(main-entrance),,,无点位
+G00055100501002010,destination,square,成佳站副站出口广场,33387,chengjia toll(sub-exit),,,无点位
+G00055100501002020,destination,square,成佳站主站出口广场,76,chengjia toll(main-exit),,,无点位
+G00055100501101010,origin,square,太平站入口广场,55362,taiping toll(entrance),,,无点位
+G00055100501102010,destination,square,太平站出口广场,56647,taiping toll(exit),,,无点位
+G00055100501201010,origin,square,名山站入口广场,92874,mingshan toll(entrance),,,无点位
+G00055100501202010,destination,square,名山站出口广场,87654,mingshan toll(exit),,,无点位
+G00055100501301010,origin,square,雅安金鸡关站入口广场,108907,yaanjinjiguan toll(entrance),,,无点位
+G00055100501302010,destination,square,雅安金鸡关站出口广场,125756,yaanjinjiguan toll(exit),,,无点位
+G00055100501401010,origin,square,雅安北站入口广场,72965,yaanbei toll(entrance),,,无点位
+G00055100501402010,destination,square,雅安北站出口广场,73923,yaanbei toll(exit),,,无点位
+G00055100501501010,origin,square,西康大桥站入口广场,132741,xikangdaqiao toll(entrance),,,
+G00055100501502010,destination,square,西康大桥站出口广场,115827,xikangdaqiao toll(exit),,,
+G000551006000110010,all,gantry,雅泸成雅枢纽-雅泸雅安八步站门架,377610,yalu(chengya-yaanbabu),,,
+G000551006000120010,all,gantry,雅泸雅安八步站-雅泸成雅枢纽门架,300724,yalu(yaanbabu-chengya),,,
+G000551006000210010,all,gantry,雅泸雅安八步站-雅泸荥经站门架,28495,yalu(yaanbabu-xingjing),,,
+G000551006000220010,all,gantry,雅泸荥经站-雅泸雅安八步站门架,292380,yalu(xingjing-yaanbabu),,,
+G000551006000310010,all,gantry,雅泸荥经站-雅泸龙苍沟站门架,208867,yalu(xingjing-longcanggou),,,
+G000551006000320010,all,gantry,雅泸龙苍沟站-雅泸荥经站门架,4196,yalu(longcanggou-xingjing),,,
+G000551006000410010,all,gantry,雅泸龙苍沟站-雅泸九襄站门架,10032,yalu(longcanggou-jiuxiang),,,
+G000551006000420010,all,gantry,雅泸九襄站-雅泸龙苍沟站门架,4006,yalu(jiuxiang-longcanggou),,,
+G000551006000510010,all,gantry,雅泸九襄站-雅泸汉源北站门架,25428,yalu(jiuxiang-hanyuanbei),,,
+G000551006000520010,all,gantry,雅泸汉源北站-雅泸九襄站门架,21424,yalu(hanyuanbei-jiuxiang),,,
+G000551006000610010,all,gantry,雅泸汉源北站-雅泸汉源南站门架,30922,yaluhan(yuanbei-yuannan),,,
+G000551006000620010,all,gantry,雅泸汉源南站-雅泸汉源北站门架,32806,yaluhan(yuannan-yuanbei),,,
+G000551006000710010,all,gantry,雅泸汉源南站-雅泸石棉站门架,13196,yalu(hanyuannan-shimian),,,
+G000551006000720010,all,gantry,雅泸石棉站-雅泸汉源南站门架,3920,yalu(shimian-hanyuannan),,,
+G000551006000810010,all,gantry,雅泸石棉站-雅泸栗子坪站门架,4475,yalu(shimian-liziping),,,
+G000551006000820010,all,gantry,雅泸栗子坪站-雅泸石棉站门架,2881,yalu(liziping-shimian),,,
+G000551006000910010,all,gantry,雅泸栗子坪站-雅泸孟获城站门架,2118,yalu(liziping-menghuocheng),,,
+G000551006000920010,all,gantry,雅泸孟获城站-雅泸栗子坪站门架,2245,yalu(menghuocheng-liziping),,,
+G000551006001010010,all,gantry,雅泸孟获城站-雅泸彝海站门架,833,yalu(menghuocheng-yihai),,,
+G00055100600101010,origin,square,雅安南收费站入口广场01,15056,yaannanshoufeizhan01 toll(entrance),,,
+G000551006001020010,all,gantry,雅泸彝海站-雅泸孟获城站门架,698,yalu(yihai-menghuocheng),,,
+G00055100600102010,destination,square,雅安南收费站出口广场01,34944,yaannanshoufeizhan01 toll(exit),,,
+G000551006001110010,all,gantry,雅泸彝海站-雅泸灵山站门架,284,yalu(yihai-lingshan),,,
+G000551006001120010,all,gantry,雅泸灵山站-雅泸彝海站门架,511,yalu(lingshan-yihai),,,
+G000551006001210010,all,gantry,雅泸灵山站-雅泸冕宁站门架,370,yalu(lingshan-mianning),,,
+G000551006001220010,all,gantry,雅泸冕宁站-雅泸灵山站门架,468,yalu(mianning-lingshan),,,
+G000551006001310010,all,gantry,雅泸冕宁站-泸黄泸沽站门架,1175,yalu(mianning-luhuanglugu),,,
+G000551006001320010,all,gantry,泸黄泸沽站-雅泸冕宁站门架,787,luhuang(lugu-yalumianning),,,
+G00055100600201010,origin,square,荥经收费站入口广场01,130798,xingjingshoufeizhan01 toll(entrance),,,
+G00055100600202010,destination,square,荥经收费站出口广场01,39861,xingjingshoufeizhan01 toll(exit),,,
+G00055100600301010,origin,square,龙苍沟收费站入口广场01,25845,longcanggoushoufeizhan01 toll(entrance),,,
+G00055100600302010,destination,square,龙苍沟收费站出口广场01,26577,longcanggoushoufeizhan01 toll(exit),,,
+G00055100600401010,origin,square,九襄收费站入口广场01,105006,jiuxiangshoufeizhan01 toll(entrance),,,
+G00055100600402010,all,square,九襄收费站出口广场01,106691,jiuxiangshoufeizhan01 toll(exit),tazSink,G00055100600401010,
+G00055100600501010,origin,square,汉源北收费站入口广场01,59440,hanyuanbeishoufeizhan01 toll(entrance),,,
+G00055100600502010,destination,square,汉源北收费站出口广场01,54014,hanyuanbeishoufeizhan01 toll(exit),,,
+G00055100600601010,origin,square,汉源南收费站入口广场01,50040,hanyuannanshoufeizhan01 toll(entrance),,,
+G00055100600602010,destination,square,汉源南收费站出口广场01,52761,hanyuannanshoufeizhan01 toll(exit),,,
+G00055100600701010,origin,square,石棉收费站入口广场01,87961,shimianshoufeizhan01 toll(entrance),,,
+G00055100600702010,all,square,石棉收费站出口广场01,79540,shimianshoufeizhan01 toll(exit),tazSink,G00055100600701010,
+G00055100600801010,origin,square,栗子坪收费站入口广场01,21469,lizipingshoufeizhan01 toll(entrance),,,
+G00055100600802010,destination,square,栗子坪收费站出口广场01,27493,lizipingshoufeizhan01 toll(exit),,,
+G00055100600901010,origin,square,彝海收费站入口广场01,12289,yihaishoufeizhan01 toll(entrance),,,
+G00055100600902010,destination,square,彝海收费站出口广场01,13462,yihaishoufeizhan01 toll(exit),,,
+G00055100601001010,origin,square,冕宁收费站入口广场01,86186,mianningshoufeizhan01 toll(entrance),,,
+G00055100601002010,all,square,冕宁收费站出口广场01,102855,mianningshoufeizhan01 toll(exit),tazSink,G00055100601001010,
+G00055100601201010,origin,square,灵山收费站入口广场01,7924,lingshanshoufeizhan01 toll(entrance),,,
+G00055100601202010,destination,square,灵山收费站出口广场01,7672,lingshanshoufeizhan01 toll(exit),,,
+G00055100601301010,all,square,孟获城收费站入口广场01,7523,menghuochengshoufeizhan01 toll(entrance),tazSource,G00055100601302010,
+G00055100601302010,all,square,孟获城收费站出口广场01,6275,menghuochengshoufeizhan01 toll(exit),tazSink,G00055100601301010,
+G000551007000210010,all,gantry,泸黄泸沽站-泸黄漫水湾站门架,847,luhuang(lugu-manshuiwan),,,
+G000551007000220010,all,gantry,泸黄漫水湾站-泸黄泸沽站门架,863,luhuang(manshuiwan-lugu),,,
+G000551007000310010,all,gantry,泸黄漫水湾站-泸黄礼州站门架,652,luhuang(manshuiwan-lizhou),,,
+G000551007000320010,all,gantry,泸黄礼州站-泸黄漫水湾站门架,355,luhuang(lizhou-manshuiwan),,,
+G000551007000410010,all,gantry,泸黄礼州站-泸黄西昌北站门架,1239,luhuang(lizhou-xichangbei),,,
+G000551007000420010,all,gantry,泸黄西昌北站-泸黄礼州站门架,807,luhuang(xichangbei-lizhou),,,
+G000551007000510010,all,gantry,泸黄西昌北站-泸黄西昌站门架,1793,luhuang(xichangbei-xichang),,,
+G000551007000520010,all,gantry,泸黄西昌站-泸黄西昌北站门架,1069,luhuang(xichang-xichangbei),,,
+G000551007000610010,all,gantry,泸黄西昌站-泸黄马道站门架,312,luhuang(xichang-madao),,,
+G000551007000620010,all,gantry,泸黄马道站-泸黄西昌站门架,635,luhuang(madao-xichang),,,
+G000551007000710010,all,gantry,泸黄马道站-泸黄西昌南站门架,750,luhuang(madao-xichangnan),,,
+G000551007000720010,all,gantry,泸黄西昌南站-泸黄马道站门架,656,luhuang(xichangnan-madao),,,
+G00055100700101010,origin,square,泸沽站入口广场,189285,lugu toll(entrance),,,
+G00055100700102010,all,square,泸沽站出口广场,189332,lugu toll(exit),tazSink,G00055100700101010,
+G00055100700201010,origin,square,漫水湾站入口广场,81320,manshuiwan toll(entrance),,,
+G00055100700202010,destination,square,漫水湾站出口广场,78710,manshuiwan toll(exit),,,
+G00055100700301010,origin,square,礼州站入口广场,149173,lizhou toll(entrance),,,
+G00055100700302010,all,square,礼州站出口广场,127984,lizhou toll(exit),tazSink,G00055100700301010,
+G00055100700401010,origin,square,西昌北入口广场,104573,xichangbei toll(entrance),,,
+G00055100700402010,all,square,西昌北出口广场,145875,xichangbei toll(exit),tazSink,G00055100700401010,
+G00055100700501010,all,square,西昌站入口广场,476134,xichang toll(entrance),tazSource,G00055100700502010,
+G00055100700502010,all,square,西昌站出口广场,224783,xichang toll(exit),tazSink,G00055100700501010,
+G00055100700601010,all,square,西昌南入口广场,215065,xichangnan toll(entrance),tazSource,G00055100700602010,
+G00055100700602010,destination,square,西昌南出口广场,220316,xichangnan toll(exit),,,
+G00055100700701010,origin,square,马道收费站入口广场,212401,madaoshoufei toll(entrance),,,
+G00055100700702010,destination,square,马道收费站出口广场,180088,madaoshoufei toll(exit),,,
+G000551008000110010,all,gantry,泸黄西昌南站-西攀黄水站门架,467,luhuang(xichangnan-xipanhuangshui),,,
+G000551008000120010,all,gantry,西攀黄水站-泸黄西昌南站门架,774,xipan(huangshui-luhuangxichangnan),,,
+G000551008000210010,all,gantry,西攀黄水站-西攀德昌站门架,701,xipan(huangshui-dechang),,,
+G000551008000220010,all,gantry,西攀德昌站-西攀黄水站门架,577,xipan(dechang-huangshui),,,
+G000551008000310010,all,gantry,西攀德昌站-西攀蒲坝站门架,823,xipan(dechang-puba),,,
+G000551008000320010,all,gantry,西攀蒲坝站-西攀德昌站门架,2195,xipan(puba-dechang),,,
+G000551008000410010,all,gantry,西攀锦川枢纽-西攀永郎站门架,147439,xipan(jinchuan-yonglang),,,
+G000551008000420010,all,gantry,西攀永郎站-西攀锦川枢纽门架,134352,xipan(yonglang-jinchuan),,,
+G00055100800101010,all,square,黄水站入口广场,58470,huangshui toll(entrance),tazSource,G00055100800102010,
+G00055100800102010,destination,square,黄水站出口广场,54363,huangshui toll(exit),,,
+G00055100800201010,all,square,德昌站入口广场,114396,dechang toll(entrance),tazSource,G00055100800202010,
+G00055100800202010,destination,square,德昌站出口广场,115389,dechang toll(exit),,,
+G000551008002210010,all,gantry,西攀蒲坝站-西攀锦川枢纽门架,74088,xipan(puba-jinchuan),,,
+G000551008002220010,all,gantry,西攀锦川枢纽-西攀蒲坝站门架,75164,xipan(jinchuan-puba),,,
+G00055100800301010,origin,square,蒲坝站入口广场,12749,puba toll(entrance),,,
+G00055100800302010,all,square,蒲坝站出口广场,12003,puba toll(exit),tazSink,G00055100800301010,
+G000551044000210010,all,gantry,成绵成什绵枢纽-成绵金山站门架,566412,chengmian(chengshenmian-jinshan),,,
+G000551044000220010,all,gantry,成绵金山站-成绵成什绵枢纽门架,605154,chengmian(jinshan-chengshenmian),,,
+G000551044000310010,all,gantry,成绵金山站-成绵罗江站门架,44204,chengmian(jinshan-luojiang),,,
+G000551044000320010,all,gantry,成绵罗江站-成绵金山站门架,33018,chengmian(luojiang-jinshan),,,
+G000551044000410010,all,gantry,成绵罗江站-成绵白马关站门架,5964,chengmian(luojiang-baimaguan),,,
+G000551044000420010,all,gantry,成绵白马关站-成绵罗江站门架,5685,chengmian(baimaguan-luojiang),,,
+G000551044000510010,all,gantry,成绵白马关站-成绵德阳北站门架,3658,chengmian(baimaguan-deyangbei),,,
+G000551044000520010,all,gantry,成绵德阳北站-成绵白马关站门架,4430,chengmian(deyangbei-baimaguan),,,
+G000551044000610010,all,gantry,成绵三绕立交枢纽-成绵德阳站门架,519713,chengmian(sanraolijiao-deyang),,,
+G000551044000620010,all,gantry,成绵德阳站-成绵三绕立交枢纽门架,487480,chengmian(deyang-sanraolijiao),,,
+G000551044000710010,all,gantry,成绵德阳站-成绵德阳南站门架,29439,chengmian(deyang-deyangnan),,,
+G000551044000720010,all,gantry,成绵德阳南站-成绵德阳站门架,20363,chengmian(deyangnan-deyang),,,
+G000551044000810010,all,gantry,成绵德阳南站-成绵什邡站门架,61264,chengmian(deyangnan-shenfang),,,
+G000551044000820010,all,gantry,成绵什邡站-成绵德阳南站门架,65936,chengmian(shenfang-deyangnan),,,
+G000551044000910010,all,gantry,成绵什邡站-成绵广汉站门架,216699,chengmian(shenfang-guanghan),,,
+G000551044000920010,all,gantry,成绵广汉站-成绵什邡站门架,169833,chengmian(guanghan-shenfang),,,
+G000551044001010010,all,gantry,成绵广汉站-成绵二绕立交枢纽门架,1319202,chengmian(guanghan-erraolijiao),,,
+G00055104400101010,origin,square,成绵金山站入口广场,69095,chengmianjinshan toll(entrance),,,
+G000551044001020010,all,gantry,成绵二绕立交枢纽-成绵广汉站门架,1307778,chengmian(erraolijiao-guanghan),,,
+G00055104400102010,destination,square,成绵金山站出口广场,61688,chengmianjinshan toll(exit),,,
+G000551044001110010,all,gantry,成绵二绕立交枢纽-成绵青白江站门架,363458,chengmian(erraolijiao-qingbaijiang),,,
+G000551044001120010,all,gantry,成绵青白江站-成绵二绕立交枢纽门架,334500,chengmian(qingbaijiang-erraolijiao),,,
+G000551044001210010,all,gantry,成绵青白江站-成绵新都北站门架,11435,chengmian(qingbaijiang-xindoubei),,,
+G000551044001220010,all,gantry,成绵新都北站-成绵青白江站门架,9248,chengmian(xindoubei-qingbaijiang),,,
+G000551044001310010,all,gantry,成绵新都北站-成绵新都站门架,25993,chengmian(xindoubei-xindou),,,
+G000551044001320010,all,gantry,成绵新都站-成绵新都北站门架,26786,chengmian(xindou-xindoubei),,,
+G000551044001410010,all,gantry,成绵新都站-成绵白鹤林枢纽门架,1427333,chengmian(xindou-baihelin),,,
+G000551044001420010,all,gantry,成绵白鹤林枢纽-成绵新都站门架,1427326,chengmian(baihelin-xindou),,,
+G00055104400201010,origin,square,罗江站入口广场1,13399,luojiangzhan1 toll(entrance),,,
+G00055104400201020,origin,square,罗江站入口广场2,122686,luojiangzhan2 toll(entrance),,,
+G00055104400202010,destination,square,罗江站出口广场1,105030,luojiangzhan1 toll(exit),,,
+G00055104400202020,destination,square,罗江站出口广场2,39538,luojiangzhan2 toll(exit),,,
+G000551044002810010,all,gantry,成绵德阳北站-成绵三绕立交枢纽门架,65766,chengmian(deyangbei-sanraolijiao),,,
+G000551044002820010,all,gantry,成绵三绕立交枢纽-成绵德阳北站门架,70526,chengmian(sanraolijiao-deyangbei),,,
+G00055104400301010,origin,square,成绵白马关站入口广场1,7841,chengmianbaimaguanzhan1 toll(entrance),,,
+G00055104400301020,origin,square,成绵白马关站入口广场2,33240,chengmianbaimaguanzhan2 toll(entrance),,,
+G00055104400302010,destination,square,成绵白马关站出口广场1,16554,chengmianbaimaguanzhan1 toll(exit),,,
+G00055104400302020,destination,square,成绵白马关站出口广场2,17978,chengmianbaimaguanzhan2 toll(exit),,,
+G00055104400401010,origin,square,成绵德阳北站入口广场,107934,chengmiandeyangbei toll(entrance),,,
+G00055104400402010,destination,square,成绵德阳北站出口广场,100371,chengmiandeyangbei toll(exit),,,
+G00055104400501010,origin,square,德阳站入口广场,262681,deyang toll(entrance),,,
+G00055104400502010,destination,square,德阳站出口广场,268476,deyang toll(exit),,,
+G00055104400601010,origin,square,成绵德阳南站入口广场,341055,chengmiandeyangnan toll(entrance),,,
+G00055104400602010,destination,square,成绵德阳南站出口广场,300779,chengmiandeyangnan toll(exit),,,
+G00055104400701010,origin,square,什邡站入口广场,110977,shenfang toll(entrance),,,
+G00055104400702010,destination,square,什邡站出口广场,108298,shenfang toll(exit),,,
+G00055104400801010,origin,square,广汉站入口广场,197097,guanghan toll(entrance),,,
+G00055104400802010,destination,square,广汉站出口广场,201158,guanghan toll(exit),,,
+G00055104400901010,origin,square,青白江站入口广场,419346,qingbaijiang toll(entrance),,,
+G00055104400902010,destination,square,青白江站出口广场,405929,qingbaijiang toll(exit),,,
+G00055104401001010,origin,square,新都北站入口广场1,104737,xindoubeizhan1 toll(entrance),,,
+G00055104401001020,origin,square,新都北站入口广场2,213649,xindoubeizhan2 toll(entrance),,,
+G00055104401002010,destination,square,新都北站出口广场1,249493,xindoubeizhan1 toll(exit),,,
+G00055104401002020,destination,square,新都北站出口广场2,127694,xindoubeizhan2 toll(exit),,,
+G00055104401101010,origin,square,新都站入口广场,388272,xindou toll(entrance),,,
+G00055104401102010,destination,square,新都站出口广场,371347,xindou toll(exit),,,
+G007651002001110010,all,gantry,隆纳渠坝主线-隆纳纳黔枢纽门架,79430,longna(qubazhuxian-naqian),,,无线网图
+G007651002001120010,all,gantry,隆纳纳黔枢纽-隆纳渠坝主线门架,69449,longna(naqian-qubazhuxian),,,无线网图
+G007651003000110010,all,gantry,纳黔护国站-纳黔隆纳枢纽门架,318048,naqian(huguo-longna),,,无线网图
+G007651003000120010,all,gantry,纳黔隆纳枢纽-纳黔护国站门架,356818,naqian(longna-huguo),,,无线网图
+G007651003000210010,all,gantry,纳黔江门站-纳黔护国站门架,3200,naqian(jiangmen-huguo),,,无线网图
+G007651003000220010,all,gantry,纳黔护国站-纳黔江门站门架,2537,naqian(huguo-jiangmen),,,无线网图
+G007651003000310010,all,gantry,纳黔黄桷坪站-纳黔江门站门架,1632,naqian(huangjueping-jiangmen),,,无线网图
+G007651003000320010,all,gantry,纳黔江门站-纳黔黄桷坪站门架,867,naqian(jiangmen-huangjueping),,,无线网图
+G007651003000410010,all,gantry,纳黔宜叙枢纽-纳黔黄桷坪站门架,15762,naqian(yixu-huangjueping),,,无线网图
+G007651003000420010,all,gantry,纳黔黄桷坪站-纳黔宜叙枢纽门架,14538,naqian(huangjueping-yixu),,,无线网图
+G007651003000510010,all,gantry,纳黔叙永站-纳黔宜叙枢纽门架,71991,naqian(xuyong-yixu),,,
+G007651003000520010,all,gantry,纳黔宜叙枢纽-纳黔叙永站门架,52984,naqian(yixu-xuyong),,,
+G007651003000610010,all,gantry,纳黔正东站-纳黔叙永站门架,1902,naqian(zhengdong-xuyong),,,无线网图
+G007651003000620010,all,gantry,纳黔叙永站-纳黔正东站门架,25803,naqian(xuyong-zhengdong),,,无线网图
+G007651003000710010,all,gantry,纳黔叙古枢纽-纳黔正东站门架,111528,naqian(xugu-zhengdong),,,无线网图
+G007651003000720010,all,gantry,纳黔正东站-纳黔叙古枢纽门架,125103,naqian(zhengdong-xugu),,,无线网图
+G007651003000810010,all,gantry,纳黔叙威枢纽-纳黔叙古枢纽门架,65027,naqian(xuwei-xugu),,,无线网图
+G007651003000820010,all,gantry,纳黔叙古枢纽-纳黔叙威枢纽门架,81732,naqian(xugu-xuwei),,,无线网图
+G00765100300101010,origin,square,护国收费站入口收费广场,62103,huguoshoufei toll(entrance),,,无路网图
+G00765100300102010,destination,square,护国收费站出口收费广场,60935,huguoshoufei toll(exit),,,无路网图
+G007651003001810010,all,gantry,纳黔麻城站-纳黔叙威枢纽门架,71223,naqian(macheng-xuwei),,,无线网图
+G007651003001820010,all,gantry,纳黔叙威枢纽-纳黔麻城站门架,78488,naqian(xuwei-macheng),,,无线网图
+G00765100300201010,origin,square,江门收费站入口收费广场,68243,jiangmenshoufei toll(entrance),,,无路网图
+G00765100300202010,destination,square,江门收费站出口收费广场,70305,jiangmenshoufei toll(exit),,,无路网图
+G00765100300301010,origin,square,黄桷坪收费站入口收费广场,35674,huangjuepingshoufei toll(entrance),,,无路网图
+G00765100300302010,destination,square,黄桷坪收费站出口收费广场,35234,huangjuepingshoufei toll(exit),,,无路网图
+G00765100300401010,origin,square,叙永收费站入口收费广场,125058,xuyongshoufei toll(entrance),,,无路网图
+G00765100300402010,destination,square,叙永收费站出口收费广场,171531,xuyongshoufei toll(exit),,,无路网图
+G00765100300501010,origin,square,纳黔正东入口广场,52777,naqianzhengdong toll(entrance),,,无路网图
+G00765100300502010,destination,square,纳黔正东出口广场,51015,naqianzhengdong toll(exit),,,无路网图
+G00765100300601010,all,square,麻城收费站入口收费广场,35508,machengshoufei toll(entrance),tazSource,G00765100300602010,无点位
+G00765100300602010,all,square,麻城收费站出口收费广场,34875,machengshoufei toll(exit),tazSink,G00765100300601010,无点位
+G00765100300701010,all,square,四川收费站子站（赤水河）入口收费广场,8403,sichuanshoufeizhanzizhan（chishuihe） toll(entrance),tazSource,G00765100300702010,无点位
+G00765100300702010,destination,square,四川收费站出口收费广场,2463,sichuanshoufei toll(exit),,,无点位
+G420151001000110010,all,gantry,绕西货运大道站-绕东大件站门架,77470,rao(xihuoyundadao-dongdajian),,,
+G420151001000120010,all,gantry,绕东大件站-绕西货运大道站门架,14305,rao(dongdajian-xihuoyundadao),,,
+G420151001000210010,all,gantry,绕东大件站-绕东成绵枢纽门架,397772,raodong(dajian-chengmian),,,
+G420151001000220010,all,gantry,绕东成绵枢纽-绕东大件站门架,569584,raodong(chengmian-dajian),,,
+G420151001000410010,all,gantry,绕东成金站-绕东成南枢纽门架,932017,raodong(chengjin-chengnan),,,
+G420151001000420010,all,gantry,绕东成南枢纽-绕东成金站门架,840039,raodong(chengnan-chengjin),,,
+G420151001000510010,all,gantry,绕东成南枢纽-绕东成安渝枢纽门架,723027,raodong(chengnan-chenganyu),,,
+G420151001000520010,all,gantry,绕东成安渝枢纽-绕东成南枢纽门架,755851,raodong(chenganyu-chengnan),,,
+G420151001000610010,all,gantry,绕东成安渝枢纽-绕东成渝站门架,394309,raodong(chenganyu-chengyu),,,
+G420151001000620010,all,gantry,绕东成渝站-绕东成安渝枢纽门架,341169,raodong(chengyu-chenganyu),,,
+G420151001000710010,all,gantry,绕东成渝站-绕东成龙站门架,19814,raodong(chengyu-chenglong),,,
+G420151001000720010,all,gantry,绕东成龙站-绕东成渝站门架,10043,raodong(chenglong-chengyu),,,
+G420151001000810010,all,gantry,绕东成龙站-绕东天府国际机场枢纽门架,80350,raodong(chenglong-tianfuguojijichang),,,
+G420151001000820010,all,gantry,绕东天府国际机场枢纽-绕东成龙站门架,111729,raodong(tianfuguojijichang-chenglong),,,
+G420151001000910010,all,gantry,绕东天府国际机场枢纽-绕东成自泸枢纽门架,680924,raodong(tianfuguojijichang-chengzilu),,,
+G420151001000920010,all,gantry,绕东成自泸枢纽-绕东天府国际机场枢纽门架,667953,raodong(chengzilu-tianfuguojijichang),,,
+G420151001001010010,all,gantry,绕东成自泸枢纽-绕东天府站门架,570120,raodong(chengzilu-tianfu),,,
+G42015100100101010,origin,square,绕东大件站C入口,205152,raodongdajian toll(C-entrance),,,
+G42015100100101020,origin,square,绕东大件站A入口,691491,raodongdajian toll(A-entrance),,,
+G420151001001020010,all,gantry,绕东天府站-绕东成自泸枢纽门架,534262,raodong(tianfu-chengzilu),,,
+G42015100100102010,destination,square,绕东大件站D出口,711813,raodongdajian toll(D-exit),,,
+G42015100100102020,destination,square,绕东大件站B出口,226892,raodongdajian toll(B-exit),,,
+G420151001001110010,all,gantry,绕东天府站-绕东锦城湖站门架,15778,raodong(tianfu-jinchenghu),,,
+G420151001001120010,all,gantry,绕东锦城湖站-绕东天府站门架,34086,raodong(jinchenghu-tianfu),,,
+G420151001001210010,all,gantry,绕东锦城湖站-绕东成雅站门架,753500,raodong(jinchenghu-chengya),,,
+G420151001001220010,all,gantry,绕东成雅站-绕东锦城湖站门架,648394,raodong(chengya-jinchenghu),,,
+G420151001001310010,all,gantry,绕东成雅站-绕东机场站门架,386074,raodong(chengya-jichang),,,
+G420151001001320010,all,gantry,绕东机场站-绕东成雅站门架,393694,raodong(jichang-chengya),,,
+G42015100100201010,origin,square,绕东成金站入口,389357,raodongchengjin toll(entrance),,,
+G42015100100202010,destination,square,绕东成金站出口,376743,raodongchengjin toll(exit),,,
+G420151001002910010,all,gantry,绕东龙港枢纽-绕东成南枢纽门架,495043,raodong(longgang-chengnan),,,
+G420151001002920010,all,gantry,绕东成南枢纽-绕东龙港枢纽门架,465960,raodong(chengnan-longgang),,,
+G42015100100301010,origin,square,绕东成龙站A入口,367040,raodongchenglong toll(A-entrance),,,
+G42015100100301020,origin,square,绕东成龙站C入口,1162886,raodongchenglong toll(C-entrance),,,
+G42015100100302010,destination,square,绕东成龙站B出口,309788,raodongchenglong toll(B-exit),,,
+G42015100100302020,destination,square,绕东成龙站D出口,1123899,raodongchenglong toll(D-exit),,,
+G42015100100401010,all,square,绕东天府站入口,902190,raodongtianfu toll(entrance),tazSource,G42015100100402010,
+G42015100100402010,destination,square,绕东天府站出口,885964,raodongtianfu toll(exit),,,
+G42015100100501010,origin,square,绕东锦城湖站A入口,398392,raodongjinchenghu toll(A-entrance),,,
+G42015100100501020,origin,square,绕东锦城湖站C入口,1236088,raodongjinchenghu toll(C-entrance),,,
+G42015100100502010,destination,square,绕东锦城湖站B出口,958866,raodongjinchenghu toll(B-exit),,,
+G42015100100502020,destination,square,绕东锦城湖站D出口,509486,raodongjinchenghu toll(D-exit),,,
+G42015100100601010,origin,square,绕东成雅站A2入口,517337,raodongchengyazhana2 toll(entrance),,,
+G42015100100601020,origin,square,绕东成雅站A1入口,68982,raodongchengyazhana1 toll(entrance),,,
+G42015100100602010,destination,square,绕东成雅站B1出口,589055,raodongchengyazhanb1 toll(exit),,,
+G42015100100602020,destination,square,绕东成雅站B2出口,34569,raodongchengyazhanb2 toll(exit),,,
+G42015100100701010,origin,square,绕东机场站A入口,42703,raodongjichang toll(A-entrance),,,
+G42015100100701020,origin,square,绕东机场站C入口,611861,raodongjichang toll(C-entrance),,,
+G42015100100702010,destination,square,绕东机场站B出口,439060,raodongjichang toll(B-exit),,,
+G42015100100702020,destination,square,绕东机场站D出口,15721,raodongjichang toll(D-exit),,,
+G42015100100801010,origin,square,绕东成渝站A入口,137711,raodongchengyu toll(A-entrance),,,
+G42015100100801020,origin,square,绕东成渝站C入口,494450,raodongchengyu toll(C-entrance),,,
+G42015100100802010,destination,square,绕东成渝站B出口,219770,raodongchengyu toll(B-exit),,,
+G42015100100802020,destination,square,绕东成渝站D出口,550113,raodongchengyu toll(D-exit),,,
+G42015100100901010,origin,square,绕城高速成仁收费站C入口,337125,raochenggaosuchengrenshoufei toll(C-entrance),,,
+G42015100100902010,destination,square,绕城高速成仁收费站D出口,349953,raochenggaosuchengrenshoufei toll(D-exit),,,
+G420151002000110010,all,gantry,绕东机场站-绕西双流站门架,5276,rao(dongjichang-xishuangliu),,,
+G420151002000120010,all,gantry,绕西双流站-绕东机场站门架,7487,rao(xishuangliu-dongjichang),,,
+G420151002000210010,all,gantry,绕西双流站-绕西成新蒲站门架,5284,raoxi(shuangliu-chengxinpu),,,
+G420151002000220010,all,gantry,绕西成新蒲站-绕西双流站门架,5093,raoxi(chengxinpu-shuangliu),,,
+G420151002000310010,all,gantry,绕西成新蒲站-绕西光华大道站门架,48709,raoxi(chengxinpu-guanghuadadao),,,
+G420151002000320010,all,gantry,绕西光华大道站-绕西成新蒲站门架,46797,raoxi(guanghuadadao-chengxinpu),,,
+G420151002000410010,all,gantry,绕西光华大道站-绕西成温邛枢纽门架,496742,raoxi(guanghuadadao-chengwenqiong),,,
+G420151002000420010,all,gantry,绕西成温邛枢纽-绕西光华大道站门架,544540,raoxi(chengwenqiong-guanghuadadao),,,
+G420151002000510010,all,gantry,绕西成温邛枢纽-绕西永宁站门架,781936,raoxi(chengwenqiong-yongning),,,
+G420151002000520010,all,gantry,绕西永宁站-绕西成温邛枢纽门架,805363,raoxi(yongning-chengwenqiong),,,
+G420151002000610010,all,gantry,绕西永宁站-绕西成灌站门架,330353,raoxi(yongning-chengguan),,,
+G420151002000620010,all,gantry,绕西成灌站-绕西永宁站门架,357418,raoxi(chengguan-yongning),,,
+G420151002000710010,all,gantry,绕西成灌站-绕西蜀源站门架,275016,raoxi(chengguan-shuyuan),,,
+G420151002000720010,all,gantry,绕西蜀源站-绕西成灌站门架,294761,raoxi(shuyuan-chengguan),,,
+G420151002000810010,all,gantry,绕西蜀源站-绕西成彭门架,480074,raoxi(shuyuan-chengpeng),,,
+G420151002000820010,all,gantry,绕西成彭-绕西蜀源站门架,455848,raoxi(chengpeng-shuyuan),,,
+G420151002000910010,all,gantry,绕西成彭-绕西北新站门架,613179,raoxi(chengpeng-beixin),,,
+G420151002000920010,all,gantry,绕西北新站-绕西成彭门架,538504,raoxi(beixin-chengpeng),,,
+G420151002001010010,all,gantry,绕西北新站-绕西货运大道站门架,46097,raoxi(beixin-huoyundadao),,,
+G42015100200101010,origin,square,绕西货运大道站入口,399609,raoxihuoyundadao toll(entrance),,,
+G420151002001020010,all,gantry,绕西货运大道站-绕西北新站门架,48740,raoxi(huoyundadao-beixin),,,
+G42015100200102010,destination,square,绕西货运大道站出口,523268,raoxihuoyundadao toll(exit),,,
+G42015100200201010,origin,square,绕西北新站A入口,637747,raoxibeixin toll(A-entrance),,,
+G42015100200201020,origin,square,绕西北新站C入口,199794,raoxibeixin toll(C-entrance),,,
+G42015100200202010,destination,square,绕西北新站B出口,758770,raoxibeixin toll(B-exit),,,
+G42015100200202020,destination,square,绕西北新站D出口,130660,raoxibeixin toll(D-exit),,,
+G42015100200301010,all,square,绕西成灌站A入口,504102,raoxichengguan toll(A-entrance),tazSource,G42015100200302010,
+G42015100200301020,origin,square,绕西成灌站C入口,351516,raoxichengguan toll(C-entrance),,,
+G42015100200302010,destination,square,绕西成灌站B出口,823366,raoxichengguan toll(B-exit),,,
+G42015100200302020,all,square,绕西成灌站D出口,645066,raoxichengguan toll(D-exit),tazSink,G42015100200301020,
+G42015100200401010,origin,square,绕西成新蒲站A入口,229526,raoxichengxinpu toll(A-entrance),,,
+G42015100200401020,origin,square,绕西成新蒲站C入口,743666,raoxichengxinpu toll(C-entrance),,,
+G42015100200402010,destination,square,绕西成新蒲站B出口,251880,raoxichengxinpu toll(B-exit),,,
+G42015100200402020,destination,square,绕西成新蒲站D出口,884180,raoxichengxinpu toll(D-exit),,,
+G42015100200501010,all,square,绕西双流站A入口,574107,raoxishuangliu toll(A-entrance),tazSource,G42015100200502010,
+G42015100200501020,origin,square,绕西双流站C入口,786391,raoxishuangliu toll(C-entrance),,,
+G42015100200502010,all,square,绕西双流站B出口,486623,raoxishuangliu toll(B-exit),tazSink,G42015100200501010,
+G42015100200502020,destination,square,绕西双流站D出口,1418236,raoxishuangliu toll(D-exit),,,
+G42015100200601010,origin,square,绕西永宁站入口,780589,raoxiyongning toll(entrance),,,
+G42015100200602010,destination,square,绕西永宁站出口,693911,raoxiyongning toll(exit),,,
+G42015100200701010,origin,square,绕西蜀源站A入口,283497,raoxishuyuan toll(A-entrance),,,
+G42015100200701020,origin,square,绕西蜀源站C入口,740017,raoxishuyuan toll(C-entrance),,,
+G42015100200702010,destination,square,绕西蜀源站B出口,322211,raoxishuyuan toll(B-exit),,,
+G42015100200702020,destination,square,绕西蜀源站D出口,672070,raoxishuyuan toll(D-exit),,,
+G42015100200801010,origin,square,绕西光华大道站A入口,207063,raoxiguanghuadadao toll(A-entrance),,,
+G42015100200801020,origin,square,绕西光华大道站C入口,433042,raoxiguanghuadadao toll(C-entrance),,,
+G42015100200802010,destination,square,绕西光华大道站B出口,251567,raoxiguanghuadadao toll(B-exit),,,
+G42015100200802020,destination,square,绕西光华大道站D出口,479885,raoxiguanghuadadao toll(D-exit),,,
+S008151001000220010,all,gantry,德会六华站-德会老碾站门架,66032,dehui(liuhua-laonian),,,无线网图
+S008151001000310010,all,gantry,德会六华站-德会益门站门架,94385,dehui(liuhua-yimen),,,无线网图
+S008151001000320010,all,gantry,德会益门站-德会六华站门架,26757,dehui(yimen-liuhua),,,无线网图
+S00815100100101010,origin,square,老碾站入口广场,854,laonian toll(entrance),,,无路网图
+S00815100100102010,destination,square,老碾站出口广场,1215,laonian toll(exit),,,无路网图
+S00815100100201010,origin,square,六华站入口广场,7986,liuhua toll(entrance),,,无路网图
+S00815100100202010,destination,square,六华站出口广场,4629,liuhua toll(exit),,,无路网图
+S00815100100301010,origin,square,益门站入口广场,5458,yimen toll(entrance),,,无路网图
+S00815100100302010,destination,square,益门站出口广场,5649,yimen toll(exit),,,无路网图
+S00815100100401010,origin,square,会理北站入口广场,24626,huilibei toll(entrance),,,无路网图
+S00815100100402010,destination,square,会理北站出口广场,27977,huilibei toll(exit),,,无路网图
+S00815100100501010,origin,square,德会会理入口广场,11652,dehuihuili toll(entrance),,,无路网图
+S00815100100502010,destination,square,德会会理出口广场,11504,dehuihuili toll(exit),,,无路网图
+S420251002000210010,all,gantry,二绕西成自泸枢纽-二绕西成都科学城站门架,317710,erraoxicheng(zilu-doukexuecheng),,,无线网图
+S420251002000220010,all,gantry,二绕西成都科学城站-二绕西成自泸枢纽门架,320251,erraoxicheng(doukexuecheng-zilu),,,无线网图
+S420251002000310010,all,gantry,二绕西成都科学城站-二绕西天府新区站门架,7046,erraoxi(chengdukexuecheng-tianfuxinqu),,,无线网图
+S420251002000320010,all,gantry,二绕西天府新区站-二绕西成都科学城站门架,4379,erraoxi(tianfuxinqu-chengdukexuecheng),,,无线网图
+S420251002000410010,all,gantry,二绕西天府新区站-二绕西天府新区煎茶站门架,2214,erraoxitianfu(xinqu-xinqujiancha),,,无线网图
+S420251002000420010,all,gantry,二绕西天府新区煎茶站-二绕西天府新区站门架,1681,erraoxitianfu(xinqujiancha-xinqu),,,无线网图
+S420251002000510010,all,gantry,二绕西天府新区煎茶站-二绕西双流黄龙溪站门架,5736,erraoxi(tianfuxinqujiancha-shuangliuhuanglongxi),,,无线网图
+S420251002000520010,all,gantry,二绕西双流黄龙溪站-二绕西天府新区煎茶站门架,4887,erraoxi(shuangliuhuanglongxi-tianfuxinqujiancha),,,无线网图
+S420251002000610010,all,gantry,二绕西双流黄龙溪站-二绕西成雅枢纽门架,201203,erraoxi(shuangliuhuanglongxi-chengya),,,
+S420251002000620010,all,gantry,二绕西成雅枢纽-二绕西双流黄龙溪站门架,191930,erraoxi(chengya-shuangliuhuanglongxi),,,
+S420251002000810010,all,gantry,二绕西新津花源站-二绕西新津兴义站门架,219479,erraoxixinjin(huayuan-xingyi),,,
+S420251002000820010,all,gantry,二绕西新津兴义站-二绕西新津花源站门架,222785,erraoxixinjin(xingyi-huayuan),,,
+S420251002000910010,all,gantry,二绕西新津兴义站-二绕西崇州三江站门架,6015,erraoxi(xinjinxingyi-chongzhousanjiang),,,
+S420251002000920010,all,gantry,二绕西崇州三江站-二绕西新津兴义站门架,4927,erraoxi(chongzhousanjiang-xinjinxingyi),,,
+S420251002001010010,all,gantry,二绕西崇州三江站-二绕西崇州大划站门架,2322,erraoxichongzhou(sanjiang-dahua),,,
+S42025100200101010,origin,square,二绕西梓州大道站入口广场,18090,erraoxizizhoudadao toll(entrance),,,无点位
+S420251002001020010,all,gantry,二绕西崇州大划站-二绕西崇州三江站门架,1543,erraoxichongzhou(dahua-sanjiang),,,
+S42025100200102010,destination,square,二绕西梓州大道站出口广场,19156,erraoxizizhoudadao toll(exit),,,无点位
+S420251002001110010,all,gantry,二绕西崇州大划站-二绕西崇州站门架,112175,erraoxi(chongzhoudahua-chongzhou),,,
+S420251002001120010,all,gantry,二绕西崇州站-二绕西崇州大划站门架,117032,erraoxi(chongzhou-chongzhoudahua),,,
+S420251002001310010,all,gantry,二绕西成温邛枢纽-二绕西崇州廖家站门架,282779,erraoxi(chengwenqiong-chongzhouliaojia),,,
+S420251002001320010,all,gantry,二绕西崇州廖家站-二绕西成温邛枢纽门架,279750,erraoxi(chongzhouliaojia-chengwenqiong),,,
+S420251002001410010,all,gantry,二绕西崇州廖家站-二绕西温江万春站门架,8207,erraoxi(chongzhouliaojia-wenjiangwanchun),,,
+S420251002001420010,all,gantry,二绕西温江万春站-二绕西崇州廖家站门架,8623,erraoxi(wenjiangwanchun-chongzhouliaojia),,,
+S420251002001510010,all,gantry,二绕西温江万春站-二绕西郫都友爱站门架,153917,erraoxi(wenjiangwanchun-pidouyouai),,,
+S420251002001520010,all,gantry,二绕西郫都友爱站-二绕西温江万春站门架,149165,erraoxi(pidouyouai-wenjiangwanchun),,,
+S420251002001710010,all,gantry,二绕西成灌枢纽-二绕西郫都站门架,149604,erraoxi(chengguan-pidou),,,
+S420251002001720010,all,gantry,二绕西郫都站-二绕西成灌枢纽门架,152019,erraoxi(pidou-chengguan),,,
+S420251002001810010,all,gantry,二绕西郫都站-二绕西郫都古城站门架,20223,erraoxi(pidou-pidougucheng),,,
+S420251002001820010,all,gantry,二绕西郫都古城站-二绕西郫都站门架,18386,erraoxi(pidougucheng-pidou),,,
+S420251002001910010,all,gantry,二绕西郫都古城站-二绕西成彭枢纽门架,284061,erraoxi(pidougucheng-chengpeng),,,
+S420251002001920010,all,gantry,二绕西成彭枢纽-二绕西郫都古城站门架,281460,erraoxi(chengpeng-pidougucheng),,,
+S420251002002010010,all,gantry,二绕西成彭枢纽-二绕西新都清流站门架,85359,erraoxi(chengpeng-xindouqingliu),,,
+S42025100200201010,origin,square,二绕西天府大道站入口北广场,55126,erraoxitianfudadaozhanbei toll(entrance),,,无路网图
+S42025100200201020,origin,square,二绕西天府大道站入口南广场,75523,erraoxitianfudadaozhannan toll(entrance),,,无路网图
+S420251002002020010,all,gantry,二绕西新都清流站-二绕西成彭枢纽门架,88963,erraoxi(xindouqingliu-chengpeng),,,
+S42025100200202010,all,square,二绕西天府大道站出口北广场,37780,erraoxitianfudadaozhanbei toll(exit),tazSink,S42025100200201010,无路网图
+S42025100200202020,destination,square,二绕西天府大道站出口南广场,83602,erraoxitianfudadaozhannan toll(exit),,,无路网图
+S420251002002110010,all,gantry,二绕西新都清流站-二绕西北界枢纽门架,295181,erraoxi(xindouqingliu-beijie),,,
+S420251002002120010,all,gantry,二绕西北界枢纽-二绕西新都清流站门架,329074,erraoxi(beijie-xindouqingliu),,,
+S42025100200301010,origin,square,二绕西双流煎茶站入口广场,24540,erraoxishuangliujiancha toll(entrance),,,无路网图
+S42025100200302010,destination,square,二绕西双流煎茶站出口广场,29927,erraoxishuangliujiancha toll(exit),,,无路网图
+S42025100200401010,origin,square,黄龙溪站主站入口收费广场,47934,huanglongxizhanzhu toll(entrance),,,无路网图
+S42025100200401020,all,square,黄龙溪站副站入口收费广场,52439,huanglongxizhanfu toll(entrance),tazSource,S42025100200402020,无路网图
+S42025100200402010,all,square,黄龙溪站主站出口收费广场,104838,huanglongxizhanzhu toll(exit),tazSink,S42025100200401010,无路网图
+S42025100200402020,destination,square,黄龙溪站副站出口收费广场,37210,huanglongxizhanfu toll(exit),,,无路网图
+S42025100200501010,origin,square,二绕西新津花源站入口广场,70488,erraoxixinjinhuayuan toll(entrance),,,
+S42025100200502010,all,square,二绕西新津花源站出口广场,68482,erraoxixinjinhuayuan toll(exit),tazSink,S42025100200501010,
+S42025100200601010,origin,square,二绕西新津兴义站入口广场,124073,erraoxixinjinxingyi toll(entrance),,,
+S42025100200602010,destination,square,二绕西新津兴义站出口广场,113008,erraoxixinjinxingyi toll(exit),,,
+S42025100200701010,origin,square,二绕西崇州三江站入口广场,63843,erraoxichongzhousanjiang toll(entrance),,,
+S42025100200702010,destination,square,二绕西崇州三江站出口广场,63616,erraoxichongzhousanjiang toll(exit),,,
+S42025100200801010,origin,square,二绕西崇州收费站入口广场,92818,erraoxichongzhoushoufei toll(entrance),,,
+S42025100200802010,destination,square,二绕西崇州收费站出口广场,100190,erraoxichongzhoushoufei toll(exit),,,
+S42025100200901010,all,square,二绕西崇州廖家站入口广场,239701,erraoxichongzhouliaojia toll(entrance),tazSource,S42025100200902010,
+S42025100200902010,all,square,二绕西崇州廖家站出口广场,170472,erraoxichongzhouliaojia toll(exit),tazSink,S42025100200901010,
+S42025100201001010,all,square,二绕西温江万春站入口广场,80118,erraoxiwenjiangwanchun toll(entrance),tazSource,S42025100201002020,
+S42025100201002020,all,square,二绕西温江万春站出口广场,115496,erraoxiwenjiangwanchun toll(exit),tazSink,S42025100201001010,
+S42025100201101010,origin,square,二绕西郫县友爱站入口广场,38550,erraoxipixianyouai toll(entrance),,,
+S42025100201102010,destination,square,二绕西郫县友爱站出口广场,43408,erraoxipixianyouai toll(exit),,,
+S42025100201201010,all,square,二绕西郫县收费站入口广场,71225,erraoxipixianshoufei toll(entrance),tazSource,S42025100201202010,
+S42025100201202010,all,square,二绕西郫县收费站出口广场,72668,erraoxipixianshoufei toll(exit),tazSink,S42025100201201010,
+S42025100201301010,all,square,二绕西郫县古城站入口广场,122645,erraoxipixiangucheng toll(entrance),tazSource,S42025100201302010,
+S42025100201302010,all,square,二绕西郫县古城站出口广场,121258,erraoxipixiangucheng toll(exit),tazSink,S42025100201301010,
+S42025100201401010,origin,square,二绕西新都清流站入口广场,48204,erraoxixindouqingliu toll(entrance),,,
+S42025100201402010,destination,square,二绕西新都清流站出口广场,53038,erraoxixindouqingliu toll(exit),,,
+S42025100201501010,destination,square,二绕西大划站入口广场,95,erraoxidahua toll(entrance),,,
+S42025100201502010,all,square,二绕西大划站出口广场,348051,erraoxidahua toll(exit),tazSink,S42025100201501010,

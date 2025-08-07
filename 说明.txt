@@ -1,0 +1,3 @@
+1. 连接VPN；
+2. 运行api_test\start_api_test.bat，启动html页面，点击处理数据，通过html页面调取fastAPI获取对应时间的od数据生成rou.xml等仿真配置文件；
+3. 运行仿真，输出仿真结果。

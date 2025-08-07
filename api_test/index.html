@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+            <title>OD数据处理与精度分析API测试</title>
+    <link rel="stylesheet" href="styles.css?v=20250806">
+</head>
+<body>
+    <div class="container">
+        <h1>OD数据处理与精度分析API测试页面</h1>
+        
+        <div class="card">
+            <h2>1. 处理OD数据</h2>
+            <form id="odForm">
+                <div class="form-group">
+                    <label for="startTime">开始时间:</label>
+                    <input type="text" id="startTime" value="2025/07/21 08:00:00" placeholder="格式: YYYY/MM/DD HH:MM:SS">
+                    <small class="form-text">系统会根据时间范围自动选择合适的数据表</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="endTime">结束时间:</label>
+                    <input type="text" id="endTime" value="2025/07/21 09:00:00" placeholder="格式: YYYY/MM/DD HH:MM:SS">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tazFile">TAZ文件:</label>
+                    <input type="text" id="tazFile" value="TAZ_5_validated.add.xml">
+                </div>
+                
+                <div class="form-group">
+                    <label for="netFile">网络文件:</label>
+                    <input type="text" id="netFile" value="sichuan202503v6.net.xml">
+                </div>
+                
+                <div class="form-group">
+                    <label for="intervalMinutes">时间间隔(分钟):</label>
+                    <input type="number" id="intervalMinutes" value="5" min="1">
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="enableMesoscopic">
+                    <label for="enableMesoscopic">启用中观仿真</label>
+                </div>
+                
+                <h3>输出选项</h3>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="outputSummary" checked>
+                    <label for="outputSummary">summary.xml</label>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="outputTripinfo">
+                    <label for="outputTripinfo">tripinfo.xml</label>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="outputVehroute">
+                    <label for="outputVehroute">vehroute.xml</label>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="outputFcd">
+                    <label for="outputFcd">fcd.xml</label>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="outputNetstate">
+                    <label for="outputNetstate">netstate.xml</label>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="outputEmission">
+                    <label for="outputEmission">emission.xml</label>
+                </div>
+                
+                <button type="submit" id="processButton">处理数据</button>
+            </form>
+            
+            <div id="processResult" class="result-box"></div>
+        </div>
+        
+        <div class="card">
+            <h2>2. 运行仿真</h2>
+            <form id="simulationForm">
+                <div class="form-group">
+                    <label for="runFolder">运行文件夹:</label>
+                    <div class="input-with-dropdown">
+                        <input type="text" id="runFolder" placeholder="例如: run_20250708_143022" list="runFolderList">
+                        <datalist id="runFolderList"></datalist>
+                        <button type="button" id="refreshRunFolders" class="refresh-btn" title="刷新文件夹列表">🔄</button>
+                    </div>
+                    <small class="form-text">此字段会在OD数据处理完成后自动填充，也可手动选择或输入。系统会自动查找对应的OD文件、路由文件和配置文件。</small>
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="guiMode" checked>
+                    <label for="guiMode">使用GUI模式</label>
+                    <small class="form-text">启用后将启动SUMO GUI界面，关闭后将后台运行仿真</small>
+                </div>
+                
+                <button type="submit" id="runButton">运行仿真</button>
+            </form>
+            
+            <div id="simulationResult" class="result-box"></div>
+        </div>
+        
+        <div class="card">
+            <h2>3. 精度分析</h2>
+            <form id="accuracyForm">
+                <div class="form-group">
+                    <label for="simFolder">仿真结果文件夹:</label>
+                    <div class="input-with-dropdown">
+                        <input type="text" id="simFolder" placeholder="例如: run_20250807_145645" list="simFolderList">
+                        <datalist id="simFolderList"></datalist>
+                        <button type="button" id="refreshSimFolders" class="refresh-btn" title="刷新文件夹列表">🔄</button>
+                    </div>
+                    <small class="form-text">系统会自动解析时间范围并查找E1检测器数据。此字段会在仿真完成后自动填充，也可手动选择或输入</small>
+                </div>
+                
+                <button type="submit" id="accuracyButton">开始精度分析</button>
+            </form>
+            
+            <div id="accuracyResult" class="result-box"></div>
+        </div>
+        
+        <div class="card">
+            <h2>4. 精度分析状态查询</h2>
+            <form id="statusForm">
+                <div class="form-group">
+                    <label for="resultFolder">结果文件夹名称:</label>
+                    <div class="input-with-dropdown">
+                        <input type="text" id="resultFolder" placeholder="例如: accuracy_20250115_142530" list="resultFolderList">
+                        <datalist id="resultFolderList"></datalist>
+                        <button type="button" id="refreshResultFolders" class="refresh-btn" title="刷新文件夹列表">🔄</button>
+                    </div>
+                    <small class="form-text">从精度分析结果中获取的文件夹名称。此字段会在精度分析完成后自动填充，也可手动选择或输入</small>
+                </div>
+                
+                <button type="submit" id="statusButton">查询状态</button>
+            </form>
+            
+            <div id="statusResult" class="result-box"></div>
+        </div>
+    </div>
+    
+    <script src="script.js?v=20250806"></script>
+</body>
+</html> 

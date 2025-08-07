@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API调试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>API调试页面</h1>
+    <button onclick="testAPI()">测试API返回数据结构</button>
+    <div id="result" class="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                const data = {
+                    sim_folder: "run_20250806_160947"
+                };
+                
+                const response = await fetch('http://127.0.0.1:7999/analyze_accuracy/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    resultDiv.innerHTML = `
+                        <h3>✅ API调用成功</h3>
+                        <h4>完整响应结构:</h4>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                        
+                        <h4>result.result 结构:</h4>
+                        <pre>${JSON.stringify(result.result, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <h3>❌ API调用失败</h3>
+                        <p>状态码: ${response.status}</p>
+                        <p>错误信息: ${errorText}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ 请求失败</h3>
+                    <p>错误: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

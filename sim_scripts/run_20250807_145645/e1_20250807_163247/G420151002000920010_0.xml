@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-08-07 15:52:14 by Eclipse SUMO GUI Version 1.21.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="../sichuan202503v6.net.xml"/>
+        <route-files value="dwd_od_weekly_20250721080000_20250721090000.rou.xml"/>
+        <additional-files value="../TAZ_5_validated.add.xml"/>
+    </input>
+
+    <output>
+        <summary-output value="summary.xml"/>
+        <statistic-output value="static.xml"/>
+    </output>
+
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+    </time>
+
+    <report>
+        <duration-log.statistics value="true"/>
+    </report>
+
+    <gui_only>
+        <quit-on-end value="false"/>
+        <start value="true"/>
+    </gui_only>
+
+</sumoConfiguration>
+-->
+
+<detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
+    <interval begin="0.00" end="300.00" id="G420151002000920010_0" nVehContrib="40" flow="480.00" occupancy="2.41" speed="30.31" harmonicMeanSpeed="30.04" length="5.35" nVehEntered="40"/>
+    <interval begin="300.00" end="600.00" id="G420151002000920010_0" nVehContrib="73" flow="876.00" occupancy="4.66" speed="28.99" harmonicMeanSpeed="28.63" length="5.41" nVehEntered="73"/>
+    <interval begin="600.00" end="900.00" id="G420151002000920010_0" nVehContrib="57" flow="684.00" occupancy="3.60" speed="29.57" harmonicMeanSpeed="29.20" length="5.44" nVehEntered="57"/>
+    <interval begin="900.00" end="1200.00" id="G420151002000920010_0" nVehContrib="77" flow="924.00" occupancy="4.54" speed="29.54" harmonicMeanSpeed="29.31" length="5.16" nVehEntered="77"/>
+    <interval begin="1200.00" end="1500.00" id="G420151002000920010_0" nVehContrib="71" flow="852.00" occupancy="4.42" speed="29.64" harmonicMeanSpeed="29.33" length="5.37" nVehEntered="72"/>
+    <interval begin="1500.00" end="1800.00" id="G420151002000920010_0" nVehContrib="63" flow="756.00" occupancy="4.01" speed="29.30" harmonicMeanSpeed="28.91" length="5.46" nVehEntered="62"/>
+    <interval begin="1800.00" end="2100.00" id="G420151002000920010_0" nVehContrib="65" flow="780.00" occupancy="4.31" speed="28.51" harmonicMeanSpeed="28.13" length="5.52" nVehEntered="65"/>
+    <interval begin="2100.00" end="2400.00" id="G420151002000920010_0" nVehContrib="67" flow="804.00" occupancy="4.35" speed="29.37" harmonicMeanSpeed="29.03" length="5.51" nVehEntered="68"/>
+    <interval begin="2400.00" end="2700.00" id="G420151002000920010_0" nVehContrib="58" flow="696.00" occupancy="3.87" speed="29.06" harmonicMeanSpeed="28.66" length="5.53" nVehEntered="60"/>
+    <interval begin="2700.00" end="3000.00" id="G420151002000920010_0" nVehContrib="72" flow="864.00" occupancy="4.63" speed="29.00" harmonicMeanSpeed="28.58" length="5.44" nVehEntered="72"/>
+    <interval begin="3000.00" end="3300.00" id="G420151002000920010_0" nVehContrib="63" flow="756.00" occupancy="4.26" speed="28.71" harmonicMeanSpeed="28.33" length="5.63" nVehEntered="63"/>
+    <interval begin="3300.00" end="3600.00" id="G420151002000920010_0" nVehContrib="60" flow="720.00" occupancy="3.99" speed="29.13" harmonicMeanSpeed="28.73" length="5.62" nVehEntered="60"/>
+</detector>

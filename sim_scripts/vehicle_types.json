@@ -1,0 +1,76 @@
+{
+  "vehicle_types": {
+    "passenger_small": {
+      "id_prefix": "k",
+      "accel": 2.6,
+      "decel": 4.5,
+      "sigma": 0.5,
+      "length": 5.0,
+      "maxSpeed": 33.3,
+      "color": "yellow",
+      "valid_ids": ["k1", "k2"],
+      "vClass": "passenger",
+      "carFollowModel": "IDM"
+    },
+    "passenger_large": {
+      "id_prefix": "k",
+      "accel": 1.8,
+      "decel": 4.0,
+      "sigma": 0.4,
+      "length": 8.0,
+      "maxSpeed": 27.8,
+      "color": "orange",
+      "valid_ids": ["k3", "k4"],
+      "vClass": "passenger",
+      "carFollowModel": "IDM"
+    },
+    "truck_small": {
+      "id_prefix": "h",
+      "accel": 1.2,
+      "decel": 3.5,
+      "sigma": 0.3,
+      "length": 7.0,
+      "maxSpeed": 25.0,
+      "color": "blue",
+      "valid_ids": ["h1", "h2"],
+      "vClass": "truck",
+      "carFollowModel": "IDM"
+    },
+    "truck_large": {
+      "id_prefix": "h",
+      "accel": 0.8,
+      "decel": 3.5,
+      "sigma": 0.3,
+      "length": 12.0,
+      "maxSpeed": 22.2,
+      "color": "green",
+      "valid_ids": ["h3", "h4", "h5", "h6"],
+      "vClass": "truck",
+      "carFollowModel": "IDM"
+    },
+    "special_small": {
+      "id_prefix": "t",
+      "accel": 1.5,
+      "decel": 4.0,
+      "sigma": 0.4,
+      "length": 6.0,
+      "maxSpeed": 25.0,
+      "color": "red",
+      "valid_ids": ["t1", "t2"],
+      "vClass": "delivery",
+      "carFollowModel": "IDM"
+    },
+    "special_large": {
+      "id_prefix": "t",
+      "accel": 1.0,
+      "decel": 3.0,
+      "sigma": 0.6,
+      "length": 12.0,
+      "maxSpeed": 22.2,
+      "color": "black",
+      "valid_ids": ["t3", "t4", "t5", "t6"],
+      "vClass": "delivery",
+      "carFollowModel": "IDM"
+    }
+  }
+}

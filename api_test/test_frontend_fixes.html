@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端逻辑修复测试</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>前端逻辑修复测试页面</h1>
+        
+        <div class="card">
+            <h2>API连接状态测试</h2>
+            <div id="apiStatus">
+                <p>API连接状态: <span id="connectionStatus">检测中...</span></p>
+                <button onclick="testApiConnection()">测试API连接</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>数据验证测试</h2>
+            <form id="validationTestForm">
+                <div class="form-group">
+                    <label for="testStartTime">开始时间:</label>
+                    <input type="text" id="testStartTime" value="2025/07/21 08:00:00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="testEndTime">结束时间:</label>
+                    <input type="text" id="testEndTime" value="2025/07/21 09:00:00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="testInterval">时间间隔(分钟):</label>
+                    <input type="number" id="testInterval" value="5">
+                </div>
+                
+                <button type="submit">测试数据验证</button>
+            </form>
+            <div id="validationResult" class="result-box"></div>
+        </div>
+        
+        <div class="card">
+            <h2>仿真参数自动推导测试</h2>
+            <form id="simulationTestForm">
+                <div class="form-group">
+                    <label for="testRunFolder">运行文件夹:</label>
+                    <input type="text" id="testRunFolder" value="run_20250708_143022">
+                </div>
+                
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="testGuiMode" checked>
+                    <label for="testGuiMode">使用GUI模式</label>
+                </div>
+                
+                <button type="submit">测试参数推导</button>
+            </form>
+            <div id="simulationTestResult" class="result-box"></div>
+        </div>
+        
+        <div class="card">
+            <h2>通知功能测试</h2>
+            <button onclick="testNotification('success')">测试成功通知</button>
+            <button onclick="testNotification('error')">测试错误通知</button>
+            <button onclick="testNotification('info')">测试信息通知</button>
+        </div>
+        
+        <div class="card">
+            <h2>错误处理测试</h2>
+            <button onclick="testNetworkError()">模拟网络错误</button>
+            <button onclick="testTimeoutError()">模拟超时错误</button>
+            <button onclick="testServerError()">模拟服务器错误</button>
+            <div id="errorTestResult" class="result-box"></div>
+        </div>
+    </div>
+    
+    <script>
+        // API配置
+        const API_CONFIG = {
+            baseUrl: 'http://127.0.0.1:7999',
+            timeout: 120000,
+            retryCount: 2
+        };
+        
+        // API连接状态检测
+        async function testApiConnection() {
+            const statusElement = document.getElementById('connectionStatus');
+            
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/docs`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    statusElement.textContent = '✅ 已连接';
+                    statusElement.style.color = '#4CAF50';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusElement.textContent = '❌ 未连接';
+                statusElement.style.color = '#f44336';
+                console.warn('API连接检测失败:', error);
+            }
+        }
+        
+        // 数据验证测试
+        document.getElementById('validationTestForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const data = {
+                start_time: document.getElementById('testStartTime').value,
+                end_time: document.getElementById('testEndTime').value,
+                interval_minutes: parseInt(document.getElementById('testInterval').value),
+                taz_file: 'TAZ_5_validated.add.xml',
+                net_file: 'sichuan202503v6.net.xml'
+            };
+            
+            const validationError = validateOdData(data);
+            const resultElement = document.getElementById('validationResult');
+            
+            if (validationError) {
+                resultElement.className = 'result-box show error';
+                resultElement.textContent = `❌ 验证失败: ${validationError}`;
+            } else {
+                resultElement.className = 'result-box show success';
+                resultElement.textContent = '✅ 数据验证通过';
+            }
+        });
+        
+        // 仿真参数推导测试
+        document.getElementById('simulationTestForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const runFolder = document.getElementById('testRunFolder').value;
+            const gui = document.getElementById('testGuiMode').checked;
+            
+            if (!runFolder || runFolder.trim() === '') {
+                const resultElement = document.getElementById('simulationTestResult');
+                resultElement.className = 'result-box show error';
+                resultElement.textContent = '❌ 请输入运行文件夹名称';
+                return;
+            }
+            
+            // 自动推导文件路径
+            const data = {
+                run_folder: runFolder,
+                od_file: `${runFolder}/dwd_od_weekly_*.od.xml`,
+                route_file: `${runFolder}/dwd_od_weekly_*.rou.xml`,
+                sumocfg_file: `${runFolder}/simulation.sumocfg`,
+                gui: gui
+            };
+            
+            const resultElement = document.getElementById('simulationTestResult');
+            resultElement.className = 'result-box show success';
+            resultElement.textContent = `✅ 参数推导成功！
+
+运行文件夹: ${data.run_folder}
+OD文件: ${data.od_file}
+路由文件: ${data.route_file}
+配置文件: ${data.sumocfg_file}
+GUI模式: ${data.gui ? '启用' : '禁用'}
+
+这些参数将自动发送到API服务器。`;
+        });
+        
+        // 验证OD数据输入
+        function validateOdData(data) {
+            // 验证时间格式
+            const timeRegex = /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/;
+            
+            if (!timeRegex.test(data.start_time)) {
+                return '开始时间格式不正确，请使用 YYYY/MM/DD HH:MM:SS 格式';
+            }
+            
+            if (!timeRegex.test(data.end_time)) {
+                return '结束时间格式不正确，请使用 YYYY/MM/DD HH:MM:SS 格式';
+            }
+            
+            // 验证时间逻辑
+            const startTime = new Date(data.start_time);
+            const endTime = new Date(data.end_time);
+            
+            if (startTime >= endTime) {
+                return '开始时间必须早于结束时间';
+            }
+            
+            // 验证时间间隔
+            if (data.interval_minutes < 1 || data.interval_minutes > 60) {
+                return '时间间隔必须在1-60分钟之间';
+            }
+            
+            // 验证文件路径
+            if (!data.taz_file || data.taz_file.trim() === '') {
+                return '请输入TAZ文件路径';
+            }
+            
+            if (!data.net_file || data.net_file.trim() === '') {
+                return '请输入网络文件路径';
+            }
+            
+            return null;
+        }
+        
+        // 通知功能测试
+        function testNotification(type) {
+            let message, backgroundColor;
+            
+            switch(type) {
+                case 'success':
+                    message = '✅ 操作成功完成！';
+                    backgroundColor = '#4CAF50';
+                    break;
+                case 'error':
+                    message = '❌ 操作失败，请检查输入参数';
+                    backgroundColor = '#f44336';
+                    break;
+                case 'info':
+                    message = 'ℹ️ 这是信息通知';
+                    backgroundColor = '#2196F3';
+                    break;
+            }
+            
+            showAutoFillNotification(message, backgroundColor);
+        }
+        
+        // 显示通知
+        function showAutoFillNotification(message, backgroundColor = '#4CAF50') {
+            const notification = document.createElement('div');
+            notification.className = 'auto-fill-notification';
+            notification.textContent = message;
+            notification.style.backgroundColor = backgroundColor;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 错误处理测试
+        function testNetworkError() {
+            const resultElement = document.getElementById('errorTestResult');
+            resultElement.className = 'result-box show error';
+            resultElement.textContent = `❌ 网络错误模拟\n\n可能的原因：\n1. FastAPI服务器未运行\n2. 网络连接问题\n3. 防火墙阻止连接\n\n建议操作：\n1. 检查FastAPI服务器是否正在运行\n2. 尝试直接访问: http://127.0.0.1:7999/docs 检查API服务器\n3. 检查网络连接和防火墙设置`;
+        }
+        
+        function testTimeoutError() {
+            const resultElement = document.getElementById('errorTestResult');
+            resultElement.className = 'result-box show error';
+            resultElement.textContent = `❌ 请求超时（120秒）。处理大量数据时可能需要更长时间。\n\n可能的原因：\n1. 处理大量数据时超时\n2. 数据库查询时间过长\n3. 服务器资源不足\n\n建议操作：\n1. 尝试减小时间范围或增加时间间隔\n2. 检查数据库连接状态\n3. 查看FastAPI服务器控制台输出`;
+        }
+        
+        function testServerError() {
+            const resultElement = document.getElementById('errorTestResult');
+            resultElement.className = 'result-box show error';
+            resultElement.textContent = `❌ HTTP error! Status: 500, Text: Internal Server Error\n\n可能的原因：\n1. 服务器内部错误\n2. 数据库连接问题\n3. 文件路径错误\n\n建议操作：\n1. 查看FastAPI服务器控制台输出\n2. 检查数据库连接\n3. 确认文件路径是否正确`;
+        }
+        
+        // 页面加载时自动测试API连接
+        document.addEventListener('DOMContentLoaded', () => {
+            testApiConnection();
+        });
+    </script>
+</body>
+</html> 
