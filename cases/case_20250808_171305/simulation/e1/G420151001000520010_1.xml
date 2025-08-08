@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-08-08 18:11:52 by Eclipse SUMO GUI Version 1.21.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="cases/case_20250808_171305/config/../../../templates/network_files/sichuan202503v6.net.xml"/>
+        <route-files value="cases/case_20250808_171305/config/dwd_od_weekly_20250728080000_20250728090000.rou.xml"/>
+        <additional-files value="cases/case_20250808_171305/config/TAZ_5_validated.add.xml"/>
+    </input>
+
+    <output>
+        <output-prefix value="../../simulation/e1/"/>
+    </output>
+
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+    </time>
+
+    <processing>
+        <ignore-route-errors value="true"/>
+        <collision.action value="warn"/>
+    </processing>
+
+    <report>
+        <verbose value="true"/>
+        <no-warnings value="true"/>
+        <no-step-log value="true"/>
+    </report>
+
+</sumoConfiguration>
+-->
+
+<detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
+    <interval begin="0.00" end="300.00" id="G420151001000520010_1" nVehContrib="6" flow="72.00" occupancy="0.36" speed="27.53" harmonicMeanSpeed="27.53" length="5.00" nVehEntered="6"/>
+    <interval begin="300.00" end="522.00" id="G420151001000520010_1" nVehContrib="43" flow="697.30" occupancy="3.52" speed="27.52" harmonicMeanSpeed="27.52" length="5.00" nVehEntered="43"/>
+</detector>

@@ -281,36 +281,84 @@ class ODProcessor:
         return flow_data
     
     def generate_od_xml(self, od_matrix: pd.DataFrame, start_time: str, end_time: str, 
-                        output_file: str) -> None:
+                         output_file: str) -> None:
+         """
+         生成OD XML文件
+         
+         Args:
+             od_matrix: OD矩阵DataFrame（可为长表包含fromTaz/toTaz/vehsPerHour，或为以fromTaz为index、toTaz为columns的透视矩阵，值为车辆总数或速率）
+             start_time: 开始时间
+             end_time: 结束时间
+             output_file: 输出文件路径
+         """
+         logger.info(f"开始生成OD XML文件: {output_file}")
+         
+         # 创建XML根元素
+         root = ET.Element("od-matrix")
+         root.set("id", "od_matrix")
+         root.set("begin", "0")
+         root.set("end", str(self.calculate_duration(start_time, end_time)))
+         
+         # 根据输入数据结构写入
+         try:
+             if {'fromTaz', 'toTaz', 'vehsPerHour'}.issubset(set(od_matrix.columns)):
+                 # 长表，直接写
+                 for _, row in od_matrix.iterrows():
+                     od_pair = ET.SubElement(root, "od")
+                     od_pair.set("from", str(row['fromTaz']))
+                     od_pair.set("to", str(row['toTaz']))
+                     od_pair.set("vehsPerHour", str(float(row['vehsPerHour'])))
+             else:
+                 # 透视矩阵：index为fromTaz，columns为toTaz，值为车辆总数或速率
+                 total_hours = max(1e-6, self.calculate_duration(start_time, end_time) / 3600)
+                 for from_taz, row in od_matrix.iterrows():
+                     for to_taz, value in row.items():
+                         vehs_per_hour = float(value)
+                         # 如果值看起来像总车辆数（非速率），则转为速率
+                         if vehs_per_hour > 1e6 or vehs_per_hour == int(vehs_per_hour):
+                             vehs_per_hour = vehs_per_hour / total_hours
+                         od_pair = ET.SubElement(root, "od")
+                         od_pair.set("from", str(from_taz))
+                         od_pair.set("to", str(to_taz))
+                         od_pair.set("vehsPerHour", str(vehs_per_hour))
+         except Exception as e:
+             logger.error(f"写入OD矩阵失败: {e}")
+             raise
+         
+         # 写入文件
+         tree = ET.ElementTree(root)
+         tree.write(output_file, encoding='utf-8', xml_declaration=True)
+         
+         logger.info(f"OD XML文件生成完成: {output_file}")
+    
+    def generate_rou_xml(self, flow_df: pd.DataFrame, output_file: str) -> None:
         """
-        生成OD XML文件
-        
-        Args:
-            od_matrix: OD矩阵DataFrame
-            start_time: 开始时间
-            end_time: 结束时间
-            output_file: 输出文件路径
+        生成SUMO路由文件（基于TAZ流）
+        需要列：fromTaz, toTaz, vtype, begin, end, vehsPerHour
         """
-        logger.info(f"开始生成OD XML文件: {output_file}")
-        
-        # 创建XML根元素
-        root = ET.Element("od-matrix")
-        root.set("id", "od_matrix")
-        root.set("begin", "0")
-        root.set("end", str(self.calculate_duration(start_time, end_time)))
-        
-        # 添加OD对
-        for _, row in od_matrix.iterrows():
-            od_pair = ET.SubElement(root, "od")
-            od_pair.set("from", str(row['fromTaz']))
-            od_pair.set("to", str(row['toTaz']))
-            od_pair.set("vehsPerHour", str(row['vehsPerHour']))
-        
-        # 写入文件
+        logger.info(f"开始生成ROU XML文件: {output_file}")
+        root = ET.Element("routes")
+        # 车辆类型定义
+        for vt in sorted(set(flow_df.get('vtype', []))):
+            v = ET.SubElement(root, "vType")
+            v.set("id", str(vt))
+            # 基础占位属性，可根据需要微调
+            v.set("accel", "1.0"); v.set("decel", "4.5"); v.set("sigma", "0.5")
+            v.set("length", "5"); v.set("maxSpeed", "27.78")
+        # flows
+        for i, row in flow_df.iterrows():
+            f = ET.SubElement(root, "flow")
+            f.set("id", f"f{i}")
+            f.set("begin", str(int(row['begin'])))
+            f.set("end", str(int(row['end'])))
+            f.set("fromTaz", str(row['fromTaz']))
+            f.set("toTaz", str(row['toTaz']))
+            if 'vtype' in row and pd.notnull(row['vtype']):
+                f.set("type", str(row['vtype']))
+            f.set("vehsPerHour", str(float(row['vehsPerHour'])))
         tree = ET.ElementTree(root)
         tree.write(output_file, encoding='utf-8', xml_declaration=True)
-        
-        logger.info(f"OD XML文件生成完成: {output_file}")
+        logger.info(f"ROU XML文件生成完成: {output_file}")
     
     def process_od_data(self, db_connection, request: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -331,26 +379,28 @@ class ODProcessor:
             net_file = request['net_file']
             schemas_name = request.get('schemas_name', 'dwd')
             table_name = request.get('table_name')
+            output_dir = request.get('output_dir')
             
-            logger.info(f"开始处理OD数据: {start_time} 到 {end_time}")
+            logger.info(f"开始处理OD数据(单SQL): {start_time} 到 {end_time}，间隔 {interval_minutes} 分钟")
             
             # 计算总时长
             total_duration = self.calculate_duration(start_time, end_time)
             
-            # 分割时间范围
-            time_segments = self.split_time_range(start_time, end_time, interval_minutes)
-            logger.info(f"将时间范围分割为 {len(time_segments)} 个时间段")
-            
             # 加载TAZ信息
             taz_ids = self.load_taz_ids(taz_file)
             single_direction_tazs = self.load_single_direction_tazs(taz_file)
+            source_only_tazs = [k for k, v in single_direction_tazs.items() if v == 'source']
+            sink_only_tazs = [k for k, v in single_direction_tazs.items() if v == 'sink']
             
             if not taz_ids:
                 raise Exception(f"无法加载TAZ文件: {taz_file}")
             
-            # 创建输出目录
-            current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
-            run_folder = f"run_{current_time}"
+            # 输出目录
+            if output_dir:
+                run_folder = output_dir
+            else:
+                current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
+                run_folder = f"run_{current_time}"
             os.makedirs(run_folder, exist_ok=True)
             
             # 生成文件名
@@ -361,98 +411,100 @@ class ODProcessor:
             od_file = gen_file(".od.xml")
             route_file = gen_file(".rou.xml")
             sumocfg_file = os.path.join(run_folder, "simulation.sumocfg")
-            
-            # 收集所有时间段的flow数据
-            all_flow_data = []
-            
-            # 处理每个时间段
-            for segment_counter, (seg_start, seg_end) in enumerate(time_segments):
-                logger.info(f"处理时间段 #{segment_counter}: {seg_start} 到 {seg_end}")
-                
-                # 查询数据库
-                cursor = db_connection.cursor()
-                query = f'''
-                    SELECT * FROM "{schemas_name}"."{table_name}" 
-                    WHERE "start_time" >= TO_TIMESTAMP('{seg_start}', 'YYYY/MM/DD HH24:MI:SS')
-                    AND "start_time" < TO_TIMESTAMP('{seg_end}', 'YYYY/MM/DD HH24:MI:SS');
-                '''
-                cursor.execute(query)
-                
-                # 获取数据
-                colnames = [desc[0] for desc in cursor.description]
-                data = cursor.fetchall()
-                cursor.close()
-                
-                if not data:
-                    logger.info(f"时间段 #{segment_counter} 没有数据，跳过")
-                    continue
-                
-                # 创建DataFrame
-                df = pd.DataFrame(data, columns=colnames)
-                logger.info(f"时间段 #{segment_counter} 获取到 {len(df)} 条数据")
-                
-                # 处理缺失的收费广场代码
-                df['start_square_code'] = df['start_square_code'].where(
-                    df['start_square_code'].notnull() & (df['start_square_code'] != ''), 
-                    df['start_station_code']
-                )
-                df['end_square_code'] = df['end_square_code'].where(
-                    df['end_square_code'].notnull() & (df['end_square_code'] != ''), 
-                    df['end_station_code']
-                )
-                
-                # 筛选OD数据
-                filtered_df = self.filter_od_by_taz(df, taz_ids)
-                filtered_df = self.filter_invalid_od_data(filtered_df, single_direction_tazs)
-                
-                # 提取关键字段
-                od_data = filtered_df[['start_square_code', 'end_square_code', 'vehicle_type']].copy()
-                
-                # 处理车辆类型
-                od_data = self.process_vehicle_types(od_data)
-                
-                # 聚合OD数据
-                aggregated_od = self.aggregate_od_data(od_data)
-                
-                # 计算时间段在总仿真时间中的位置
-                segment_start_sec = self.calculate_duration(start_time, seg_start)
-                segment_end_sec = self.calculate_duration(start_time, seg_end)
-                
-                # 生成流量数据
-                flow_data = self.generate_flow_data(aggregated_od, segment_start_sec, segment_end_sec)
-                
-                # 添加到总流量数据
-                all_flow_data.append(flow_data)
-            
-            # 合并所有流量数据
-            if all_flow_data:
-                flow_df = pd.concat(all_flow_data, ignore_index=True)
-                
-                # 计算车辆数
-                flow_df['vehsPerHour'] = flow_df['vehsPerHour'].astype(float)
-                flow_df['vehicle_count'] = flow_df['vehsPerHour'] * (total_duration / 3600)
-                
-                # 按OD对聚合
-                od_matrix_df = flow_df.groupby(['fromTaz', 'toTaz'], as_index=False)['vehicle_count'].sum()
-                od_matrix = od_matrix_df.pivot(index='fromTaz', columns='toTaz', values='vehicle_count').fillna(0)
-                
-                # 生成OD文件
-                self.generate_od_xml(od_matrix, start_time, end_time, od_file)
-                
-                logger.info("OD数据处理完成")
-                
-                return {
-                    "success": True,
-                    "run_folder": run_folder,
-                    "od_file": os.path.abspath(od_file),
-                    "route_file": os.path.abspath(route_file),
-                    "sumocfg_file": os.path.abspath(sumocfg_file),
-                    "total_records": len(flow_df),
-                    "od_pairs": len(od_matrix_df)
-                }
-            else:
-                raise Exception("没有有效的流量数据生成")
-                
+ 
+            # 单SQL：在数据库内完成5分钟分桶与聚合以及车辆类型映射
+            base_sql = f"""
+            WITH params AS (
+              SELECT 
+                TO_TIMESTAMP(%s, 'YYYY/MM/DD HH24:MI:SS') AS start_ts,
+                TO_TIMESTAMP(%s, 'YYYY/MM/DD HH24:MI:SS') AS end_ts,
+                %s::int AS interval_min
+            )
+            SELECT
+              s."fromTaz", s."toTaz", s."vtype",
+              EXTRACT(EPOCH FROM s.ts_begin - p.start_ts)::int AS begin,
+              EXTRACT(EPOCH FROM s.ts_end   - p.start_ts)::int AS end,
+              (s.cnt::double precision) * (3600.0 / EXTRACT(EPOCH FROM (s.ts_end - s.ts_begin))) AS "vehsPerHour"
+            FROM (
+              SELECT
+                date_bin((p.interval_min||' minutes')::interval, t."start_time", p.start_ts)                                               AS ts_begin,
+                date_bin((p.interval_min||' minutes')::interval, t."start_time", p.start_ts) + (p.interval_min||' minutes')::interval     AS ts_end,
+                COALESCE(NULLIF(t."start_square_code", ''), t."start_station_code")                                                        AS "fromTaz",
+                COALESCE(NULLIF(t."end_square_code", ''),   t."end_station_code")                                                          AS "toTaz",
+                CASE
+                  WHEN t."vehicle_type" IN ('k1','k2')              THEN 'passenger_small'
+                  WHEN t."vehicle_type" IN ('k3','k4')              THEN 'passenger_large'
+                  WHEN t."vehicle_type" IN ('h1','h2')              THEN 'truck_small'
+                  WHEN t."vehicle_type" IN ('h3','h4','h5','h6')    THEN 'truck_large'
+                  WHEN t."vehicle_type" IN ('t1')                   THEN 'bus_small'
+                  WHEN t."vehicle_type" IN ('t2','t3','t4')         THEN 'bus_large'
+                  ELSE 'passenger_small'
+                END AS "vtype",
+                COUNT(*)::bigint AS cnt
+              FROM "{schemas_name}"."{table_name}" t
+              CROSS JOIN params p
+              WHERE t."start_time" >= p.start_ts AND t."start_time" < p.end_ts
+            {{TAZ_FILTERS}}
+              GROUP BY 1,2,3,4,5
+            ) s
+            CROSS JOIN params p
+            """
+             
+            # 构建可选TAZ过滤片段
+            filters = []
+            params: List[Any] = [start_time, end_time, interval_minutes]
+            # 限定在TAZ列表内
+            if taz_ids:
+                filters.append("AND COALESCE(NULLIF(t.\"start_square_code\", ''), t.\"start_station_code\") = ANY(%s)")
+                params.append(taz_ids)
+                filters.append("AND COALESCE(NULLIF(t.\"end_square_code\", ''),   t.\"end_station_code\")   = ANY(%s)")
+                params.append(taz_ids)
+            # 单向TAZ约束（起点不能是sink-only；终点不能是source-only）
+            if sink_only_tazs:
+                filters.append("AND NOT (COALESCE(NULLIF(t.\"start_square_code\", ''), t.\"start_station_code\") = ANY(%s))")
+                params.append(sink_only_tazs)
+            if source_only_tazs:
+                filters.append("AND NOT (COALESCE(NULLIF(t.\"end_square_code\", ''),   t.\"end_station_code\")   = ANY(%s))")
+                params.append(source_only_tazs)
+             
+            sql = base_sql.replace("{TAZ_FILTERS}", ("\n" + "\n".join(filters)) if filters else "")
+            logger.info("执行单SQL聚合查询...")
+             
+            cur = db_connection.cursor()
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            colnames = [desc[0] for desc in cur.description]
+            cur.close()
+             
+            if not rows:
+                raise Exception("指定时间窗内无数据")
+             
+            flow_df = pd.DataFrame(rows, columns=colnames)
+            logger.info(f"聚合查询返回 {len(flow_df)} 行")
+ 
+            # 计算车辆数：vehsPerHour * (每bucket时长小时)
+            bucket_hours = interval_minutes / 60.0
+            flow_df['vehicle_count'] = flow_df['vehsPerHour'].astype(float) * bucket_hours
+             
+            # 按OD对聚合得到整窗OD矩阵
+            od_matrix_df = flow_df.groupby(['fromTaz', 'toTaz'], as_index=False)['vehicle_count'].sum()
+            od_matrix = od_matrix_df.pivot(index='fromTaz', columns='toTaz', values='vehicle_count').fillna(0)
+ 
+            # 生成文件
+            self.generate_od_xml(od_matrix, start_time, end_time, od_file)
+            self.generate_rou_xml(flow_df, route_file)
+             
+            logger.info("OD数据处理完成(单SQL)")
+             
+            return {
+                "success": True,
+                "run_folder": run_folder,
+                "od_file": os.path.abspath(od_file),
+                "route_file": os.path.abspath(route_file),
+                "sumocfg_file": os.path.abspath(sumocfg_file),
+                "total_records": int(len(flow_df)),
+                "od_pairs": int(len(od_matrix_df))
+            }
         except Exception as e:
             logger.error(f"OD数据处理失败: {e}")
             return {

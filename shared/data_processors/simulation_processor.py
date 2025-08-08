@@ -6,10 +6,13 @@
 import os
 import subprocess
 import logging
+import time
+import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from collections import deque
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -59,6 +62,11 @@ class SimulationProcessor:
         end_dt = datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S")
         duration = int((end_dt - start_dt).total_seconds())
         
+        # 将路径标准化为POSIX（不改变是否相对，仅分隔符）
+        route_val = (route_file or "").replace('\\', '/')
+        net_val = (net_file or "").replace('\\', '/')
+        add_val = (additional_file or "").replace('\\', '/') if additional_file else None
+        
         # 创建XML根元素
         root = ET.Element("configuration")
         
@@ -67,16 +75,16 @@ class SimulationProcessor:
         
         # 网络文件
         net_elem = ET.SubElement(input_elem, "net-file")
-        net_elem.set("value", net_file)
+        net_elem.set("value", net_val)
         
         # 路由文件
         route_elem = ET.SubElement(input_elem, "route-files")
-        route_elem.set("value", route_file)
+        route_elem.set("value", route_val)
         
         # 附加文件（如TAZ文件）
         if additional_file:
             additional_elem = ET.SubElement(input_elem, "additional-files")
-            additional_elem.set("value", additional_file)
+            additional_elem.set("value", add_val)
         
         # 时间设置
         time_elem = ET.SubElement(root, "time")
@@ -120,7 +128,10 @@ class SimulationProcessor:
         return output_file
     
     def run_simulation(self, config_file: str, gui: bool = False, 
-                      mesoscopic: bool = False) -> Dict[str, Any]:
+                      mesoscopic: bool = False,
+                      run_folder: Optional[str] = None,
+                      progress_path: Optional[str] = None,
+                      expected_duration: Optional[int] = None) -> Dict[str, Any]:
         """
         运行仿真
         
@@ -128,6 +139,9 @@ class SimulationProcessor:
             config_file: 配置文件路径
             gui: 是否启用GUI
             mesoscopic: 是否使用中观仿真
+            run_folder: 仿真输出目录，用于放置summary.xml与进度文件
+            progress_path: 进度文件路径（progress.json）
+            expected_duration: 预期仿真时长（秒），用于估算百分比
             
         Returns:
             仿真结果
@@ -135,42 +149,149 @@ class SimulationProcessor:
         try:
             logger.info(f"开始运行仿真: {config_file}")
             
-            # 构建SUMO命令
+            # 根据是否GUI选择可执行文件
+            binary = "sumo-gui" if gui else self.sumo_binary
             if mesoscopic:
-                cmd = [self.sumo_binary, "-c", config_file, "--mesosim"]
+                cmd = [binary, "--mesosim"]
             else:
-                cmd = [self.sumo_binary, "-c", config_file]
+                cmd = [binary]
             
             if not gui:
-                cmd.append("--no-step-log")
+                # 为了跟踪进度，保留必要输出，仍关闭警告
                 cmd.append("--no-warnings")
-            
+
+            # 以sumocfg目录作为工作目录，确保相对路径解析一致（替代 -C）
+            norm_cfg = config_file.replace('\\','/')
+            config_dir = os.path.dirname(norm_cfg) or '.'
+            cfg_arg = os.path.basename(norm_cfg) or "simulation.sumocfg"
+
+            # 添加 -c 和配置文件名（相对于cwd）
+            cmd.extend(["-c", cfg_arg])
+
+            # GUI 模式下自动开始
+            if gui:
+                cmd.append("--start")
+
             logger.info(f"执行命令: {' '.join(cmd)}")
+            logger.info(f"工作目录: {config_dir}")
             
             # 运行仿真
             start_time = datetime.now()
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
-            end_time = datetime.now()
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                cwd=config_dir
+            )
+
+            def write_progress(status: str, percent: int, message: str = "", extra: Optional[Dict[str, Any]] = None):
+                if not progress_path:
+                    return
+                try:
+                    payload = {
+                        "status": status,
+                        "percent": max(0, min(100, int(percent))),
+                        "message": message[-500:] if message else "",
+                        "updated_at": datetime.now().isoformat(),
+                        "pid": proc.pid if proc and proc.poll() is None else None
+                    }
+                    if extra:
+                        payload.update(extra)
+                    os.makedirs(os.path.dirname(progress_path), exist_ok=True)
+                    with open(progress_path, "w", encoding="utf-8") as f:
+                        json.dump(payload, f, ensure_ascii=False, indent=2)
+                except Exception as _e:
+                    logger.debug(f"写入进度失败: {_e}")
+
+            def get_sim_time_from_summary() -> Optional[float]:
+                try:
+                    # 从sumocfg中已写入的summary_output相对路径推导：<config_dir>/../../simulation/summary.xml
+                    # 这里仍兼容优先读取运行目录下的summary.xml
+                    candidates = []
+                    if run_folder:
+                        candidates.append(os.path.join(run_folder, "summary.xml"))
+                    # 回退：config_dir/../../simulation/summary.xml
+                    cfg_dir = config_dir
+                    candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulation/summary.xml")))
+                    for sf in candidates:
+                        if os.path.exists(sf):
+                            tree = ET.parse(sf)
+                            root = tree.getroot()
+                            steps = list(root.findall('.//step'))
+                            if steps:
+                                last = steps[-1]
+                                t = last.get('time') or last.get('end') or last.get('begin')
+                                if t is not None:
+                                    return float(t)
+                    return None
+                except Exception:
+                    return None
+
+            last_lines = deque(maxlen=200)
             
-            # 检查执行结果
-            if result.returncode == 0:
+            last_percent = 0
+            write_progress("running", 0, "仿真启动中")
+
+            last_line = ""
+            while True:
+                line = proc.stdout.readline() if proc.stdout else ""
+                if line:
+                    last_line = line.strip()
+                    try:
+                        last_lines.append(last_line)
+                    except Exception:
+                        pass
+                if line == "" and proc.poll() is not None:
+                    break
+
+                # 估算百分比
+                percent = last_percent
+                sim_time = get_sim_time_from_summary()
+                if expected_duration and expected_duration > 0:
+                    if sim_time is not None:
+                        percent = int(sim_time / expected_duration * 100)
+                    else:
+                        # 基于耗时的保守估算，最多到95%
+                        elapsed = (datetime.now() - start_time).total_seconds()
+                        percent = min(95, int(elapsed / expected_duration * 100))
+                else:
+                    # 无法估算，保持已有百分比
+                    percent = max(percent, 10 if last_percent == 0 else last_percent)
+
+                if percent != last_percent or (int(time.time()) % 3 == 0):
+                    write_progress("running", percent, last_line)
+                    last_percent = percent
+
+                time.sleep(0.5)
+
+            end_time = datetime.now()
+            return_code = proc.returncode
+
+            if return_code == 0:
                 logger.info("仿真运行成功")
+                write_progress("completed", 100, "仿真完成")
                 return {
                     "success": True,
                     "config_file": config_file,
                     "start_time": start_time.isoformat(),
                     "end_time": end_time.isoformat(),
                     "duration": (end_time - start_time).total_seconds(),
-                    "stdout": result.stdout,
-                    "stderr": result.stderr
+                    "stdout": None,
+                    "stderr": None
                 }
             else:
-                logger.error(f"仿真运行失败: {result.stderr}")
+                tail = "\n".join(list(last_lines)[-50:])
+                logger.error("仿真运行失败\n" + tail)
+                write_progress("failed", last_percent, "仿真失败", {"return_code": return_code, "last_lines": tail})
                 return {
                     "success": False,
                     "config_file": config_file,
-                    "error": result.stderr,
-                    "return_code": result.returncode
+                    "error": "SUMO返回非零状态码",
+                    "return_code": return_code,
+                    "last_lines": tail
                 }
                 
         except subprocess.TimeoutExpired:
@@ -354,8 +475,43 @@ class SimulationProcessor:
                 else:
                     raise Exception("未提供配置文件路径")
             
-            # 运行仿真
-            simulation_result = self.run_simulation(config_file, gui, mesoscopic)
+            # 标准化路径分隔符
+            config_file = config_file.replace('\\', '/')
+            run_folder = run_folder.replace('\\', '/') if run_folder else run_folder
+
+            # 确保输出目录存在
+            if run_folder and not os.path.exists(run_folder):
+                os.makedirs(run_folder, exist_ok=True)
+
+            # 读取metadata获取预期仿真时长
+            expected_duration = None
+            case_dir = Path(run_folder).parent if run_folder else None
+            meta_file = case_dir / "metadata.json" if case_dir else None
+            if meta_file and meta_file.exists():
+                try:
+                    with open(meta_file, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    start_str = meta.get("time_range", {}).get("start")
+                    end_str = meta.get("time_range", {}).get("end")
+                    if start_str and end_str:
+                        start_dt = datetime.strptime(start_str, "%Y/%m/%d %H:%M:%S")
+                        end_dt = datetime.strptime(end_str, "%Y/%m/%d %H:%M:%S")
+                        expected_duration = int((end_dt - start_dt).total_seconds())
+                except Exception:
+                    expected_duration = None
+
+            # 回退到请求中的expected_duration
+            if expected_duration is None:
+                expected_duration = request.get("expected_duration")
+
+            progress_path = os.path.join(run_folder, "progress.json") if run_folder else None
+
+            simulation_result = self.run_simulation(
+                config_file, gui, mesoscopic,
+                run_folder=run_folder,
+                progress_path=progress_path,
+                expected_duration=expected_duration
+            )
             
             if simulation_result["success"]:
                 # 收集仿真结果

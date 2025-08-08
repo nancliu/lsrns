@@ -42,6 +42,17 @@ async def run_simulation(request: SimulationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"仿真运行失败: {str(e)}")
 
+@router.get("/simulation_progress/{case_id}")
+async def get_simulation_progress(case_id: str):
+    """
+    获取仿真任务进度
+    """
+    try:
+        data = await get_simulation_progress_service(case_id)
+        return BaseResponse(success=True, message="获取进度成功", data=data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取进度失败: {str(e)}")
+
 @router.post("/analyze_accuracy/", response_model=BaseResponse)
 async def analyze_accuracy(request: AccuracyAnalysisRequest):
     """

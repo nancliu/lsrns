@@ -21,10 +21,31 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
     """
     try:
         from shared.data_processors.od_processor import ODProcessor
+        from accuracy_analysis.utils import get_table_names_from_date
+        from datetime import datetime as _dt
         
         # 创建OD处理器
         od_processor = ODProcessor()
         
+        # 若未显式提供表名，则根据开始时间推断
+        inferred_table_name = request.table_name
+        if not inferred_table_name:
+            try:
+                start_dt = _dt.strptime(request.start_time, "%Y/%m/%d %H:%M:%S")
+                table_names = get_table_names_from_date(start_dt)
+                inferred_table_name = table_names.get("od_table")
+            except Exception:
+                inferred_table_name = None
+        if not inferred_table_name:
+            raise Exception("未提供有效的表名，且自动推断失败。请在请求中设置 table_name 或检查时间格式以便自动推断。")
+
+        # 生成case_id与输出目录（cases结构）
+        case_id = f"case_{_dt.now().strftime('%Y%m%d_%H%M%S')}"
+        case_dir = Path("cases") / case_id
+        (case_dir / "config").mkdir(parents=True, exist_ok=True)
+        (case_dir / "simulation").mkdir(parents=True, exist_ok=True)
+        (case_dir / "analysis" / "accuracy").mkdir(parents=True, exist_ok=True)
+
         # 构建请求参数
         request_params = {
             "start_time": request.start_time,
@@ -33,27 +54,160 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
             "taz_file": request.taz_file,
             "net_file": request.net_file,
             "schemas_name": request.schemas_name,
-            "table_name": request.table_name
+            "table_name": inferred_table_name,
+            "output_dir": str(case_dir / "config")
         }
         
-        # 获取数据库连接（这里需要实现数据库连接逻辑）
-        # 暂时使用模拟连接
-        db_connection = None  # TODO: 实现数据库连接
+        # 获取数据库连接
+        db_connection = open_db_connection()
         
         # 处理OD数据
         result = od_processor.process_od_data(db_connection, request_params)
         
         if result["success"]:
+            # 复制TAZ文件到case/config，保持文件名
+            try:
+                if request.taz_file and os.path.exists(request.taz_file):
+                    shutil.copy2(request.taz_file, case_dir / "config" / Path(request.taz_file).name)
+            except Exception:
+                pass
+
+            # 默认不复制网络文件；如需自包含可在后续需求中增加开关
+            copied_network_path = None
+ 
+            # 生成并保存sumocfg（写入真实时间注释）
+            try:
+                from api.utils import generate_sumocfg, save_sumocfg
+                # 计算相对路径（相对于sumocfg所在目录）
+                sumocfg_path = Path(os.path.abspath(result.get("sumocfg_file")))
+                cfg_dir = sumocfg_path.parent
+                route_abs = Path(os.path.abspath(result.get("route_file")))
+                if copied_network_path:
+                    net_abs = Path(os.path.abspath(str(copied_network_path)))
+                else:
+                    net_abs = Path(os.path.abspath(request.net_file)) if request.net_file else None
+                # TAZ附加文件：优先使用复制到config下的同名文件
+                add_abs = None
+                if request.taz_file:
+                    add_candidate = (case_dir / "config" / Path(request.taz_file).name)
+                    add_abs = Path(os.path.abspath(add_candidate)) if add_candidate.exists() else Path(os.path.abspath(request.taz_file))
+                # 尝试相对路径，跨盘符失败则使用绝对POSIX路径
+                try:
+                    route_rel = Path(os.path.relpath(route_abs, cfg_dir)).as_posix()
+                except ValueError:
+                    route_rel = route_abs.as_posix()
+                if net_abs:
+                    try:
+                        net_rel = Path(os.path.relpath(net_abs, cfg_dir)).as_posix()
+                    except ValueError:
+                        net_rel = net_abs.as_posix()
+                else:
+                    net_rel = ""
+                if add_abs:
+                    try:
+                        add_rel = Path(os.path.relpath(add_abs, cfg_dir)).as_posix()
+                    except ValueError:
+                        add_rel = add_abs.as_posix()
+                else:
+                    add_rel = None
+
+                cfg_content = generate_sumocfg(
+                    route_file=route_rel,
+                    net_file=net_rel,
+                    start_time=request.start_time,
+                    end_time=request.end_time,
+                    additional_file=add_rel,
+                    output_prefix="../../simulation/",
+                    summary_output="../../simulation/summary.xml",
+                )
+                # 在XML声明之后插入真实时间注释，避免破坏XML规范
+                marker = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                insert_comment = f"{marker}\n<!-- real_start={request.start_time}, real_end={request.end_time} -->"
+                if marker in cfg_content:
+                    cfg_content = cfg_content.replace(marker, insert_comment, 1)
+                else:
+                    # 兜底：如果没有XML声明，则添加到最前一行
+                    cfg_content = f"<!-- real_start={request.start_time}, real_end={request.end_time} -->\n" + cfg_content
+                save_sumocfg(cfg_content, os.path.abspath(result.get("sumocfg_file")))
+            except Exception as _e:
+                # 不阻断主流程，留日志即可
+                print(f"写入sumocfg失败: {_e}")
+
+            # 写入/更新metadata.json
+            try:
+                # 辅助：转为相对于项目根目录的POSIX相对路径
+                def to_posix_rel(path_str: str) -> str:
+                    if not path_str:
+                        return path_str
+                    try:
+                        abs_p = Path(os.path.abspath(path_str))
+                        rel = abs_p.relative_to(Path.cwd())
+                        return rel.as_posix()
+                    except Exception:
+                        try:
+                            return Path(os.path.relpath(path_str, Path.cwd())).as_posix()
+                        except Exception:
+                            return Path(path_str).as_posix()
+                # 简单模板版本识别
+                taz_file_name = Path(request.taz_file).name if request.taz_file else None
+                network_file_name = Path(request.net_file).name if request.net_file else None
+                def _detect_version(name: str) -> str:
+                    if not name:
+                        return "unknown"
+                    low = name.lower()
+                    if "taz_5" in low:
+                        return "TAZ_5"
+                    if "v6" in low:
+                        return "v6"
+                    if "v5" in low:
+                        return "v5"
+                    return "unknown"
+                metadata = {
+                    "case_id": case_id,
+                    "case_name": request.case_name or case_id,
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat(),
+                    "time_range": {"start": request.start_time, "end": request.end_time},
+                    "config": {
+                        "interval_minutes": request.interval_minutes,
+                        "schemas_name": request.schemas_name,
+                    },
+                    "templates": {
+                        "taz_version": _detect_version(taz_file_name),
+                        "network_version": _detect_version(network_file_name),
+                        "taz_file_name": taz_file_name,
+                        "network_file_name": network_file_name
+                    },
+                    "status": CaseStatus.PROCESSING.value,
+                    "description": request.description,
+                    "files": {
+                        "od_file": to_posix_rel(result.get("od_file")),
+                        "routes_file": to_posix_rel(result.get("route_file")),
+                        "config_file": to_posix_rel(result.get("sumocfg_file")),
+                        "taz_file": to_posix_rel(str((case_dir / "config" / Path(request.taz_file).name))) if request.taz_file else None,
+                        "network_file": to_posix_rel(str(copied_network_path)) if copied_network_path else (to_posix_rel(request.net_file) if request.net_file else None)
+                    },
+                    "statistics": {
+                        "total_records": result.get("total_records"),
+                        "od_pairs": result.get("od_pairs")
+                    },
+                    "last_step": "od_processed"
+                }
+                with open(case_dir / "metadata.json", "w", encoding="utf-8") as f:
+                    json.dump(metadata, f, ensure_ascii=False, indent=2)
+            except Exception as _e:
+                print(f"写入metadata.json失败: {_e}")
             return {
                 "start_time": request.start_time,
                 "end_time": request.end_time,
                 "interval_minutes": request.interval_minutes,
                 "processed_at": datetime.now().isoformat(),
                 "status": "completed",
-                "run_folder": result.get("run_folder"),
-                "od_file": result.get("od_file"),
-                "route_file": result.get("route_file"),
-                "sumocfg_file": result.get("sumocfg_file"),
+                "case_id": case_id,
+                "run_folder": (case_dir / "config").as_posix(),
+                "od_file": to_posix_rel(result.get("od_file")),
+                "route_file": to_posix_rel(result.get("route_file")),
+                "sumocfg_file": to_posix_rel(result.get("sumocfg_file")),
                 "total_records": result.get("total_records"),
                 "od_pairs": result.get("od_pairs")
             }
@@ -62,6 +216,12 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
             
     except Exception as e:
         raise Exception(f"OD数据处理失败: {str(e)}")
+    finally:
+        try:
+            if 'db_connection' in locals() and db_connection:
+                db_connection.close()
+        except Exception:
+            pass
 
 async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
     """
@@ -74,19 +234,63 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
         sim_processor = SimulationProcessor()
         
         # 构建请求参数
+        # run_folder 可能是案例根目录（cases/case_xxx），也可能是cases/{case_id}/simulation或cases/{case_id}/config
+        input_run_folder = request.run_folder.replace('\\', '/')
+        base_name = os.path.basename(input_run_folder.rstrip('/'))
+        if base_name in ("simulation", "config"):
+            case_root = os.path.dirname(input_run_folder.rstrip('/'))
+        else:
+            case_root = input_run_folder
+
+        # 默认sumocfg取cases/{case_id}/config/simulation.sumocfg
+        default_cfg = os.path.join(case_root, "config", "simulation.sumocfg")
+        cfg_file = (request.config_file or default_cfg).replace('\\', '/')
+        # 如果误传了simulation/config路径，纠正为config路径
+        cfg_file = cfg_file.replace('/simulation/config/', '/config/').replace('\\simulation\\config\\', '\\config\\').replace('\\simulation/config\\', '\\config\\')
+ 
+        # 仿真前更新metadata状态为simulating
+        try:
+            case_dir = Path(case_root)
+            meta_file = case_dir / "metadata.json"
+            if meta_file.exists():
+                with open(meta_file, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                meta["status"] = CaseStatus.SIMULATING.value
+                meta["updated_at"] = datetime.now().isoformat()
+                meta["last_step"] = "simulation_start"
+                with open(meta_file, "w", encoding="utf-8") as f:
+                    json.dump(meta, f, ensure_ascii=False, indent=2)
+        except Exception as _e:
+            print(f"更新metadata为simulating失败: {_e}")
         request_params = {
-            "run_folder": request.run_folder,
+            "run_folder": os.path.join(case_root, "simulation"),  # 仿真输出目录
             "gui": request.gui,
             "mesoscopic": request.simulation_type == SimulationType.MESOSCOPIC,
-            "config_file": os.path.join(request.run_folder, "simulation.sumocfg")
+            "config_file": cfg_file,
+            "expected_duration": request.expected_duration # 新增：预期仿真时长
         }
         
         # 处理仿真请求
         result = sim_processor.process_simulation_request(request_params)
         
         if result["success"]:
+            # 仿真后更新metadata状态为completed
+            try:
+                case_dir = Path(case_root)
+                meta_file = case_dir / "metadata.json"
+                if meta_file.exists():
+                    with open(meta_file, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    meta["status"] = CaseStatus.COMPLETED.value
+                    meta["updated_at"] = datetime.now().isoformat()
+                    meta["last_step"] = "simulation"
+                    meta.setdefault("files", {})["config_file"] = cfg_file
+                    with open(meta_file, "w", encoding="utf-8") as f:
+                        json.dump(meta, f, ensure_ascii=False, indent=2)
+            except Exception as _e:
+                print(f"更新metadata为completed失败: {_e}")
             return {
-                "run_folder": result.get("run_folder"),
+                "run_folder": request_params["run_folder"],
                 "gui": result.get("gui"),
                 "mesoscopic": result.get("mesoscopic"),
                 "simulation_type": request.simulation_type.value,
@@ -100,6 +304,21 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
             
     except Exception as e:
         raise Exception(f"仿真运行失败: {str(e)}")
+
+async def get_simulation_progress_service(case_id: str) -> Dict[str, Any]:
+    """
+    读取仿真进度（progress.json）
+    """
+    try:
+        case_dir = Path("cases") / case_id
+        prog_file = case_dir / "simulation" / "progress.json"
+        if not prog_file.exists():
+            return {"status": "unknown", "percent": 0, "message": "暂无进度"}
+        with open(prog_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        return {"status": "error", "percent": 0, "message": str(e)}
 
 async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str, Any]:
     """

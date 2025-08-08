@@ -8,6 +8,11 @@ import subprocess
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from pathlib import Path
+import psycopg2
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 # ==================== 时间处理工具 ====================
 
@@ -206,14 +211,24 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
     try:
         # 计算仿真时长
         duration = calculate_duration(start_time, end_time)
+        # 标准化为POSIX分隔符（不改变相对/绝对，仅分隔符）
+        route_val = (route_file or "").replace('\\', '/')
+        net_val = (net_file or "").replace('\\', '/')
+        add_val = (kwargs.get("additional_file") or "").replace('\\', '/') if kwargs.get("additional_file") else None
+        output_prefix_val = (kwargs.get("output_prefix") or "").replace('\\', '/') if kwargs.get("output_prefix") else None
+        summary_output_val = (kwargs.get("summary_output") or "").replace('\\', '/') if kwargs.get("summary_output") else None
         
         # 生成配置文件内容
+        input_additional = f"\n        <additional-files value=\"{add_val}\"/>" if add_val else ""
+        output_block = f"\n    <output>\n        <output-prefix value=\"{output_prefix_val}\"/>\n    </output>" if output_prefix_val else ""
+        summary_line = f"\n        <summary-output value=\"{summary_output_val}\"/>" if summary_output_val else ""
         config_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <input>
-        <net-file value="{net_file}"/>
-        <route-files value="{route_file}"/>
+        <net-file value="{net_val}"/>
+        <route-files value="{route_val}"/>{input_additional}
     </input>
+    {output_block}
     
     <time>
         <begin value="0"/>
@@ -227,10 +242,9 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
     
     <report>
         <verbose value="true"/>
-        <no-step-log value="true"/>
+        <no-step-log value="true"/>{summary_line}
     </report>
 </configuration>'''
-        
         return config_content
     except Exception as e:
         raise Exception(f"SUMO配置文件生成失败: {str(e)}")
@@ -443,4 +457,34 @@ def save_config(config_data: Dict[str, Any], config_file: str) -> bool:
             json.dump(config_data, f, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
-        raise Exception(f"配置文件保存失败: {str(e)}") 
+        raise Exception(f"配置文件保存失败: {str(e)}")
+
+# ==================== 数据库工具 ====================
+
+def get_db_config() -> Dict[str, Any]:
+    """
+    获取数据库配置，优先从环境变量读取，回退到accuracy_analysis.utils.DB_CONFIG。
+    需要的环境变量：DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+    """
+    from accuracy_analysis.utils import DB_CONFIG as DEFAULT_DB_CONFIG
+
+    db_config = {
+        "dbname": os.getenv("DB_NAME", DEFAULT_DB_CONFIG.get("dbname")),
+        "user": os.getenv("DB_USER", DEFAULT_DB_CONFIG.get("user")),
+        "password": os.getenv("DB_PASSWORD", DEFAULT_DB_CONFIG.get("password")),
+        "host": os.getenv("DB_HOST", DEFAULT_DB_CONFIG.get("host")),
+        "port": os.getenv("DB_PORT", DEFAULT_DB_CONFIG.get("port")),
+    }
+    return db_config
+
+def open_db_connection():
+    """
+    打开PostgreSQL数据库连接。
+    Returns:
+        psycopg2连接对象
+    """
+    try:
+        cfg = get_db_config()
+        return psycopg2.connect(**cfg)
+    except Exception as e:
+        raise Exception(f"数据库连接失败: {str(e)}") 

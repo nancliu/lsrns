@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse  # 新增
 from api.routes import router
 from api.compatibility import compatibility_router
 
@@ -34,14 +35,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def root():
-    """根路径，返回系统基本信息"""
-    return {
-        "message": "OD数据处理与仿真系统",
-        "version": "1.0.0",
-        "status": "running"
-    }
+    # 改为跳转到前端首页
+    return RedirectResponse(url="/index.html")
 
 # 注册路由
 app.include_router(router, prefix="/api/v1")
@@ -57,4 +54,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

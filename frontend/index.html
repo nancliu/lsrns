@@ -15,65 +15,136 @@
 
         <nav class="navigation">
             <ul>
-                <li><a href="#cases" class="nav-link active">案例管理</a></li>
-                <li><a href="#simulation" class="nav-link">仿真控制</a></li>
-                <li><a href="#analysis" class="nav-link">分析结果</a></li>
+                <li><a href="#od-processing" class="nav-link active">OD数据处理</a></li>
+                <li><a href="#simulation" class="nav-link">仿真运行</a></li>
+                <li><a href="#accuracy-analysis" class="nav-link">精度分析</a></li>
+                <li><a href="#case-management" class="nav-link">案例管理</a></li>
                 <li><a href="#templates" class="nav-link">模板管理</a></li>
                 <li><a href="#tools" class="nav-link">工具</a></li>
             </ul>
         </nav>
 
         <main class="main-content">
-            <!-- 案例管理部分 -->
-            <section id="cases" class="section active">
-                <h2>案例管理</h2>
-                <div class="case-controls">
-                    <button id="create-case-btn" class="btn btn-primary">创建新案例</button>
-                    <button id="refresh-cases-btn" class="btn btn-secondary">刷新列表</button>
+            <!-- 1. OD数据处理 -->
+            <section id="od-processing" class="section active">
+                <h2>OD数据处理</h2>
+                <div class="processing-form">
+                    <form id="od-processing-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="start-time">开始时间:</label>
+                                <input type="datetime-local" id="start-time" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="end-time">结束时间:</label>
+                                <input type="datetime-local" id="end-time" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="taz-file">TAZ文件:</label>
+                                <select id="taz-file" class="form-control" required>
+                                    <option value="">请选择TAZ文件</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="network-file">网络文件:</label>
+                                <select id="network-file" class="form-control" required>
+                                    <option value="">请选择网络文件</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="interval-minutes">时间间隔(分钟):</label>
+                                <input type="number" id="interval-minutes" class="form-control" value="5" min="1" max="60">
+                            </div>
+                            <div class="form-group">
+                                <label for="case-name">案例名称:</label>
+                                <input type="text" id="case-name" class="form-control" placeholder="自动生成，可自定义">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="case-description">案例描述:</label>
+                            <textarea id="case-description" class="form-control" rows="3" placeholder="可选描述信息"></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" id="process-od-btn" class="btn btn-primary">处理OD数据</button>
+                            <button type="button" id="refresh-templates-btn" class="btn btn-secondary">刷新模板</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="case-list">
-                    <div class="loading">加载中...</div>
+                
+                <div id="od-processing-result" class="result-area">
+                    <div class="loading">等待处理...</div>
                 </div>
             </section>
 
-            <!-- 仿真控制部分 -->
+            <!-- 2. 仿真运行 -->
             <section id="simulation" class="section">
-                <h2>仿真控制</h2>
+                <h2>仿真运行</h2>
                 <div class="simulation-controls">
                     <div class="form-group">
-                        <label for="case-select">选择案例:</label>
-                        <select id="case-select" class="form-control">
-                            <option value="">请选择案例</option>
+                        <label for="simulation-case">选择案例:</label>
+                        <select id="simulation-case" class="form-control">
+                            <option value="">请选择已处理的案例</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="simulation-type">仿真类型:</label>
-                        <select id="simulation-type" class="form-control">
-                            <option value="microscopic">微观仿真</option>
-                            <option value="mesoscopic">中观仿真</option>
-                            <option value="macroscopic">宏观仿真</option>
-                        </select>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="simulation-type">仿真类型:</label>
+                            <select id="simulation-type" class="form-control">
+                                <option value="microscopic">微观仿真</option>
+                                <option value="mesoscopic">中观仿真</option>
+                                <option value="macroscopic">宏观仿真</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="gui-mode">运行模式:</label>
+                            <select id="gui-mode" class="form-control">
+                                <option value="false">后台运行</option>
+                                <option value="true">GUI模式</option>
+                            </select>
+                        </div>
                     </div>
-                    <button id="run-simulation-btn" class="btn btn-primary">运行仿真</button>
+                    
+                    <div class="form-actions">
+                        <button id="run-simulation-btn" class="btn btn-primary">启动仿真</button>
+                        <button id="refresh-simulation-cases-btn" class="btn btn-secondary">刷新案例列表</button>
+                    </div>
                 </div>
+                
                 <div class="simulation-status">
                     <div class="status-indicator">
                         <span class="status-dot"></span>
                         <span class="status-text">未开始</span>
                     </div>
+                    <div id="simulation-progress" class="progress-bar" style="display: none;">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <div id="simulation-result" class="result-area">
+                    <div class="loading">等待仿真结果...</div>
                 </div>
             </section>
 
-            <!-- 分析结果部分 -->
-            <section id="analysis" class="section">
-                <h2>分析结果</h2>
+            <!-- 3. 精度分析 -->
+            <section id="accuracy-analysis" class="section">
+                <h2>精度分析</h2>
                 <div class="analysis-controls">
                     <div class="form-group">
-                        <label for="analysis-case-select">选择案例:</label>
-                        <select id="analysis-case-select" class="form-control">
-                            <option value="">请选择案例</option>
+                        <label for="analysis-case">选择案例:</label>
+                        <select id="analysis-case" class="form-control">
+                            <option value="">请选择已完成仿真的案例</option>
                         </select>
                     </div>
+                    
                     <div class="form-group">
                         <label for="analysis-type">分析类型:</label>
                         <select id="analysis-type" class="form-control">
@@ -82,14 +153,43 @@
                             <option value="performance">性能分析</option>
                         </select>
                     </div>
-                    <button id="run-analysis-btn" class="btn btn-primary">运行分析</button>
+                    
+                    <div class="form-actions">
+                        <button id="run-analysis-btn" class="btn btn-primary">开始精度分析</button>
+                        <button id="refresh-analysis-cases-btn" class="btn btn-secondary">刷新案例列表</button>
+                    </div>
                 </div>
-                <div class="analysis-results">
-                    <div class="loading">暂无分析结果</div>
+                
+                <div id="analysis-result" class="result-area">
+                    <div class="loading">等待分析结果...</div>
                 </div>
             </section>
 
-            <!-- 模板管理部分 -->
+            <!-- 4. 案例管理 -->
+            <section id="case-management" class="section">
+                <h2>案例管理</h2>
+                <div class="case-controls">
+                    <div class="search-controls">
+                        <input type="text" id="case-search" class="form-control" placeholder="搜索案例...">
+                        <select id="case-status-filter" class="form-control">
+                            <option value="">全部状态</option>
+                            <option value="created">已创建</option>
+                            <option value="processing">处理中</option>
+                            <option value="simulating">仿真中</option>
+                            <option value="analyzing">分析中</option>
+                            <option value="completed">已完成</option>
+                            <option value="failed">失败</option>
+                        </select>
+                        <button id="refresh-cases-btn" class="btn btn-secondary">刷新</button>
+                    </div>
+                </div>
+                
+                <div class="case-list">
+                    <div class="loading">加载案例列表...</div>
+                </div>
+            </section>
+
+            <!-- 5. 模板管理 -->
             <section id="templates" class="section">
                 <h2>模板管理</h2>
                 <div class="template-tabs">
@@ -110,7 +210,7 @@
                 </div>
             </section>
 
-            <!-- 工具部分 -->
+            <!-- 6. 工具 -->
             <section id="tools" class="section">
                 <h2>工具</h2>
                 <div class="tools-grid">
@@ -118,9 +218,7 @@
                         <h3>TAZ文件验证</h3>
                         <p>验证TAZ文件的格式和内容</p>
                         <input type="file" id="taz-file-input" accept=".xml" style="display: none;">
-                        <button class="btn btn-secondary" onclick="document.getElementById('taz-file-input').click()">
-                            选择文件
-                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('taz-file-input').click()">选择文件</button>
                     </div>
                     <div class="tool-card">
                         <h3>TAZ文件修复</h3>
@@ -140,13 +238,11 @@
         <div id="modal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <div id="modal-body">
-                    <!-- 模态框内容 -->
-                </div>
+                <div id="modal-body"></div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20250808"></script>
 </body>
 </html> 

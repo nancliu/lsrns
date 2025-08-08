@@ -38,12 +38,19 @@ class TimeRangeRequest(BaseModel):
     end_time: str = Field(..., description="结束时间，格式：YYYY/MM/DD HH:MM:SS")
     schemas_name: Optional[str] = Field("dwd", description="数据库模式名称")
     interval_minutes: Optional[int] = Field(5, description="时间间隔（分钟）")
+    taz_file: Optional[str] = Field(None, description="TAZ文件路径")
+    net_file: Optional[str] = Field(None, description="网络文件路径")
+    table_name: Optional[str] = Field(None, description="可选的表名用于OD查询")
+    case_name: Optional[str] = Field(None, description="案例名称")
+    description: Optional[str] = Field(None, description="案例描述")
 
 class SimulationRequest(BaseModel):
     """仿真请求模型"""
     run_folder: str = Field(..., description="运行文件夹路径")
     gui: Optional[bool] = Field(False, description="是否启用GUI")
     simulation_type: Optional[SimulationType] = Field(SimulationType.MICROSCOPIC, description="仿真类型")
+    config_file: Optional[str] = Field(None, description="SUMO配置文件绝对或相对路径")
+    expected_duration: Optional[int] = Field(None, description="预期仿真时长（秒），用于进度估算；为空则根据metadata.time_range计算")
 
 class AccuracyAnalysisRequest(BaseModel):
     """精度分析请求模型"""

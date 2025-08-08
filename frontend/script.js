@@ -5,6 +5,33 @@
 // API基础URL
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
+// 统一API请求封装
+async function apiFetch(url, options = {}) {
+    const resp = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        }
+    });
+    let data;
+    try { data = await resp.json(); } catch { data = null; }
+    if (!resp.ok) {
+        const msg = (data && (data.detail || data.message)) || `HTTP ${resp.status}`;
+        throw new Error(msg);
+    }
+    return data;
+}
+
+// 将 <input type="datetime-local"> 的值转为 "YYYY/MM/DD HH:MM:SS"
+function toBackendTime(dtLocal) {
+    if (!dtLocal) return '';
+    const [date, time] = dtLocal.split('T');
+    const [y, m, d] = date.split('-');
+    const hms = (time || '00:00:00').length === 5 ? `${time}:00` : time;
+    return `${y}/${m}/${d} ${hms}`;
+}
+
 // 全局变量
 let currentCases = [];
 let currentTemplates = {};
@@ -43,40 +70,43 @@ function initializeNavigation() {
  * 初始化事件监听器
  */
 function initializeEventListeners() {
-    // 案例管理事件
-    document.getElementById('create-case-btn').addEventListener('click', showCreateCaseModal);
-    document.getElementById('refresh-cases-btn').addEventListener('click', loadCases);
-    
-    // 仿真控制事件
-    document.getElementById('run-simulation-btn').addEventListener('click', runSimulation);
-    
-    // 分析控制事件
-    document.getElementById('run-analysis-btn').addEventListener('click', runAnalysis);
-    
-    // 模板管理事件
+    const odForm = document.getElementById('od-processing-form');
+    if (odForm) odForm.addEventListener('submit', processODData);
+
+    const refreshTplBtn = document.getElementById('refresh-templates-btn');
+    if (refreshTplBtn) refreshTplBtn.addEventListener('click', loadTemplates);
+
+    const runSimBtn = document.getElementById('run-simulation-btn');
+    if (runSimBtn) runSimBtn.addEventListener('click', runSimulation);
+
+    const refreshSimCasesBtn = document.getElementById('refresh-simulation-cases-btn');
+    if (refreshSimCasesBtn) refreshSimCasesBtn.addEventListener('click', loadCases);
+
+    const runAnalysisBtn = document.getElementById('run-analysis-btn');
+    if (runAnalysisBtn) runAnalysisBtn.addEventListener('click', runAnalysis);
+
+    const refreshAnalysisCasesBtn = document.getElementById('refresh-analysis-cases-btn');
+    if (refreshAnalysisCasesBtn) refreshAnalysisCasesBtn.addEventListener('click', loadCases);
+
+    const refreshCasesBtn = document.getElementById('refresh-cases-btn');
+    if (refreshCasesBtn) refreshCasesBtn.addEventListener('click', loadCases);
+
+    const caseSearch = document.getElementById('case-search');
+    if (caseSearch) caseSearch.addEventListener('input', filterCases);
+
+    const caseStatusFilter = document.getElementById('case-status-filter');
+    if (caseStatusFilter) caseStatusFilter.addEventListener('change', filterCases);
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             switchTemplateTab(this.dataset.tab);
         });
     });
-    
-    // 工具事件
-    document.getElementById('fix-taz-btn').addEventListener('click', showFixTazModal);
-    document.getElementById('compare-taz-btn').addEventListener('click', showCompareTazModal);
-    
-    // 模态框事件
+
     const modal = document.getElementById('modal');
     const closeBtn = document.querySelector('.close');
-    
-    closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-    
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
+    if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
 }
 
 /**
@@ -84,660 +114,429 @@ function initializeEventListeners() {
  */
 async function loadInitialData() {
     try {
-        await Promise.all([
-            loadCases(),
-            loadTemplates()
-        ]);
+        await Promise.all([loadCases(), loadTemplates()]);
+        updateTemplateSelects();
     } catch (error) {
         console.error('加载初始数据失败:', error);
         showNotification('加载初始数据失败', 'error');
     }
 }
 
-/**
- * 加载案例列表
- */
+// =============== OD 数据处理 ===============
+async function processODData(e) {
+    e.preventDefault();
+
+    const formData = {
+        start_time: toBackendTime(document.getElementById('start-time').value),
+        end_time: toBackendTime(document.getElementById('end-time').value),
+        taz_file: document.getElementById('taz-file').value,
+        net_file: document.getElementById('network-file').value,
+        interval_minutes: parseInt(document.getElementById('interval-minutes').value || '5', 10),
+        case_name: document.getElementById('case-name').value,
+        description: document.getElementById('case-description').value
+    };
+
+    if (!formData.start_time || !formData.end_time || !formData.taz_file || !formData.net_file) {
+        showNotification('请填写所有必填字段', 'warning');
+        return;
+    }
+
+    try {
+        updateProcessingStatus('processing', '正在处理OD数据...');
+        const result = await apiFetch(`${API_BASE_URL}/process_od_data/`, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        const payload = result && result.data ? result.data : result;
+        updateProcessingStatus('completed', 'OD数据处理完成');
+        showNotification('OD数据处理成功', 'success');
+        displayProcessingResult(payload);
+        await loadCases();
+    } catch (error) {
+        console.error('OD数据处理失败:', error);
+        updateProcessingStatus('failed', '处理失败');
+        showNotification(`OD数据处理失败: ${error.message}`, 'error');
+    }
+}
+
+// =============== 仿真运行 ===============
+async function runSimulation() {
+    const caseId = document.getElementById('simulation-case').value;
+    const simulationType = document.getElementById('simulation-type').value;
+    const guiMode = document.getElementById('gui-mode').value === 'true';
+    if (!caseId) { showNotification('请选择案例', 'warning'); return; }
+    try {
+        updateSimulationStatus('running', '仿真运行中...');
+        showProgressBar();
+        const result = await apiFetch(`${API_BASE_URL}/run_simulation/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                run_folder: `cases/${caseId}/simulation`,
+                gui: guiMode,
+                simulation_type: simulationType
+            })
+        });
+        const payload = result && result.data ? result.data : result;
+        updateSimulationStatus('completed', '仿真完成');
+        hideProgressBar();
+        showNotification('仿真运行成功', 'success');
+        displaySimulationResult(payload);
+    } catch (error) {
+        console.error('仿真运行失败:', error);
+        updateSimulationStatus('failed', '仿真失败');
+        hideProgressBar();
+        showNotification(`仿真运行失败: ${error.message}`, 'error');
+    }
+}
+
+// =============== 精度分析 ===============
+async function runAnalysis() {
+    const caseId = document.getElementById('analysis-case').value;
+    const analysisType = document.getElementById('analysis-type').value;
+    if (!caseId) { showNotification('请选择案例', 'warning'); return; }
+    try {
+        updateAnalysisStatus('analyzing', '精度分析中...');
+        const result = await apiFetch(`${API_BASE_URL}/analyze_accuracy/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                result_folder: `cases/${caseId}/analysis/accuracy`,
+                analysis_type: analysisType
+            })
+        });
+        const payload = result && result.data ? result.data : result;
+        updateAnalysisStatus('completed', '分析完成');
+        showNotification('精度分析启动成功', 'success');
+        displayAnalysisResult(payload);
+    } catch (error) {
+        console.error('精度分析失败:', error);
+        updateAnalysisStatus('failed', '分析失败');
+        showNotification(`精度分析失败: ${error.message}`, 'error');
+    }
+}
+
+// =============== 案例列表与筛选 ===============
 async function loadCases() {
     try {
-        const response = await fetch(`${API_BASE_URL}/list_cases/`);
-        const data = await response.json();
-        
-        if (response.ok) {
-            currentCases = data.cases;
-            displayCases(data.cases);
-            updateCaseSelects();
-        } else {
-            throw new Error(data.detail || '加载案例失败');
-        }
+        const data = await apiFetch(`${API_BASE_URL}/list_cases/`);
+        currentCases = data.cases || [];
+        displayCases(currentCases);
+        updateCaseSelects();
     } catch (error) {
         console.error('加载案例失败:', error);
         showNotification('加载案例失败', 'error');
     }
 }
 
-/**
- * 显示案例列表
- */
 function displayCases(cases) {
     const caseList = document.querySelector('.case-list');
-    
-    if (cases.length === 0) {
-        caseList.innerHTML = '<div class="loading">暂无案例</div>';
-        return;
-    }
-    
-    const casesHTML = cases.map(case => `
+    if (!caseList) return;
+    if (!cases || cases.length === 0) { caseList.innerHTML = '<div class="loading">暂无案例</div>'; return; }
+    const casesHTML = cases.map(c => `
         <div class="case-card fade-in">
-            <h3>${case.case_name || case.case_id}</h3>
+            <h3>${c.case_name || c.case_id}</h3>
             <div class="case-info">
-                <p><strong>ID:</strong> ${case.case_id}</p>
-                <p><strong>状态:</strong> ${getStatusText(case.status)}</p>
-                <p><strong>创建时间:</strong> ${formatDateTime(case.created_at)}</p>
-                <p><strong>描述:</strong> ${case.description || '无描述'}</p>
+                <p><strong>ID:</strong> ${c.case_id}</p>
+                <p><strong>状态:</strong> ${getStatusText(c.status)}</p>
+                <p><strong>创建时间:</strong> ${formatDateTime(c.created_at)}</p>
+                <p><strong>描述:</strong> ${c.description || '无描述'}</p>
             </div>
             <div class="case-actions">
-                <button class="btn btn-primary" onclick="viewCase('${case.case_id}')">查看</button>
-                <button class="btn btn-secondary" onclick="cloneCase('${case.case_id}')">克隆</button>
-                <button class="btn btn-danger" onclick="deleteCase('${case.case_id}')">删除</button>
+                <button class="btn btn-primary" onclick="viewCase('${c.case_id}')">查看</button>
+                <button class="btn btn-secondary" onclick="cloneCase('${c.case_id}')">克隆</button>
+                <button class="btn btn-danger" onclick="deleteCase('${c.case_id}')">删除</button>
             </div>
         </div>
     `).join('');
-    
     caseList.innerHTML = casesHTML;
 }
 
-/**
- * 更新案例选择器
- */
 function updateCaseSelects() {
-    const selects = ['case-select', 'analysis-case-select'];
-    
-    selects.forEach(selectId => {
+    ['simulation-case', 'analysis-case'].forEach(selectId => {
         const select = document.getElementById(selectId);
-        if (select) {
-            select.innerHTML = '<option value="">请选择案例</option>';
-            currentCases.forEach(caseItem => {
-                const option = document.createElement('option');
-                option.value = caseItem.case_id;
-                option.textContent = caseItem.case_name || caseItem.case_id;
-                select.appendChild(option);
-            });
-        }
+        if (!select) return;
+        select.innerHTML = '<option value="">请选择案例</option>';
+        currentCases.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.case_id;
+            option.textContent = item.case_name || item.case_id;
+            select.appendChild(option);
+        });
     });
 }
 
-/**
- * 加载模板数据
- */
+function filterCases() {
+    const searchTerm = (document.getElementById('case-search')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('case-status-filter')?.value || '';
+    const filtered = (currentCases || []).filter(c => {
+        const matchesSearch = !searchTerm ||
+            (c.case_name && c.case_name.toLowerCase().includes(searchTerm)) ||
+            (c.case_id && c.case_id.toLowerCase().includes(searchTerm)) ||
+            (c.description && c.description.toLowerCase().includes(searchTerm));
+        const matchesStatus = !statusFilter || c.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+    displayCases(filtered);
+}
+
+// =============== 模板加载与选择器 ===============
 async function loadTemplates() {
     try {
         const [tazTemplates, networkTemplates, simulationTemplates] = await Promise.all([
-            fetch(`${API_BASE_URL}/templates/taz`).then(r => r.json()),
-            fetch(`${API_BASE_URL}/templates/network`).then(r => r.json()),
-            fetch(`${API_BASE_URL}/templates/simulation`).then(r => r.json())
+            apiFetch(`${API_BASE_URL}/templates/taz`),
+            apiFetch(`${API_BASE_URL}/templates/network`),
+            apiFetch(`${API_BASE_URL}/templates/simulation`)
         ]);
-        
-        currentTemplates = {
-            taz: tazTemplates,
-            network: networkTemplates,
-            simulation: simulationTemplates
-        };
-        
+        currentTemplates = { taz: tazTemplates, network: networkTemplates, simulation: simulationTemplates };
         displayTemplates();
+        updateTemplateSelects();
     } catch (error) {
         console.error('加载模板失败:', error);
         showNotification('加载模板失败', 'error');
     }
 }
 
-/**
- * 显示模板
- */
+function updateTemplateSelects() {
+    const tazSelect = document.getElementById('taz-file');
+    if (tazSelect && currentTemplates.taz) {
+        tazSelect.innerHTML = '<option value="">请选择TAZ文件</option>';
+        currentTemplates.taz.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.file_path;
+            opt.textContent = t.name;
+            tazSelect.appendChild(opt);
+        });
+        // 默认选择 TAZ_5 系列
+        const taz5 = Array.from(tazSelect.options).find(o => /TAZ_5/i.test(o.textContent) || /TAZ_5/i.test(o.value));
+        if (taz5) tazSelect.value = taz5.value; else if (tazSelect.options[1]) tazSelect.selectedIndex = 1;
+    }
+    const netSelect = document.getElementById('network-file');
+    if (netSelect && currentTemplates.network) {
+        netSelect.innerHTML = '<option value="">请选择网络文件</option>';
+        currentTemplates.network.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.file_path;
+            opt.textContent = t.name;
+            netSelect.appendChild(opt);
+        });
+        // 默认选择 v6 版本
+        const v6 = Array.from(netSelect.options).find(o => /v6/i.test(o.textContent) || /v6/i.test(o.value));
+        if (v6) netSelect.value = v6.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
+    }
+}
+
 function displayTemplates() {
-    // 显示TAZ模板
     const tazSection = document.getElementById('taz-templates');
-    if (currentTemplates.taz && currentTemplates.taz.length > 0) {
-        tazSection.innerHTML = `
+    if (tazSection) {
+        tazSection.innerHTML = currentTemplates.taz && currentTemplates.taz.length ? `
             <div class="template-grid">
-                ${currentTemplates.taz.map(template => `
+                ${currentTemplates.taz.map(t => `
                     <div class="template-card">
-                        <h3>${template.name}</h3>
-                        <p>${template.description}</p>
-                        <p><strong>版本:</strong> ${template.version}</p>
-                        <p><strong>状态:</strong> ${template.status}</p>
+                        <h3>${t.name}</h3>
+                        <p>${t.description}</p>
+                        <p><strong>版本:</strong> ${t.version}</p>
+                        <p><strong>状态:</strong> ${t.status}</p>
                     </div>
                 `).join('')}
             </div>
-        `;
-    } else {
-        tazSection.innerHTML = '<div class="loading">暂无TAZ模板</div>';
+        ` : '<div class="loading">暂无TAZ模板</div>';
     }
-    
-    // 显示网络模板
     const networkSection = document.getElementById('network-templates');
-    if (currentTemplates.network && currentTemplates.network.length > 0) {
-        networkSection.innerHTML = `
+    if (networkSection) {
+        networkSection.innerHTML = currentTemplates.network && currentTemplates.network.length ? `
             <div class="template-grid">
-                ${currentTemplates.network.map(template => `
+                ${currentTemplates.network.map(t => `
                     <div class="template-card">
-                        <h3>${template.name}</h3>
-                        <p>${template.description}</p>
-                        <p><strong>版本:</strong> ${template.version}</p>
-                        <p><strong>状态:</strong> ${template.status}</p>
+                        <h3>${t.name}</h3>
+                        <p>${t.description}</p>
+                        <p><strong>版本:</strong> ${t.version}</p>
+                        <p><strong>状态:</strong> ${t.status}</p>
                     </div>
                 `).join('')}
             </div>
-        `;
-    } else {
-        networkSection.innerHTML = '<div class="loading">暂无网络模板</div>';
+        ` : '<div class="loading">暂无网络模板</div>';
     }
-    
-    // 显示仿真模板
     const simulationSection = document.getElementById('simulation-templates');
-    if (currentTemplates.simulation && currentTemplates.simulation.length > 0) {
-        simulationSection.innerHTML = `
+    if (simulationSection) {
+        simulationSection.innerHTML = currentTemplates.simulation && currentTemplates.simulation.length ? `
             <div class="template-grid">
-                ${currentTemplates.simulation.map(template => `
+                ${currentTemplates.simulation.map(t => `
                     <div class="template-card">
-                        <h3>${template.name}</h3>
-                        <p>${template.description}</p>
-                        <p><strong>版本:</strong> ${template.version}</p>
-                        <p><strong>状态:</strong> ${template.status}</p>
+                        <h3>${t.name}</h3>
+                        <p>${t.description}</p>
+                        <p><strong>版本:</strong> ${t.version}</p>
+                        <p><strong>状态:</strong> ${t.status}</p>
                     </div>
                 `).join('')}
             </div>
-        `;
-    } else {
-        simulationSection.innerHTML = '<div class="loading">暂无仿真模板</div>';
+        ` : '<div class="loading">暂无仿真模板</div>';
     }
 }
 
-/**
- * 切换模板标签页
- */
 function switchTemplateTab(tabName) {
-    // 更新标签按钮状态
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    
-    // 更新内容区域
-    document.querySelectorAll('.template-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    document.getElementById(`${tabName}-templates`).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`[data-tab="${tabName}"]`);
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.template-section').forEach(s => s.classList.remove('active'));
+    const section = document.getElementById(`${tabName}-templates`);
+    if (section) section.classList.add('active');
 }
 
-/**
- * 显示创建案例模态框
- */
-function showCreateCaseModal() {
-    const modal = document.getElementById('modal');
-    const modalBody = document.getElementById('modal-body');
-    
-    modalBody.innerHTML = `
-        <h2>创建新案例</h2>
-        <form id="create-case-form">
-            <div class="form-group">
-                <label for="case-name">案例名称:</label>
-                <input type="text" id="case-name" class="form-control" placeholder="输入案例名称">
-            </div>
-            <div class="form-group">
-                <label for="start-time">开始时间:</label>
-                <input type="datetime-local" id="start-time" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="end-time">结束时间:</label>
-                <input type="datetime-local" id="end-time" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="case-description">描述:</label>
-                <textarea id="case-description" class="form-control" rows="3" placeholder="输入案例描述"></textarea>
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">创建案例</button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-            </div>
-        </form>
+// =============== 状态与结果展示 ===============
+function updateProcessingStatus(status, message) {
+    const area = document.getElementById('od-processing-result');
+    if (!area) return;
+    area.innerHTML = `
+        <div class="status-indicator">
+            <span class="status-dot ${status}"></span>
+            <span class="status-text">${message}</span>
+        </div>
     `;
-    
-    modal.style.display = 'block';
-    
-    // 添加表单提交事件
-    document.getElementById('create-case-form').addEventListener('submit', createCase);
 }
 
-/**
- * 创建案例
- */
-async function createCase(e) {
-    e.preventDefault();
-    
-    const formData = {
-        case_name: document.getElementById('case-name').value,
-        start_time: document.getElementById('start-time').value,
-        end_time: document.getElementById('end-time').value,
-        description: document.getElementById('case-description').value
-    };
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/create_case/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                time_range: {
-                    start: formData.start_time,
-                    end: formData.end_time
-                },
-                config: {},
-                case_name: formData.case_name,
-                description: formData.description
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('案例创建成功', 'success');
-            closeModal();
-            loadCases();
-        } else {
-            throw new Error(data.detail || '创建案例失败');
-        }
-    } catch (error) {
-        console.error('创建案例失败:', error);
-        showNotification('创建案例失败', 'error');
-    }
+function updateSimulationStatus(status, message) {
+    const statusText = document.querySelector('.simulation-status .status-text');
+    const statusDot = document.querySelector('.simulation-status .status-dot');
+    if (statusText) statusText.textContent = message;
+    if (statusDot) statusDot.className = `status-dot ${status}`;
 }
 
-/**
- * 运行仿真
- */
-async function runSimulation() {
-    const caseId = document.getElementById('case-select').value;
-    const simulationType = document.getElementById('simulation-type').value;
-    
-    if (!caseId) {
-        showNotification('请选择案例', 'warning');
-        return;
-    }
-    
-    try {
-        updateSimulationStatus('running');
-        
-        const response = await fetch(`${API_BASE_URL}/run_simulation/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                run_folder: `cases/${caseId}/simulation`,
-                gui: false,
-                simulation_type: simulationType
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('仿真启动成功', 'success');
-            updateSimulationStatus('completed');
-        } else {
-            throw new Error(data.detail || '仿真运行失败');
-        }
-    } catch (error) {
-        console.error('仿真运行失败:', error);
-        showNotification('仿真运行失败', 'error');
-        updateSimulationStatus('failed');
-    }
+function updateAnalysisStatus(status, message) {
+    const area = document.getElementById('analysis-result');
+    if (!area) return;
+    area.innerHTML = `
+        <div class="status-indicator">
+            <span class="status-dot ${status}"></span>
+            <span class="status-text">${message}</span>
+        </div>
+    `;
 }
 
-/**
- * 运行分析
- */
-async function runAnalysis() {
-    const caseId = document.getElementById('analysis-case-select').value;
-    const analysisType = document.getElementById('analysis-type').value;
-    
-    if (!caseId) {
-        showNotification('请选择案例', 'warning');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/analyze_accuracy/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                result_folder: `cases/${caseId}/analysis/accuracy`,
-                analysis_type: analysisType
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('分析启动成功', 'success');
-        } else {
-            throw new Error(data.detail || '分析运行失败');
-        }
-    } catch (error) {
-        console.error('分析运行失败:', error);
-        showNotification('分析运行失败', 'error');
-    }
+function showProgressBar() {
+    const bar = document.getElementById('simulation-progress');
+    if (bar) bar.style.display = 'block';
 }
 
-/**
- * 更新仿真状态
- */
-function updateSimulationStatus(status) {
-    const statusDot = document.querySelector('.status-dot');
-    const statusText = document.querySelector('.status-text');
-    
-    statusDot.className = `status-dot ${status}`;
-    
-    const statusMessages = {
-        'running': '运行中...',
-        'completed': '已完成',
-        'failed': '失败',
-        'idle': '未开始'
-    };
-    
-    statusText.textContent = statusMessages[status] || '未知状态';
+function hideProgressBar() {
+    const bar = document.getElementById('simulation-progress');
+    if (bar) bar.style.display = 'none';
 }
 
-/**
- * 查看案例详情
- */
+function displayProcessingResult(result) {
+    const area = document.getElementById('od-processing-result');
+    if (!area) return;
+    area.innerHTML = `
+        <div class="case-card fade-in">
+            <h3>OD数据处理结果</h3>
+            <div class="case-info">
+                <p><strong>运行文件夹:</strong> ${result.run_folder || 'N/A'}</p>
+                <p><strong>OD文件:</strong> ${result.od_file || 'N/A'}</p>
+                <p><strong>路由文件:</strong> ${result.route_file || 'N/A'}</p>
+                <p><strong>配置文件:</strong> ${result.sumocfg_file || 'N/A'}</p>
+                <p><strong>总记录数:</strong> ${result.total_records || 'N/A'}</p>
+                <p><strong>OD对数:</strong> ${result.od_pairs || 'N/A'}</p>
+            </div>
+        </div>
+    `;
+}
+
+function displaySimulationResult(result) {
+    const area = document.getElementById('simulation-result');
+    if (!area) return;
+    area.innerHTML = `
+        <div class="case-card fade-in">
+            <h3>仿真运行结果</h3>
+            <div class="case-info">
+                <p><strong>运行文件夹:</strong> ${result.run_folder || 'N/A'}</p>
+                <p><strong>仿真类型:</strong> ${result.simulation_type || 'N/A'}</p>
+                <p><strong>GUI模式:</strong> ${result.gui ? '是' : '否'}</p>
+                <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
+                <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+            </div>
+        </div>
+    `;
+}
+
+function displayAnalysisResult(result) {
+    const area = document.getElementById('analysis-result');
+    if (!area) return;
+    area.innerHTML = `
+        <div class="case-card fade-in">
+            <h3>精度分析结果</h3>
+            <div class="case-info">
+                <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
+                <p><strong>分析类型:</strong> ${result.analysis_type || 'N/A'}</p>
+                <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
+                <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+                ${result.metrics ? `<p><strong>指标:</strong> ${JSON.stringify(result.metrics)}</p>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// =============== 工具通知与通用 ===============
+function showNotification(message, type = 'info') {
+    const n = document.createElement('div');
+    n.className = `notification ${type}`;
+    n.textContent = message;
+    n.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 1000;
+        padding: 10px 15px; border-radius: 5px; color: #fff;
+        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196F3'};
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    `;
+    document.body.appendChild(n);
+    setTimeout(() => { if (n.parentNode) n.parentNode.removeChild(n); }, 3000);
+}
+
+function getStatusText(status) {
+    const m = { created: '已创建', processing: '处理中', simulating: '仿真中', analyzing: '分析中', completed: '已完成', failed: '失败' };
+    return m[status] || status || '未知';
+}
+
+function formatDateTime(s) {
+    if (!s) return 'N/A';
+    try { return new Date(s).toLocaleString('zh-CN'); } catch { return s; }
+}
+
+// 案例操作
 async function viewCase(caseId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/case/${caseId}`);
-        const caseData = await response.json();
-        
-        if (response.ok) {
-            showCaseDetails(caseData);
-        } else {
-            throw new Error(caseData.detail || '获取案例详情失败');
-        }
-    } catch (error) {
-        console.error('获取案例详情失败:', error);
-        showNotification('获取案例详情失败', 'error');
-    }
+    try { const d = await apiFetch(`${API_BASE_URL}/case/${caseId}`); showCaseDetails(d); }
+    catch (e) { console.error(e); showNotification('获取案例详情失败', 'error'); }
 }
 
-/**
- * 显示案例详情
- */
-function showCaseDetails(caseData) {
+async function cloneCase(caseId) {
+    try { await apiFetch(`${API_BASE_URL}/case/${caseId}/clone`, { method: 'POST', body: JSON.stringify({}) }); showNotification('案例克隆成功', 'success'); loadCases(); }
+    catch (e) { console.error(e); showNotification('案例克隆失败', 'error'); }
+}
+
+async function deleteCase(caseId) {
+    if (!confirm('确定要删除这个案例吗？此操作不可恢复。')) return;
+    try { await apiFetch(`${API_BASE_URL}/case/${caseId}`, { method: 'DELETE' }); showNotification('案例删除成功', 'success'); loadCases(); }
+    catch (e) { console.error(e); showNotification('案例删除失败', 'error'); }
+}
+
+function showCaseDetails(c) {
     const modal = document.getElementById('modal');
-    const modalBody = document.getElementById('modal-body');
-    
-    modalBody.innerHTML = `
+    const body = document.getElementById('modal-body');
+    body.innerHTML = `
         <h2>案例详情</h2>
         <div class="case-details">
-            <p><strong>案例ID:</strong> ${caseData.case_id}</p>
-            <p><strong>案例名称:</strong> ${caseData.case_name || '未命名'}</p>
-            <p><strong>状态:</strong> ${getStatusText(caseData.status)}</p>
-            <p><strong>创建时间:</strong> ${formatDateTime(caseData.created_at)}</p>
-            <p><strong>更新时间:</strong> ${formatDateTime(caseData.updated_at)}</p>
-            <p><strong>描述:</strong> ${caseData.description || '无描述'}</p>
-            <p><strong>时间范围:</strong> ${caseData.time_range.start} - ${caseData.time_range.end}</p>
+            <p><strong>案例ID:</strong> ${c.case_id}</p>
+            <p><strong>案例名称:</strong> ${c.case_name || '未命名'}</p>
+            <p><strong>状态:</strong> ${getStatusText(c.status)}</p>
+            <p><strong>创建时间:</strong> ${formatDateTime(c.created_at)}</p>
+            <p><strong>更新时间:</strong> ${formatDateTime(c.updated_at)}</p>
+            <p><strong>描述:</strong> ${c.description || '无描述'}</p>
+            <p><strong>时间范围:</strong> ${(c.time_range && c.time_range.start) || 'N/A'} - ${(c.time_range && c.time_range.end) || 'N/A'}</p>
         </div>
         <div class="form-group">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">关闭</button>
         </div>
     `;
-    
     modal.style.display = 'block';
 }
 
-/**
- * 克隆案例
- */
-async function cloneCase(caseId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/case/${caseId}/clone`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('案例克隆成功', 'success');
-            loadCases();
-        } else {
-            throw new Error(data.detail || '案例克隆失败');
-        }
-    } catch (error) {
-        console.error('案例克隆失败:', error);
-        showNotification('案例克隆失败', 'error');
-    }
-}
-
-/**
- * 删除案例
- */
-async function deleteCase(caseId) {
-    if (!confirm('确定要删除这个案例吗？此操作不可恢复。')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/case/${caseId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            showNotification('案例删除成功', 'success');
-            loadCases();
-        } else {
-            const data = await response.json();
-            throw new Error(data.detail || '案例删除失败');
-        }
-    } catch (error) {
-        console.error('案例删除失败:', error);
-        showNotification('案例删除失败', 'error');
-    }
-}
-
-/**
- * 显示修复TAZ模态框
- */
-function showFixTazModal() {
-    const modal = document.getElementById('modal');
-    const modalBody = document.getElementById('modal-body');
-    
-    modalBody.innerHTML = `
-        <h2>修复TAZ文件</h2>
-        <div class="form-group">
-            <label for="taz-file-path">TAZ文件路径:</label>
-            <input type="text" id="taz-file-path" class="form-control" placeholder="输入TAZ文件路径">
-        </div>
-        <div class="form-group">
-            <button type="button" class="btn btn-primary" onclick="fixTazFile()">修复文件</button>
-            <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-}
-
-/**
- * 修复TAZ文件
- */
-async function fixTazFile() {
-    const filePath = document.getElementById('taz-file-path').value;
-    
-    if (!filePath) {
-        showNotification('请输入文件路径', 'warning');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/tools/taz/fix?file_path=${encodeURIComponent(filePath)}`, {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('TAZ文件修复成功', 'success');
-            closeModal();
-        } else {
-            throw new Error(data.detail || 'TAZ文件修复失败');
-        }
-    } catch (error) {
-        console.error('TAZ文件修复失败:', error);
-        showNotification('TAZ文件修复失败', 'error');
-    }
-}
-
-/**
- * 显示比较TAZ模态框
- */
-function showCompareTazModal() {
-    const modal = document.getElementById('modal');
-    const modalBody = document.getElementById('modal-body');
-    
-    modalBody.innerHTML = `
-        <h2>比较TAZ文件</h2>
-        <div class="form-group">
-            <label for="taz-file1">第一个TAZ文件:</label>
-            <input type="text" id="taz-file1" class="form-control" placeholder="输入第一个TAZ文件路径">
-        </div>
-        <div class="form-group">
-            <label for="taz-file2">第二个TAZ文件:</label>
-            <input type="text" id="taz-file2" class="form-control" placeholder="输入第二个TAZ文件路径">
-        </div>
-        <div class="form-group">
-            <button type="button" class="btn btn-primary" onclick="compareTazFiles()">比较文件</button>
-            <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-}
-
-/**
- * 比较TAZ文件
- */
-async function compareTazFiles() {
-    const file1 = document.getElementById('taz-file1').value;
-    const file2 = document.getElementById('taz-file2').value;
-    
-    if (!file1 || !file2) {
-        showNotification('请输入两个文件路径', 'warning');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/tools/taz/compare`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                file1: file1,
-                file2: file2
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('TAZ文件比较完成', 'success');
-            closeModal();
-        } else {
-            throw new Error(data.detail || 'TAZ文件比较失败');
-        }
-    } catch (error) {
-        console.error('TAZ文件比较失败:', error);
-        showNotification('TAZ文件比较失败', 'error');
-    }
-}
-
-/**
- * 关闭模态框
- */
-function closeModal() {
-    document.getElementById('modal').style.display = 'none';
-}
-
-/**
- * 显示通知
- */
-function showNotification(message, type = 'info') {
-    // 创建通知元素
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    // 添加样式
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 5px;
-        color: white;
-        font-weight: 500;
-        z-index: 1001;
-        animation: slideIn 0.3s ease;
-    `;
-    
-    // 根据类型设置背景色
-    const colors = {
-        'success': '#28a745',
-        'error': '#dc3545',
-        'warning': '#ffc107',
-        'info': '#17a2b8'
-    };
-    
-    notification.style.backgroundColor = colors[type] || colors.info;
-    
-    // 添加到页面
-    document.body.appendChild(notification);
-    
-    // 3秒后自动移除
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
-}
-
-/**
- * 工具函数
- */
-function getStatusText(status) {
-    const statusMap = {
-        'created': '已创建',
-        'processing': '处理中',
-        'simulating': '仿真中',
-        'analyzing': '分析中',
-        'completed': '已完成',
-        'failed': '失败'
-    };
-    return statusMap[status] || status;
-}
-
-function formatDateTime(dateTimeStr) {
-    if (!dateTimeStr) return '未知';
-    const date = new Date(dateTimeStr);
-    return date.toLocaleString('zh-CN');
-}
+function closeModal() { const modal = document.getElementById('modal'); if (modal) modal.style.display = 'none'; }
 
 // 添加CSS动画
 const style = document.createElement('style');
@@ -753,3 +552,32 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style); 
+
+// 默认时间快捷设置：上一周周一 08:00-09:00（整分钟）
+function setDefaultLastWeekMonday0800To0900() {
+    const now = new Date();
+    const day = now.getDay(); // 0=周日,1=周一
+    const daysSinceMonday = (day + 6) % 7; // 周一->0, 周日->6
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() - daysSinceMonday);
+    thisMonday.setHours(0,0,0,0);
+    const lastMonday = new Date(thisMonday);
+    lastMonday.setDate(thisMonday.getDate() - 7);
+    const start = new Date(lastMonday);
+    start.setHours(8,0,0,0);
+    const end = new Date(lastMonday);
+    end.setHours(9,0,0,0);
+    const toLocalInput = (d)=>{
+        const pad=n=>String(n).padStart(2,'0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+    const startInput = document.getElementById('start-time');
+    const endInput = document.getElementById('end-time');
+    if (startInput) startInput.value = toLocalInput(start);
+    if (endInput) endInput.value = toLocalInput(end);
+}
+
+// 初始化时设置默认时间
+document.addEventListener('DOMContentLoaded', () => {
+    try { setDefaultLastWeekMonday0800To0900(); } catch {}
+}); 
