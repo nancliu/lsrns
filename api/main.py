@@ -12,6 +12,7 @@ sys.path.insert(0, str(project_root))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from api.routes import router
 from api.compatibility import compatibility_router
 
@@ -33,10 +34,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册路由
-app.include_router(router, prefix="/api/v1")
-app.include_router(compatibility_router, prefix="/api/v1/compat")
-
 @app.get("/")
 async def root():
     """根路径，返回系统基本信息"""
@@ -45,6 +42,13 @@ async def root():
         "version": "1.0.0",
         "status": "running"
     }
+
+# 注册路由
+app.include_router(router, prefix="/api/v1")
+app.include_router(compatibility_router, prefix="/api/v1/compat")
+
+# 挂载静态文件
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 @app.get("/health")
 async def health_check():
