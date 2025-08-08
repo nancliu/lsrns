@@ -1,0 +1,33 @@
+{
+  "network_templates": {
+    "sichuan202503v6": {
+      "name": "sichuan202503v6.net.xml",
+      "description": "四川网络文件版本6，最新版本",
+      "file_path": "sichuan202503v6.net.xml",
+      "version": "6.0",
+      "created_date": "2025-01-08",
+      "status": "latest",
+      "file_size_mb": 18,
+      "node_count": 0,
+      "edge_count": 0,
+      "junction_count": 0
+    },
+    "sichuan202503v5": {
+      "name": "sichuan202503v5.net.xml",
+      "description": "四川网络文件版本5，稳定版本",
+      "file_path": "sichuan202503v5.net.xml",
+      "version": "5.0",
+      "created_date": "2025-01-08",
+      "status": "stable",
+      "file_size_mb": 18,
+      "node_count": 0,
+      "edge_count": 0,
+      "junction_count": 0
+    }
+  },
+  "default_template": "sichuan202503v6",
+  "validation_rules": {
+    "required_elements": ["nodes", "edges", "junctions"],
+    "optional_elements": ["connections", "roundabouts", "pedestrian"]
+  }
+} 

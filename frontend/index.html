@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OD数据处理与仿真系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>OD数据处理与仿真系统</h1>
+            <p>基于案例管理的交通仿真分析平台</p>
+        </header>
+
+        <nav class="navigation">
+            <ul>
+                <li><a href="#cases" class="nav-link active">案例管理</a></li>
+                <li><a href="#simulation" class="nav-link">仿真控制</a></li>
+                <li><a href="#analysis" class="nav-link">分析结果</a></li>
+                <li><a href="#templates" class="nav-link">模板管理</a></li>
+                <li><a href="#tools" class="nav-link">工具</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <!-- 案例管理部分 -->
+            <section id="cases" class="section active">
+                <h2>案例管理</h2>
+                <div class="case-controls">
+                    <button id="create-case-btn" class="btn btn-primary">创建新案例</button>
+                    <button id="refresh-cases-btn" class="btn btn-secondary">刷新列表</button>
+                </div>
+                <div class="case-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </section>
+
+            <!-- 仿真控制部分 -->
+            <section id="simulation" class="section">
+                <h2>仿真控制</h2>
+                <div class="simulation-controls">
+                    <div class="form-group">
+                        <label for="case-select">选择案例:</label>
+                        <select id="case-select" class="form-control">
+                            <option value="">请选择案例</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="simulation-type">仿真类型:</label>
+                        <select id="simulation-type" class="form-control">
+                            <option value="microscopic">微观仿真</option>
+                            <option value="mesoscopic">中观仿真</option>
+                            <option value="macroscopic">宏观仿真</option>
+                        </select>
+                    </div>
+                    <button id="run-simulation-btn" class="btn btn-primary">运行仿真</button>
+                </div>
+                <div class="simulation-status">
+                    <div class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">未开始</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 分析结果部分 -->
+            <section id="analysis" class="section">
+                <h2>分析结果</h2>
+                <div class="analysis-controls">
+                    <div class="form-group">
+                        <label for="analysis-case-select">选择案例:</label>
+                        <select id="analysis-case-select" class="form-control">
+                            <option value="">请选择案例</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="analysis-type">分析类型:</label>
+                        <select id="analysis-type" class="form-control">
+                            <option value="accuracy">精度分析</option>
+                            <option value="traffic_flow">交通流分析</option>
+                            <option value="performance">性能分析</option>
+                        </select>
+                    </div>
+                    <button id="run-analysis-btn" class="btn btn-primary">运行分析</button>
+                </div>
+                <div class="analysis-results">
+                    <div class="loading">暂无分析结果</div>
+                </div>
+            </section>
+
+            <!-- 模板管理部分 -->
+            <section id="templates" class="section">
+                <h2>模板管理</h2>
+                <div class="template-tabs">
+                    <button class="tab-btn active" data-tab="taz">TAZ模板</button>
+                    <button class="tab-btn" data-tab="network">网络模板</button>
+                    <button class="tab-btn" data-tab="simulation">仿真模板</button>
+                </div>
+                <div class="template-content">
+                    <div id="taz-templates" class="template-section active">
+                        <div class="loading">加载TAZ模板...</div>
+                    </div>
+                    <div id="network-templates" class="template-section">
+                        <div class="loading">加载网络模板...</div>
+                    </div>
+                    <div id="simulation-templates" class="template-section">
+                        <div class="loading">加载仿真模板...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 工具部分 -->
+            <section id="tools" class="section">
+                <h2>工具</h2>
+                <div class="tools-grid">
+                    <div class="tool-card">
+                        <h3>TAZ文件验证</h3>
+                        <p>验证TAZ文件的格式和内容</p>
+                        <input type="file" id="taz-file-input" accept=".xml" style="display: none;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('taz-file-input').click()">
+                            选择文件
+                        </button>
+                    </div>
+                    <div class="tool-card">
+                        <h3>TAZ文件修复</h3>
+                        <p>自动修复TAZ文件中的常见问题</p>
+                        <button class="btn btn-secondary" id="fix-taz-btn">修复文件</button>
+                    </div>
+                    <div class="tool-card">
+                        <h3>TAZ文件比较</h3>
+                        <p>比较两个TAZ文件的差异</p>
+                        <button class="btn btn-secondary" id="compare-taz-btn">比较文件</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 模态框 -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="modal-body">
+                    <!-- 模态框内容 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
