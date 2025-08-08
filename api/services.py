@@ -20,16 +20,46 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
     OD数据处理服务
     """
     try:
-        # 这里应该调用原有的OD数据处理逻辑
-        # 暂时返回模拟数据
-        result = {
+        from shared.data_processors.od_processor import ODProcessor
+        
+        # 创建OD处理器
+        od_processor = ODProcessor()
+        
+        # 构建请求参数
+        request_params = {
             "start_time": request.start_time,
             "end_time": request.end_time,
             "interval_minutes": request.interval_minutes,
-            "processed_at": datetime.now().isoformat(),
-            "status": "completed"
+            "taz_file": request.taz_file,
+            "net_file": request.net_file,
+            "schemas_name": request.schemas_name,
+            "table_name": request.table_name
         }
-        return result
+        
+        # 获取数据库连接（这里需要实现数据库连接逻辑）
+        # 暂时使用模拟连接
+        db_connection = None  # TODO: 实现数据库连接
+        
+        # 处理OD数据
+        result = od_processor.process_od_data(db_connection, request_params)
+        
+        if result["success"]:
+            return {
+                "start_time": request.start_time,
+                "end_time": request.end_time,
+                "interval_minutes": request.interval_minutes,
+                "processed_at": datetime.now().isoformat(),
+                "status": "completed",
+                "run_folder": result.get("run_folder"),
+                "od_file": result.get("od_file"),
+                "route_file": result.get("route_file"),
+                "sumocfg_file": result.get("sumocfg_file"),
+                "total_records": result.get("total_records"),
+                "od_pairs": result.get("od_pairs")
+            }
+        else:
+            raise Exception(result.get("error", "OD数据处理失败"))
+            
     except Exception as e:
         raise Exception(f"OD数据处理失败: {str(e)}")
 
@@ -38,16 +68,36 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
     仿真运行服务
     """
     try:
-        # 这里应该调用原有的仿真运行逻辑
-        # 暂时返回模拟数据
-        result = {
+        from shared.data_processors.simulation_processor import SimulationProcessor
+        
+        # 创建仿真处理器
+        sim_processor = SimulationProcessor()
+        
+        # 构建请求参数
+        request_params = {
             "run_folder": request.run_folder,
             "gui": request.gui,
-            "simulation_type": request.simulation_type.value,
-            "started_at": datetime.now().isoformat(),
-            "status": "running"
+            "mesoscopic": request.simulation_type == SimulationType.MESOSCOPIC,
+            "config_file": os.path.join(request.run_folder, "simulation.sumocfg")
         }
-        return result
+        
+        # 处理仿真请求
+        result = sim_processor.process_simulation_request(request_params)
+        
+        if result["success"]:
+            return {
+                "run_folder": result.get("run_folder"),
+                "gui": result.get("gui"),
+                "mesoscopic": result.get("mesoscopic"),
+                "simulation_type": request.simulation_type.value,
+                "started_at": datetime.now().isoformat(),
+                "status": "completed",
+                "simulation_result": result.get("simulation_result"),
+                "results": result.get("results")
+            }
+        else:
+            raise Exception(result.get("error", "仿真运行失败"))
+            
     except Exception as e:
         raise Exception(f"仿真运行失败: {str(e)}")
 
@@ -56,15 +106,40 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
     精度分析服务
     """
     try:
-        # 这里应该调用原有的精度分析逻辑
-        # 暂时返回模拟数据
-        result = {
-            "result_folder": request.result_folder,
-            "analysis_type": request.analysis_type.value,
-            "started_at": datetime.now().isoformat(),
-            "status": "analyzing"
-        }
-        return result
+        from shared.analysis_tools.accuracy_analyzer import AccuracyAnalyzer
+        
+        # 创建精度分析器
+        analyzer = AccuracyAnalyzer()
+        
+        # 加载观测数据（这里需要实现数据加载逻辑）
+        # 暂时使用模拟数据
+        observed_data = pd.DataFrame({
+            'flow': np.random.rand(100),
+            'occupancy': np.random.rand(100),
+            'speed': np.random.rand(100)
+        })
+        
+        # 执行精度分析
+        result = analyzer.analyze_accuracy(
+            simulation_folder=request.result_folder,
+            observed_data=observed_data,
+            analysis_type=request.analysis_type.value
+        )
+        
+        if "error" not in result:
+            return {
+                "result_folder": request.result_folder,
+                "analysis_type": request.analysis_type.value,
+                "started_at": datetime.now().isoformat(),
+                "status": "completed",
+                "metrics": result.get("metrics", {}),
+                "chart_files": result.get("chart_files", []),
+                "report_file": result.get("report_file", ""),
+                "analysis_time": result.get("analysis_time")
+            }
+        else:
+            raise Exception(result.get("error", "精度分析失败"))
+            
     except Exception as e:
         raise Exception(f"精度分析失败: {str(e)}")
 

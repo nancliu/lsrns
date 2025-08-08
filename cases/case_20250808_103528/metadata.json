@@ -14,7 +14,7 @@
     "interval_minutes": 5,
     "enable_mesoscopic": false
   },
-  "status": "migrated",
+  "status": "completed",
   "description": "从 run_20250807_145645 迁移的案例",
   "statistics": {
     "total_files": 5,
