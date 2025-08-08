@@ -1,0 +1,24 @@
+{
+  "migration_timestamp": "2025-08-08T10:35:28.881994",
+  "total_migrations": 2,
+  "successful_migrations": 2,
+  "failed_migrations": 0,
+  "migration_details": [
+    {
+      "type": "run_folder_migration",
+      "source": "run_20250807_145645",
+      "target": "case_20250808_103528",
+      "timestamp": "2025-08-08T10:35:28.552339",
+      "status": "success"
+    },
+    {
+      "type": "accuracy_migration",
+      "source": "accuracy_results_20250807_163430",
+      "target": "case_20250808_101848",
+      "timestamp": "2025-08-08T10:35:28.881994",
+      "status": "success"
+    }
+  ],
+  "source_directory": "sim_scripts",
+  "target_directory": "cases"
+}

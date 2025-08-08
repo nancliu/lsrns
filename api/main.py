@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import router
+from api.compatibility import compatibility_router
 
 # 创建FastAPI应用实例
 app = FastAPI(
@@ -34,6 +35,7 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(router, prefix="/api/v1")
+app.include_router(compatibility_router, prefix="/api/v1/compat")
 
 @app.get("/")
 async def root():

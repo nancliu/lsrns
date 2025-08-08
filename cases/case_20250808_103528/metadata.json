@@ -1,0 +1,32 @@
+{
+  "case_id": "case_20250808_103528",
+  "case_name": "迁移自_run_20250807_145645",
+  "created_at": "2025-08-08T10:35:28.551339",
+  "updated_at": "2025-08-08T10:35:28.551339",
+  "original_folder": "run_20250807_145645",
+  "time_range": {
+    "start": "2025/07/21 08:00:00",
+    "end": "2025/07/21 09:00:00"
+  },
+  "config": {
+    "taz_file": "TAZ_5_validated.add.xml",
+    "net_file": "sichuan202503v6.net.xml",
+    "interval_minutes": 5,
+    "enable_mesoscopic": false
+  },
+  "status": "migrated",
+  "description": "从 run_20250807_145645 迁移的案例",
+  "statistics": {
+    "total_files": 5,
+    "total_subfolders": 2,
+    "original_created_at": "2025-08-07T14:56:45.959743"
+  },
+  "files": {
+    "od_file": "cases\\case_20250808_103528\\config\\od_data.xml",
+    "config_file": "cases\\case_20250808_103528\\config\\simulation.sumocfg",
+    "static_file": "cases\\case_20250808_103528\\config\\static.xml",
+    "simulation_summary.xml": "cases\\case_20250808_103528\\simulation\\summary.xml",
+    "e1_detectors": "cases\\case_20250808_103528\\simulation\\e1_detectors",
+    "gantry_data": "cases\\case_20250808_103528\\simulation\\gantry_data"
+  }
+}
