@@ -200,6 +200,7 @@ $RECYCLE.BIN/
 
 # SUMO仿真相关
 # 仿真输出文件（只忽略仿真结果，不忽略配置文件）
+cases/*
 cases/*/simulation/*.xml
 cases/*/simulation/*.csv
 cases/*/simulation/*.txt

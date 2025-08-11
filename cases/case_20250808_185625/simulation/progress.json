@@ -1,9 +1,0 @@
-{
-  "status": "failed",
-  "percent": 0,
-  "message": "仿真失败",
-  "updated_at": "2025-08-08T18:56:43.688836",
-  "pid": null,
-  "return_code": 1,
-  "last_lines": "Loading net-file from '../../../templates/network_files/sichuan202503v6.net.xml' ... done (1022ms).\nError: Could not build output file '../../simulation/../../simulation/e1/summary.xml' (No such file or directory).\nQuitting (on error)."
-}

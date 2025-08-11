@@ -1,9 +1,0 @@
-{
-  "status": "failed",
-  "percent": 0,
-  "message": "仿真失败",
-  "updated_at": "2025-08-08T18:54:17.908677",
-  "pid": null,
-  "return_code": 1,
-  "last_lines": "Error: Could not access configuration 'cases/case_20250808_185331/config/simulation.sumocfg'.\nQuitting (on error)."
-}
