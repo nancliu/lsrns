@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.font_manager as fm
+from matplotlib import rcParams
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
@@ -25,6 +27,47 @@ class AccuracyAnalyzer:
         self.analysis_results = {}
         self.charts_dir = None
         self.reports_dir = None
+        # 初始化绘图与中文字体
+        self._preferred_cn_font = None
+        self._setup_plot_style()
+
+    def _setup_plot_style(self) -> None:
+        """配置绘图风格与中文字体，避免中文字符缺失警告。"""
+        try:
+            # 基本配色
+            sns.set_palette("husl")
+        except Exception:
+            pass
+        # 配置中文字体
+        self._ensure_chinese_font()
+
+    def _ensure_chinese_font(self) -> None:
+        """设置支持中文的字体到 rcParams（优先系统常见中文字体）。"""
+        candidates = [
+            "Microsoft YaHei",  # Windows 常见
+            "SimHei",           # Windows/部分环境
+            "Noto Sans CJK SC", # Noto
+            "Source Han Sans CN",
+            "WenQuanYi Zen Hei",
+            "Arial Unicode MS",
+        ]
+        picked = None
+        for name in candidates:
+            try:
+                # 若能找到该字体文件则认为可用
+                fm.findfont(name, fallback_to_default=False)
+                picked = name
+                break
+            except Exception:
+                continue
+        if not picked:
+            picked = "Microsoft YaHei"  # 尝试指定，若无则由matplotlib回退
+        self._preferred_cn_font = picked
+        try:
+            rcParams["font.sans-serif"] = [picked, "DejaVu Sans", "Arial Unicode MS"]
+            rcParams["axes.unicode_minus"] = False
+        except Exception:
+            pass
         
     def set_output_dirs(self, charts_dir: str, reports_dir: str):
         """
@@ -57,21 +100,28 @@ class AccuracyAnalyzer:
             sim_path = Path(simulation_folder)
             data = {}
             
-            # 加载E1检测器数据
-            e1_folder = sim_path / "e1_detectors"
-            if e1_folder.exists():
-                e1_files = list(e1_folder.glob("*.xml"))
-                e1_data = []
-                
-                for e1_file in e1_files:
-                    # 解析E1 XML文件
-                    e1_df = self._parse_e1_xml(e1_file)
-                    if not e1_df.empty:
-                        e1_data.append(e1_df)
-                
-                if e1_data:
-                    data["e1_detectors"] = pd.concat(e1_data, ignore_index=True)
-                    logger.info(f"加载了 {len(e1_data)} 个E1检测器文件")
+            # 加载E1检测器数据（兼容 e1_detectors / e1 以及 e1* 目录，递归 *.xml）
+            e1_dirs: list[Path] = []
+            for cand in [sim_path / "e1_detectors", sim_path / "e1"]:
+                if cand.exists() and cand.is_dir():
+                    e1_dirs.append(cand)
+            # 额外扫描以 e1 开头的目录
+            try:
+                e1_dirs.extend([p for p in sim_path.iterdir() if p.is_dir() and p.name.lower().startswith("e1") and p not in e1_dirs])
+            except Exception:
+                pass
+            if e1_dirs:
+                frames: list[pd.DataFrame] = []
+                total_files = 0
+                for e1_folder in e1_dirs:
+                    for e1_file in e1_folder.rglob("*.xml"):
+                        total_files += 1
+                        df = self._parse_e1_xml(e1_file)
+                        if not df.empty:
+                            frames.append(df)
+                if frames:
+                    data["e1_detectors"] = pd.concat(frames, ignore_index=True)
+                    logger.info(f"加载E1检测器XML：{total_files}，有效表格：{len(frames)}")
             
             # 加载门架数据
             gantry_folder = sim_path / "gantry_data"
@@ -249,8 +299,12 @@ class AccuracyAnalyzer:
             chart_files = []
             
             # 设置图表样式
-            plt.style.use('default')
-            sns.set_palette("husl")
+            try:
+                plt.style.use('default')
+            except Exception:
+                pass
+            # 再次确保中文字体生效（防止样式覆盖）
+            self._ensure_chinese_font()
             
             # 1. 时间序列对比图
             common_columns = simulated_data.columns.intersection(observed_data.columns)
@@ -301,7 +355,44 @@ class AccuracyAnalyzer:
                     plt.close()
                     chart_files.append(str(chart_file))
             
-            # 3. 精度指标柱状图
+            # 3. 直方图对比（重叠）
+            for col in common_columns[:5]:
+                plt.figure(figsize=(10, 6))
+                sim_values = simulated_data[col].dropna()
+                obs_values = observed_data[col].dropna()
+                min_len = min(len(sim_values), len(obs_values))
+                if min_len > 0:
+                    plt.hist(obs_values.iloc[:min_len], bins=30, alpha=0.5, label='观测', color='#4CAF50')
+                    plt.hist(sim_values.iloc[:min_len], bins=30, alpha=0.5, label='仿真', color='#2196F3')
+                    plt.title(f'{col} 分布对比')
+                    plt.xlabel(col)
+                    plt.ylabel('频次')
+                    plt.legend()
+                    plt.grid(True, alpha=0.3)
+                    chart_file = self.charts_dir / f"hist_{col}.png"
+                    plt.savefig(chart_file, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    chart_files.append(str(chart_file))
+
+            # 4. 残差直方图（仅 flow 存在时）
+            if 'flow' in common_columns:
+                plt.figure(figsize=(10, 6))
+                sim_values = simulated_data['flow'].dropna()
+                obs_values = observed_data['flow'].dropna()
+                min_len = min(len(sim_values), len(obs_values))
+                if min_len > 0:
+                    residual = (sim_values.iloc[:min_len] - obs_values.iloc[:min_len]).to_numpy()
+                    plt.hist(residual, bins=40, alpha=0.8, color='#FF9800')
+                    plt.title('flow 残差分布 (仿真-观测)')
+                    plt.xlabel('残差')
+                    plt.ylabel('频次')
+                    plt.grid(True, alpha=0.3)
+                    chart_file = self.charts_dir / "residual_flow.png"
+                    plt.savefig(chart_file, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    chart_files.append(str(chart_file))
+
+            # 5. 精度指标柱状图
             if metrics:
                 plt.figure(figsize=(12, 6))
                 
@@ -387,13 +478,14 @@ class AccuracyAnalyzer:
                     <h2>分析图表</h2>
             """
             
-            # 添加图表
+            # 添加图表（使用相对路径 ../charts/xxx.png 方便通过 /cases 静态访问）
             for chart_file in chart_files:
                 chart_name = Path(chart_file).stem
+                chart_rel = f"../charts/{Path(chart_file).name}"
                 html_content += f"""
                     <div class="chart">
                         <h3>{chart_name}</h3>
-                        <img src="{chart_file}" alt="{chart_name}">
+                        <img src="{chart_rel}" alt="{chart_name}">
                     </div>
                 """
             
@@ -436,13 +528,15 @@ class AccuracyAnalyzer:
             if not simulation_data:
                 raise Exception("无法加载仿真数据")
             
-            # 设置输出目录
-            current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
-            charts_dir = f"analysis/charts_{current_time}"
-            reports_dir = f"analysis/reports_{current_time}"
-            self.set_output_dirs(charts_dir, reports_dir)
+            # 若未预先设置输出目录，则回退到案例标准目录
+            if self.charts_dir is None or self.reports_dir is None:
+                sim_path = Path(simulation_folder)
+                case_root = sim_path.parent if sim_path.name == 'simulation' else sim_path
+                charts_dir = (case_root / "analysis" / "accuracy" / "charts").as_posix()
+                reports_dir = (case_root / "analysis" / "accuracy" / "reports").as_posix()
+                self.set_output_dirs(charts_dir, reports_dir)
             
-            # 选择要分析的数据
+            # 选择要分析的数据（仅 E1 或门架数据）
             if "e1_detectors" in simulation_data:
                 simulated_data = simulation_data["e1_detectors"]
             elif "gantry_data" in simulation_data:
@@ -475,7 +569,7 @@ class AccuracyAnalyzer:
             }
             
             # 保存结果到JSON文件
-            results_file = Path(reports_dir) / "analysis_results.json"
+            results_file = self.reports_dir / "analysis_results.json"
             with open(results_file, 'w', encoding='utf-8') as f:
                 json.dump(results, f, ensure_ascii=False, indent=2)
             

@@ -512,6 +512,35 @@ body {
     margin-top: 20px;
 }
 
+/* 调试面板 */
+.debug-panel {
+    margin-top: 16px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 8px;
+    border: 1px solid #1e293b;
+    overflow: hidden;
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #111827;
+    border-bottom: 1px solid #1f2937;
+}
+
+.debug-output {
+    max-height: 240px;
+    overflow: auto;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
 /* 通知样式 */
 .notification {
     animation: slideIn 0.3s ease-out;

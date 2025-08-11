@@ -428,10 +428,20 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
     """
     try:
         from shared.analysis_tools.accuracy_analyzer import AccuracyAnalyzer
-        
-        # 创建精度分析器
+
+        # 解析目录：请求传入的是结果目录 cases/{case_id}/analysis/accuracy
+        result_folder = Path(request.result_folder).as_posix()
+        case_root = Path(request.result_folder).resolve().parent.parent  # cases/{case_id}
+        simulation_folder = (case_root / "simulation").as_posix()
+
+        # 输出目录固定到案例的 analysis/accuracy/{charts,reports}
+        charts_dir = (case_root / "analysis" / "accuracy" / "charts").as_posix()
+        reports_dir = (case_root / "analysis" / "accuracy" / "reports").as_posix()
+
+        # 创建精度分析器并设置输出目录
         analyzer = AccuracyAnalyzer()
-        
+        analyzer.set_output_dirs(charts_dir, reports_dir)
+
         # 加载观测数据（这里需要实现数据加载逻辑）
         # 暂时使用模拟数据
         observed_data = pd.DataFrame({
@@ -439,23 +449,57 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
             'occupancy': np.random.rand(100),
             'speed': np.random.rand(100)
         })
-        
-        # 执行精度分析
+
+        # 运行前环境自检：统计可用仿真数据文件
+        try:
+            sim_path = Path(simulation_folder)
+            e1_dirs = [p for p in [sim_path / 'e1', sim_path / 'e1_detectors'] if p.exists() and p.is_dir()]
+            try:
+                e1_dirs.extend([p for p in sim_path.iterdir() if p.is_dir() and p.name.lower().startswith('e1') and p not in e1_dirs])
+            except Exception:
+                pass
+            e1_count = 0
+            for d in e1_dirs:
+                e1_count += sum(1 for _ in d.rglob('*.xml'))
+            gantry_dir = sim_path / 'gantry_data'
+            gantry_count = sum(1 for _ in gantry_dir.glob('*.csv')) if gantry_dir.exists() else 0
+            summary_exists = (sim_path / 'summary.xml').exists()
+            debug_msg = (
+                f"[Accuracy] sim='{simulation_folder}', e1_xml={e1_count}, gantry_csv={gantry_count}, summary={summary_exists}"
+            )
+            print(debug_msg)
+            if e1_count == 0 and gantry_count == 0:
+                raise Exception("没有找到可分析的仿真数据（E1或门架）。请确认仿真已生成 e1/*.xml 或 gantry_data/*.csv 后再试。")
+        except Exception as _precheck_err:
+            raise Exception(str(_precheck_err))
+
+        # 执行精度分析（仿真数据来自 cases/{case_id}/simulation）
         result = analyzer.analyze_accuracy(
-            simulation_folder=request.result_folder,
+            simulation_folder=simulation_folder,
             observed_data=observed_data,
             analysis_type=request.analysis_type.value
         )
-        
+
         if "error" not in result:
+            # 构造对外可访问URL（通过 /cases 静态挂载）
+            case_id = case_root.name
+            report_path = Path(result.get("report_file") or "")
+            report_url = f"/cases/{case_id}/analysis/accuracy/reports/{report_path.name}" if report_path.name else None
+            charts = []
+            for p in result.get("chart_files", []) or []:
+                name = Path(p).name
+                charts.append(f"/cases/{case_id}/analysis/accuracy/charts/{name}")
+
             return {
-                "result_folder": request.result_folder,
+                "result_folder": result_folder,
                 "analysis_type": request.analysis_type.value,
                 "started_at": datetime.now().isoformat(),
                 "status": "completed",
                 "metrics": result.get("metrics", {}),
                 "chart_files": result.get("chart_files", []),
                 "report_file": result.get("report_file", ""),
+                "report_url": report_url,
+                "chart_urls": charts,
                 "analysis_time": result.get("analysis_time")
             }
         else:

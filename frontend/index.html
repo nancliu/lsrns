@@ -163,6 +163,18 @@
                 <div id="analysis-result" class="result-area">
                     <div class="loading">等待分析结果...</div>
                 </div>
+
+                <!-- 调试输出（默认隐藏，可在需要时启用） -->
+                <div class="debug-panel" style="display:none;">
+                    <div class="debug-header">
+                        <span>调试输出</span>
+                        <div class="debug-actions">
+                            <button id="toggle-analysis-debug" class="btn btn-secondary">折叠</button>
+                            <button id="clear-analysis-debug" class="btn btn-secondary">清空</button>
+                        </div>
+                    </div>
+                    <pre id="analysis-debug" class="debug-output"></pre>
+                </div>
             </section>
 
             <!-- 4. 案例管理 -->
@@ -243,6 +255,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=20250811_1745"></script>
+    <script src="script.js?v=20250811_1815"></script>
 </body>
 </html> 

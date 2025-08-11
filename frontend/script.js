@@ -5,6 +5,39 @@
 // API基础URL
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
+// =============== 精度分析调试 ===============
+function nowTs() {
+    try { return new Date().toLocaleTimeString('zh-CN', { hour12: false }); } catch { return new Date().toISOString(); }
+}
+
+function appendAnalysisDebug(message, obj) {
+    try {
+        const el = document.getElementById('analysis-debug');
+        if (!el) return;
+        const ts = nowTs();
+        const lines = [`[${ts}] ${message}`];
+        if (obj !== undefined) {
+            try { lines.push(typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2)); } catch { lines.push(String(obj)); }
+        }
+        el.textContent += (el.textContent ? '\n' : '') + lines.join('\n');
+        el.scrollTop = el.scrollHeight;
+    } catch {}
+}
+
+function clearAnalysisDebug() {
+    const el = document.getElementById('analysis-debug');
+    if (el) el.textContent = '';
+}
+
+function toggleAnalysisDebug() {
+    const el = document.getElementById('analysis-debug');
+    if (!el) return;
+    const btn = document.getElementById('toggle-analysis-debug');
+    const hidden = el.style.display === 'none';
+    el.style.display = hidden ? 'block' : 'none';
+    if (btn) btn.textContent = hidden ? '折叠' : '展开';
+}
+
 // 统一API请求封装
 async function apiFetch(url, options = {}) {
     const resp = await fetch(url, {
@@ -89,6 +122,11 @@ function initializeEventListeners() {
 
     const refreshAnalysisCasesBtn = document.getElementById('refresh-analysis-cases-btn');
     if (refreshAnalysisCasesBtn) refreshAnalysisCasesBtn.addEventListener('click', loadCases);
+
+    const clearDebugBtn = document.getElementById('clear-analysis-debug');
+    if (clearDebugBtn) clearDebugBtn.addEventListener('click', clearAnalysisDebug);
+    const toggleDebugBtn = document.getElementById('toggle-analysis-debug');
+    if (toggleDebugBtn) toggleDebugBtn.addEventListener('click', toggleAnalysisDebug);
 
     const refreshCasesBtn = document.getElementById('refresh-cases-btn');
     if (refreshCasesBtn) refreshCasesBtn.addEventListener('click', loadCases);
@@ -239,19 +277,25 @@ async function runAnalysis() {
     const analysisType = document.getElementById('analysis-type').value;
     if (!caseId) { showNotification('请选择案例', 'warning'); return; }
     try {
+        clearAnalysisDebug();
+        appendAnalysisDebug('开始精度分析');
+        const reqBody = {
+            result_folder: `cases/${caseId}/analysis/accuracy`,
+            analysis_type: analysisType
+        };
+        appendAnalysisDebug('请求', { url: `${API_BASE_URL}/analyze_accuracy/`, body: reqBody });
         updateAnalysisStatus('analyzing', '精度分析中...');
         const result = await apiFetch(`${API_BASE_URL}/analyze_accuracy/`, {
             method: 'POST',
-            body: JSON.stringify({
-                result_folder: `cases/${caseId}/analysis/accuracy`,
-                analysis_type: analysisType
-            })
+            body: JSON.stringify(reqBody)
         });
         const payload = result && result.data ? result.data : result;
+        appendAnalysisDebug('响应', payload);
         updateAnalysisStatus('completed', '分析完成');
         showNotification('精度分析启动成功', 'success');
         displayAnalysisResult(payload);
     } catch (error) {
+        appendAnalysisDebug('错误', { message: error?.message, stack: error?.stack });
         console.error('精度分析失败:', error);
         updateAnalysisStatus('failed', '分析失败');
         showNotification(`精度分析失败: ${error.message}`, 'error');
@@ -505,6 +549,8 @@ function displaySimulationResult(result) {
 function displayAnalysisResult(result) {
     const area = document.getElementById('analysis-result');
     if (!area) return;
+    const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
+    const chartsLinks = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
     area.innerHTML = `
         <div class="case-card fade-in">
             <h3>精度分析结果</h3>
@@ -513,7 +559,8 @@ function displayAnalysisResult(result) {
                 <p><strong>分析类型:</strong> ${result.analysis_type || 'N/A'}</p>
                 <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
                 <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
-                ${result.metrics ? `<p><strong>指标:</strong> ${JSON.stringify(result.metrics)}</p>` : ''}
+                ${reportLink}
+                ${chartsLinks}
             </div>
         </div>
     `;
