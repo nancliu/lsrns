@@ -6,12 +6,15 @@ import os
 import json
 import shutil
 from datetime import datetime
+import threading
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 import asyncio
 
 from api.models import *
 from api.utils import *
+import pandas as pd
+import numpy as np
 
 # ==================== 数据处理服务 ====================
 
@@ -91,6 +94,16 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
                 if request.taz_file:
                     add_candidate = (case_dir / "config" / Path(request.taz_file).name)
                     add_abs = Path(os.path.abspath(add_candidate)) if add_candidate.exists() else Path(os.path.abspath(request.taz_file))
+                    # 方案B：不使用output-prefix，直接将TAZ中 file="e1/" 改为 file="../simulation/e1/"
+                    try:
+                        taz_target = add_candidate
+                        if taz_target.exists():
+                            content = taz_target.read_text(encoding="utf-8")
+                            if "file=\"../simulation/e1/" not in content:
+                                content = content.replace("file=\"e1/", "file=\"../simulation/e1/")
+                                taz_target.write_text(content, encoding="utf-8")
+                    except Exception:
+                        pass
                 # 尝试相对路径，跨盘符失败则使用绝对POSIX路径
                 try:
                     route_rel = Path(os.path.relpath(route_abs, cfg_dir)).as_posix()
@@ -117,8 +130,8 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
                     start_time=request.start_time,
                     end_time=request.end_time,
                     additional_file=add_rel,
-                    output_prefix="../../simulation/",
-                    summary_output="../../simulation/summary.xml",
+                    output_prefix=None,
+                    summary_output="../simulation/summary.xml",
                 )
                 # 在XML声明之后插入真实时间注释，避免破坏XML规范
                 marker = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
@@ -197,6 +210,12 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
                     json.dump(metadata, f, ensure_ascii=False, indent=2)
             except Exception as _e:
                 print(f"写入metadata.json失败: {_e}")
+            # 确保仿真输出目录结构健全（特别是 e1）
+            try:
+                (case_dir / "simulation" / "e1").mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
+
             return {
                 "start_time": request.start_time,
                 "end_time": request.end_time,
@@ -232,6 +251,35 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
         
         # 创建仿真处理器
         sim_processor = SimulationProcessor()
+
+        # 自动探测并设置 SUMO 可执行文件（Windows 优先 sumo.exe）
+        try:
+            import shutil as _shutil
+            sumo_bin_env = os.getenv("SUMO_BIN")
+            sumo_home = os.getenv("SUMO_HOME")
+            candidates: list[str] = []
+            if sumo_bin_env:
+                candidates.append(sumo_bin_env)
+            if sumo_home:
+                candidates.append(os.path.join(sumo_home, "bin", "sumo.exe"))
+                candidates.append(os.path.join(sumo_home, "bin", "sumo"))
+            # PATH 中查找
+            which_sumo = _shutil.which("sumo.exe") or _shutil.which("sumo")
+            if which_sumo:
+                candidates.append(which_sumo)
+            # 常见安装路径（兜底）
+            candidates.extend([
+                r"C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo.exe",
+                r"C:\\Program Files\\Eclipse\\Sumo\\bin\\sumo.exe",
+            ])
+            picked = next((p for p in candidates if p and os.path.exists(p)), None)
+            if picked:
+                sim_processor.set_sumo_binary(picked)
+            else:
+                # 若找不到，不立即失败，后续运行会抛出更直观的错误，但这里给出提示以便定位
+                print("警告: 未能自动定位SUMO，可设置环境变量 SUMO_BIN 或 SUMO_HOME，或将 sumo 加入 PATH。")
+        except Exception:
+            pass
         
         # 构建请求参数
         # run_folder 可能是案例根目录（cases/case_xxx），也可能是cases/{case_id}/simulation或cases/{case_id}/config
@@ -255,8 +303,10 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
             if meta_file.exists():
                 with open(meta_file, "r", encoding="utf-8") as f:
                     meta = json.load(f)
+                _sim_started_at = datetime.now().isoformat()
                 meta["status"] = CaseStatus.SIMULATING.value
-                meta["updated_at"] = datetime.now().isoformat()
+                meta["updated_at"] = _sim_started_at
+                meta["simulation_started_at"] = _sim_started_at
                 meta["last_step"] = "simulation_start"
                 with open(meta_file, "w", encoding="utf-8") as f:
                     json.dump(meta, f, ensure_ascii=False, indent=2)
@@ -270,37 +320,89 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
             "expected_duration": request.expected_duration # 新增：预期仿真时长
         }
         
-        # 处理仿真请求
-        result = sim_processor.process_simulation_request(request_params)
-        
-        if result["success"]:
-            # 仿真后更新metadata状态为completed
+        # 先写入初始progress.json，避免前端第一次轮询读到旧结果
+        try:
+            prog_path = Path(request_params["run_folder"]) / "progress.json"
+            prog_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(prog_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "status": "running",
+                    "percent": 0,
+                    "message": "仿真启动中",
+                    "updated_at": datetime.now().isoformat(),
+                    "pid": None
+                }, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+        # 后台线程运行仿真
+        def _run_and_finalize():
             try:
-                case_dir = Path(case_root)
-                meta_file = case_dir / "metadata.json"
-                if meta_file.exists():
-                    with open(meta_file, "r", encoding="utf-8") as f:
-                        meta = json.load(f)
-                    meta["status"] = CaseStatus.COMPLETED.value
-                    meta["updated_at"] = datetime.now().isoformat()
-                    meta["last_step"] = "simulation"
-                    meta.setdefault("files", {})["config_file"] = cfg_file
-                    with open(meta_file, "w", encoding="utf-8") as f:
-                        json.dump(meta, f, ensure_ascii=False, indent=2)
+                result = sim_processor.process_simulation_request(request_params)
+                # 仿真完成后更新metadata
+                if result.get("success"):
+                    try:
+                        case_dir = Path(case_root)
+                        meta_file = case_dir / "metadata.json"
+                        if meta_file.exists():
+                            with open(meta_file, "r", encoding="utf-8") as f:
+                                meta = json.load(f)
+                            meta["status"] = CaseStatus.COMPLETED.value
+                            # 从simulation_result读取结束时间，兜底用当前时间
+                            _ended_at = None
+                            try:
+                                _ended_at = (result.get("simulation_result") or {}).get("end_time")
+                            except Exception:
+                                _ended_at = None
+                            if not _ended_at:
+                                _ended_at = datetime.now().isoformat()
+                            meta["updated_at"] = _ended_at
+                            meta["simulation_ended_at"] = _ended_at
+                            meta["last_step"] = "simulation"
+                            meta.setdefault("files", {})["config_file"] = cfg_file
+                            with open(meta_file, "w", encoding="utf-8") as f:
+                                json.dump(meta, f, ensure_ascii=False, indent=2)
+                    except Exception as _e:
+                        print(f"更新metadata为completed失败: {_e}")
             except Exception as _e:
-                print(f"更新metadata为completed失败: {_e}")
-            return {
-                "run_folder": request_params["run_folder"],
-                "gui": result.get("gui"),
-                "mesoscopic": result.get("mesoscopic"),
-                "simulation_type": request.simulation_type.value,
-                "started_at": datetime.now().isoformat(),
-                "status": "completed",
-                "simulation_result": result.get("simulation_result"),
-                "results": result.get("results")
-            }
-        else:
-            raise Exception(result.get("error", "仿真运行失败"))
+                # 失败时写入失败状态（SimulationProcessor内部也会写入failed，这里兜底）
+                try:
+                    # 写progress.json
+                    with open(Path(request_params["run_folder"]) / "progress.json", "w", encoding="utf-8") as f:
+                        json.dump({
+                            "status": "failed",
+                            "percent": 0,
+                            "message": str(_e),
+                            "updated_at": datetime.now().isoformat(),
+                            "pid": None
+                        }, f, ensure_ascii=False, indent=2)
+                    # 写metadata为failed并记录结束时间
+                    case_dir = Path(case_root)
+                    meta_file = case_dir / "metadata.json"
+                    if meta_file.exists():
+                        with open(meta_file, "r", encoding="utf-8") as mf:
+                            meta = json.load(mf)
+                        meta["status"] = CaseStatus.FAILED.value
+                        _ended_at = datetime.now().isoformat()
+                        meta["updated_at"] = _ended_at
+                        meta["simulation_ended_at"] = _ended_at
+                        meta["last_step"] = "simulation_failed"
+                        with open(meta_file, "w", encoding="utf-8") as mf:
+                            json.dump(meta, mf, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+
+        threading.Thread(target=_run_and_finalize, daemon=True).start()
+
+        # 立即返回“已启动”，由前端轮询progress.json获取真实进度
+        return {
+            "run_folder": request_params["run_folder"],
+            "gui": request.gui,
+            "mesoscopic": request.simulation_type == SimulationType.MESOSCOPIC,
+            "simulation_type": request.simulation_type.value,
+            "started_at": datetime.now().isoformat(),
+            "status": "started"
+        }
             
     except Exception as e:
         raise Exception(f"仿真运行失败: {str(e)}")
@@ -379,6 +481,8 @@ async def create_case_service(request: CaseCreationRequest) -> Dict[str, Any]:
         # 创建子目录
         (case_dir / "config").mkdir(exist_ok=True)
         (case_dir / "simulation").mkdir(exist_ok=True)
+        # 预创建 e1 目录，用于保存 SUMO 仿真后的 E1 检测器输出
+        (case_dir / "simulation" / "e1").mkdir(parents=True, exist_ok=True)
         (case_dir / "analysis").mkdir(exist_ok=True)
         (case_dir / "analysis" / "accuracy").mkdir(exist_ok=True)
         (case_dir / "analysis" / "accuracy" / "results").mkdir(exist_ok=True)

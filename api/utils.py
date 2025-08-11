@@ -215,11 +215,15 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
         route_val = (route_file or "").replace('\\', '/')
         net_val = (net_file or "").replace('\\', '/')
         add_val = (kwargs.get("additional_file") or "").replace('\\', '/') if kwargs.get("additional_file") else None
-        output_prefix_val = (kwargs.get("output_prefix") or "").replace('\\', '/') if kwargs.get("output_prefix") else None
+        output_prefix_val = None
+        if kwargs.get("output_prefix"):
+            # 允许显式传入；否则默认不写<output-prefix>
+            output_prefix_val = (kwargs.get("output_prefix") or "").replace('\\', '/')
         summary_output_val = (kwargs.get("summary_output") or "").replace('\\', '/') if kwargs.get("summary_output") else None
         
         # 生成配置文件内容
         input_additional = f"\n        <additional-files value=\"{add_val}\"/>" if add_val else ""
+        # 只有当output_prefix存在时才生成output标签
         output_block = f"\n    <output>\n        <output-prefix value=\"{output_prefix_val}\"/>\n    </output>" if output_prefix_val else ""
         summary_line = f"\n        <summary-output value=\"{summary_output_val}\"/>" if summary_output_val else ""
         config_content = f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -227,8 +231,7 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
     <input>
         <net-file value="{net_val}"/>
         <route-files value="{route_val}"/>{input_additional}
-    </input>
-    {output_block}
+    </input>{output_block}
     
     <time>
         <begin value="0"/>

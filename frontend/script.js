@@ -8,6 +8,7 @@ const API_BASE_URL = 'http://localhost:8000/api/v1';
 // 统一API请求封装
 async function apiFetch(url, options = {}) {
     const resp = await fetch(url, {
+        cache: 'no-store',
         ...options,
         headers: {
             'Content-Type': 'application/json',
@@ -35,6 +36,7 @@ function toBackendTime(dtLocal) {
 // 全局变量
 let currentCases = [];
 let currentTemplates = {};
+let currentSim = { caseId: null, startedAt: null };
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -168,6 +170,42 @@ async function runSimulation() {
     try {
         updateSimulationStatus('running', '仿真运行中...');
         showProgressBar();
+
+        const progressBar = document.getElementById('simulation-progress');
+        const fill = progressBar ? progressBar.querySelector('.progress-fill') : null;
+        let pollTimer = null;
+        // 调试函数已移除
+        const startPolling = () => {
+            const pollOnce = async () => {
+                try {
+                    const ts = Date.now();
+                    const p = await apiFetch(`${API_BASE_URL}/simulation_progress/${caseId}?_=${ts}`);
+                    const data = p && p.data ? p.data : p;
+                    const pct = (data && typeof data.percent === 'number') ? Math.max(0, Math.min(100, data.percent)) : 0;
+                    const msg = data && data.message ? data.message : '';
+                    if (fill) fill.style.width = `${pct}%`;
+                    updateSimulationStatus('running', `仿真中 ${pct}%${msg ? `（${msg}）` : ''}`);
+                    if (data && (data.status === 'completed' || data.status === 'failed')) {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+                        if (data.status === 'completed') {
+                            updateSimulationStatus('completed', `仿真完成 100%`);
+                            if (fill) fill.style.width = '100%';
+                            const endTs = (data && data.updated_at) ? data.updated_at : new Date().toISOString();
+                            displaySimulationResult({ run_folder: `cases/${caseId}/simulation`, simulation_type: simulationType, gui: guiMode, started_at: currentSim.startedAt, ended_at: endTs, status: 'completed' });
+                        } else {
+                            updateSimulationStatus('failed', `仿真失败 ${pct}%${msg ? `（${msg}）` : ''}`);
+                            displaySimulationResult({ run_folder: `cases/${caseId}/simulation`, simulation_type: simulationType, gui: guiMode, started_at: currentSim.startedAt, status: 'failed' });
+                        }
+                        hideProgressBar();
+                    }
+                } catch (e) { /* ignore */ }
+            };
+            pollTimer = setInterval(pollOnce, 10000);
+            pollOnce();
+        };
+
+        // 先启动仿真，再开始轮询，避免第一轮读到上一次的progress.json
         const result = await apiFetch(`${API_BASE_URL}/run_simulation/`, {
             method: 'POST',
             body: JSON.stringify({
@@ -176,16 +214,22 @@ async function runSimulation() {
                 simulation_type: simulationType
             })
         });
+        // 启动成功后，先显示“已启动”，结果面板状态以轮询完成为准
         const payload = result && result.data ? result.data : result;
-        updateSimulationStatus('completed', '仿真完成');
-        hideProgressBar();
-        showNotification('仿真运行成功', 'success');
-        displaySimulationResult(payload);
+        showNotification('仿真已启动', 'success');
+        currentSim.caseId = caseId;
+        currentSim.startedAt = payload.started_at || new Date().toISOString();
+        displaySimulationResult({ run_folder: `cases/${caseId}/simulation`, simulation_type: simulationType, gui: guiMode, started_at: currentSim.startedAt, status: 'started' });
+        
+        // 等待后端写入初始progress.json后再开始轮询
+        setTimeout(startPolling, 1200);
+
+        // 轮询将自行在completed/failed时停止
     } catch (error) {
         console.error('仿真运行失败:', error);
         updateSimulationStatus('failed', '仿真失败');
-        hideProgressBar();
         showNotification(`仿真运行失败: ${error.message}`, 'error');
+        hideProgressBar();
     }
 }
 
@@ -442,6 +486,7 @@ function displayProcessingResult(result) {
 function displaySimulationResult(result) {
     const area = document.getElementById('simulation-result');
     if (!area) return;
+    const endTimeText = result.status === 'completed' && result.ended_at ? `<p><strong>结束时间:</strong> ${result.ended_at}</p>` : '';
     area.innerHTML = `
         <div class="case-card fade-in">
             <h3>仿真运行结果</h3>
@@ -450,6 +495,7 @@ function displaySimulationResult(result) {
                 <p><strong>仿真类型:</strong> ${result.simulation_type || 'N/A'}</p>
                 <p><strong>GUI模式:</strong> ${result.gui ? '是' : '否'}</p>
                 <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
+                ${endTimeText}
                 <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
             </div>
         </div>

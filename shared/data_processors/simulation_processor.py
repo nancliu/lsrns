@@ -13,6 +13,9 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from collections import deque
+from queue import Queue, Empty
+import threading
+import re
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -175,6 +178,15 @@ class SimulationProcessor:
             logger.info(f"执行命令: {' '.join(cmd)}")
             logger.info(f"工作目录: {config_dir}")
             
+            # 启动前清理旧的 summary.xml，避免读取上一次结果导致百分比飙升
+            try:
+                if run_folder:
+                    old_summary = os.path.join(run_folder, "summary.xml")
+                    if os.path.exists(old_summary):
+                        os.remove(old_summary)
+            except Exception:
+                pass
+
             # 运行仿真
             start_time = datetime.now()
             proc = subprocess.Popen(
@@ -186,6 +198,23 @@ class SimulationProcessor:
                 universal_newlines=True,
                 cwd=config_dir
             )
+
+            # 异步读取stdout，避免主循环阻塞在readline
+            stdout_queue: Queue[str] = Queue(maxsize=1000)
+            def _drain_stdout(p: subprocess.Popen):
+                try:
+                    if not p.stdout:
+                        return
+                    for line in p.stdout:
+                        try:
+                            stdout_queue.put_nowait(line.rstrip("\n"))
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+            reader_thread = threading.Thread(target=_drain_stdout, args=(proc,), daemon=True)
+            reader_thread.start()
 
             def write_progress(status: str, percent: int, message: str = "", extra: Optional[Dict[str, Any]] = None):
                 if not progress_path:
@@ -216,16 +245,81 @@ class SimulationProcessor:
                     # 回退：config_dir/../../simulation/summary.xml
                     cfg_dir = config_dir
                     candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulation/summary.xml")))
+ 
+                    def _mtime_ok(path: str) -> bool:
+                        try:
+                            return os.path.getmtime(path) > start_time.timestamp()
+                        except Exception:
+                            return True
+
+                    def _tail_parse_time(path: str) -> Optional[float]:
+                        try:
+                            # 读取文件末尾一段文本，避免未写完导致XML整体解析失败
+                            with open(path, 'rb') as f:
+                                f.seek(0, os.SEEK_END)
+                                size = f.tell()
+                                read_len = min(200_000, size)
+                                f.seek(size - read_len if size >= read_len else 0)
+                                tail = f.read().decode('utf-8', errors='ignore')
+                            # 匹配所有step，取最后一个中的time/end/begin
+                            matches = list(re.finditer(r"<step[^>]*?(?:time|end|begin)=\"([0-9.]+)\"", tail))
+                            if matches:
+                                val = float(matches[-1].group(1))
+                                return val
+                            return None
+                        except Exception:
+                            return None
+
                     for sf in candidates:
                         if os.path.exists(sf):
-                            tree = ET.parse(sf)
-                            root = tree.getroot()
-                            steps = list(root.findall('.//step'))
-                            if steps:
-                                last = steps[-1]
-                                t = last.get('time') or last.get('end') or last.get('begin')
-                                if t is not None:
-                                    return float(t)
+                            if not _mtime_ok(sf):
+                                continue
+                            # 先尝试完整XML解析
+                            try:
+                                tree = ET.parse(sf)
+                                root = tree.getroot()
+                                steps = list(root.findall('.//step'))
+                                if steps:
+                                    last = steps[-1]
+                                    t = last.get('time') or last.get('end') or last.get('begin')
+                                    if t is not None:
+                                        return float(t)
+                            except Exception:
+                                # 忽略，回退到tail解析
+                                pass
+                            # 回退：尾部正则解析
+                            t2 = _tail_parse_time(sf)
+                            if t2 is not None:
+                                return t2
+                    return None
+                except Exception:
+                    return None
+
+            def get_expected_duration_from_summary_header() -> Optional[int]:
+                try:
+                    candidates = []
+                    if run_folder:
+                        candidates.append(os.path.join(run_folder, "summary.xml"))
+                    cfg_dir = config_dir
+                    candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulation/summary.xml")))
+                    for sf in candidates:
+                        if os.path.exists(sf):
+                            try:
+                                if os.path.getmtime(sf) <= start_time.timestamp():
+                                    continue
+                            except Exception:
+                                pass
+                            text = ''
+                            with open(sf, 'r', encoding='utf-8') as f:
+                                # 只读前几KB即可
+                                text = f.read(4096)
+                            m = re.search(r"<time>\s*<begin\s+value=\"([0-9.]+)\"\s*/>\s*<end\s+value=\"([0-9.]+)\"\s*/>\s*</time>", text, re.DOTALL)
+                            if m:
+                                begin_v = float(m.group(1))
+                                end_v = float(m.group(2))
+                                total = int(max(0, end_v - begin_v))
+                                if total > 0:
+                                    return total
                     return None
                 except Exception:
                     return None
@@ -233,37 +327,62 @@ class SimulationProcessor:
             last_lines = deque(maxlen=200)
             
             last_percent = 0
+            last_write_ts = 0.0
             write_progress("running", 0, "仿真启动中")
 
             last_line = ""
             while True:
-                line = proc.stdout.readline() if proc.stdout else ""
-                if line:
-                    last_line = line.strip()
+                # 尝试无阻塞获取stdout中的新行
+                drained_any = False
+                try:
+                    while True:
+                        line_item = stdout_queue.get_nowait()
+                        drained_any = True
+                        if line_item:
+                            last_line = line_item.strip()
+                            try:
+                                last_lines.append(last_line)
+                            except Exception:
+                                pass
+                except Empty:
+                    pass
+
+                # 若未获得expected_duration，尝试从summary.xml头部注释解析
+                if (expected_duration is None) or (isinstance(expected_duration, int) and expected_duration <= 0):
                     try:
-                        last_lines.append(last_line)
+                        parsed_total = get_expected_duration_from_summary_header()
+                        if parsed_total and parsed_total > 0:
+                            expected_duration = parsed_total
                     except Exception:
                         pass
-                if line == "" and proc.poll() is not None:
+
+                # 子进程已结束且无更多输出，跳出
+                if proc.poll() is not None and not drained_any and stdout_queue.empty():
                     break
 
-                # 估算百分比
+                # 估算百分比（仅基于 summary.xml）
                 percent = last_percent
                 sim_time = get_sim_time_from_summary()
-                if expected_duration and expected_duration > 0:
-                    if sim_time is not None:
-                        percent = int(sim_time / expected_duration * 100)
+                if expected_duration and expected_duration > 0 and sim_time is not None:
+                    percent = int(min(99, (sim_time / expected_duration) * 100))
+ 
+                # 组织更直观的message
+                try:
+                    if expected_duration and expected_duration > 0:
+                        if sim_time is not None:
+                            msg_out = f"t={int(sim_time)}s/{int(expected_duration)}s"
+                        else:
+                            msg_out = f"t=?/{int(expected_duration)}s（waiting summary）"
                     else:
-                        # 基于耗时的保守估算，最多到95%
-                        elapsed = (datetime.now() - start_time).total_seconds()
-                        percent = min(95, int(elapsed / expected_duration * 100))
-                else:
-                    # 无法估算，保持已有百分比
-                    percent = max(percent, 10 if last_percent == 0 else last_percent)
+                        msg_out = "waiting summary"
+                except Exception:
+                    msg_out = "waiting summary"
 
-                if percent != last_percent or (int(time.time()) % 3 == 0):
-                    write_progress("running", percent, last_line)
+                now_ts = time.time()
+                if percent != last_percent or (now_ts - last_write_ts) >= 10.0:
+                    write_progress("running", percent, msg_out)
                     last_percent = percent
+                    last_write_ts = now_ts
 
                 time.sleep(0.5)
 

@@ -44,3 +44,7 @@ mkdocs-material==9.4.8
 # Other Tools
 click==8.1.7
 rich==13.7.0 
+
+# Visualization (用于精度分析与报告生成; 解决 No module named 'matplotlib')
+matplotlib==3.10.0
+seaborn==0.13.2

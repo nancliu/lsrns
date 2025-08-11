@@ -338,6 +338,7 @@ class ODProcessor:
         """
         logger.info(f"开始生成ROU XML文件: {output_file}")
         root = ET.Element("routes")
+        
         # 车辆类型定义
         for vt in sorted(set(flow_df.get('vtype', []))):
             v = ET.SubElement(root, "vType")
@@ -345,8 +346,13 @@ class ODProcessor:
             # 基础占位属性，可根据需要微调
             v.set("accel", "1.0"); v.set("decel", "4.5"); v.set("sigma", "0.5")
             v.set("length", "5"); v.set("maxSpeed", "27.78")
-        # flows
-        for i, row in flow_df.iterrows():
+        
+        # 按begin时间排序，确保SUMO不会发出排序警告
+        sorted_flow_df = flow_df.sort_values('begin').reset_index(drop=True)
+        logger.info(f"车辆流已按时间排序，共 {len(sorted_flow_df)} 条记录")
+        
+        # 生成flows，确保按时间顺序
+        for i, row in sorted_flow_df.iterrows():
             f = ET.SubElement(root, "flow")
             f.set("id", f"f{i}")
             f.set("begin", str(int(row['begin'])))
@@ -356,6 +362,11 @@ class ODProcessor:
             if 'vtype' in row and pd.notnull(row['vtype']):
                 f.set("type", str(row['vtype']))
             f.set("vehsPerHour", str(float(row['vehsPerHour'])))
+            
+            # 记录排序后的时间信息用于调试
+            if i < 5:  # 只记录前5条用于调试
+                logger.debug(f"Flow f{i}: begin={row['begin']}, end={row['end']}, from={row['fromTaz']}, to={row['toTaz']}")
+        
         tree = ET.ElementTree(root)
         tree.write(output_file, encoding='utf-8', xml_declaration=True)
         logger.info(f"ROU XML文件生成完成: {output_file}")
