@@ -438,17 +438,9 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
         charts_dir = (case_root / "analysis" / "accuracy" / "charts").as_posix()
         reports_dir = (case_root / "analysis" / "accuracy" / "reports").as_posix()
 
-        # 创建精度分析器并设置输出目录
-        analyzer = AccuracyAnalyzer()
-        analyzer.set_output_dirs(charts_dir, reports_dir)
-
-        # 加载观测数据（这里需要实现数据加载逻辑）
-        # 暂时使用模拟数据
-        observed_data = pd.DataFrame({
-            'flow': np.random.rand(100),
-            'occupancy': np.random.rand(100),
-            'speed': np.random.rand(100)
-        })
+        # 优先使用新版分析器（accuracy_analysis.AccuracyAnalyzer），加载真实观测数据并按门架×时间对齐
+        # 输出目录将使用 cases/{case_id}/analysis/accuracy/accuracy_results_yyyyMMdd_HHmmss
+        use_new_analyzer = True
 
         # 运行前环境自检：统计可用仿真数据文件
         try:
@@ -473,22 +465,78 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
         except Exception as _precheck_err:
             raise Exception(str(_precheck_err))
 
-        # 执行精度分析（仿真数据来自 cases/{case_id}/simulation）
-        result = analyzer.analyze_accuracy(
-            simulation_folder=simulation_folder,
-            observed_data=observed_data,
-            analysis_type=request.analysis_type.value
-        )
+        result = None
+        if use_new_analyzer:
+            try:
+                from accuracy_analysis.analyzer import AccuracyAnalyzer as NewAccuracyAnalyzer
+                # run_folder 取 cases/{case_id}/simulation 的父目录
+                run_folder = Path(simulation_folder).parent.as_posix()
+                # 运行新版分析器（内部从数据库加载门架观测数据，并与E1合并）
+                new_analyzer = NewAccuracyAnalyzer(run_folder=run_folder, output_base_folder=(Path(simulation_folder).parent / "analysis" / "accuracy").as_posix())
+                new_result = new_analyzer.analyze_accuracy()
+                if new_result.get("success"):
+                    # 适配返回给前端的字段
+                    report_files = new_result.get("report_files", {})
+                    report_file = report_files.get("html_report") or ""
+                    # 附加导出的对比CSV路径（detailed_records.csv 中包含 sim_flow/obs_flow/gantry_id/interval_start）
+                    exported_csvs = {
+                        "accuracy_results": report_files.get("overall_results"),
+                        "gantry_accuracy_analysis": report_files.get("gantry_analysis"),
+                        "time_accuracy_analysis": report_files.get("time_analysis"),
+                        "detailed_records": report_files.get("detailed_records")
+                    }
+                    result = {
+                        "analysis_type": request.analysis_type.value,
+                        "simulation_folder": simulation_folder,
+                        "metrics": new_result.get("accuracy_summary", {}).get("overall_metrics", {}),
+                        "chart_files": [v for k, v in report_files.items() if k != "html_report"],
+                        "report_file": report_file,
+                        "analysis_time": datetime.now().isoformat(),
+                        "exported_csvs": exported_csvs,
+                    }
+                else:
+                    raise Exception(new_result.get("error") or "新版精度分析失败")
+            except Exception as _e:
+                # 回退旧分析器（不理想但不中断）
+                print(f"新版分析器失败，回退旧版: {_e}")
+                use_new_analyzer = False
+
+        if not use_new_analyzer:
+            # 旧版分析器路径（注意：旧版此前用了模拟观测数据，不再使用）
+            analyzer = AccuracyAnalyzer()
+            analyzer.set_output_dirs(charts_dir, reports_dir)
+            # 从数据库读取真实观测数据的旧管道尚未在旧版中实现，这里直接报错提醒
+            raise Exception("当前分析通道仅支持新版分析器以加载真实观测数据，请确保数据库连接配置正确，并在 cases/{case_id}/simulation 生成 E1 后重试。")
 
         if "error" not in result:
             # 构造对外可访问URL（通过 /cases 静态挂载）
             case_id = case_root.name
             report_path = Path(result.get("report_file") or "")
-            report_url = f"/cases/{case_id}/analysis/accuracy/reports/{report_path.name}" if report_path.name else None
-            charts = []
-            for p in result.get("chart_files", []) or []:
-                name = Path(p).name
-                charts.append(f"/cases/{case_id}/analysis/accuracy/charts/{name}")
+            # 统一定位到时间戳结果目录（新版分析器）
+            report_url = None
+            if report_path and report_path.name:
+                report_url = f"/cases/{case_id}/analysis/accuracy/{report_path.parent.name}/{report_path.name}"
+            charts: list[str] = []
+            csv_urls: list[str] = []
+            # 结果输出目录：从 report_file 或 任意chart/CSV 推断
+            out_dir = report_path.parent
+            # 对旧/新两类返回统一处理：
+            for p in (result.get("chart_files", []) or []):
+                path = Path(p)
+                name = path.name
+                suffix = path.suffix.lower()
+                if suffix in (".png", ".jpg", ".jpeg", ".gif"):
+                    charts.append(f"/cases/{case_id}/analysis/accuracy/charts/{name}")
+                elif suffix == ".csv":
+                    # CSV 位于输出目录根，而非 charts
+                    csv_urls.append(f"/cases/{case_id}/analysis/accuracy/{out_dir.name}/{name}")
+            # 若后端提供了 exported_csvs（新版分析器），补充其URL
+            exported = result.get("exported_csvs") or {}
+            for name, fullpath in exported.items():
+                if not fullpath:
+                    continue
+                fname = Path(fullpath).name
+                csv_urls.append(f"/cases/{case_id}/analysis/accuracy/{Path(fullpath).parent.name}/{fname}")
 
             return {
                 "result_folder": result_folder,
@@ -500,7 +548,12 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 "report_file": result.get("report_file", ""),
                 "report_url": report_url,
                 "chart_urls": charts,
-                "analysis_time": result.get("analysis_time")
+                "csv_urls": csv_urls,
+                "analysis_time": result.get("analysis_time"),
+                # 透传增强信息（阶段A：效率与数据源、对齐策略）
+                "source_stats": result.get("source_stats"),
+                "alignment": result.get("alignment"),
+                "efficiency": result.get("efficiency")
             }
         else:
             raise Exception(result.get("error", "精度分析失败"))
@@ -914,3 +967,41 @@ def count_files(folder_path: Path) -> int:
     except:
         pass
     return file_count 
+
+# ==================== 精度结果回看服务 ====================
+
+async def list_accuracy_results_service(case_id: str) -> Dict[str, Any]:
+    """
+    列出指定案例下的精度分析结果时间戳目录与主要产物（HTML/CSV/PNG）。
+    """
+    case_dir = Path("cases") / case_id / "analysis" / "accuracy"
+    if not case_dir.exists():
+        raise Exception("案例精度目录不存在")
+    items = []
+    for d in case_dir.iterdir():
+        if d.is_dir() and d.name.startswith("accuracy_results_"):
+            record = {
+                "folder": d.name,
+                "created_at": datetime.fromtimestamp(d.stat().st_ctime).isoformat(),
+                "report_html": None,
+                "csv_files": [],
+                "chart_files": []
+            }
+            # HTML
+            html_path = d / "accuracy_report.html"
+            if html_path.exists():
+                record["report_html"] = f"/cases/{case_id}/analysis/accuracy/{d.name}/accuracy_report.html"
+            # CSVs
+            for csv_name in ["accuracy_results.csv", "gantry_accuracy_analysis.csv", "time_accuracy_analysis.csv", "detailed_records.csv", "anomaly_analysis.csv"]:
+                p = d / csv_name
+                if p.exists():
+                    record["csv_files"].append(f"/cases/{case_id}/analysis/accuracy/{d.name}/{csv_name}")
+            # Charts
+            charts_dir = d / "charts"
+            if charts_dir.exists():
+                for p in charts_dir.glob("*.png"):
+                    record["chart_files"].append(f"/cases/{case_id}/analysis/accuracy/{d.name}/charts/{p.name}")
+            items.append(record)
+    # 按创建时间倒序
+    items.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"case_id": case_id, "results": items}

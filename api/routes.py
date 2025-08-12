@@ -166,6 +166,19 @@ async def get_accuracy_analysis_status(result_folder: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取分析状态失败: {str(e)}")
 
+# ==================== 精度结果回看API ====================
+
+@router.get("/accuracy_results/{case_id}", response_model=BaseResponse)
+async def list_accuracy_results(case_id: str):
+    """
+    列出指定案例下的历史精度分析结果（时间戳目录）及主要产物链接。
+    """
+    try:
+        data = await list_accuracy_results_service(case_id)
+        return BaseResponse(success=True, message="获取精度结果成功", data=data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取精度结果失败: {str(e)}")
+
 # ==================== 模板管理API ====================
 
 @router.get("/templates/taz", response_model=List[TemplateInfo])

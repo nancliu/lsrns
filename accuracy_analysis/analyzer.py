@@ -72,10 +72,51 @@ class AccuracyAnalyzer:
             开始时间和结束时间的元组
         """
         try:
-            # 查找OD文件
-            od_files = [f for f in os.listdir(self.run_folder) if f.endswith('.od.xml')]
+            # 优先：读取 cases/{case_id}/metadata.json 的 time_range
+            try:
+                meta_path = os.path.join(self.run_folder, 'metadata.json')
+                if os.path.exists(meta_path):
+                    import json as _json
+                    with open(meta_path, 'r', encoding='utf-8') as f:
+                        meta = _json.load(f)
+                    tr = meta.get('time_range') or {}
+                    start_s = tr.get('start')
+                    end_s = tr.get('end')
+                    if start_s and end_s:
+                        # 兼容两种常见格式：YYYY/MM/DD HH:MM:SS 或 ISO8601
+                        from datetime import datetime as _dt
+                        def _parse_dt(s: str) -> datetime:
+                            for fmt in ("%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
+                                try:
+                                    return _dt.strptime(s.replace('T', ' ').split('Z')[0], fmt)
+                                except Exception:
+                                    continue
+                            # 回退直接构造
+                            return _dt.fromisoformat(s.replace('Z','').replace('/', '-'))
+                        return _parse_dt(start_s), _parse_dt(end_s)
+            except Exception:
+                pass
+
+            # 次优：查找OD文件
+            od_files = [f for f in os.listdir(self.run_folder) if f.endswith('.od.xml') or f.lower().startswith('od') and f.lower().endswith('.xml')]
             
             if not od_files:
+                # 尝试从同级 config/simulation.sumocfg 中解析我们写入的真实时间注释
+                try:
+                    cfg_path = os.path.join(os.path.dirname(self.run_folder), 'config', 'simulation.sumocfg')
+                    if os.path.exists(cfg_path):
+                        with open(cfg_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        import re
+                        m1 = re.search(r"real_start=([0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})", content)
+                        m2 = re.search(r"real_end=([0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})", content)
+                        if m1 and m2:
+                            from datetime import datetime as _dt
+                            start_dt = _dt.strptime(m1.group(1), "%Y/%m/%d %H:%M:%S")
+                            end_dt = _dt.strptime(m2.group(1), "%Y/%m/%d %H:%M:%S")
+                            return start_dt, end_dt
+                except Exception:
+                    pass
                 raise ValueError(f"在运行文件夹 {self.run_folder} 中未找到OD文件")
             
             # 使用第一个OD文件解析时间
@@ -93,33 +134,62 @@ class AccuracyAnalyzer:
         Returns:
             E1文件夹路径，如果未找到则返回None
         """
-        # 查找e1_*格式的文件夹
+        # 1) 先在 cases/{case_id}/ 下找 e1_* 目录
         e1_folder = find_folder_with_prefix(self.run_folder, "e1_")
-        
         if e1_folder:
             log_analysis_progress(f"找到E1数据文件夹: {e1_folder}")
             return e1_folder
-        
-        # 如果没有找到，尝试从根目录的e1文件夹复制
-        base_e1_path = os.path.join(os.path.dirname(self.run_folder), "e1")
-        
+
+        # 2) 在 simulation 下查找常见路径
+        sim_dir = os.path.join(self.run_folder, "simulation")
+        try:
+            if os.path.isdir(sim_dir):
+                # 2.1 直接存在 simulation/e1
+                direct_e1 = os.path.join(sim_dir, "e1")
+                if os.path.isdir(direct_e1):
+                    log_analysis_progress(f"找到E1数据文件夹: {direct_e1}")
+                    return direct_e1
+                # 2.2 存在以 e1 开头的子目录
+                candidates = [os.path.join(sim_dir, d) for d in os.listdir(sim_dir) if d.lower().startswith("e1")]
+                candidates = [p for p in candidates if os.path.isdir(p)]
+                # 选取含有xml的优先
+                for p in candidates:
+                    try:
+                        if any(fn.lower().endswith('.xml') for fn in os.listdir(p)):
+                            log_analysis_progress(f"找到E1数据文件夹: {p}")
+                            return p
+                    except Exception:
+                        continue
+                # 若未含xml，则返回第一个候选
+                if candidates:
+                    log_analysis_progress(f"找到E1数据候选文件夹: {candidates[0]}")
+                    return candidates[0]
+                # 2.3 递归搜索 simulation 下的 e1* 目录
+                for root, dirs, _files in os.walk(sim_dir):
+                    for d in dirs:
+                        if d.lower() == 'e1' or d.lower().startswith('e1'):
+                            candidate = os.path.join(root, d)
+                            log_analysis_progress(f"递归找到E1数据文件夹: {candidate}")
+                            return candidate
+        except Exception:
+            pass
+
+        # 3) 若仍未找到，尝试从 cases/{case_id}/simulation/e1 复制到 cases/{case_id}/ 下的临时目录
+        base_e1_path = os.path.join(sim_dir, "e1")
         if os.path.exists(base_e1_path):
-            # 创建新的e1文件夹
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             new_e1_path = os.path.join(self.run_folder, f"e1_{timestamp}")
-            
             try:
                 if copy_folder_with_new_name(base_e1_path, new_e1_path):
                     log_analysis_progress(f"已复制E1数据到: {new_e1_path}")
                     return new_e1_path
                 else:
-                    # 如果复制失败，直接使用根目录的e1文件夹
-                    log_analysis_progress(f"复制失败，直接使用根目录E1数据: {base_e1_path}")
+                    log_analysis_progress(f"复制失败，直接使用路径: {base_e1_path}")
                     return base_e1_path
             except Exception as e:
-                log_analysis_progress(f"复制E1数据时出错: {e}，直接使用根目录E1数据")
+                log_analysis_progress(f"复制E1数据时出错: {e}，直接使用路径: {base_e1_path}")
                 return base_e1_path
-        
+
         log_analysis_progress("未找到E1数据文件夹", "WARNING")
         return None
     

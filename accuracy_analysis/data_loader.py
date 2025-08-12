@@ -74,7 +74,15 @@ class DataLoader:
             
             # 构建查询语句
             query = f"""
-                SELECT start_gantryid, start_time, k1, k2, k3, k4, h1, h2, h3, h4, h5, h6
+                SELECT 
+                    start_gantryid,
+                    start_time,
+                    -- 分车型列（可选，便于后续诊断；缺失不影响 total 使用）
+                    k1, k2, k3, k4,
+                    h1, h2, h3, h4, h5, h6,
+                    t1, t2, t3, t4, t5, t6,
+                    -- 直接使用源表的 total 列作为总流量口径
+                    total
                 FROM dwd.{gantry_table}
                 WHERE start_time >= %s
                   AND start_time < %s
@@ -123,23 +131,36 @@ class DataLoader:
         # 确保时间列为datetime类型
         df['start_time'] = pd.to_datetime(df['start_time'])
         
-        # 计算总流量
-        flow_columns = ['k1', 'k2', 'k3', 'k4', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
-        
+        # 计算总流量：优先直接使用 total 列；若不存在则回退到分车型求和
+        flow_columns = ['k1', 'k2', 'k3', 'k4',
+                         'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                         't1', 't2', 't3', 't4', 't5', 't6']
+        numeric_cols = [c for c in flow_columns if c in df.columns]
+        if 'total' in df.columns:
+            numeric_cols.append('total')
         # 清理数值数据
-        df = clean_numeric_data(df, flow_columns)
-        
-        # 计算总流量
-        df['total_flow'] = df[flow_columns].sum(axis=1)
+        if numeric_cols:
+            df = clean_numeric_data(df, numeric_cols)
+        # 直接使用 total，否则回退分车型合计
+        if 'total' in df.columns:
+            df['total_flow'] = df['total']
+        else:
+            # 分车型合计（若存在缺列，不报错，按可用列求和）
+            cols_to_sum = [c for c in flow_columns if c in df.columns]
+            df['total_flow'] = df[cols_to_sum].sum(axis=1)
         
         # 按时间间隔聚合
         df['interval_start'] = df['start_time'].dt.floor(f'{time_interval}min')
         
         # 按门架ID和时间间隔聚合
-        df_agg = df.groupby(['start_gantryid', 'interval_start']).agg({
-            'total_flow': 'sum',
-            **{col: 'sum' for col in flow_columns}
-        }).reset_index()
+        agg_map = {'total_flow': 'sum'}
+        # 可选：同时汇总分车型，便于诊断（列若不存在则忽略）
+        for col in flow_columns:
+            if col in df.columns:
+                agg_map[col] = 'sum'
+        if 'total' in df.columns:
+            agg_map['total'] = 'sum'
+        df_agg = df.groupby(['start_gantryid', 'interval_start']).agg(agg_map).reset_index()
         
         # 重命名列以保持一致性
         df_agg = df_agg.rename(columns={'start_gantryid': 'gantry_id'})

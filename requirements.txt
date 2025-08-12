@@ -4,9 +4,10 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
-# Data Processing
-pandas==2.1.3
-numpy==1.25.2
+# Data Processing (pin 兼容版本，避免 numpy/scipy 二进制不兼容)
+pandas==2.2.2
+numpy==1.26.4
+scipy==1.11.4
 
 # Database Connection
 psycopg2-binary==2.9.9
@@ -45,6 +46,6 @@ mkdocs-material==9.4.8
 click==8.1.7
 rich==13.7.0 
 
-# Visualization (用于精度分析与报告生成; 解决 No module named 'matplotlib')
-matplotlib==3.10.0
+# Visualization (用于精度分析与报告生成)
+matplotlib==3.8.4
 seaborn==0.13.2

@@ -818,6 +818,9 @@ class ReportGenerator:
         """生成HTML内容"""
         overall_metrics = accuracy_summary.get('overall_metrics', {})
         data_stats = accuracy_summary.get('data_statistics', {})
+        # 阈值说明文本
+        mape_level = self._get_mape_level(overall_metrics.get('mape', 0))
+        geh_level = self._get_geh_level(overall_metrics.get('geh_pass_rate', 0))
         
         # 生成图表引用
         chart_refs = []
@@ -942,7 +945,7 @@ class ReportGenerator:
                     <div class="metric-card">
                         <div class="metric-label">MAPE</div>
                         <div class="metric-value">{overall_metrics.get('mape', 0):.2f}%</div>
-                        <div class="metric-label">{self._get_mape_level(overall_metrics.get('mape', 0))}</div>
+                        <div class="metric-label">等级：{mape_level}（目标≤15%）</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">GEH平均值</div>
@@ -952,7 +955,7 @@ class ReportGenerator:
                     <div class="metric-card">
                         <div class="metric-label">GEH合格率</div>
                         <div class="metric-value">{overall_metrics.get('geh_pass_rate', 0):.1f}%</div>
-                        <div class="metric-label">{self._get_geh_level(overall_metrics.get('geh_pass_rate', 0))}</div>
+                        <div class="metric-label">等级：{geh_level}（阈值≤5，合格率≥75%）</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">样本数量</div>

@@ -123,6 +123,9 @@ function initializeEventListeners() {
     const refreshAnalysisCasesBtn = document.getElementById('refresh-analysis-cases-btn');
     if (refreshAnalysisCasesBtn) refreshAnalysisCasesBtn.addEventListener('click', loadCases);
 
+  const viewHistoryBtn = document.getElementById('view-analysis-history-btn');
+  if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', viewAnalysisHistory);
+
     const clearDebugBtn = document.getElementById('clear-analysis-debug');
     if (clearDebugBtn) clearDebugBtn.addEventListener('click', clearAnalysisDebug);
     const toggleDebugBtn = document.getElementById('toggle-analysis-debug');
@@ -300,6 +303,41 @@ async function runAnalysis() {
         updateAnalysisStatus('failed', '分析失败');
         showNotification(`精度分析失败: ${error.message}`, 'error');
     }
+}
+
+// =============== 精度历史结果 ===============
+async function viewAnalysisHistory() {
+  const caseId = document.getElementById('analysis-case').value;
+  if (!caseId) { showNotification('请选择案例', 'warning'); return; }
+  try {
+    const data = await apiFetch(`${API_BASE_URL}/accuracy_results/${caseId}`);
+    const payload = data && data.data ? data.data : data;
+    renderAnalysisHistory(payload);
+  } catch (e) {
+    console.error(e); showNotification('获取历史结果失败', 'error');
+  }
+}
+
+function renderAnalysisHistory(payload) {
+  const area = document.getElementById('analysis-history');
+  if (!area) return;
+  const results = (payload && payload.results) || [];
+  if (!results.length) { area.innerHTML = '<div class="loading">暂无历史结果</div>'; return; }
+  const html = `
+    <div class="case-card fade-in">
+      <h3>历史精度结果（${payload.case_id}）</h3>
+      <div class="case-info">
+        ${results.map(r => `
+          <details style="margin-bottom:8px;">
+            <summary><strong>${r.folder}</strong> <span style="opacity:.7;">（${formatDateTime(r.created_at)}）</span></summary>
+            ${r.report_html ? `<p><a class="btn btn-primary" href="${r.report_html}" target="_blank">查看报告</a></p>` : ''}
+            ${r.csv_files && r.csv_files.length ? `<p><strong>CSV:</strong> ${r.csv_files.map(u => `<a href="${u}" target="_blank">${u.split('/').pop()}</a>`).join(' | ')}</p>` : ''}
+            ${r.chart_files && r.chart_files.length ? `<p><strong>图表:</strong> ${r.chart_files.slice(0,6).map(u => `<a href="${u}" target="_blank">${u.split('/').pop()}</a>`).join(' | ')}${r.chart_files.length>6?' …':''}</p>` : ''}
+          </details>
+        `).join('')}
+      </div>
+    </div>`;
+  area.innerHTML = html;
 }
 
 // =============== 案例列表与筛选 ===============
@@ -551,19 +589,105 @@ function displayAnalysisResult(result) {
     if (!area) return;
     const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
     const chartsLinks = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
-    area.innerHTML = `
-        <div class="case-card fade-in">
-            <h3>精度分析结果</h3>
-            <div class="case-info">
-                <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
-                <p><strong>分析类型:</strong> ${result.analysis_type || 'N/A'}</p>
-                <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
-                <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
-                ${reportLink}
-                ${chartsLinks}
-            </div>
+    const csvLinks = (result.csv_urls && result.csv_urls.length) ? `<p><strong>CSV:</strong> ${result.csv_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+    const m = result.metrics || {};
+    const flowMape = firstNonNull(m.flow_mape, m.mape);
+    const gehMean = firstNonNull(m.flow_geh_mean, m.geh_mean);
+    const gehPass = firstNonNull(m.flow_geh_pass_rate, m.geh_pass_rate);
+    const sampleSize = firstNonNull(m.flow_sample_size, m.sample_size);
+    const eff = result.efficiency || {};
+    const src = result.source_stats || {};
+    const ali = result.alignment || {};
+
+    const mapeColor = (v)=> (isFiniteNumber(v) ? (v <= 15 ? '#27ae60' : v <= 30 ? '#f39c12' : '#e74c3c') : '#7f8c8d');
+    const gehPassColor = (v)=> (isFiniteNumber(v) ? (v >= 75 ? '#27ae60' : v >= 60 ? '#f39c12' : '#e74c3c') : '#7f8c8d');
+    const failColor = (v)=> (v > 0 ? '#e74c3c' : '#27ae60');
+
+    const overviewHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:10px 0;">
+        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
+          <div style="opacity:.8;font-size:12px;">MAPE</div>
+          <div style="font-size:22px;font-weight:600;color:${mapeColor(flowMape)};">${fmtPercent(flowMape)}</div>
+          <div style="opacity:.7;font-size:12px;">目标≤15%</div>
         </div>
-    `;
+        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
+          <div style="opacity:.8;font-size:12px;">GEH均值</div>
+          <div style="font-size:22px;font-weight:600;">${fmtNumber(gehMean,2)}</div>
+          <div style="opacity:.7;font-size:12px;">目标≤5</div>
+        </div>
+        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
+          <div style="opacity:.8;font-size:12px;">GEH合格率</div>
+          <div style="font-size:22px;font-weight:600;color:${gehPassColor(gehPass)};">${fmtPercent(gehPass)}</div>
+          <div style="opacity:.7;font-size:12px;">参考≥75%</div>
+        </div>
+        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
+          <div style="opacity:.8;font-size:12px;">样本量</div>
+          <div style="font-size:22px;font-weight:600;">${isFiniteNumber(sampleSize)?Math.round(sampleSize):'—'}</div>
+          <div style="opacity:.7;font-size:12px;">有效记录</div>
+        </div>
+      </div>`;
+
+    const efficiencyHTML = `
+      <div class="case-info">
+        <p><strong>总耗时:</strong> ${fmtDuration(eff.duration_sec)}</p>
+        <p><strong>图表产出:</strong> ${eff.chart_count ?? '—'} 个，合计 ${fmtBytes(eff.charts_total_bytes)}</p>
+        <p><strong>报告大小:</strong> ${fmtBytes(eff.report_bytes)}</p>
+        ${eff.summary_stats ? `<p><strong>仿真摘要:</strong> steps=${eff.summary_stats.steps ?? '—'}, loaded_total=${eff.summary_stats.loaded_total ?? '—'}, inserted_total=${eff.summary_stats.inserted_total ?? '—'}, running_max=${eff.summary_stats.running_max ?? '—'}, waiting_max=${eff.summary_stats.waiting_max ?? '—'}, ended_total=${eff.summary_stats.ended_total ?? '—'}</p>` : ''}
+      </div>`;
+
+    const sourceHTML = `
+      <div class="case-info">
+        <p><strong>数据源:</strong> ${src.data_source_used || '—'}</p>
+        <p><strong>E1文件:</strong> 共 ${src.e1_total_files ?? '—'}，有效 ${src.e1_valid_tables ?? '—'}，解析失败 <span style="color:${failColor(src.e1_parse_failures||0)};">${src.e1_parse_failures ?? 0}</span></p>
+      </div>`;
+
+    const alignHTML = `
+      <div class="case-info">
+        <p><strong>公共列:</strong> ${(ali.common_columns && ali.common_columns.length) ? ali.common_columns.join(', ') : '—'}</p>
+        <p><strong>MAPE零分母策略:</strong> ${ali.mape_zero_policy || 'filter'}${ali.mape_zero_policy==='epsilon' ? `（epsilon=${ali.mape_epsilon}）` : ''}</p>
+      </div>`;
+
+    area.innerHTML = `
+      <div class="case-card fade-in">
+        <h3>精度分析结果</h3>
+        <div class="case-info">
+          <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
+          <p><strong>分析类型:</strong> ${result.analysis_type || 'N/A'}</p>
+          <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
+          <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+          ${reportLink}
+          ${chartsLinks}
+          ${csvLinks}
+        </div>
+        <h4>概览</h4>
+        ${overviewHTML}
+        <h4>效率</h4>
+        ${efficiencyHTML}
+        <h4>数据源</h4>
+        ${sourceHTML}
+        <h4>对齐策略</h4>
+        ${alignHTML}
+      </div>`;
+}
+
+// =============== 辅助格式化 ===============
+function isFiniteNumber(v) { return typeof v === 'number' && isFinite(v); }
+function firstNonNull(...vals) { for (const v of vals) { if (v !== undefined && v !== null) return v; } return undefined; }
+function fmtNumber(v, digits=2) { return isFiniteNumber(v) ? v.toFixed(digits) : '—'; }
+function fmtPercent(v, digits=1) { return isFiniteNumber(v) ? `${v.toFixed(digits)}%` : '—'; }
+function fmtBytes(b) {
+  const n = Number(b);
+  if (!isFinite(n) || n <= 0) return '—';
+  const units = ['B','KB','MB','GB','TB'];
+  const i = Math.floor(Math.log(n)/Math.log(1024));
+  return `${(n/Math.pow(1024,i)).toFixed(1)} ${units[i]}`;
+}
+function fmtDuration(sec) {
+  const n = Number(sec);
+  if (!isFinite(n) || n < 0) return '—';
+  if (n < 60) return `${n.toFixed(1)} s`;
+  const m = Math.floor(n/60); const s = Math.round(n%60);
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 // =============== 工具通知与通用 ===============

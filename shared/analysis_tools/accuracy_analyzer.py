@@ -30,6 +30,13 @@ class AccuracyAnalyzer:
         # 初始化绘图与中文字体
         self._preferred_cn_font = None
         self._setup_plot_style()
+        # MAPE 分母为0处理策略：'filter' 过滤，或 'epsilon' 使用极小值
+        self.mape_zero_policy: str = "filter"
+        self.mape_epsilon: float = 1e-6
+        # 解析统计
+        self._e1_total_files: int = 0
+        self._e1_valid_tables: int = 0
+        self._e1_parse_failures: int = 0
 
     def _setup_plot_style(self) -> None:
         """配置绘图风格与中文字体，避免中文字符缺失警告。"""
@@ -119,9 +126,12 @@ class AccuracyAnalyzer:
                         df = self._parse_e1_xml(e1_file)
                         if not df.empty:
                             frames.append(df)
+                # 记录统计
+                self._e1_total_files = total_files
+                self._e1_valid_tables = len(frames)
                 if frames:
                     data["e1_detectors"] = pd.concat(frames, ignore_index=True)
-                    logger.info(f"加载E1检测器XML：{total_files}，有效表格：{len(frames)}")
+                    logger.info(f"加载E1检测器XML：{total_files}，有效表格：{len(frames)}，解析失败：{self._e1_parse_failures}")
             
             # 加载门架数据
             gantry_folder = sim_path / "gantry_data"
@@ -183,6 +193,10 @@ class AccuracyAnalyzer:
             
         except Exception as e:
             logger.error(f"解析E1文件失败 {e1_file}: {e}")
+            try:
+                self._e1_parse_failures += 1
+            except Exception:
+                pass
             return pd.DataFrame()
     
     def _parse_summary_xml(self, summary_file: Path) -> pd.DataFrame:
@@ -232,7 +246,7 @@ class AccuracyAnalyzer:
             精度指标字典
         """
         try:
-            metrics = {}
+            metrics: Dict[str, Any] = {}
             
             # 确保数据对齐
             common_columns = simulated_data.columns.intersection(observed_data.columns)
@@ -260,23 +274,49 @@ class AccuracyAnalyzer:
                     metrics[f"{col}_mse"] = np.mean((sim_values - obs_values) ** 2)
                     metrics[f"{col}_rmse"] = np.sqrt(metrics[f"{col}_mse"])
                     
-                    # 计算MAPE（避免除零）
-                    non_zero_obs = obs_values != 0
-                    if non_zero_obs.any():
-                        mape = np.mean(np.abs((sim_values[non_zero_obs] - obs_values[non_zero_obs]) / obs_values[non_zero_obs])) * 100
+                    # 计算MAPE（分母为0的策略）
+                    obs_for_mape = obs_values.copy()
+                    if self.mape_zero_policy == "epsilon":
+                        obs_for_mape = obs_for_mape.replace(0, self.mape_epsilon)
+                        mape_mask = ~np.isnan(obs_for_mape)
+                    else:  # filter
+                        mape_mask = obs_for_mape != 0
+                    if mape_mask.any():
+                        mape = np.mean(np.abs((sim_values[mape_mask] - obs_for_mape[mape_mask]) / obs_for_mape[mape_mask])) * 100
                         metrics[f"{col}_mape"] = mape
+                        metrics[f"{col}_sample_size"] = int(mape_mask.sum())
                     
                     # 计算相关系数
                     correlation = np.corrcoef(sim_values, obs_values)[0, 1]
                     if not np.isnan(correlation):
                         metrics[f"{col}_correlation"] = correlation
+
+                    # GEH 指标（flow 专用）
+                    if col.lower() == "flow":
+                        geh_vals = self._compute_geh(sim_values.to_numpy(dtype=float), obs_values.to_numpy(dtype=float))
+                        if geh_vals.size > 0:
+                            geh_mean = float(np.nanmean(geh_vals))
+                            geh_pass = float(np.mean(geh_vals <= 5) * 100)
+                            metrics["flow_geh_mean"] = geh_mean
+                            metrics["flow_geh_pass_rate"] = geh_pass
             
             logger.info(f"计算了 {len(metrics)} 个精度指标")
             return metrics
-            
         except Exception as e:
             logger.error(f"计算精度指标失败: {e}")
             return {}
+
+    @staticmethod
+    def _compute_geh(simulated: np.ndarray, observed: np.ndarray) -> np.ndarray:
+        try:
+            den = (simulated + observed) / 2.0
+            mask = den != 0
+            vals = np.full_like(simulated, np.nan, dtype=float)
+            if mask.any():
+                vals[mask] = np.sqrt(((simulated[mask] - observed[mask]) ** 2) / den[mask])
+            return vals
+        except Exception:
+            return np.array([], dtype=float)
     
     def generate_accuracy_charts(self, simulated_data: pd.DataFrame, 
                                observed_data: pd.DataFrame, 
@@ -391,6 +431,49 @@ class AccuracyAnalyzer:
                     plt.savefig(chart_file, dpi=300, bbox_inches='tight')
                     plt.close()
                     chart_files.append(str(chart_file))
+
+                # 5. GEH/MAPE 分布（flow）
+                if min_len > 0:
+                    sim_arr = sim_values.iloc[:min_len].to_numpy(dtype=float)
+                    obs_arr = obs_values.iloc[:min_len].to_numpy(dtype=float)
+                    # GEH 直方图
+                    geh_vals = self._compute_geh(sim_arr, obs_arr)
+                    if geh_vals.size > 0 and np.isfinite(geh_vals).any():
+                        plt.figure(figsize=(10, 6))
+                        plt.hist(geh_vals[~np.isnan(geh_vals)], bins=30, alpha=0.8, color='#9CCC65')
+                        plt.axvline(5, color='red', linestyle='--', label='GEH=5')
+                        plt.title('flow GEH 分布')
+                        plt.xlabel('GEH')
+                        plt.ylabel('频次')
+                        plt.legend()
+                        plt.grid(True, alpha=0.3)
+                        chart_file = self.charts_dir / "geh_distribution.png"
+                        plt.savefig(chart_file, dpi=300, bbox_inches='tight')
+                        plt.close()
+                        chart_files.append(str(chart_file))
+
+                    # MAPE 直方图（按当前策略）
+                    obs_for_mape = obs_arr.copy()
+                    if self.mape_zero_policy == 'epsilon':
+                        obs_for_mape[obs_for_mape == 0] = self.mape_epsilon
+                        mask = ~np.isnan(obs_for_mape)
+                    else:
+                        mask = obs_for_mape != 0
+                    if mask.any():
+                        mape_vals = np.abs((sim_arr[mask] - obs_for_mape[mask]) / obs_for_mape[mask]) * 100.0
+                        if mape_vals.size > 0:
+                            plt.figure(figsize=(10, 6))
+                            plt.hist(mape_vals, bins=30, alpha=0.8, color='#64B5F6')
+                            plt.axvline(15, color='red', linestyle='--', label='MAPE=15%')
+                            plt.title('flow MAPE 分布')
+                            plt.xlabel('MAPE (%)')
+                            plt.ylabel('频次')
+                            plt.legend()
+                            plt.grid(True, alpha=0.3)
+                            chart_file = self.charts_dir / "mape_distribution.png"
+                            plt.savefig(chart_file, dpi=300, bbox_inches='tight')
+                            plt.close()
+                            chart_files.append(str(chart_file))
 
             # 5. 精度指标柱状图
             if metrics:
@@ -521,6 +604,7 @@ class AccuracyAnalyzer:
         """
         try:
             logger.info(f"开始精度分析: {simulation_folder}")
+            _t0 = datetime.now()
             
             # 加载仿真数据
             simulation_data = self.load_simulation_data(simulation_folder)
@@ -554,6 +638,45 @@ class AccuracyAnalyzer:
             report_file = self.generate_accuracy_report(metrics, chart_files)
             
             # 保存结果
+            _t1 = datetime.now()
+            duration_sec = (_t1 - _t0).total_seconds()
+
+            # 对齐信息
+            try:
+                common_columns = simulated_data.columns.intersection(observed_data.columns)
+            except Exception:
+                common_columns = []
+
+            # 产物规模/大小
+            chart_count = len(chart_files)
+            charts_total_bytes = 0
+            for p in chart_files:
+                try:
+                    charts_total_bytes += os.path.getsize(p)
+                except Exception:
+                    pass
+            report_bytes = 0
+            try:
+                report_bytes = os.path.getsize(report_file) if report_file else 0
+            except Exception:
+                pass
+
+            # 仿真摘要统计（如有）
+            summary_stats: Dict[str, Any] = {}
+            try:
+                if isinstance(simulation_data.get("summary"), pd.DataFrame) and not simulation_data["summary"].empty:
+                    sm = simulation_data["summary"]
+                    summary_stats = {
+                        "steps": int(len(sm)),
+                        "loaded_total": int(sm["loaded"].sum()) if "loaded" in sm.columns else None,
+                        "inserted_total": int(sm["inserted"].sum()) if "inserted" in sm.columns else None,
+                        "running_max": int(sm["running"].max()) if "running" in sm.columns else None,
+                        "waiting_max": int(sm["waiting"].max()) if "waiting" in sm.columns else None,
+                        "ended_total": int(sm["ended"].sum()) if "ended" in sm.columns else None,
+                    }
+            except Exception:
+                summary_stats = {}
+
             results = {
                 "analysis_type": analysis_type,
                 "simulation_folder": simulation_folder,
@@ -565,6 +688,24 @@ class AccuracyAnalyzer:
                     "simulated_records": len(simulated_data),
                     "observed_records": len(observed_data),
                     "metrics_count": len(metrics)
+                },
+                "source_stats": {
+                    "data_source_used": "e1_detectors" if "e1_detectors" in simulation_data else ("gantry_data" if "gantry_data" in simulation_data else None),
+                    "e1_total_files": self._e1_total_files,
+                    "e1_valid_tables": self._e1_valid_tables,
+                    "e1_parse_failures": self._e1_parse_failures
+                },
+                "alignment": {
+                    "common_columns": list(common_columns) if hasattr(common_columns, "tolist") else list(common_columns),
+                    "mape_zero_policy": self.mape_zero_policy,
+                    "mape_epsilon": self.mape_epsilon
+                },
+                "efficiency": {
+                    "duration_sec": duration_sec,
+                    "chart_count": chart_count,
+                    "charts_total_bytes": charts_total_bytes,
+                    "report_bytes": report_bytes,
+                    "summary_stats": summary_stats
                 }
             }
             
