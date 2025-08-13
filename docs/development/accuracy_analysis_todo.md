@@ -21,13 +21,15 @@
 ##### P0 形成机理（mechanism）- 必做
 
 - 仿真机理视图
-  - [ ] 流-速散点图（sim：`flow` vs `speed`）
-  - [ ] 速度时间序列图（sim：`speed`）
-  - [ ] 流量残差随时间的峰值偏移概览（基于精度层合并后的残差时间序列）
+
+  - [X] 流-速散点图（sim：`flow` vs `speed`）
+  - [X] 速度时间序列图（sim：`speed`）
+  - [X] 流量残差随时间的峰值偏移概览（基于精度层合并后的残差时间序列）
 - 图表集成
-  - [ ] 在报告页面按主导航分组展示（精度/机理/性能）
-  - [ ] 机理图表支持折叠/展开
-  
+
+  - [X] 在报告页面按主导航分组展示（精度/机理/性能）
+  - [X] 机理图表支持折叠/展开
+
   - 数据对比（已实现，CSV产物）
     - [X] 观测OD vs 仿真输入flow（来自 `.rou.xml` 优先，回退 `.od.xml`）
       - 产物：`od_observed_vs_input.csv`（列：fromTaz, toTaz, observed_count, input_count, diff, ratio, mape）

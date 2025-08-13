@@ -449,6 +449,7 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
     说明：统一由一个端点根据 analysis_type 分流，保持前端交互一致。
     """
     try:
+        analysis_started_at = datetime.now()
         from shared.analysis_tools.accuracy_analyzer import AccuracyAnalyzer
         from accuracy_analysis.flow_analysis import TrafficFlowAnalyzer
 
@@ -671,7 +672,7 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
             # 说明：仅用于前端“效率”卡片展示，便于快速感知产物规模与耗时
             efficiency = {}
             try:
-                duration_sec = (datetime.now() - request_started_at).total_seconds()
+                duration_sec = (datetime.now() - analysis_started_at).total_seconds()
                 charts_dir = out_dir / "charts"
                 chart_files = list(charts_dir.glob("*.*")) if charts_dir.exists() else []
                 chart_count = len([f for f in chart_files if f.suffix.lower() in (".png",".jpg",".jpeg",".gif")])
@@ -930,24 +931,7 @@ async def get_folders_service(prefix: str) -> List[FolderInfo]:
     except Exception as e:
         raise Exception(f"获取文件夹列表失败: {str(e)}")
 
-async def get_accuracy_analysis_status_service(result_folder: str) -> AnalysisStatus:
-    """
-    获取精度分析状态服务
-    """
-    try:
-        # 这里应该检查实际的分析状态
-        # 暂时返回模拟数据
-        status = AnalysisStatus(
-            result_folder=result_folder,
-            status="completed",
-            progress=100.0,
-            message="分析完成",
-            created_at=datetime.now(),
-            completed_at=datetime.now()
-        )
-        return status
-    except Exception as e:
-        raise Exception(f"获取分析状态失败: {str(e)}")
+    
 
 # ==================== 模板管理服务 ====================
 
@@ -1040,57 +1024,11 @@ async def get_simulation_templates_service() -> List[TemplateInfo]:
 
 # ==================== 工具服务 ====================
 
-async def validate_taz_file_service(file_path: str) -> Dict[str, Any]:
-    """
-    验证TAZ文件服务
-    """
-    try:
-        # 这里应该调用TAZ验证工具
-        # 暂时返回模拟数据
-        result = {
-            "file_path": file_path,
-            "is_valid": True,
-            "validation_time": datetime.now().isoformat(),
-            "issues": []
-        }
-        return result
-    except Exception as e:
-        raise Exception(f"TAZ文件验证失败: {str(e)}")
+    
 
-async def fix_taz_file_service(file_path: str) -> Dict[str, Any]:
-    """
-    修复TAZ文件服务
-    """
-    try:
-        # 这里应该调用TAZ修复工具
-        # 暂时返回模拟数据
-        result = {
-            "file_path": file_path,
-            "fixed": True,
-            "fix_time": datetime.now().isoformat(),
-            "changes": []
-        }
-        return result
-    except Exception as e:
-        raise Exception(f"TAZ文件修复失败: {str(e)}")
+    
 
-async def compare_taz_files_service(file1: str, file2: str) -> Dict[str, Any]:
-    """
-    比较TAZ文件服务
-    """
-    try:
-        # 这里应该调用TAZ比较工具
-        # 暂时返回模拟数据
-        result = {
-            "file1": file1,
-            "file2": file2,
-            "comparison_time": datetime.now().isoformat(),
-            "differences": [],
-            "similarities": []
-        }
-        return result
-    except Exception as e:
-        raise Exception(f"TAZ文件比较失败: {str(e)}")
+    
 
 # ==================== 辅助函数 ====================
 

@@ -123,29 +123,7 @@ async def get_folders_compat(prefix: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取文件夹列表失败: {str(e)}")
 
-@compatibility_router.get("/accuracy_analysis_status/{result_folder}", response_model=AnalysisStatus)
-async def get_accuracy_analysis_status_compat(result_folder: str):
-    """
-    兼容性分析状态API
-    保持与原有API的兼容性
-    """
-    try:
-        # 调用新的服务
-        result = await get_accuracy_analysis_status_service(result_folder)
-        
-        # 转换为兼容格式
-        compat_result = AnalysisStatus(
-            result_folder=result.result_folder,
-            status=result.status,
-            progress=result.progress,
-            message=result.message,
-            created_at=result.created_at,
-            completed_at=result.completed_at
-        )
-        
-        return compat_result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取分析状态失败: {str(e)}")
+    
 
 # ==================== 数据转换工具 ====================
 
@@ -276,7 +254,7 @@ class CompatibilityChecker:
                 "run_simulation": "compatible",
                 "analyze_accuracy": "compatible",
                 "get_folders": "compatible",
-                "accuracy_analysis_status": "compatible"
+                "accuracy_analysis_status": "removed"
             },
             "data_formats": {
                 "request_formats": "compatible",

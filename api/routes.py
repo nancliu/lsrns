@@ -155,16 +155,7 @@ async def get_folders(prefix: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取文件夹列表失败: {str(e)}")
 
-@router.get("/accuracy_analysis_status/{result_folder}", response_model=AnalysisStatus)
-async def get_accuracy_analysis_status(result_folder: str):
-    """
-    获取精度分析状态
-    """
-    try:
-        result = await get_accuracy_analysis_status_service(result_folder)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取分析状态失败: {str(e)}")
+    
 
 # ==================== 精度结果回看API ====================
 
@@ -214,49 +205,4 @@ async def get_simulation_templates():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取仿真模板失败: {str(e)}")
 
-# ==================== 工具API ====================
-
-@router.get("/tools/taz/validate", response_model=BaseResponse)
-async def validate_taz_file(file_path: str):
-    """
-    验证TAZ文件
-    """
-    try:
-        result = await validate_taz_file_service(file_path)
-        return BaseResponse(
-            success=True,
-            message="TAZ文件验证完成",
-            data=result
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TAZ文件验证失败: {str(e)}")
-
-@router.post("/tools/taz/fix", response_model=BaseResponse)
-async def fix_taz_file(file_path: str):
-    """
-    修复TAZ文件
-    """
-    try:
-        result = await fix_taz_file_service(file_path)
-        return BaseResponse(
-            success=True,
-            message="TAZ文件修复完成",
-            data=result
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TAZ文件修复失败: {str(e)}")
-
-@router.post("/tools/taz/compare", response_model=BaseResponse)
-async def compare_taz_files(file1: str, file2: str):
-    """
-    比较两个TAZ文件
-    """
-    try:
-        result = await compare_taz_files_service(file1, file2)
-        return BaseResponse(
-            success=True,
-            message="TAZ文件比较完成",
-            data=result
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TAZ文件比较失败: {str(e)}") 
+# ==================== 工具API（TAZ验证/修复/比较已移除） ====================
