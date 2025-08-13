@@ -653,7 +653,7 @@ function displayAnalysisResult(result) {
         const csvListPerf = Array.isArray(result.csv_urls) ? result.csv_urls : [];
         const csvLinksPerf = (csvListPerf.length) ? `<p><strong>CSV:</strong> ${csvListPerf.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
         const reportLinkPerf = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
-        const summaryStats = eff.summary_stats || {};
+        const summaryStats = result.summary_stats || {};
         const summaryHTML = Object.keys(summaryStats).length ? `
           <div class="case-info">
             <p><strong>仿真摘要:</strong> steps=${summaryStats.steps ?? '—'}, loaded_total=${summaryStats.loaded_total ?? '—'}, inserted_total=${summaryStats.inserted_total ?? '—'}, running_max=${summaryStats.running_max ?? '—'}, waiting_max=${summaryStats.waiting_max ?? '—'}, ended_total=${summaryStats.ended_total ?? '—'}</p>

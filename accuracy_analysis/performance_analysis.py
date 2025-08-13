@@ -118,7 +118,13 @@ class PerformanceAnalyzer:
 <body>
   <h1>性能分析报告</h1>
   <div class=\"card\">
+    <h2>概述</h2>
+    <p style='opacity:.8;'>本报告展示仿真运行的核心过程指标与产物规模，帮助快速判断仿真规模、拥挤程度与产物大小是否在预期范围。</p>
+  </div>
+
+  <div class=\"card\">
     <h2>仿真摘要（summary.xml）</h2>
+    <p style='opacity:.8;'>统计自每一步(step)的仿真摘要：steps为总步数；loaded/inserted/ended为车辆加载/注入/结束总量；running_max/ waiting_max 为峰值在跑/等待车辆数。</p>
     <div class='grid'>
       <div class='ov'>steps：{summary_stats.get('steps')}</div>
       <div class='ov'>loaded_total：{summary_stats.get('loaded_total')}</div>
@@ -130,6 +136,7 @@ class PerformanceAnalyzer:
   </div>
   <div class=\"card\">
     <h2>产物规模</h2>
+    <p style='opacity:.8;'>统计 simulation 与 analysis 目录下的文件数量与总体积，便于评估存储与I/O压力。</p>
     <div class='grid'>
       <div class='ov'>simulation 文件数：{sim.get('total_files',0)}</div>
       <div class='ov'>analysis 文件数：{ana.get('total_files',0)}</div>
@@ -138,6 +145,15 @@ class PerformanceAnalyzer:
       <div class='ov'>analysis 体积：{fmt_mb(ana.get('total_bytes',0))}</div>
       <div class='ov'>总体积：{fmt_mb(total_bytes)}</div>
     </div>
+  </div>
+
+  <div class=\"card\">
+    <h2>如何解读与建议</h2>
+    <ul>
+      <li>running_max/ waiting_max 较高：考虑减小时间切片或启用路径收敛以降低峰值在跑/等待车辆数。</li>
+      <li>steps 与 ended_total 明显不匹配：确认仿真时长与OD投放窗口一致性。</li>
+      <li>analysis 体积/文件数过大：减少输出类型（如关闭 netstate/fcd），或启用压缩（将输出改为 .xml.gz）。</li>
+    </ul>
   </div>
 </body>
 </html>
