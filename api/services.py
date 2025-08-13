@@ -493,6 +493,31 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 "analysis_time": datetime.now().isoformat(),
             }
 
+        # 性能分析分支
+        if request.analysis_type and request.analysis_type.value == "performance":
+            from accuracy_analysis.performance_analysis import PerformanceAnalyzer
+            perf_base = (Path(simulation_folder).parent / "analysis" / "performance").as_posix()
+            analyzer = PerformanceAnalyzer(simulation_folder=simulation_folder, output_base_folder=perf_base)
+            pr = analyzer.analyze()
+            case_id = case_root.name
+            out_dir = Path(pr.get("output_folder", ""))
+            return {
+                "result_folder": out_dir.as_posix(),
+                "analysis_type": request.analysis_type.value,
+                "status": "completed" if pr.get("success") else "failed",
+                "metrics": {},
+                "chart_files": pr.get("chart_files", []),
+                "report_file": pr.get("report_file") or "",
+                "report_url": (f"/cases/{case_id}/analysis/performance/{out_dir.name}/{Path(pr.get('report_file')).name}" if pr.get('report_file') else None),
+                "chart_urls": [],
+                "csv_urls": [],
+                "efficiency": pr.get("efficiency"),
+                "source_stats": None,
+                "alignment": None,
+                "analysis_time": datetime.now().isoformat(),
+                "summary_stats": pr.get("summary_stats"),
+            }
+
         # 否则：精度分析分支
         # 优先使用新版分析器（accuracy_analysis.AccuracyAnalyzer），加载真实观测数据并按门架×时间对齐
         # 输出目录将使用 cases/{case_id}/analysis/accuracy/accuracy_results_yyyyMMdd_HHmmss
