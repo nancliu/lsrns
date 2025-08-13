@@ -156,7 +156,9 @@ GROUP BY COALESCE(square_code, station_code), ((EXTRACT(HOUR FROM start_time)::i
 - 图表：`cases/{case_id}/analysis/accuracy/accuracy_results_时间戳/charts/*.png`
 - 报告：`cases/{case_id}/analysis/accuracy/accuracy_results_时间戳/accuracy_report.html`
 - 结构化：`cases/{case_id}/analysis/accuracy/accuracy_results_时间戳/{accuracy_results.csv|gantry_accuracy_analysis.csv|time_accuracy_analysis.csv|detailed_records.csv|anomaly_analysis.csv}`
-- 静态访问：`/cases/{case_id}/analysis/accuracy/accuracy_results_时间戳/...`
+- 静态访问：
+  - 精度：`/cases/{case_id}/analysis/accuracy/accuracy_results_时间戳/...`
+  - 机理：`/cases/{case_id}/analysis/mechanism/accuracy_results_时间戳/...`
 
 #### 4.1 目录结构对齐（与《工程结构优化设计方案.md》一致）
 

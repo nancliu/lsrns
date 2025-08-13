@@ -124,6 +124,18 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
                 else:
                     add_rel = None
 
+                # 根据前端复选框构造输出开关
+                output_options = {
+                    "summary": bool(getattr(request, "output_summary", True)),
+                    "tripinfo": bool(getattr(request, "output_tripinfo", True)),
+                    "vehroute": bool(getattr(request, "output_vehroute", False)),
+                    "netstate": bool(getattr(request, "output_netstate", False)),
+                    "fcd": bool(getattr(request, "output_fcd", False)),
+                    "emission": bool(getattr(request, "output_emission", False)),
+                }
+
+                # 统一在 cases/{case_id}/simulation 下产出文件
+                # 在 sumocfg 中将输出相对路径写为 ../simulation/*.xml
                 cfg_content = generate_sumocfg(
                     route_file=route_rel,
                     net_file=net_rel,
@@ -132,6 +144,11 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
                     additional_file=add_rel,
                     output_prefix=None,
                     summary_output="../simulation/summary.xml",
+                    tripinfo_output=("../simulation/tripinfo.xml" if output_options["tripinfo"] else None),
+                    vehroute_output=("../simulation/vehroute.xml" if output_options["vehroute"] else None),
+                    netstate_output=("../simulation/netstate.xml" if output_options["netstate"] else None),
+                    fcd_output=("../simulation/fcd.xml" if output_options["fcd"] else None),
+                    emission_output=("../simulation/emission.xml" if output_options["emission"] else None),
                 )
                 # 在XML声明之后插入真实时间注释，避免破坏XML规范
                 marker = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
@@ -424,20 +441,59 @@ async def get_simulation_progress_service(case_id: str) -> Dict[str, Any]:
 
 async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str, Any]:
     """
-    精度分析服务
+    精度/机理分析服务（analysis_type 决定具体分析）
     """
     try:
         from shared.analysis_tools.accuracy_analyzer import AccuracyAnalyzer
+        from accuracy_analysis.flow_analysis import TrafficFlowAnalyzer
 
         # 解析目录：请求传入的是结果目录 cases/{case_id}/analysis/accuracy
         result_folder = Path(request.result_folder).as_posix()
         case_root = Path(request.result_folder).resolve().parent.parent  # cases/{case_id}
         simulation_folder = (case_root / "simulation").as_posix()
 
-        # 输出目录固定到案例的 analysis/accuracy/{charts,reports}
+        # 输出目录固定到案例的 analysis/{accuracy|mechanism|performance}
         charts_dir = (case_root / "analysis" / "accuracy" / "charts").as_posix()
         reports_dir = (case_root / "analysis" / "accuracy" / "reports").as_posix()
 
+        # 若为机理分析（TRAFFIC_FLOW），走专用分支
+        if request.analysis_type and request.analysis_type.value == "traffic_flow":
+            # 机理分析（mechanism）：
+            # - 输入：cases/{case_id}/simulation 下的 tripinfo/vehroute、.rou.xml、.od.xml
+            # - 输出：cases/{case_id}/analysis/mechanism/accuracy_results_时间戳/ 下的 CSV
+            # 说明：与精度分析（accuracy）分目录，避免产物混淆
+            mech_base = (Path(simulation_folder).parent / "analysis" / "mechanism").as_posix()
+            analyzer = TrafficFlowAnalyzer(
+                run_folder=simulation_folder,
+                output_base_folder=mech_base
+            )
+            tr_result = analyzer.analyze()
+
+            # 构造CSV可访问URL（通过 /cases 静态挂载）
+            case_id = case_root.name
+            out_dir = Path(tr_result.get("output_folder", ""))
+            csv_urls: list[str] = []
+            csv_files = tr_result.get("csv_files") or {}
+            for _k, p in csv_files.items():
+                if not p:
+                    continue
+                fname = Path(p).name
+                csv_urls.append(f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/{fname}")
+
+            return {
+                "result_folder": out_dir.as_posix(),
+                "analysis_type": request.analysis_type.value,
+                "status": "completed",
+                "metrics": {},
+                "chart_files": [],
+                "report_file": "",
+                "report_url": None,
+                "chart_urls": [],
+                "csv_urls": csv_urls,
+                "analysis_time": datetime.now().isoformat(),
+            }
+
+        # 否则：精度分析分支
         # 优先使用新版分析器（accuracy_analysis.AccuracyAnalyzer），加载真实观测数据并按门架×时间对齐
         # 输出目录将使用 cases/{case_id}/analysis/accuracy/accuracy_results_yyyyMMdd_HHmmss
         use_new_analyzer = True
@@ -968,40 +1024,55 @@ def count_files(folder_path: Path) -> int:
         pass
     return file_count 
 
-# ==================== 精度结果回看服务 ====================
+# ==================== 历史结果回看服务 ====================
 
-async def list_accuracy_results_service(case_id: str) -> Dict[str, Any]:
+async def list_analysis_results_service(case_id: str, analysis_type: Optional[str] = "accuracy") -> Dict[str, Any]:
     """
-    列出指定案例下的精度分析结果时间戳目录与主要产物（HTML/CSV/PNG）。
+    按类型列出指定案例下的历史分析结果（accuracy | mechanism | performance）。
+    - accuracy：返回报告HTML、标准CSV、charts
+    - mechanism/performance：返回目录下所有CSV与charts
     """
-    case_dir = Path("cases") / case_id / "analysis" / "accuracy"
-    if not case_dir.exists():
-        raise Exception("案例精度目录不存在")
-    items = []
-    for d in case_dir.iterdir():
+    at = (analysis_type or "accuracy").lower()
+    if at not in ("accuracy", "mechanism", "performance"):
+        at = "accuracy"
+    base_dir = Path("cases") / case_id / "analysis" / at
+    if not base_dir.exists():
+        raise Exception(f"案例{at}目录不存在")
+    items: list[dict[str, Any]] = []
+    for d in base_dir.iterdir():
         if d.is_dir() and d.name.startswith("accuracy_results_"):
-            record = {
+            record: Dict[str, Any] = {
                 "folder": d.name,
                 "created_at": datetime.fromtimestamp(d.stat().st_ctime).isoformat(),
                 "report_html": None,
                 "csv_files": [],
                 "chart_files": []
             }
-            # HTML
-            html_path = d / "accuracy_report.html"
-            if html_path.exists():
-                record["report_html"] = f"/cases/{case_id}/analysis/accuracy/{d.name}/accuracy_report.html"
-            # CSVs
-            for csv_name in ["accuracy_results.csv", "gantry_accuracy_analysis.csv", "time_accuracy_analysis.csv", "detailed_records.csv", "anomaly_analysis.csv"]:
-                p = d / csv_name
-                if p.exists():
-                    record["csv_files"].append(f"/cases/{case_id}/analysis/accuracy/{d.name}/{csv_name}")
-            # Charts
-            charts_dir = d / "charts"
-            if charts_dir.exists():
-                for p in charts_dir.glob("*.png"):
-                    record["chart_files"].append(f"/cases/{case_id}/analysis/accuracy/{d.name}/charts/{p.name}")
+            if at == "accuracy":
+                html_path = d / "accuracy_report.html"
+                if html_path.exists():
+                    record["report_html"] = f"/cases/{case_id}/analysis/{at}/{d.name}/accuracy_report.html"
+                for csv_name in [
+                    "accuracy_results.csv",
+                    "gantry_accuracy_analysis.csv",
+                    "time_accuracy_analysis.csv",
+                    "detailed_records.csv",
+                    "anomaly_analysis.csv",
+                ]:
+                    p = d / csv_name
+                    if p.exists():
+                        record["csv_files"].append(f"/cases/{case_id}/analysis/{at}/{d.name}/{csv_name}")
+                charts_dir = d / "charts"
+                if charts_dir.exists():
+                    for p in charts_dir.glob("*.png"):
+                        record["chart_files"].append(f"/cases/{case_id}/analysis/{at}/{d.name}/charts/{p.name}")
+            else:
+                for p in d.glob("*.csv"):
+                    record["csv_files"].append(f"/cases/{case_id}/analysis/{at}/{d.name}/{p.name}")
+                charts_dir = d / "charts"
+                if charts_dir.exists():
+                    for p in charts_dir.glob("*.png"):
+                        record["chart_files"].append(f"/cases/{case_id}/analysis/{at}/{d.name}/charts/{p.name}")
             items.append(record)
-    # 按创建时间倒序
     items.sort(key=lambda x: x["created_at"], reverse=True)
-    return {"case_id": case_id, "results": items}
+    return {"case_id": case_id, "analysis_type": at, "results": items}

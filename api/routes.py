@@ -168,16 +168,16 @@ async def get_accuracy_analysis_status(result_folder: str):
 
 # ==================== 精度结果回看API ====================
 
-@router.get("/accuracy_results/{case_id}", response_model=BaseResponse)
-async def list_accuracy_results(case_id: str):
+@router.get("/analysis_results/{case_id}", response_model=BaseResponse)
+async def list_analysis_results(case_id: str, analysis_type: Optional[str] = "accuracy"):
     """
-    列出指定案例下的历史精度分析结果（时间戳目录）及主要产物链接。
+    按类型列出指定案例下的历史分析结果（accuracy | mechanism | performance）。
     """
     try:
-        data = await list_accuracy_results_service(case_id)
-        return BaseResponse(success=True, message="获取精度结果成功", data=data)
+        data = await list_analysis_results_service(case_id, analysis_type)
+        return BaseResponse(success=True, message="获取分析结果成功", data=data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取精度结果失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取分析结果失败: {str(e)}")
 
 # ==================== 模板管理API ====================
 

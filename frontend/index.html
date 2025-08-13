@@ -67,6 +67,40 @@
                             </div>
                         </div>
                         
+                        <!-- 仿真输出配置 -->
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>仿真输出配置：</label>
+                                <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+                                    <label style="display:flex;align-items:center;gap:6px;">
+                                        <input type="checkbox" id="out-summary" checked>
+                                        <span>summary</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;">
+                                        <input type="checkbox" id="out-tripinfo" checked>
+                                        <span>tripinfo</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;">
+                                        <input type="checkbox" id="out-vehroute">
+                                        <span>vehroute</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;">
+                                        <input type="checkbox" id="out-netstate">
+                                        <span>netstate</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;">
+                                        <input type="checkbox" id="out-fcd">
+                                        <span>fcd</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;">
+                                        <input type="checkbox" id="out-emission">
+                                        <span>emission</span>
+                                    </label>
+                                </div>
+                                <div style="font-size:12px;color:#666;margin-top:6px;">建议默认仅开启 summary 与 tripinfo；vehroute/netstate/fcd/emission 按需开启以避免过多I/O。</div>
+                            </div>
+                        </div>
+                        
                         <div class="form-group">
                             <label for="case-description">案例描述:</label>
                             <textarea id="case-description" class="form-control" rows="3" placeholder="可选描述信息"></textarea>
@@ -148,14 +182,14 @@
                     <div class="form-group">
                         <label for="analysis-type">分析类型:</label>
                         <select id="analysis-type" class="form-control">
-                            <option value="accuracy">精度分析</option>
-                            <option value="traffic_flow">交通流分析</option>
-                            <option value="performance">性能分析</option>
+                            <option value="accuracy">精度</option>
+                            <option value="mechanism">机理</option>
+                            <option value="performance">性能</option>
                         </select>
                     </div>
                     
                     <div class="form-actions">
-                        <button id="run-analysis-btn" class="btn btn-primary">开始精度分析</button>
+                        <button id="run-analysis-btn" class="btn btn-primary">开始分析</button>
                         <button id="refresh-analysis-cases-btn" class="btn btn-secondary">刷新案例列表</button>
                          <button id="view-analysis-history-btn" class="btn btn-secondary">查看历史结果</button>
                     </div>
@@ -258,6 +292,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=20250811_1815"></script>
+    <script src="script.js?v=20250812_1040"></script>
 </body>
 </html> 

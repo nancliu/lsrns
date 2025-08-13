@@ -220,12 +220,31 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
             # 允许显式传入；否则默认不写<output-prefix>
             output_prefix_val = (kwargs.get("output_prefix") or "").replace('\\', '/')
         summary_output_val = (kwargs.get("summary_output") or "").replace('\\', '/') if kwargs.get("summary_output") else None
+        tripinfo_output_val = (kwargs.get("tripinfo_output") or "").replace('\\', '/') if kwargs.get("tripinfo_output") else None
+        vehroute_output_val = (kwargs.get("vehroute_output") or "").replace('\\', '/') if kwargs.get("vehroute_output") else None
+        netstate_output_val = (kwargs.get("netstate_output") or "").replace('\\', '/') if kwargs.get("netstate_output") else None
+        fcd_output_val = (kwargs.get("fcd_output") or "").replace('\\', '/') if kwargs.get("fcd_output") else None
+        emission_output_val = (kwargs.get("emission_output") or "").replace('\\', '/') if kwargs.get("emission_output") else None
         
         # 生成配置文件内容
         input_additional = f"\n        <additional-files value=\"{add_val}\"/>" if add_val else ""
-        # 只有当output_prefix存在时才生成output标签
-        output_block = f"\n    <output>\n        <output-prefix value=\"{output_prefix_val}\"/>\n    </output>" if output_prefix_val else ""
-        summary_line = f"\n        <summary-output value=\"{summary_output_val}\"/>" if summary_output_val else ""
+        # 组装 <output> 段
+        output_lines = []
+        if output_prefix_val:
+            output_lines.append(f"        <output-prefix value=\"{output_prefix_val}\"/>")
+        if summary_output_val:
+            output_lines.append(f"        <summary-output value=\"{summary_output_val}\"/>")
+        if tripinfo_output_val:
+            output_lines.append(f"        <tripinfo-output value=\"{tripinfo_output_val}\"/>")
+        if vehroute_output_val:
+            output_lines.append(f"        <vehroute-output value=\"{vehroute_output_val}\"/>")
+        if netstate_output_val:
+            output_lines.append(f"        <netstate-dump value=\"{netstate_output_val}\"/>")
+        if fcd_output_val:
+            output_lines.append(f"        <fcd-output value=\"{fcd_output_val}\"/>")
+        if emission_output_val:
+            output_lines.append(f"        <emission-output value=\"{emission_output_val}\"/>")
+        output_block = ("\n    <output>\n" + "\n".join(output_lines) + "\n    </output>") if output_lines else ""
         config_content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <input>
@@ -245,7 +264,7 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
     
     <report>
         <verbose value="true"/>
-        <no-step-log value="true"/>{summary_line}
+        <no-step-log value="true"/>
     </report>
 </configuration>'''
         return config_content

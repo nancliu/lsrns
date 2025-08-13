@@ -176,7 +176,14 @@ async function processODData(e) {
         net_file: document.getElementById('network-file').value,
         interval_minutes: parseInt(document.getElementById('interval-minutes').value || '5', 10),
         case_name: document.getElementById('case-name').value,
-        description: document.getElementById('case-description').value
+        description: document.getElementById('case-description').value,
+        // 仿真输出控制（与后端 TimeRangeRequest 字段一致）
+        output_summary: document.getElementById('out-summary').checked,
+        output_tripinfo: document.getElementById('out-tripinfo').checked,
+        output_vehroute: document.getElementById('out-vehroute').checked,
+        output_netstate: document.getElementById('out-netstate').checked,
+        output_fcd: document.getElementById('out-fcd').checked,
+        output_emission: document.getElementById('out-emission').checked
     };
 
     if (!formData.start_time || !formData.end_time || !formData.taz_file || !formData.net_file) {
@@ -277,17 +284,19 @@ async function runSimulation() {
 // =============== 精度分析 ===============
 async function runAnalysis() {
     const caseId = document.getElementById('analysis-case').value;
-    const analysisType = document.getElementById('analysis-type').value;
+    let analysisType = document.getElementById('analysis-type').value;
+    // 与后端枚举兼容：mechanism -> traffic_flow
+    if (analysisType === 'mechanism') analysisType = 'traffic_flow';
     if (!caseId) { showNotification('请选择案例', 'warning'); return; }
     try {
         clearAnalysisDebug();
-        appendAnalysisDebug('开始精度分析');
+        appendAnalysisDebug('开始分析');
         const reqBody = {
             result_folder: `cases/${caseId}/analysis/accuracy`,
             analysis_type: analysisType
         };
         appendAnalysisDebug('请求', { url: `${API_BASE_URL}/analyze_accuracy/`, body: reqBody });
-        updateAnalysisStatus('analyzing', '精度分析中...');
+        updateAnalysisStatus('analyzing', '分析中...');
         const result = await apiFetch(`${API_BASE_URL}/analyze_accuracy/`, {
             method: 'POST',
             body: JSON.stringify(reqBody)
@@ -295,7 +304,7 @@ async function runAnalysis() {
         const payload = result && result.data ? result.data : result;
         appendAnalysisDebug('响应', payload);
         updateAnalysisStatus('completed', '分析完成');
-        showNotification('精度分析启动成功', 'success');
+        showNotification('分析启动成功', 'success');
         displayAnalysisResult(payload);
     } catch (error) {
         appendAnalysisDebug('错误', { message: error?.message, stack: error?.stack });
@@ -309,8 +318,13 @@ async function runAnalysis() {
 async function viewAnalysisHistory() {
   const caseId = document.getElementById('analysis-case').value;
   if (!caseId) { showNotification('请选择案例', 'warning'); return; }
+  // 读取下拉的当前分析类型
+  let at = document.getElementById('analysis-type').value;
+  if (at === 'mechanism') at = 'traffic_flow';
+  // 结果历史接口使用 accuracy|mechanism|performance 三类约定
+  const historyType = at === 'traffic_flow' ? 'mechanism' : (at || 'accuracy');
   try {
-    const data = await apiFetch(`${API_BASE_URL}/accuracy_results/${caseId}`);
+    const data = await apiFetch(`${API_BASE_URL}/analysis_results/${caseId}?analysis_type=${encodeURIComponent(historyType)}`);
     const payload = data && data.data ? data.data : data;
     renderAnalysisHistory(payload);
   } catch (e) {
@@ -325,7 +339,7 @@ function renderAnalysisHistory(payload) {
   if (!results.length) { area.innerHTML = '<div class="loading">暂无历史结果</div>'; return; }
   const html = `
     <div class="case-card fade-in">
-      <h3>历史精度结果（${payload.case_id}）</h3>
+      <h3>历史${(payload.analysis_type||'accuracy')==='mechanism'?'机理':(payload.analysis_type||'accuracy')==='performance'?'性能':'精度'}结果（${payload.case_id}）</h3>
       <div class="case-info">
         ${results.map(r => `
           <details style="margin-bottom:8px;">
@@ -587,9 +601,77 @@ function displaySimulationResult(result) {
 function displayAnalysisResult(result) {
     const area = document.getElementById('analysis-result');
     if (!area) return;
+    const at = (result.analysis_type || '').toLowerCase();
+    const typeLabel = at === 'traffic_flow' ? '机理' : at === 'performance' ? '性能' : '精度';
+
+    // 通用部分
     const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
     const chartsLinks = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
-    const csvLinks = (result.csv_urls && result.csv_urls.length) ? `<p><strong>CSV:</strong> ${result.csv_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+    const csvList = Array.isArray(result.csv_urls) ? result.csv_urls : [];
+
+    if (at === 'traffic_flow') {
+        // 机理分析渲染：突出两个CSV对比产物
+        const odObservedVsInput = csvList.find(u => /od_observed_vs_input\.csv$/i.test(u));
+        const odInputVsOutput = csvList.find(u => /od_input_vs_simoutput\.csv$/i.test(u));
+        const csvSection = `
+          <div class="case-info">
+            <p><strong>对比产物:</strong></p>
+            <ul style="margin-left:16px;">
+              <li>观测OD vs 仿真输入flow：${odObservedVsInput ? `<a href="${odObservedVsInput}" target="_blank">od_observed_vs_input.csv</a>` : '未生成'}</li>
+              <li>仿真输入flow vs 仿真输出车流：${odInputVsOutput ? `<a href="${odInputVsOutput}" target="_blank">od_input_vs_simoutput.csv</a>` : '未生成'}</li>
+            </ul>
+          </div>`;
+        area.innerHTML = `
+          <div class="case-card fade-in">
+            <h3>机理分析结果</h3>
+            <div class="case-info">
+              <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
+              <p><strong>分析类型:</strong> ${typeLabel}</p>
+              <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+              ${chartsLinks}
+            </div>
+            ${csvSection}
+            <div style="font-size:12px;color:#666;margin-top:8px;">提示：若缺少“仿真输入 vs 仿真输出”对比，请在仿真配置中开启 tripinfo（或 vehroute）。</div>
+          </div>`;
+        return;
+    }
+
+    if (at === 'performance') {
+        // 性能分析渲染：强调运行耗时与summary统计
+        const eff = result.efficiency || {};
+        const chartsLinksPerf = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+        const csvListPerf = Array.isArray(result.csv_urls) ? result.csv_urls : [];
+        const csvLinksPerf = (csvListPerf.length) ? `<p><strong>CSV:</strong> ${csvListPerf.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+        const summaryStats = eff.summary_stats || {};
+        const summaryHTML = Object.keys(summaryStats).length ? `
+          <div class="case-info">
+            <p><strong>仿真摘要:</strong> steps=${summaryStats.steps ?? '—'}, loaded_total=${summaryStats.loaded_total ?? '—'}, inserted_total=${summaryStats.inserted_total ?? '—'}, running_max=${summaryStats.running_max ?? '—'}, waiting_max=${summaryStats.waiting_max ?? '—'}, ended_total=${summaryStats.ended_total ?? '—'}</p>
+          </div>` : '';
+        const perfHTML = `
+          <div class="case-info">
+            <p><strong>总耗时:</strong> ${fmtDuration(eff.duration_sec)}</p>
+            <p><strong>图表产出:</strong> ${eff.chart_count ?? '—'} 个，合计 ${fmtBytes(eff.charts_total_bytes)}</p>
+            <p><strong>报告大小:</strong> ${fmtBytes(eff.report_bytes)}</p>
+          </div>`;
+
+        area.innerHTML = `
+          <div class="case-card fade-in">
+            <h3>性能分析结果</h3>
+            <div class="case-info">
+              <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
+              <p><strong>分析类型:</strong> ${typeLabel}</p>
+              <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+              ${chartsLinksPerf}
+              ${csvLinksPerf}
+            </div>
+            <h4>效率</h4>
+            ${perfHTML}
+            ${summaryHTML}
+          </div>`;
+        return;
+    }
+
+    // 精度/性能默认渲染（沿用原模板，精度有指标，性能可拓展）
     const m = result.metrics || {};
     const flowMape = firstNonNull(m.flow_mape, m.mape);
     const gehMean = firstNonNull(m.flow_geh_mean, m.geh_mean);
@@ -647,12 +729,14 @@ function displayAnalysisResult(result) {
         <p><strong>MAPE零分母策略:</strong> ${ali.mape_zero_policy || 'filter'}${ali.mape_zero_policy==='epsilon' ? `（epsilon=${ali.mape_epsilon}）` : ''}</p>
       </div>`;
 
+    const csvLinks = (csvList && csvList.length) ? `<p><strong>CSV:</strong> ${csvList.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+
     area.innerHTML = `
       <div class="case-card fade-in">
-        <h3>精度分析结果</h3>
+        <h3>${typeLabel}分析结果</h3>
         <div class="case-info">
           <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
-          <p><strong>分析类型:</strong> ${result.analysis_type || 'N/A'}</p>
+          <p><strong>分析类型:</strong> ${typeLabel}</p>
           <p><strong>开始时间:</strong> ${result.started_at || 'N/A'}</p>
           <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
           ${reportLink}

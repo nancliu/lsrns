@@ -27,6 +27,14 @@
 - 图表集成
   - [ ] 在报告页面按主导航分组展示（精度/机理/性能）
   - [ ] 机理图表支持折叠/展开
+  
+  - 数据对比（已实现，CSV产物）
+    - [X] 观测OD vs 仿真输入flow（来自 `.rou.xml` 优先，回退 `.od.xml`）
+      - 产物：`od_observed_vs_input.csv`（列：fromTaz, toTaz, observed_count, input_count, diff, ratio, mape）
+      - 输出目录：`cases/{case_id}/analysis/mechanism/accuracy_results_YYYYMMDD_HHMMSS/`
+    - [X] 仿真输入flow vs 仿真输出车流（优先 `tripinfo.xml`，回退 `vehroute.xml`）
+      - 产物：`od_input_vs_simoutput.csv`（列：fromTaz, toTaz, input_count, sim_output_count, diff, ratio, mape）
+      - 同一输出目录
 
 ##### P0 效率性能（performance）- 必做
 
@@ -120,8 +128,8 @@
 
 ##### 新增（阶段A 完成项）
 
-- [X] 历史精度结果回看 API：`GET /api/v1/accuracy_results/{case_id}`
-- [X] 前端“查看历史结果”按钮与列表渲染
+- [X] 历史结果回看 API（支持类型）：`GET /api/v1/analysis_results/{case_id}?analysis_type=accuracy|mechanism|performance`
+- [X] 前端“查看历史结果”根据分析类型展示对应目录历史
 
 ##### 阶段B（增强）
 
