@@ -37,98 +37,12 @@ class SimulationProcessor:
         self.sumo_binary = binary_path
         logger.info(f"设置SUMO二进制文件路径: {binary_path}")
     
-    def generate_sumocfg(self, route_file: str, net_file: str, start_time: str, 
-                         end_time: str, additional_file: str = None, 
-                         output_file: str = "simulation.sumocfg",
-                         output_options: Dict[str, bool] = None,
-                         enable_mesoscopic: bool = False) -> str:
-        """
-        生成SUMO配置文件
-        
-        Args:
-            route_file: 路由文件路径
-            net_file: 网络文件路径
-            start_time: 开始时间
-            end_time: 结束时间
-            additional_file: 附加文件路径（如TAZ文件）
-            output_file: 输出配置文件路径
-            output_options: 输出选项
-            enable_mesoscopic: 是否启用中观仿真
-            
-        Returns:
-            生成的配置文件路径
-        """
-        logger.info(f"开始生成SUMO配置文件: {output_file}")
-        
-        # 计算仿真时长
-        start_dt = datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S")
-        end_dt = datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S")
-        duration = int((end_dt - start_dt).total_seconds())
-        
-        # 将路径标准化为POSIX（不改变是否相对，仅分隔符）
-        route_val = (route_file or "").replace('\\', '/')
-        net_val = (net_file or "").replace('\\', '/')
-        add_val = (additional_file or "").replace('\\', '/') if additional_file else None
-        
-        # 创建XML根元素
-        root = ET.Element("configuration")
-        
-        # 输入部分
-        input_elem = ET.SubElement(root, "input")
-        
-        # 网络文件
-        net_elem = ET.SubElement(input_elem, "net-file")
-        net_elem.set("value", net_val)
-        
-        # 路由文件
-        route_elem = ET.SubElement(input_elem, "route-files")
-        route_elem.set("value", route_val)
-        
-        # 附加文件（如TAZ文件）
-        if additional_file:
-            additional_elem = ET.SubElement(input_elem, "additional-files")
-            additional_elem.set("value", add_val)
-        
-        # 时间设置
-        time_elem = ET.SubElement(root, "time")
-        begin_elem = ET.SubElement(time_elem, "begin")
-        begin_elem.set("value", "0")
-        end_elem = ET.SubElement(time_elem, "end")
-        end_elem.set("value", str(duration))
-        
-        # 处理设置
-        processing_elem = ET.SubElement(root, "processing")
-        ignore_route_elem = ET.SubElement(processing_elem, "ignore-route-errors")
-        ignore_route_elem.set("value", "true")
-        collision_elem = ET.SubElement(processing_elem, "collision.action")
-        collision_elem.set("value", "warn")
-        
-        # 报告设置
-        report_elem = ET.SubElement(root, "report")
-        verbose_elem = ET.SubElement(report_elem, "verbose")
-        verbose_elem.set("value", "true")
-        no_step_log_elem = ET.SubElement(report_elem, "no-step-log")
-        no_step_log_elem.set("value", "true")
-        
-        # 输出选项
-        if output_options:
-            for option_name, enabled in output_options.items():
-                if enabled:
-                    option_elem = ET.SubElement(report_elem, option_name)
-                    option_elem.set("value", "true")
-        
-        # GUI设置（如果启用）
-        if not enable_mesoscopic:
-            gui_elem = ET.SubElement(root, "gui_only")
-            gui_settings_elem = ET.SubElement(gui_elem, "gui-settings-file")
-            gui_settings_elem.set("value", "gui-settings.cfg")
-        
-        # 写入文件
-        tree = ET.ElementTree(root)
-        tree.write(output_file, encoding='utf-8', xml_declaration=True)
-        
-        logger.info(f"SUMO配置文件生成完成: {output_file}")
-        return output_file
+    # NOTE: 仅旧版脚本使用。API 主流程已统一使用 api.utils.generate_sumocfg。
+    # 为避免维护冲突，本方法保留签名但不再实现，直接抛出说明性异常。
+    def generate_sumocfg(self, *args, **kwargs) -> str:
+        raise RuntimeError(
+            "generate_sumocfg is deprecated here. Use api.utils.generate_sumocfg in API pipeline."
+        )
     
     def run_simulation(self, config_file: str, gui: bool = False, 
                       mesoscopic: bool = False,

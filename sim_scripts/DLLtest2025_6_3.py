@@ -299,6 +299,10 @@ def generate_rou_file(routes_root, flow_data):
 # 生成 SUMO 配置文件
 def generate_sumocfg(route_file, net_file, start_time, end_time, additional_file="TAZ_4.add.xml",
                      output_file="simulation.sumocfg", output_options=None, enable_mesoscopic=False):
+    """
+    仅旧版脚本使用的 sumocfg 生成函数。
+    API 主流程已统一使用 api.utils.generate_sumocfg，请勿在后端代码中混用此实现。
+    """
     print(f"Generating SUMO config file: {output_file}")
     # 计算仿真时长
     simulation_duration = calculate_duration(start_time, end_time)
