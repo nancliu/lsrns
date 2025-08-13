@@ -652,6 +652,7 @@ function displayAnalysisResult(result) {
         const chartsLinksPerf = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
         const csvListPerf = Array.isArray(result.csv_urls) ? result.csv_urls : [];
         const csvLinksPerf = (csvListPerf.length) ? `<p><strong>CSV:</strong> ${csvListPerf.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+        const reportLinkPerf = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
         const summaryStats = eff.summary_stats || {};
         const summaryHTML = Object.keys(summaryStats).length ? `
           <div class="case-info">
@@ -671,6 +672,7 @@ function displayAnalysisResult(result) {
               <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
               <p><strong>分析类型:</strong> ${typeLabel}</p>
               <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+              ${reportLinkPerf}
               ${chartsLinksPerf}
               ${csvLinksPerf}
             </div>
@@ -687,7 +689,6 @@ function displayAnalysisResult(result) {
     const gehMean = firstNonNull(m.flow_geh_mean, m.geh_mean);
     const gehPass = firstNonNull(m.flow_geh_pass_rate, m.geh_pass_rate);
     const sampleSize = firstNonNull(m.flow_sample_size, m.sample_size);
-    const eff = result.efficiency || {};
     const src = result.source_stats || {};
     const ali = result.alignment || {};
 
@@ -719,14 +720,6 @@ function displayAnalysisResult(result) {
         </div>
       </div>`;
 
-    const efficiencyHTML = `
-      <div class="case-info">
-        <p><strong>总耗时:</strong> ${fmtDuration(eff.duration_sec)}</p>
-        <p><strong>图表产出:</strong> ${eff.chart_count ?? '—'} 个，合计 ${fmtBytes(eff.charts_total_bytes)}</p>
-        <p><strong>报告大小:</strong> ${fmtBytes(eff.report_bytes)}</p>
-        ${eff.summary_stats ? `<p><strong>仿真摘要:</strong> steps=${eff.summary_stats.steps ?? '—'}, loaded_total=${eff.summary_stats.loaded_total ?? '—'}, inserted_total=${eff.summary_stats.inserted_total ?? '—'}, running_max=${eff.summary_stats.running_max ?? '—'}, waiting_max=${eff.summary_stats.waiting_max ?? '—'}, ended_total=${eff.summary_stats.ended_total ?? '—'}</p>` : ''}
-      </div>`;
-
     const sourceHTML = `
       <div class="case-info">
         <p><strong>数据源:</strong> ${src.data_source_used || '—'}</p>
@@ -755,8 +748,6 @@ function displayAnalysisResult(result) {
         </div>
         <h4>概览</h4>
         ${overviewHTML}
-        <h4>效率</h4>
-        ${efficiencyHTML}
         <h4>数据源</h4>
         ${sourceHTML}
         <h4>对齐策略</h4>

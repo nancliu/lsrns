@@ -23,6 +23,7 @@ async def process_od_data_service(request: TimeRangeRequest) -> Dict[str, Any]:
     OD数据处理服务
     """
     try:
+        request_started_at = datetime.now()
         from shared.data_processors.od_processor import ODProcessor
         from accuracy_analysis.utils import get_table_names_from_date
         from datetime import datetime as _dt
@@ -608,9 +609,6 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 suffix = path.suffix.lower()
                 if suffix in (".png", ".jpg", ".jpeg", ".gif"):
                     charts.append(f"/cases/{case_id}/analysis/accuracy/charts/{name}")
-                elif suffix == ".csv":
-                    # CSV 位于输出目录根，而非 charts
-                    csv_urls.append(f"/cases/{case_id}/analysis/accuracy/{out_dir.name}/{name}")
             # 若后端提供了 exported_csvs（新版分析器），补充其URL
             exported = result.get("exported_csvs") or {}
             for name, fullpath in exported.items():
@@ -618,6 +616,24 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                     continue
                 fname = Path(fullpath).name
                 csv_urls.append(f"/cases/{case_id}/analysis/accuracy/{Path(fullpath).parent.name}/{fname}")
+
+            # 计算效率指标（分析耗时、图表数量/大小、报告大小）
+            efficiency = {}
+            try:
+                duration_sec = (datetime.now() - request_started_at).total_seconds()
+                charts_dir = out_dir / "charts"
+                chart_files = list(charts_dir.glob("*.*")) if charts_dir.exists() else []
+                chart_count = len([f for f in chart_files if f.suffix.lower() in (".png",".jpg",".jpeg",".gif")])
+                charts_total_bytes = sum((f.stat().st_size for f in chart_files if f.is_file()), 0)
+                report_bytes = report_path.stat().st_size if report_path.exists() else 0
+                efficiency = {
+                    "duration_sec": duration_sec,
+                    "chart_count": chart_count,
+                    "charts_total_bytes": charts_total_bytes,
+                    "report_bytes": report_bytes,
+                }
+            except Exception:
+                efficiency = {"duration_sec": None, "chart_count": None, "charts_total_bytes": None, "report_bytes": None}
 
             return {
                 "result_folder": result_folder,
@@ -634,7 +650,7 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 # 透传增强信息（阶段A：效率与数据源、对齐策略）
                 "source_stats": result.get("source_stats"),
                 "alignment": result.get("alignment"),
-                "efficiency": result.get("efficiency")
+                "efficiency": efficiency
             }
         else:
             raise Exception(result.get("error", "精度分析失败"))
