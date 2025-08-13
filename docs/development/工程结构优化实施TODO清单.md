@@ -139,7 +139,6 @@
 
 ##### **文件管理API** ✅
 - ✅ 实现 `GET /get_folders/{prefix}` 端点
-- ✅ 实现 `GET /accuracy_analysis_status/{result_folder}` 端点
 
 ##### **模板管理API** ✅
 - ✅ 实现 `GET /templates/taz` 端点
@@ -147,11 +146,8 @@
 - ✅ 实现 `GET /templates/simulation` 端点
 - ✅ 实现 `GET /templates/vehicle` 端点
 
-##### **TAZ工具API** ✅
-- ✅ 实现 `POST /taz_tools/analyze` 端点
-- ✅ 实现 `POST /taz_tools/compare` 端点
-- ✅ 实现 `POST /taz_tools/fix` 端点
-- ✅ 实现 `GET /taz_tools/validate` 端点
+##### **分析结果API** ✅
+- ✅ 实现 `GET /analysis_results/{case_id}` 端点
 
 **注：** 以上API端点为预估数量，实际开发过程中可能会根据需求调整增加或减少。
 

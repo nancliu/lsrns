@@ -65,19 +65,18 @@ OD数据处理与仿真系统提供RESTful API接口，支持案例管理、仿�
 ### 3. 文件管理API
 
 - `GET /get_folders/{prefix}` - 获取文件夹列表
-- `GET /accuracy_analysis_status/{result_folder}` - 获取分析状态
 
-### 4. 模板管理API
+### 4. 分析结果API
+
+- `GET /analysis_results/{case_id}` - 按类型列出案例的历史分析结果（参数：`analysis_type=accuracy|mechanism|performance`）
+
+### 5. 模板管理API
 
 - `GET /templates/taz` - 获取TAZ模板
 - `GET /templates/network` - 获取网络模板
 - `GET /templates/simulation` - 获取仿真模板
 
-### 5. 工具API
-
-- `GET /tools/taz/validate` - 验证TAZ文件
-- `POST /tools/taz/fix` - 修复TAZ文件
-- `POST /tools/taz/compare` - 比较TAZ文件
+ 
 
 ## 数据模型
 
@@ -188,7 +187,7 @@ API版本通过URL路径控制，当前版本为v1。
 - 支持仿真控制
 - 支持精度分析
 - 支持模板管理
-- 支持TAZ工具
+ 
 
 ## 更多信息
 

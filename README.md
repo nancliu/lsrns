@@ -1,4 +1,4 @@
-# OD数据处理与仿真系统
+# OD数据处理与仿真系统（v0.5）
 
 ## 项目概述
 
@@ -8,75 +8,74 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 
 ### 环境要求
 
-- Python 3.8+
+- Python 3.10+
 - Windows 10/11
 
-### 安装步骤
+### 安装步骤（推荐）
 
 1. **克隆项目**
+
    ```bash
    git clone [项目地址]
    cd OD生成脚本
    ```
+2. **安装依赖**（先 mamba，后 pip 补充；勿在 base 环境安装）
 
-2. **安装依赖**
-   ```bash
+   ```powershell
+   mamba install -y -c conda-forge --file requirements.txt
    pip install -r requirements.txt
    ```
-
 3. **启动API服务**
-   ```bash
-   # 方法1: 使用启动脚本
-   start_api.bat
-   
-   # 方法2: 直接运行
-   python api/main.py
-   ```
 
+   ```powershell
+   # 方法1: 使用启动脚本（推荐）
+   .\start_api.bat
+
+   # 方法2: 直接运行（需已安装依赖）
+   python api\main.py
+   ```
 4. **访问系统**
+
    - API服务: http://localhost:8000
    - API文档: http://localhost:8000/docs
-   - 前端界面: 打开 `frontend/index.html`
+- 前端主页: http://localhost:8000/index.html
 
 ## 系统功能
 
 ### 核心功能
 
 1. **案例管理**
+
    - 创建新案例
    - 查看案例列表
    - 案例详情查看
    - 案例克隆和删除
-
 2. **仿真控制**
+
    - 运行交通仿真
    - 仿真状态监控
    - 仿真结果查看
-
 3. **精度分析**
+
    - 精度分析执行
    - 分析结果查看
    - 报告生成
-
 4. **模板管理**
+
    - TAZ文件模板
    - 网络文件模板
    - 仿真配置模板
+5. **分析结果回看**
 
-5. **工具功能**
-   - TAZ文件验证
-   - TAZ文件修复
-   - TAZ文件比较
+   - 历史结果列表（accuracy/mechanism/performance）
 
-### API接口
+### API接口（核心）
 
-系统提供16个核心API接口：
-
-- **数据处理API** (3个): OD数据处理、仿真运行、精度分析
-- **案例管理API** (5个): 案例的增删改查和克隆
-- **文件管理API** (2个): 文件夹列表和分析状态
-- **模板管理API** (3个): 各类模板的获取
-- **工具API** (3个): TAZ文件相关工具
+- 数据处理：`POST /process_od_data/`，`POST /run_simulation/`，`POST /analyze_accuracy/`
+- 案例管理：`POST /create_case/`，`GET /list_cases/`，`GET /case/{case_id}`，`DELETE /case/{case_id}`，`POST /case/{case_id}/clone`
+- 文件管理：`GET /get_folders/{prefix}`
+- 分析结果：`GET /analysis_results/{case_id}?analysis_type=accuracy|mechanism|performance`
+- 模板管理：`GET /templates/taz`，`GET /templates/network`，`GET /templates/simulation`
 
 ## 项目结构
 
@@ -178,14 +177,15 @@ python test_api.py
 ### 常见问题
 
 1. **API服务启动失败**
+
    - 检查端口8000是否被占用
    - 确认依赖包已正确安装
-
 2. **模块导入错误**
+
    - 确保从项目根目录运行
    - 检查Python路径设置
-
 3. **编码问题**
+
    - 确保文件使用UTF-8编码
    - 避免在配置文件中使用中文注释
 
@@ -196,9 +196,9 @@ python test_api.py
 
 ## 版本信息
 
-- **当前版本**: v1.0.0
-- **发布日期**: 2025-01-08
-- **Python版本**: 3.8+
+- **当前版本**: v0.5
+- **发布日期**: 2025-08-13
+- **Python版本**: 3.10+
 
 ## 许可证
 
@@ -212,6 +212,6 @@ python test_api.py
 
 ---
 
-**文档版本**: v1.0.0  
-**最后更新**: 2025-01-08  
-**维护者**: 开发团队 
+**文档版本**: v0.5
+**最后更新**: 2025-08-13
+**维护者**: 开发团队

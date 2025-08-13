@@ -293,9 +293,9 @@ OD生成脚本/
 - 标签化：在返回的 `metrics` 与 `chart_urls` 中增加元信息字段（后续版本），如：
   - `tags: {nav: 'accuracy'|'mechanism'|'performance', object: 'gantry'|'toll'|'od', scale: '5min'|'10min', source: 'sim_e1'|'obs_gantry', metric: 'flow'|'speed'}`
 - API 协议：
-  - 请求：`{ result_folder, analysis_type }`
+  - 请求：`POST /api/v1/analyze_accuracy/`，Body：`{ result_folder, analysis_type }`
   - 响应：`{ result_folder, analysis_type, status, metrics, report_url, chart_urls, csv_urls, analysis_time }`
-  - 历史结果回看：`GET /api/v1/accuracy_results/{case_id}` → 返回各时间戳目录的 `report_html/csv_files/chart_files`
+  - 历史结果回看：`GET /api/v1/analysis_results/{case_id}?analysis_type=accuracy|mechanism|performance` → 返回各时间戳目录的 `report_html/csv_files/chart_files`
 
 #### 9. 健壮性与性能
 
