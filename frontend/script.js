@@ -328,7 +328,15 @@ async function viewAnalysisHistory() {
     const payload = data && data.data ? data.data : data;
     renderAnalysisHistory(payload);
   } catch (e) {
-    console.error(e); showNotification('获取历史结果失败', 'error');
+    console.error(e);
+    // 向后兼容：老接口（仅精度）
+    try {
+      const data2 = await apiFetch(`${API_BASE_URL}/accuracy_results/${caseId}`);
+      const payload2 = data2 && data2.data ? data2.data : data2;
+      renderAnalysisHistory({ case_id: payload2.case_id, analysis_type: 'accuracy', results: payload2.results || [] });
+    } catch (e2) {
+      showNotification('获取历史结果失败', 'error');
+    }
   }
 }
 
@@ -621,6 +629,7 @@ function displayAnalysisResult(result) {
               <li>仿真输入flow vs 仿真输出车流：${odInputVsOutput ? `<a href="${odInputVsOutput}" target="_blank">od_input_vs_simoutput.csv</a>` : '未生成'}</li>
             </ul>
           </div>`;
+        const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
         area.innerHTML = `
           <div class="case-card fade-in">
             <h3>机理分析结果</h3>
@@ -628,6 +637,7 @@ function displayAnalysisResult(result) {
               <p><strong>结果文件夹:</strong> ${result.result_folder || 'N/A'}</p>
               <p><strong>分析类型:</strong> ${typeLabel}</p>
               <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+              ${reportLink}
               ${chartsLinks}
             </div>
             ${csvSection}
