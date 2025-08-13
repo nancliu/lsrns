@@ -146,51 +146,9 @@ def validate_taz_file(taz_file: str) -> Dict[str, Any]:
 
 # ==================== OD数据处理工具 ====================
 
-def generate_od_xml(od_matrix: Dict[str, Any], start_time: str, end_time: str, od_file: str) -> bool:
-    """
-    生成OD XML文件
-    
-    Args:
-        od_matrix: OD矩阵数据
-        start_time: 开始时间
-        end_time: 结束时间
-        od_file: 输出文件路径
-    
-    Returns:
-        是否成功
-    """
-    try:
-        # 这里应该实现OD XML生成逻辑
-        # 暂时返回成功
-        return True
-    except Exception as e:
-        raise Exception(f"OD XML生成失败: {str(e)}")
+# 已弃用：OD XML 生成在 shared.data_processors.od_processor 中实现
 
-def process_od_data(start_time: str, end_time: str, interval_minutes: int = 5) -> Dict[str, Any]:
-    """
-    处理OD数据
-    
-    Args:
-        start_time: 开始时间
-        end_time: 结束时间
-        interval_minutes: 时间间隔
-    
-    Returns:
-        处理结果
-    """
-    try:
-        # 这里应该实现OD数据处理逻辑
-        # 暂时返回模拟数据
-        result = {
-            "start_time": start_time,
-            "end_time": end_time,
-            "interval_minutes": interval_minutes,
-            "processed_at": datetime.now().isoformat(),
-            "status": "completed"
-        }
-        return result
-    except Exception as e:
-        raise Exception(f"OD数据处理失败: {str(e)}")
+# 已弃用：OD 数据处理统一由 shared.data_processors.od_processor.ODProcessor 负责
 
 # ==================== 仿真配置工具 ====================
 
@@ -291,47 +249,9 @@ def save_sumocfg(config_content: str, config_file: str) -> bool:
 
 # ==================== 仿真运行工具 ====================
 
-def run_sumo(sumocfg_file: str, gui: bool = False) -> bool:
-    """
-    运行SUMO仿真
-    
-    Args:
-        sumocfg_file: 配置文件路径
-        gui: 是否启用GUI
-    
-    Returns:
-        是否成功
-    """
-    try:
-        # 构建SUMO命令
-        cmd = ["sumo"]
-        if not gui:
-            cmd.append("--no-step-log")
-            cmd.append("--no-warnings")
-        
-        cmd.extend(["-c", sumocfg_file])
-        
-        # 运行SUMO
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        
-        if result.returncode == 0:
-            return True
-        else:
-            raise Exception(f"SUMO运行失败: {result.stderr}")
-    except Exception as e:
-        raise Exception(f"仿真运行失败: {str(e)}")
+# 已弃用：仿真运行由 shared.data_processors.simulation_processor.SimulationProcessor 负责
 
-def run_sumo_gui(sumocfg_file: str) -> bool:
-    """
-    运行SUMO GUI仿真
-    
-    Args:
-        sumocfg_file: 配置文件路径
-    
-    Returns:
-        是否成功
-    """
-    return run_sumo(sumocfg_file, gui=True)
+# 已弃用：仿真运行由 shared.data_processors.simulation_processor.SimulationProcessor 负责
 
 # ==================== 文件操作工具 ====================
 
