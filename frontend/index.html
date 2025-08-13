@@ -123,10 +123,13 @@
                 <h2>仿真运行</h2>
                 <div class="simulation-controls">
                     <div class="form-group">
-                        <label for="simulation-case">选择案例:</label>
-                        <select id="simulation-case" class="form-control">
-                            <option value="">请选择已处理的案例</option>
-                        </select>
+						<label for="simulation-case">选择案例:</label>
+						<div class="input-with-btn">
+							<select id="simulation-case" class="form-control">
+								<option value="">请选择已处理的案例</option>
+							</select>
+							<button id="refresh-simulation-cases-btn" class="btn btn-secondary btn-inline">刷新案例列表</button>
+						</div>
                     </div>
                     
                     <div class="form-row">
@@ -147,10 +150,9 @@
                         </div>
                     </div>
                     
-                    <div class="form-actions">
-                        <button id="run-simulation-btn" class="btn btn-primary">启动仿真</button>
-                        <button id="refresh-simulation-cases-btn" class="btn btn-secondary">刷新案例列表</button>
-                    </div>
+					<div class="form-actions">
+						<button id="run-simulation-btn" class="btn btn-primary">启动仿真</button>
+					</div>
                 </div>
                 
                 <div class="simulation-status">
@@ -172,12 +174,15 @@
             <section id="accuracy-analysis" class="section">
                 <h2>精度分析</h2>
                 <div class="analysis-controls">
-                    <div class="form-group">
-                        <label for="analysis-case">选择案例:</label>
-                        <select id="analysis-case" class="form-control">
-                            <option value="">请选择已完成仿真的案例</option>
-                        </select>
-                    </div>
+					<div class="form-group">
+						<label for="analysis-case">选择案例:</label>
+						<div class="input-with-btn">
+							<select id="analysis-case" class="form-control">
+								<option value="">请选择已完成仿真的案例</option>
+							</select>
+							<button id="refresh-analysis-cases-btn" class="btn btn-secondary btn-inline">刷新案例列表</button>
+						</div>
+					</div>
                     
                     <div class="form-group">
                         <label for="analysis-type">分析类型:</label>
@@ -188,11 +193,10 @@
                         </select>
                     </div>
                     
-                    <div class="form-actions">
-                        <button id="run-analysis-btn" class="btn btn-primary">开始分析</button>
-                        <button id="refresh-analysis-cases-btn" class="btn btn-secondary">刷新案例列表</button>
-                         <button id="view-analysis-history-btn" class="btn btn-secondary">查看历史结果</button>
-                    </div>
+					<div class="form-actions">
+						<button id="run-analysis-btn" class="btn btn-primary">开始分析</button>
+						<button id="view-analysis-history-btn" class="btn btn-secondary">查看历史结果</button>
+					</div>
                 </div>
                 
                 <div id="analysis-result" class="result-area">

@@ -471,6 +471,18 @@ body {
     margin-top: 20px;
 }
 
+/* 下拉右侧内联按钮容器 */
+.input-with-btn {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-inline {
+    white-space: nowrap;
+}
+
 /* 搜索控制 */
 .search-controls {
     display: flex;
