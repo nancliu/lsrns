@@ -488,7 +488,7 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 "chart_files": tr_result.get("chart_files", []),
                 "report_file": tr_result.get("report_file") or "",
                 "report_url": (f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/{Path(tr_result.get('report_file')).name}" if tr_result.get('report_file') else None),
-                "chart_urls": [f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/{Path(p).name}" for p in (tr_result.get("chart_files") or []) if p],
+                "chart_urls": [f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/charts/{Path(p).name}" for p in (tr_result.get("chart_files") or []) if p],
                 "csv_urls": csv_urls,
                 "analysis_time": datetime.now().isoformat(),
             }
