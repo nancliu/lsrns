@@ -481,6 +481,28 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 fname = Path(p).name
                 csv_urls.append(f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/{fname}")
 
+            # 更新案例 metadata.json（记录机理分析结果）
+            try:
+                meta_file = Path(case_root) / "metadata.json"
+                if meta_file.exists():
+                    with open(meta_file, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                else:
+                    meta = {}
+                meta.setdefault("analysis", {})
+                meta["analysis"].setdefault("mechanism", {})
+                meta["analysis"]["mechanism"].update({
+                    "latest_folder": out_dir.name,
+                    "latest_report_url": (f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/{Path(tr_result.get('report_file')).name}" if tr_result.get('report_file') else None),
+                    "updated_at": datetime.now().isoformat(),
+                    "chart_count": len(tr_result.get("chart_files") or []),
+                    "csv_count": len([v for v in (csv_urls or []) if v]),
+                })
+                with open(meta_file, "w", encoding="utf-8") as f:
+                    json.dump(meta, f, ensure_ascii=False, indent=2)
+            except Exception as _e:
+                print(f"更新metadata(机理)失败: {_e}")
+
             return {
                 "result_folder": out_dir.as_posix(),
                 "analysis_type": request.analysis_type.value,
@@ -502,6 +524,27 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
             pr = analyzer.analyze()
             case_id = case_root.name
             out_dir = Path(pr.get("output_folder", ""))
+            # 更新案例 metadata.json（记录性能分析结果）
+            try:
+                meta_file = Path(case_root) / "metadata.json"
+                if meta_file.exists():
+                    with open(meta_file, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                else:
+                    meta = {}
+                meta.setdefault("analysis", {})
+                meta["analysis"].setdefault("performance", {})
+                meta["analysis"]["performance"].update({
+                    "latest_folder": out_dir.name,
+                    "latest_report_url": (f"/cases/{case_id}/analysis/performance/{out_dir.name}/{Path(pr.get('report_file')).name}" if pr.get('report_file') else None),
+                    "updated_at": datetime.now().isoformat(),
+                    "summary_stats": pr.get("summary_stats"),
+                })
+                with open(meta_file, "w", encoding="utf-8") as f:
+                    json.dump(meta, f, ensure_ascii=False, indent=2)
+            except Exception as _e:
+                print(f"更新metadata(性能)失败: {_e}")
+
             return {
                 "result_folder": out_dir.as_posix(),
                 "analysis_type": request.analysis_type.value,
