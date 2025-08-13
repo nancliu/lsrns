@@ -96,6 +96,7 @@ class CaseMetadata(BaseModel):
     description: Optional[str] = Field(None, description="案例描述")
     statistics: Optional[Dict[str, Any]] = Field(None, description="统计信息")
     files: Optional[Dict[str, str]] = Field(None, description="文件路径")
+    analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果摘要（accuracy/mechanism/performance 最新产物信息）")
 
 class CaseListResponse(BaseModel):
     """案例列表响应模型"""

@@ -387,6 +387,7 @@ function displayCases(cases) {
                 <p><strong>状态:</strong> ${getStatusText(c.status)}</p>
                 <p><strong>创建时间:</strong> ${formatDateTime(c.created_at)}</p>
                 <p><strong>描述:</strong> ${c.description || '无描述'}</p>
+                ${renderAnalysisSummary(c.analysis)}
             </div>
             <div class="case-actions">
                 <button class="btn btn-primary" onclick="viewCase('${c.case_id}')">查看</button>
@@ -396,6 +397,26 @@ function displayCases(cases) {
         </div>
     `).join('');
     caseList.innerHTML = casesHTML;
+}
+
+function renderAnalysisSummary(analysis) {
+  try {
+    if (!analysis) return '';
+    const acc = analysis.accuracy || {};
+    const mech = analysis.mechanism || {};
+    const perf = analysis.performance || {};
+    const accUrl = acc.latest_report_url ? `<a href="${acc.latest_report_url}" target="_blank">精度</a>` : '精度: —';
+    const mechUrl = mech.latest_report_url ? `<a href="${mech.latest_report_url}" target="_blank">机理</a>` : '机理: —';
+    const perfUrl = perf.latest_report_url ? `<a href="${perf.latest_report_url}" target="_blank">性能</a>` : '性能: —';
+    const accTime = acc.updated_at ? `（${formatDateTime(acc.updated_at)}）` : '';
+    const mechTime = mech.updated_at ? `（${formatDateTime(mech.updated_at)}）` : '';
+    const perfTime = perf.updated_at ? `（${formatDateTime(perf.updated_at)}）` : '';
+    return `
+      <div style="margin-top:6px; font-size: 13px;">
+        <p><strong>最新报告:</strong> ${accUrl}${accTime} | ${mechUrl}${mechTime} | ${perfUrl}${perfTime}</p>
+      </div>
+    `;
+  } catch { return ''; }
 }
 
 function updateCaseSelects() {
