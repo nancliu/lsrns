@@ -442,7 +442,11 @@ async def get_simulation_progress_service(case_id: str) -> Dict[str, Any]:
 
 async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str, Any]:
     """
-    精度/机理分析服务（analysis_type 决定具体分析）
+    结果分析服务入口
+    - accuracy: 精度分析（门架E1 vs 门架观测，计算MAPE/GEH并生成报告）
+    - traffic_flow: 机理分析（OD输入/输出对比，E1速度机理图；产出CSV+报告）
+    - performance: 性能分析（summary.xml与产物规模统计，生成报告）
+    说明：统一由一个端点根据 analysis_type 分流，保持前端交互一致。
     """
     try:
         from shared.analysis_tools.accuracy_analyzer import AccuracyAnalyzer
@@ -517,6 +521,8 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
             }
 
         # 性能分析分支
+        # 目标：不依赖数据库，仅读取 simulation/summary.xml 与目录体量，快速输出性能概览
+        # 产出：cases/{case}/analysis/performance/accuracy_results_*/performance_report.html
         if request.analysis_type and request.analysis_type.value == "performance":
             from accuracy_analysis.performance_analysis import PerformanceAnalyzer
             perf_base = (Path(simulation_folder).parent / "analysis" / "performance").as_posix()
@@ -545,6 +551,7 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
             except Exception as _e:
                 print(f"更新metadata(性能)失败: {_e}")
 
+            # 返回前：写入 metadata.json 的 performance 快照，供“案例管理”展示最近报告链接
             return {
                 "result_folder": out_dir.as_posix(),
                 "analysis_type": request.analysis_type.value,
@@ -661,6 +668,7 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 csv_urls.append(f"/cases/{case_id}/analysis/accuracy/{Path(fullpath).parent.name}/{fname}")
 
             # 计算效率指标（分析耗时、图表数量/大小、报告大小）
+            # 说明：仅用于前端“效率”卡片展示，便于快速感知产物规模与耗时
             efficiency = {}
             try:
                 duration_sec = (datetime.now() - request_started_at).total_seconds()

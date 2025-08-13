@@ -48,7 +48,10 @@ class FlowRecord:
 
 
 class TrafficFlowAnalyzer:
-    """交通流机理分析器"""
+    """交通流机理分析器
+    - 负责机理相关的两类OD对比与E1速度类图表生成
+    - 产出 CSV 与图表，并汇总为 mechanism_report.html
+    """
 
     def __init__(self, run_folder: str, output_base_folder: str = "accuracy_analysis"):
         self.run_folder = run_folder

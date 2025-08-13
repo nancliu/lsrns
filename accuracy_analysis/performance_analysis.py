@@ -19,6 +19,11 @@ from .utils import log_analysis_progress, create_timestamp_folder
 
 
 class PerformanceAnalyzer:
+    """性能分析器
+    - 输入：cases/{case_id}/simulation
+    - 核心：解析 summary.xml 的过程计数与峰值，统计 simulation/analysis 目录体量
+    - 输出：HTML 报告（无图）
+    """
     def __init__(self, simulation_folder: str, output_base_folder: str) -> None:
         self.simulation_folder = simulation_folder
         self.output_base_folder = output_base_folder
