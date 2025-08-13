@@ -484,6 +484,15 @@ class TrafficFlowAnalyzer:
         csv_charts = self._generate_csv_visualizations(od_vs_input, input_vs_out)
         # 生成基于E1与观测的机理图（散点/速度序列/滞后）
         mech_charts = self._generate_mechanism_charts()
+        # 生成机理报告HTML
+        extra_csvs: List[str] = []
+        lag_csv = os.path.join(self.output_folder, 'lag_by_gantry.csv')
+        if os.path.exists(lag_csv):
+            extra_csvs.append(lag_csv)
+        report_file = self._generate_mechanism_report(
+            chart_files=(csv_charts + mech_charts),
+            csv_files=[p for p in [od_vs_input, input_vs_out] if p] + extra_csvs
+        )
         log_analysis_progress("交通流机理分析完成")
 
         return {
@@ -494,6 +503,7 @@ class TrafficFlowAnalyzer:
                 'input_vs_output': input_vs_out,
             },
             'chart_files': csv_charts + mech_charts,
+            'report_file': report_file,
         }
 
     # ---------------------- CSV 可视化 ----------------------
@@ -686,5 +696,66 @@ class TrafficFlowAnalyzer:
         except Exception as e:
             log_analysis_progress(f"机理图生成失败: {e}", "WARNING")
         return charts
+
+    # ---------------------- 机理报告HTML ----------------------
+    def _generate_mechanism_report(self, chart_files: List[str], csv_files: List[str]) -> Optional[str]:
+        try:
+            title = "机理分析报告"
+            html_path = os.path.join(self.output_folder, 'mechanism_report.html')
+            # 相对引用
+            def rel(p: str) -> str:
+                try:
+                    return os.path.basename(p) if os.path.dirname(p) == self.output_folder else (
+                        f"charts/{os.path.basename(p)}" if os.path.dirname(p) == self.charts_folder else os.path.basename(p)
+                    )
+                except Exception:
+                    return os.path.basename(p)
+
+            # 构造HTML
+            chart_imgs = ''.join([
+                f'<div style="margin:10px 0;"><img src="{rel(p)}" style="max-width:100%;height:auto;" alt="{os.path.basename(p)}"/></div>'
+                for p in chart_files if p and os.path.exists(p)
+            ])
+            csv_links = ''.join([
+                f'<li><a href="{rel(p)}" target="_blank">{os.path.basename(p)}</a></li>'
+                for p in csv_files if p and os.path.exists(p)
+            ])
+            time_info = f"<p>时间范围：{self.start_time} ~ {self.end_time}</p>"
+            content = f"""
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+<head>
+  <meta charset=\"utf-8\"/>
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>
+  <title>{title}</title>
+  <style>
+    body{{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', Arial, sans-serif; padding:16px; color:#222;}}
+    h1{{margin:8px 0 12px;}}
+    h2{{margin:16px 0 8px;}}
+    .card{{border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin:12px 0;}}
+  </style>
+  </head>
+<body>
+  <h1>{title}</h1>
+  {time_info}
+  <div class=\"card\">
+    <h2>CSV 产物</h2>
+    <ul>
+      {csv_links}
+    </ul>
+  </div>
+  <div class=\"card\">
+    <h2>图表</h2>
+    {chart_imgs}
+  </div>
+</body>
+</html>
+"""
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            return html_path
+        except Exception as e:
+            log_analysis_progress(f"机理报告生成失败: {e}", "WARNING")
+            return None
 
 
