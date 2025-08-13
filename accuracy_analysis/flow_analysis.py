@@ -702,24 +702,109 @@ class TrafficFlowAnalyzer:
         try:
             title = "机理分析报告"
             html_path = os.path.join(self.output_folder, 'mechanism_report.html')
+
             # 相对引用
             def rel(p: str) -> str:
                 try:
-                    return os.path.basename(p) if os.path.dirname(p) == self.output_folder else (
-                        f"charts/{os.path.basename(p)}" if os.path.dirname(p) == self.charts_folder else os.path.basename(p)
-                    )
+                    if os.path.dirname(p) == self.output_folder:
+                        return os.path.basename(p)
+                    if os.path.dirname(p) == self.charts_folder:
+                        return f"charts/{os.path.basename(p)}"
+                    return os.path.basename(p)
                 except Exception:
                     return os.path.basename(p)
 
-            # 构造HTML
-            chart_imgs = ''.join([
-                f'<div style="margin:10px 0;"><img src="{rel(p)}" style="max-width:100%;height:auto;" alt="{os.path.basename(p)}"/></div>'
-                for p in chart_files if p and os.path.exists(p)
-            ])
+            # 概述统计（从CSV中读取）
+            overview_rows: List[str] = []
+            try:
+                # 观测 vs 输入
+                ov_path = next((p for p in csv_files if p and p.endswith('od_observed_vs_input.csv')), None)
+                if ov_path and os.path.exists(ov_path):
+                    df = pd.read_csv(ov_path)
+                    n = len(df)
+                    ratio = None
+                    if {'observed_count','input_count'}.issubset(df.columns):
+                        ratio = (df['input_count'] / df['observed_count']).replace([np.inf,-np.inf], np.nan)
+                    elif 'ratio' in df.columns:
+                        ratio = pd.to_numeric(df['ratio'], errors='coerce')
+                    mape = pd.to_numeric(df.get('mape'), errors='coerce') if 'mape' in df.columns else None
+                    ratio_mean = f"{ratio.dropna().mean():.3f}" if ratio is not None and ratio.dropna().size>0 else '—'
+                    ratio_med = f"{ratio.dropna().median():.3f}" if ratio is not None and ratio.dropna().size>0 else '—'
+                    pass_rate = None
+                    if ratio is not None and ratio.dropna().size>0:
+                        pass_rate = f"{(ratio.dropna().between(0.8,1.2).mean()*100):.1f}%"
+                    mape_mean = f"{mape.dropna().mean():.2f}%" if mape is not None and mape.dropna().size>0 else '—'
+                    overview_rows.append(f"<div class='ov-card'><div class='ov-title'>观测OD vs 仿真输入</div><div>OD对数：{n}</div><div>比例均值：{ratio_mean}</div><div>比例中位数：{ratio_med}</div><div>±20%合格率：{pass_rate or '—'}</div><div>MAPE均值：{mape_mean}</div></div>")
+            except Exception:
+                pass
+            try:
+                # 输入 vs 输出
+                io_path = next((p for p in csv_files if p and p.endswith('od_input_vs_simoutput.csv')), None)
+                if io_path and os.path.exists(io_path):
+                    df = pd.read_csv(io_path)
+                    n = len(df)
+                    ratio = None
+                    if {'sim_output_count','input_count'}.issubset(df.columns):
+                        ratio = (df['sim_output_count'] / df['input_count']).replace([np.inf,-np.inf], np.nan)
+                    elif 'ratio' in df.columns:
+                        ratio = pd.to_numeric(df['ratio'], errors='coerce')
+                    ratio_mean = f"{ratio.dropna().mean():.3f}" if ratio is not None and ratio.dropna().size>0 else '—'
+                    ratio_med = f"{ratio.dropna().median():.3f}" if ratio is not None and ratio.dropna().size>0 else '—'
+                    pass_rate = None
+                    if ratio is not None and ratio.dropna().size>0:
+                        pass_rate = f"{(ratio.dropna().between(0.8,1.2).mean()*100):.1f}%"
+                    overview_rows.append(f"<div class='ov-card'><div class='ov-title'>仿真输入 vs 仿真输出</div><div>OD对数：{n}</div><div>比例均值：{ratio_mean}</div><div>比例中位数：{ratio_med}</div><div>±20%合格率：{pass_rate or '—'}</div></div>")
+            except Exception:
+                pass
+            try:
+                # 滞后
+                lag_path = next((p for p in csv_files if p and p.endswith('lag_by_gantry.csv')), None)
+                if lag_path and os.path.exists(lag_path):
+                    df = pd.read_csv(lag_path)
+                    if 'lag_minutes' in df.columns:
+                        lag = pd.to_numeric(df['lag_minutes'], errors='coerce').dropna()
+                        mean_lag = f"{lag.mean():.1f}min" if lag.size>0 else '—'
+                        med_lag = f"{lag.median():.1f}min" if lag.size>0 else '—'
+                        within10 = f"{(lag.abs()<=10).mean()*100:.1f}%" if lag.size>0 else '—'
+                        overview_rows.append(f"<div class='ov-card'><div class='ov-title'>滞后统计</div><div>平均滞后：{mean_lag}</div><div>中位滞后：{med_lag}</div><div>|滞后|≤10min：{within10}</div></div>")
+            except Exception:
+                pass
+
+            overview_html = ''.join(overview_rows) if overview_rows else "<div style='opacity:.7;'>暂无概述数据</div>"
+
+            # 图表分组展示（CSV相关与E1相关）
+            def caption_of(name: str) -> str:
+                m = {
+                    'observed_vs_input_ratio_hist.png': '观测OD vs 仿真输入 比例分布',
+                    'observed_vs_input_scatter.png': '观测OD vs 仿真输入 散点',
+                    'input_vs_output_ratio_hist.png': '仿真输入 vs 仿真输出 比例分布',
+                    'input_vs_output_scatter.png': '仿真输入 vs 仿真输出 散点',
+                    'flow_speed_scatter.png': '流-速散点（仿真）',
+                    'speed_timeseries_top5.png': '速度时间序列（TOP5门架）',
+                    'lag_histogram.png': '滞后分布直方图',
+                }
+                return m.get(name, name)
+
+            csv_chart_imgs = []
+            mech_chart_imgs = []
+            for p in chart_files:
+                if not p or not os.path.exists(p):
+                    continue
+                name = os.path.basename(p)
+                img_tag = f"<figure class='fig'><img src='{rel(p)}' alt='{name}'/><figcaption>{caption_of(name)}</figcaption></figure>"
+                if name.startswith('observed_') or name.startswith('input_'):
+                    csv_chart_imgs.append(img_tag)
+                else:
+                    mech_chart_imgs.append(img_tag)
+            csv_chart_html = ''.join(csv_chart_imgs)
+            mech_chart_html = ''.join(mech_chart_imgs)
+
+            # CSV链接列表
             csv_links = ''.join([
-                f'<li><a href="{rel(p)}" target="_blank">{os.path.basename(p)}</a></li>'
+                f"<li><a href='{rel(p)}' target='_blank'>{os.path.basename(p)}</a></li>"
                 for p in csv_files if p and os.path.exists(p)
             ])
+
             time_info = f"<p>时间范围：{self.start_time} ~ {self.end_time}</p>"
             content = f"""
 <!DOCTYPE html>
@@ -732,12 +817,25 @@ class TrafficFlowAnalyzer:
     body{{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', Arial, sans-serif; padding:16px; color:#222;}}
     h1{{margin:8px 0 12px;}}
     h2{{margin:16px 0 8px;}}
-    .card{{border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin:12px 0;}}
+    .card{{border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin:12px 0; background:#fff;}}
+    .ov-grid{{display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px;}}
+    .ov-card{{border:1px solid #e5e7eb; border-radius:8px; padding:10px; background:#f9fafb;}}
+    .ov-title{{font-weight:600; margin-bottom:6px;}}
+    .grid{{display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:12px;}}
+    .fig{{background:#fafafa; border:1px solid #eee; border-radius:8px; padding:8px;}}
+    .fig img{{width:100%; height:auto; display:block; border-radius:4px;}}
+    .figcaption{{font-size:12px; color:#555; margin-top:4px;}}
   </style>
   </head>
 <body>
   <h1>{title}</h1>
   {time_info}
+  <div class=\"card\">
+    <h2>概述</h2>
+    <div class='ov-grid'>
+      {overview_html}
+    </div>
+  </div>
   <div class=\"card\">
     <h2>CSV 产物</h2>
     <ul>
@@ -745,8 +843,16 @@ class TrafficFlowAnalyzer:
     </ul>
   </div>
   <div class=\"card\">
-    <h2>图表</h2>
-    {chart_imgs}
+    <h2>OD 对比图</h2>
+    <div class='grid'>
+      {csv_chart_html or "<div style='opacity:.7;'>暂无图表</div>"}
+    </div>
+  </div>
+  <div class=\"card\">
+    <h2>机理图</h2>
+    <div class='grid'>
+      {mech_chart_html or "<div style='opacity:.7;'>暂无图表</div>"}
+    </div>
   </div>
 </body>
 </html>
