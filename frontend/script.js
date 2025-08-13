@@ -546,11 +546,15 @@ function updateSimulationStatus(status, message) {
     const statusDot = document.querySelector('.simulation-status .status-dot');
     if (statusText) statusText.textContent = message;
     if (statusDot) statusDot.className = `status-dot ${status}`;
+    // 显示结果区域容器
+    const area = document.getElementById('simulation-result');
+    if (area && area.style.display === 'none') area.style.display = 'block';
 }
 
 function updateAnalysisStatus(status, message) {
     const area = document.getElementById('analysis-result');
     if (!area) return;
+    if (area.style.display === 'none') area.style.display = 'block';
     area.innerHTML = `
         <div class="status-indicator">
             <span class="status-dot ${status}"></span>
@@ -590,6 +594,7 @@ function displayProcessingResult(result) {
 function displaySimulationResult(result) {
     const area = document.getElementById('simulation-result');
     if (!area) return;
+    if (area.style.display === 'none') area.style.display = 'block';
     const endTimeText = result.status === 'completed' && result.ended_at ? `<p><strong>结束时间:</strong> ${result.ended_at}</p>` : '';
     area.innerHTML = `
         <div class="case-card fade-in">
@@ -609,6 +614,7 @@ function displaySimulationResult(result) {
 function displayAnalysisResult(result) {
     const area = document.getElementById('analysis-result');
     if (!area) return;
+    if (area.style.display === 'none') area.style.display = 'block';
     const at = (result.analysis_type || '').toLowerCase();
     const typeLabel = at === 'traffic_flow' ? '机理' : at === 'performance' ? '性能' : '精度';
 
