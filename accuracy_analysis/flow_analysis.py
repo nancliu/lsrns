@@ -20,6 +20,9 @@ from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 from .utils import (
     log_analysis_progress,
@@ -27,9 +30,11 @@ from .utils import (
     create_timestamp_folder,
     find_folder_with_prefix,
     DB_CONFIG,
+    ANALYSIS_CONFIG,
 )
 
 import psycopg2
+from .data_loader import DataLoader
 
 
 @dataclass
@@ -52,6 +57,8 @@ class TrafficFlowAnalyzer:
         # 解析时间范围（优先从文件名）
         self.start_time, self.end_time = self._parse_time_range()
         self.output_folder = self._create_output_folder()
+        self.charts_folder = os.path.join(self.output_folder, 'charts')
+        os.makedirs(self.charts_folder, exist_ok=True)
 
         log_analysis_progress(f"机理分析初始化完成: {self.run_folder}")
 
@@ -473,6 +480,10 @@ class TrafficFlowAnalyzer:
         log_analysis_progress("开始交通流机理分析...")
         od_vs_input = self.compare_observed_vs_input()
         input_vs_out = self.compare_input_vs_simoutput()
+        # 生成CSV的可视化图
+        csv_charts = self._generate_csv_visualizations(od_vs_input, input_vs_out)
+        # 生成基于E1与观测的机理图（散点/速度序列/滞后）
+        mech_charts = self._generate_mechanism_charts()
         log_analysis_progress("交通流机理分析完成")
 
         return {
@@ -481,7 +492,199 @@ class TrafficFlowAnalyzer:
             'csv_files': {
                 'observed_vs_input': od_vs_input,
                 'input_vs_output': input_vs_out,
-            }
+            },
+            'chart_files': csv_charts + mech_charts,
         }
+
+    # ---------------------- CSV 可视化 ----------------------
+    def _generate_csv_visualizations(self, od_vs_input_path: Optional[str], input_vs_out_path: Optional[str]) -> List[str]:
+        charts: List[str] = []
+        try:
+            if od_vs_input_path and os.path.exists(od_vs_input_path):
+                df = pd.read_csv(od_vs_input_path)
+                # 比例直方图（仿真输入/观测）
+                try:
+                    ratio = df['input_count'] / df['observed_count'] if 'input_count' in df.columns else df.get('ratio')
+                    ratio = pd.to_numeric(ratio, errors='coerce')
+                    ratio = ratio.replace([np.inf, -np.inf], np.nan).dropna()
+                    plt.figure(figsize=(8,5))
+                    plt.hist(ratio, bins=40, alpha=0.8, color='steelblue', edgecolor='black')
+                    plt.axvline(1.0, color='red', linestyle='--', label='理想比例1.0')
+                    plt.legend()
+                    plt.title('观测OD vs 仿真输入flow 比例分布 (input/observed)')
+                    f1 = os.path.join(self.charts_folder, 'observed_vs_input_ratio_hist.png')
+                    plt.savefig(f1, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f1)
+                except Exception:
+                    pass
+                # 散点图
+                if {'observed_count','input_count'}.issubset(df.columns):
+                    try:
+                        plt.figure(figsize=(6,6))
+                        plt.scatter(df['observed_count'], df['input_count'], s=10, alpha=0.5)
+                        mn = min(df['observed_count'].min(), df['input_count'].min())
+                        mx = max(df['observed_count'].max(), df['input_count'].max())
+                        plt.plot([mn,mx],[mn,mx],'r--',alpha=0.7)
+                        plt.xlabel('observed_count'); plt.ylabel('input_count')
+                        plt.title('观测OD vs 仿真输入flow 散点')
+                        f2 = os.path.join(self.charts_folder, 'observed_vs_input_scatter.png')
+                        plt.savefig(f2, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f2)
+                    except Exception:
+                        pass
+            if input_vs_out_path and os.path.exists(input_vs_out_path):
+                df = pd.read_csv(input_vs_out_path)
+                # 比例直方图（仿真输出/输入）
+                try:
+                    ratio = df['sim_output_count'] / df['input_count'] if {'sim_output_count','input_count'}.issubset(df.columns) else df.get('ratio')
+                    ratio = pd.to_numeric(ratio, errors='coerce')
+                    ratio = ratio.replace([np.inf, -np.inf], np.nan).dropna()
+                    plt.figure(figsize=(8,5))
+                    plt.hist(ratio, bins=40, alpha=0.8, color='seagreen', edgecolor='black')
+                    plt.axvline(1.0, color='red', linestyle='--', label='理想比例1.0')
+                    plt.legend()
+                    plt.title('仿真输入flow vs 仿真输出车流 比例分布 (output/input)')
+                    f3 = os.path.join(self.charts_folder, 'input_vs_output_ratio_hist.png')
+                    plt.savefig(f3, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f3)
+                except Exception:
+                    pass
+                # 散点图
+                if {'sim_output_count','input_count'}.issubset(df.columns):
+                    try:
+                        plt.figure(figsize=(6,6))
+                        plt.scatter(df['input_count'], df['sim_output_count'], s=10, alpha=0.5)
+                        mn = min(df['input_count'].min(), df['sim_output_count'].min())
+                        mx = max(df['input_count'].max(), df['sim_output_count'].max())
+                        plt.plot([mn,mx],[mn,mx],'r--',alpha=0.7)
+                        plt.xlabel('input_count'); plt.ylabel('sim_output_count')
+                        plt.title('仿真输入flow vs 仿真输出车流 散点')
+                        f4 = os.path.join(self.charts_folder, 'input_vs_output_scatter.png')
+                        plt.savefig(f4, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f4)
+                    except Exception:
+                        pass
+        except Exception as e:
+            log_analysis_progress(f"CSV可视化生成失败: {e}", "WARNING")
+        return charts
+
+    # ---------------------- 机理图（E1与观测） ----------------------
+    def _generate_mechanism_charts(self) -> List[str]:
+        charts: List[str] = []
+        try:
+            time_step = int(ANALYSIS_CONFIG.get('time_interval', 5))
+            dl = DataLoader()
+            # E1 仿真聚合（包含 sim_flow 与 sim_speed）
+            # 需要找到 cases/{case_id}/simulation 下的 e1 目录
+            e1_dir = None
+            try:
+                base = self.run_folder
+                if os.path.basename(self.run_folder.rstrip('/\\')).lower() != 'simulation':
+                    base = os.path.join(self.run_folder, 'simulation')
+                # 常见 e1 位置
+                for cand in [os.path.join(base,'e1'), base]:
+                    if os.path.isdir(cand):
+                        if any(fn.lower().endswith('.xml') for fn in os.listdir(cand)):
+                            e1_dir = cand; break
+                if not e1_dir:
+                    # 递归找 e1*
+                    for root, dirs, files in os.walk(base):
+                        for d in dirs:
+                            if d.lower().startswith('e1'):
+                                e1_dir = os.path.join(root,d); break
+                        if e1_dir:
+                            break
+            except Exception:
+                e1_dir = None
+            if not e1_dir:
+                log_analysis_progress("未找到E1目录，跳过机理图生成", "WARNING")
+                return charts
+
+            sim_df = dl.load_detector_data(e1_dir, time_interval=time_step, sim_start_time=self.start_time)
+            if sim_df.empty or 'sim_speed' not in sim_df.columns:
+                log_analysis_progress("E1未包含速度字段或数据为空，跳过机理图生成", "WARNING")
+                return charts
+
+            # 观测门架数据
+            obs_df = dl.load_gantry_data(self.start_time, self.end_time, time_interval=time_step)
+            if obs_df.empty:
+                log_analysis_progress("观测门架数据为空，滞后图将跳过", "WARNING")
+
+            # flow-speed 散点
+            try:
+                sdf = sim_df.dropna(subset=['sim_speed']).copy()
+                if not sdf.empty:
+                    plt.figure(figsize=(7,6))
+                    plt.scatter(sdf['sim_flow'], sdf['sim_speed'], s=8, alpha=0.35)
+                    plt.xlabel('sim_flow'); plt.ylabel('sim_speed (km/h)'); plt.title('流-速散点（仿真）')
+                    f5 = os.path.join(self.charts_folder, 'flow_speed_scatter.png')
+                    plt.savefig(f5, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f5)
+            except Exception:
+                pass
+
+            # 速度时间序列（总流量TOP5门架）
+            try:
+                sums = sim_df.groupby('gantry_id')['sim_flow'].sum().sort_values(ascending=False)
+                top_ids = list(sums.head(5).index)
+                if top_ids:
+                    n = len(top_ids)
+                    cols = 1; rows = n
+                    plt.figure(figsize=(12, 2.5*n))
+                    for i, gid in enumerate(top_ids, start=1):
+                        sub = sim_df[sim_df['gantry_id']==gid].sort_values('interval_start')
+                        ax = plt.subplot(rows, cols, i)
+                        ax.plot(sub['interval_start'], sub['sim_speed'], label=f'{gid}', color='tab:blue')
+                        ax.set_title(f'门架 {gid} 速度时间序列'); ax.set_xlabel('minute-of-day'); ax.set_ylabel('speed (km/h)')
+                        ax.grid(alpha=0.3)
+                    plt.tight_layout()
+                    f6 = os.path.join(self.charts_folder, 'speed_timeseries_top5.png')
+                    plt.savefig(f6, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f6)
+            except Exception:
+                pass
+
+            # 滞后分布（在观测数据可用时）
+            try:
+                if obs_df is not None and not obs_df.empty:
+                    # 对齐时间轴
+                    def best_lag(sim_s: pd.Series, obs_s: pd.Series, max_lag_bins: int = 6) -> int:
+                        # 简单互相关：找使均方误差最小的滞后（以桶为单位）
+                        lags = range(-max_lag_bins, max_lag_bins+1)
+                        best, best_score = 0, float('inf')
+                        for lag in lags:
+                            if lag >= 0:
+                                s = sim_s.shift(lag)
+                                o = obs_s
+                            else:
+                                s = sim_s
+                                o = obs_s.shift(-lag)
+                            df = pd.DataFrame({'s':s, 'o':o}).dropna()
+                            if df.empty:
+                                continue
+                            mse = ((df['s']-df['o'])**2).mean()
+                            if mse < best_score:
+                                best_score = mse; best = lag
+                        return best
+
+                    merged = pd.merge(sim_df, obs_df.rename(columns={'total_flow':'obs_flow'}), on=['gantry_id','interval_start'], how='inner')
+                    if not merged.empty:
+                        lag_rows = []
+                        for gid, grp in merged.groupby('gantry_id'):
+                            sim_s = grp.sort_values('interval_start')['sim_flow']
+                            obs_s = grp.sort_values('interval_start')['obs_flow']
+                            lag_bins = best_lag(sim_s.reset_index(drop=True), obs_s.reset_index(drop=True), max_lag_bins=6)
+                            lag_min = lag_bins * time_step
+                            lag_rows.append({'gantry_id': gid, 'lag_bins': lag_bins, 'lag_minutes': lag_min})
+                        if lag_rows:
+                            lag_df = pd.DataFrame(lag_rows)
+                            lag_csv = os.path.join(self.output_folder, 'lag_by_gantry.csv')
+                            lag_df.to_csv(lag_csv, index=False, encoding='utf-8-sig')
+                            # 直方图
+                            plt.figure(figsize=(8,5))
+                            plt.hist(lag_df['lag_minutes'], bins=np.arange(-30, 31, time_step), color='orchid', edgecolor='black', alpha=0.8)
+                            plt.title('滞后分布（分钟，正值=仿真滞后）'); plt.xlabel('lag (minutes)'); plt.ylabel('count')
+                            f7 = os.path.join(self.charts_folder, 'lag_histogram.png')
+                            plt.savefig(f7, dpi=200, bbox_inches='tight'); plt.close(); charts.append(f7)
+            except Exception:
+                pass
+
+        except Exception as e:
+            log_analysis_progress(f"机理图生成失败: {e}", "WARNING")
+        return charts
 
 

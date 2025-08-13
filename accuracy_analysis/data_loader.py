@@ -208,6 +208,16 @@ class DataLoader:
                         begin_time = float(interval.get('begin', 0))
                         end_time = float(interval.get('end', 0))
                         nVehContrib = float(interval.get('nVehContrib', 0))
+                        # 速度字段：不同SUMO版本/探测器可能为 speed 或 meanSpeed（单位通常为 m/s）
+                        _speed_attr = interval.get('speed') if interval.get('speed') is not None else interval.get('meanSpeed')
+                        speed_kmh = None
+                        try:
+                            if _speed_attr is not None:
+                                speed_mps = float(_speed_attr)
+                                if np.isfinite(speed_mps):
+                                    speed_kmh = speed_mps * 3.6
+                        except Exception:
+                            speed_kmh = None
                         
                         # 计算时间间隔起始分钟数
                         interval_start_min = int(begin_time // 60)
@@ -228,6 +238,7 @@ class DataLoader:
                             'gantry_id': gantry_id,
                             'interval_start': interval_group,
                             'sim_flow': nVehContrib,
+                            'sim_speed': speed_kmh,
                             'begin_time': begin_time,
                             'end_time': end_time
                         })
@@ -242,11 +253,27 @@ class DataLoader:
         
         # 创建DataFrame
         df_detector = pd.DataFrame(detector_data)
-        
+
+        # 若存在速度，先构造加权贡献项（speed_kmh × flow），用于后续聚合
+        if 'sim_speed' in df_detector.columns:
+            try:
+                df_detector['speed_contrib'] = df_detector.apply(
+                    lambda r: (r['sim_speed'] * r['sim_flow']) if (pd.notnull(r.get('sim_speed')) and pd.notnull(r.get('sim_flow'))) else np.nan,
+                    axis=1
+                )
+            except Exception:
+                df_detector['speed_contrib'] = np.nan
+
         # 按门架ID和时间间隔聚合
-        df_agg = df_detector.groupby(['gantry_id', 'interval_start']).agg({
-            'sim_flow': 'sum'
-        }).reset_index()
+        agg_dict = {'sim_flow': 'sum'}
+        if 'speed_contrib' in df_detector.columns:
+            agg_dict['speed_contrib'] = 'sum'
+        df_agg = df_detector.groupby(['gantry_id', 'interval_start']).agg(agg_dict).reset_index()
+        # 计算加权平均速度（km/h）
+        if 'speed_contrib' in df_agg.columns:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                df_agg['sim_speed'] = df_agg['speed_contrib'] / df_agg['sim_flow']
+            df_agg.drop(columns=['speed_contrib'], inplace=True)
         
         log_analysis_progress(f"检测器数据加载完成，共 {len(df_agg)} 条记录")
         

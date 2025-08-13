@@ -485,10 +485,10 @@ async def analyze_accuracy_service(request: AccuracyAnalysisRequest) -> Dict[str
                 "analysis_type": request.analysis_type.value,
                 "status": "completed",
                 "metrics": {},
-                "chart_files": [],
+                "chart_files": tr_result.get("chart_files", []),
                 "report_file": "",
                 "report_url": None,
-                "chart_urls": [],
+                "chart_urls": [f"/cases/{case_id}/analysis/mechanism/{out_dir.name}/{Path(p).name}" for p in (tr_result.get("chart_files") or []) if p],
                 "csv_urls": csv_urls,
                 "analysis_time": datetime.now().isoformat(),
             }
