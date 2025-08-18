@@ -13,7 +13,6 @@ class SimulationType(str, Enum):
     """仿真类型枚举"""
     MICROSCOPIC = "microscopic"
     MESOSCOPIC = "mesoscopic"
-    MACROSCOPIC = "macroscopic"
 
 class CaseStatus(str, Enum):
     """案例状态枚举"""

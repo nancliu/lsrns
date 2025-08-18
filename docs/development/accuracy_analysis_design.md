@@ -190,7 +190,7 @@ OD生成脚本/
 │   │   └── network_configs.json    # 网络配置模板 ✅
 │   └── config_templates/           # 配置模板 ✅
 │       ├── simulation_templates/    # 仿真配置模板 ✅
-│       │   ├── default.sumocfg     # 默认仿真配置 ✅
+│       │   ├── microscopic.sumocfg     # 微观仿真配置 ✅
 │       │   ├── mesoscopic.sumocfg  # 中观仿真配置 ✅
 │       │   └── microscopic.sumocfg # 微观仿真配置 ✅
 │       └── vehicle_templates/       # 车辆类型模板 ✅

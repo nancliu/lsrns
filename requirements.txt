@@ -2,7 +2,9 @@
 
 # Web Framework
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn[standard]==0.27.1
+
+direnv
 
 # Data Processing (pin 兼容版本，避免 numpy/scipy 二进制不兼容)
 pandas==2.2.2

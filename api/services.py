@@ -1000,9 +1000,8 @@ async def get_simulation_templates_service() -> List[TemplateInfo]:
         sim_dir = Path("templates/config_templates/simulation_templates")
         
         template_files = {
-            "default.sumocfg": "默认仿真配置",
-            "mesoscopic.sumocfg": "中观仿真配置",
-            "microscopic.sumocfg": "微观仿真配置"
+            "microscopic.sumocfg": "微观仿真配置（默认）",
+            "mesoscopic.sumocfg": "中观仿真配置"
         }
         
         for filename, description in template_files.items():
