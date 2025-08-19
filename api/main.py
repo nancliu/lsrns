@@ -47,6 +47,8 @@ app.include_router(compatibility_router, prefix="/api/v1/compat")
 # 挂载静态文件
 # 先挂载 cases，用于访问分析报告与图表
 app.mount("/cases", StaticFiles(directory="cases"), name="cases")
+# 添加模板文件静态挂载，解决远程访问模板文件的问题
+app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 # 再挂载前端
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 

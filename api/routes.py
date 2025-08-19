@@ -53,6 +53,39 @@ async def get_simulation_progress(case_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取进度失败: {str(e)}")
 
+@router.get("/simulations/{case_id}")
+async def get_case_simulations(case_id: str):
+    """
+    获取案例下的所有仿真结果
+    """
+    try:
+        simulations = await get_case_simulations_service(case_id)
+        return BaseResponse(success=True, message="获取仿真列表成功", data={"simulations": simulations})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取仿真列表失败: {str(e)}")
+
+@router.get("/simulation/{simulation_id}")
+async def get_simulation_detail(simulation_id: str):
+    """
+    获取仿真详情
+    """
+    try:
+        simulation = await get_simulation_detail_service(simulation_id)
+        return BaseResponse(success=True, message="获取仿真详情成功", data=simulation)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取仿真详情失败: {str(e)}")
+
+@router.delete("/simulation/{simulation_id}")
+async def delete_simulation(simulation_id: str):
+    """
+    删除仿真结果
+    """
+    try:
+        await delete_simulation_service(simulation_id)
+        return BaseResponse(success=True, message="删除仿真成功")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除仿真失败: {str(e)}")
+
 @router.post("/analyze_accuracy/", response_model=BaseResponse)
 async def analyze_accuracy(request: AccuracyAnalysisRequest):
     """
@@ -156,6 +189,42 @@ async def get_folders(prefix: str):
         raise HTTPException(status_code=500, detail=f"获取文件夹列表失败: {str(e)}")
 
     
+
+# ==================== 分析和仿真对应关系API ====================
+
+@router.get("/analysis_history/{case_id}")
+async def get_analysis_history(case_id: str):
+    """
+    获取案例的分析历史记录
+    """
+    try:
+        result = await get_case_analysis_history(case_id)
+        return BaseResponse(
+            success=True,
+            message="获取分析历史成功",
+            data=result
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取分析历史失败: {str(e)}")
+
+@router.get("/analysis_mapping/{case_id}")
+async def get_analysis_mapping(case_id: str, analysis_id: Optional[str] = None):
+    """
+    获取分析和仿真的对应关系
+    
+    Args:
+        case_id: 案例ID
+        analysis_id: 分析ID（可选），如果不提供则返回所有分析的对应关系
+    """
+    try:
+        result = await get_analysis_simulation_mapping(case_id, analysis_id)
+        return BaseResponse(
+            success=True,
+            message="获取对应关系成功",
+            data=result
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取对应关系失败: {str(e)}")
 
 # ==================== 精度结果回看API ====================
 

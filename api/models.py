@@ -52,15 +52,17 @@ class TimeRangeRequest(BaseModel):
 
 class SimulationRequest(BaseModel):
     """仿真请求模型"""
-    run_folder: str = Field(..., description="运行文件夹路径")
+    case_id: str = Field(..., description="案例ID")
     gui: Optional[bool] = Field(False, description="是否启用GUI")
     simulation_type: Optional[SimulationType] = Field(SimulationType.MICROSCOPIC, description="仿真类型")
-    config_file: Optional[str] = Field(None, description="SUMO配置文件绝对或相对路径")
+    simulation_name: Optional[str] = Field(None, description="仿真名称")
+    simulation_description: Optional[str] = Field(None, description="仿真描述")
+    simulation_params: Optional[Dict[str, Any]] = Field({}, description="仿真参数配置")
     expected_duration: Optional[int] = Field(None, description="预期仿真时长（秒），用于进度估算；为空则根据metadata.time_range计算")
 
 class AccuracyAnalysisRequest(BaseModel):
     """精度分析请求模型"""
-    result_folder: str = Field(..., description="结果文件夹路径")
+    simulation_ids: List[str] = Field(..., description="仿真结果ID列表")
     analysis_type: Optional[AnalysisType] = Field(AnalysisType.ACCURACY, description="分析类型")
 
 class CaseCreationRequest(BaseModel):
@@ -83,6 +85,23 @@ class BaseResponse(BaseModel):
     message: str = Field(..., description="响应消息")
     data: Optional[Dict[str, Any]] = Field(None, description="响应数据")
 
+class SimulationResult(BaseModel):
+    """仿真结果模型"""
+    simulation_id: str = Field(..., description="仿真结果ID")
+    case_id: str = Field(..., description="所属案例ID")
+    simulation_name: Optional[str] = Field(None, description="仿真名称")
+    simulation_type: SimulationType = Field(..., description="仿真类型")
+    simulation_params: Optional[Dict[str, Any]] = Field({}, description="仿真参数")
+    status: str = Field(..., description="仿真状态")
+    created_at: datetime = Field(..., description="创建时间")
+    started_at: Optional[datetime] = Field(None, description="开始时间")
+    completed_at: Optional[datetime] = Field(None, description="完成时间")
+    duration: Optional[int] = Field(None, description="仿真耗时（秒）")
+    result_folder: str = Field(..., description="结果文件夹路径")
+    config_file: Optional[str] = Field(None, description="配置文件路径")
+    description: Optional[str] = Field(None, description="仿真描述")
+    statistics: Optional[Dict[str, Any]] = Field(None, description="仿真统计信息")
+    
 class CaseMetadata(BaseModel):
     """案例元数据模型"""
     case_id: str = Field(..., description="案例ID")
@@ -95,6 +114,7 @@ class CaseMetadata(BaseModel):
     description: Optional[str] = Field(None, description="案例描述")
     statistics: Optional[Dict[str, Any]] = Field(None, description="统计信息")
     files: Optional[Dict[str, str]] = Field(None, description="文件路径")
+    simulations: Optional[List[SimulationResult]] = Field([], description="仿真结果列表")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果摘要（accuracy/mechanism/performance 最新产物信息）")
 
 class CaseListResponse(BaseModel):

@@ -2,8 +2,8 @@
  * OD数据处理与仿真系统 - 前端JavaScript逻辑
  */
 
-// API基础URL
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// API基础URL - 动态获取当前服务器地址，支持远程访问
+const API_BASE_URL = `${window.location.protocol}//${window.location.host}/api/v1`;
 
 // =============== 精度分析调试 ===============
 function nowTs() {
@@ -51,7 +51,20 @@ async function apiFetch(url, options = {}) {
     let data;
     try { data = await resp.json(); } catch { data = null; }
     if (!resp.ok) {
-        const msg = (data && (data.detail || data.message)) || `HTTP ${resp.status}`;
+        let msg = `HTTP ${resp.status}`;
+        if (data) {
+            if (data.detail) {
+                // FastAPI validation errors
+                if (Array.isArray(data.detail)) {
+                    msg = data.detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+                } else {
+                    msg = data.detail;
+                }
+            } else if (data.message) {
+                msg = data.message;
+            }
+        }
+        console.error('API Error:', resp.status, data);
         throw new Error(msg);
     }
     return data;
@@ -116,12 +129,22 @@ function initializeEventListeners() {
 
     const refreshSimCasesBtn = document.getElementById('refresh-simulation-cases-btn');
     if (refreshSimCasesBtn) refreshSimCasesBtn.addEventListener('click', loadCases);
+    
+    const simulationCaseSelect = document.getElementById('simulation-case');
+    if (simulationCaseSelect) simulationCaseSelect.addEventListener('change', function() {
+        loadCaseSimulations(this.value);
+    });
 
     const runAnalysisBtn = document.getElementById('run-analysis-btn');
     if (runAnalysisBtn) runAnalysisBtn.addEventListener('click', runAnalysis);
 
     const refreshAnalysisCasesBtn = document.getElementById('refresh-analysis-cases-btn');
     if (refreshAnalysisCasesBtn) refreshAnalysisCasesBtn.addEventListener('click', loadCases);
+    
+    const analysisCaseSelect = document.getElementById('analysis-case');
+    if (analysisCaseSelect) analysisCaseSelect.addEventListener('change', function() {
+        loadAnalysisSimulations(this.value);
+    });
 
   const viewHistoryBtn = document.getElementById('view-analysis-history-btn');
   if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', viewAnalysisHistory);
@@ -177,13 +200,7 @@ async function processODData(e) {
         interval_minutes: parseInt(document.getElementById('interval-minutes').value || '5', 10),
         case_name: document.getElementById('case-name').value,
         description: document.getElementById('case-description').value,
-        // 仿真输出控制（与后端 TimeRangeRequest 字段一致）
-        output_summary: document.getElementById('out-summary').checked,
-        output_tripinfo: document.getElementById('out-tripinfo').checked,
-        output_vehroute: document.getElementById('out-vehroute').checked,
-        output_netstate: document.getElementById('out-netstate').checked,
-        output_fcd: document.getElementById('out-fcd').checked,
-        output_emission: document.getElementById('out-emission').checked
+        // 仿真输出配置已移至仿真运行阶段
     };
 
     if (!formData.start_time || !formData.end_time || !formData.taz_file || !formData.net_file) {
@@ -209,11 +226,171 @@ async function processODData(e) {
     }
 }
 
+// =============== 仿真管理 ===============
+async function loadCaseSimulations(caseId) {
+    if (!caseId) {
+        document.getElementById('existing-simulations').innerHTML = '<div class="loading">请先选择案例</div>';
+        return;
+    }
+    
+    try {
+        document.getElementById('existing-simulations').innerHTML = '<div class="loading">加载中...</div>';
+        const response = await apiFetch(`${API_BASE_URL}/simulations/${caseId}`);
+        const simulations = response.data?.simulations || [];
+        
+        if (simulations.length === 0) {
+            document.getElementById('existing-simulations').innerHTML = '<div class="no-data">该案例暂无仿真结果</div>';
+            return;
+        }
+        
+        const simulationsHtml = simulations.map(sim => `
+            <div class="simulation-card ${sim.status}">
+                <div class="simulation-card-header">
+                    <div class="simulation-card-title">${sim.simulation_name || sim.simulation_id}</div>
+                    <div class="simulation-card-status ${sim.status}">${getStatusText(sim.status)}</div>
+                </div>
+                <div class="simulation-card-info">
+                    <div><strong>类型:</strong> ${sim.simulation_type === 'microscopic' ? '微观' : '中观'}</div>
+                    <div><strong>创建时间:</strong> ${formatDateTime(sim.created_at)}</div>
+                    ${sim.description ? `<div><strong>描述:</strong> ${sim.description}</div>` : ''}
+                    ${sim.duration ? `<div><strong>耗时:</strong> ${sim.duration}秒</div>` : ''}
+                </div>
+                <div class="simulation-card-actions">
+                    <button class="btn btn-secondary" onclick="viewSimulationDetail('${sim.simulation_id}')">查看详情</button>
+                    ${sim.status === 'completed' ? `<button class="btn btn-primary" onclick="analyzeSimulation('${sim.simulation_id}')">分析结果</button>` : ''}
+                    <button class="btn btn-danger" onclick="deleteSimulation('${sim.simulation_id}')">删除</button>
+                </div>
+            </div>
+        `).join('');
+        
+        document.getElementById('existing-simulations').innerHTML = simulationsHtml;
+    } catch (error) {
+        console.error('加载仿真列表失败:', error);
+        document.getElementById('existing-simulations').innerHTML = '<div class="error">加载失败</div>';
+    }
+}
+
+function getStatusText(status) {
+    const statusMap = {
+        'running': '运行中',
+        'completed': '已完成',
+        'failed': '失败',
+        'pending': '等待中'
+    };
+    return statusMap[status] || status;
+}
+
+function formatDateTime(dateString) {
+    try {
+        return new Date(dateString).toLocaleString('zh-CN');
+    } catch {
+        return dateString;
+    }
+}
+
+async function viewSimulationDetail(simulationId) {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/simulation/${simulationId}`);
+        const simulation = response.data;
+        
+        const modalBody = document.getElementById('modal-body');
+        modalBody.innerHTML = `
+            <h3>仿真详情</h3>
+            <div class="detail-info">
+                <p><strong>仿真ID:</strong> ${simulation.simulation_id}</p>
+                <p><strong>名称:</strong> ${simulation.simulation_name || '无'}</p>
+                <p><strong>类型:</strong> ${simulation.simulation_type === 'microscopic' ? '微观仿真' : '中观仿真'}</p>
+                <p><strong>状态:</strong> ${getStatusText(simulation.status)}</p>
+                <p><strong>创建时间:</strong> ${formatDateTime(simulation.created_at)}</p>
+                ${simulation.started_at ? `<p><strong>开始时间:</strong> ${formatDateTime(simulation.started_at)}</p>` : ''}
+                ${simulation.completed_at ? `<p><strong>完成时间:</strong> ${formatDateTime(simulation.completed_at)}</p>` : ''}
+                ${simulation.duration ? `<p><strong>耗时:</strong> ${simulation.duration}秒</p>` : ''}
+                ${simulation.description ? `<p><strong>描述:</strong> ${simulation.description}</p>` : ''}
+                <p><strong>结果路径:</strong> ${simulation.result_folder}</p>
+            </div>
+        `;
+        showModal();
+    } catch (error) {
+        console.error('获取仿真详情失败:', error);
+        showNotification('获取仿真详情失败', 'error');
+    }
+}
+
+async function deleteSimulation(simulationId) {
+    if (!confirm('确定要删除这个仿真结果吗？')) return;
+    
+    try {
+        await apiFetch(`${API_BASE_URL}/simulation/${simulationId}`, {
+            method: 'DELETE'
+        });
+        showNotification('删除成功', 'success');
+        // 重新加载当前案例的仿真列表
+        const caseId = document.getElementById('simulation-case').value;
+        if (caseId) {
+            await loadCaseSimulations(caseId);
+        }
+    } catch (error) {
+        console.error('删除仿真失败:', error);
+        showNotification('删除仿真失败', 'error');
+    }
+}
+
+async function loadAnalysisSimulations(caseId) {
+    const container = document.getElementById('analysis-simulations');
+    if (!caseId) {
+        container.innerHTML = '<div class="loading">请先选择案例</div>';
+        return;
+    }
+    
+    try {
+        container.innerHTML = '<div class="loading">加载中...</div>';
+        const response = await apiFetch(`${API_BASE_URL}/simulations/${caseId}`);
+        const simulations = response.data?.simulations || [];
+        
+        const completedSimulations = simulations.filter(sim => sim.status === 'completed');
+        
+        if (completedSimulations.length === 0) {
+            container.innerHTML = '<div class="no-data">该案例暂无已完成的仿真结果</div>';
+            return;
+        }
+        
+        const checkboxesHtml = completedSimulations.map(sim => `
+            <div class="checkbox-item">
+                <input type="checkbox" id="sim_${sim.simulation_id}" value="${sim.simulation_id}">
+                <label for="sim_${sim.simulation_id}" class="checkbox-item-label">
+                    ${sim.simulation_name || sim.simulation_id}
+                    <span class="checkbox-item-info">
+                        ${sim.simulation_type === 'microscopic' ? '微观' : '中观'} | ${formatDateTime(sim.created_at)}
+                    </span>
+                </label>
+            </div>
+        `).join('');
+        
+        container.innerHTML = checkboxesHtml;
+    } catch (error) {
+        console.error('加载仿真列表失败:', error);
+        container.innerHTML = '<div class="error">加载失败</div>';
+    }
+}
+
 // =============== 仿真运行 ===============
 async function runSimulation() {
     const caseId = document.getElementById('simulation-case').value;
     const simulationType = document.getElementById('simulation-type').value;
     const guiMode = document.getElementById('gui-mode').value === 'true';
+    const simulationName = document.getElementById('simulation-name').value.trim();
+    const simulationDescription = document.getElementById('simulation-description').value.trim();
+    
+    // 收集仿真输出配置
+    const simulationParams = {
+        output_summary: document.getElementById('sim-out-summary').checked,
+        output_tripinfo: document.getElementById('sim-out-tripinfo').checked,
+        output_vehroute: document.getElementById('sim-out-vehroute').checked,
+        output_netstate: document.getElementById('sim-out-netstate').checked,
+        output_fcd: document.getElementById('sim-out-fcd').checked,
+        output_emission: document.getElementById('sim-out-emission').checked
+    };
+    
     if (!caseId) { showNotification('请选择案例', 'warning'); return; }
     try {
         updateSimulationStatus('running', '仿真运行中...');
@@ -253,14 +430,22 @@ async function runSimulation() {
             pollOnce();
         };
 
+        // 准备请求数据
+        const requestData = {
+            case_id: caseId,
+            gui: guiMode,
+            simulation_type: simulationType,
+            simulation_name: simulationName || null,
+            simulation_description: simulationDescription || null,
+            simulation_params: simulationParams
+        };
+        
+        console.log('发送仿真请求:', requestData);
+        
         // 先启动仿真，再开始轮询，避免第一轮读到上一次的progress.json
         const result = await apiFetch(`${API_BASE_URL}/run_simulation/`, {
             method: 'POST',
-            body: JSON.stringify({
-                run_folder: `cases/${caseId}/simulation`,
-                gui: guiMode,
-                simulation_type: simulationType
-            })
+            body: JSON.stringify(requestData)
         });
         // 启动成功后，先显示“已启动”，结果面板状态以轮询完成为准
         const payload = result && result.data ? result.data : result;
@@ -275,8 +460,25 @@ async function runSimulation() {
         // 轮询将自行在completed/failed时停止
     } catch (error) {
         console.error('仿真运行失败:', error);
+        let errorMsg = '未知错误';
+        
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else if (typeof error === 'string') {
+            errorMsg = error;
+        } else if (error && typeof error === 'object') {
+            try {
+                errorMsg = JSON.stringify(error);
+            } catch {
+                errorMsg = error.toString();
+            }
+        } else if (error && error.toString) {
+            errorMsg = error.toString();
+        }
+        
+        console.log('处理后的错误消息:', errorMsg);
         updateSimulationStatus('failed', '仿真失败');
-        showNotification(`仿真运行失败: ${error.message}`, 'error');
+        showNotification(`仿真运行失败: ${errorMsg}`, 'error');
         hideProgressBar();
     }
 }
@@ -288,11 +490,23 @@ async function runAnalysis() {
     // 与后端枚举兼容：mechanism -> traffic_flow
     if (analysisType === 'mechanism') analysisType = 'traffic_flow';
     if (!caseId) { showNotification('请选择案例', 'warning'); return; }
+    
+    // 获取选中的仿真结果
+    const selectedSimulations = [];
+    document.querySelectorAll('#analysis-simulations input[type="checkbox"]:checked').forEach(checkbox => {
+        selectedSimulations.push(checkbox.value);
+    });
+    
+    if (selectedSimulations.length === 0) {
+        showNotification('请至少选择一个仿真结果进行分析', 'warning');
+        return;
+    }
+    
     try {
         clearAnalysisDebug();
         appendAnalysisDebug('开始分析');
         const reqBody = {
-            result_folder: `cases/${caseId}/analysis/accuracy`,
+            simulation_ids: selectedSimulations,
             analysis_type: analysisType
         };
         appendAnalysisDebug('请求', { url: `${API_BASE_URL}/analyze_accuracy/`, body: reqBody });
@@ -304,7 +518,7 @@ async function runAnalysis() {
         const payload = result && result.data ? result.data : result;
         appendAnalysisDebug('响应', payload);
         updateAnalysisStatus('completed', '分析完成');
-        showNotification('分析启动成功', 'success');
+        showNotification(`分析启动成功，已选择${selectedSimulations.length}个仿真结果`, 'success');
         displayAnalysisResult(payload);
     } catch (error) {
         appendAnalysisDebug('错误', { message: error?.message, stack: error?.stack });

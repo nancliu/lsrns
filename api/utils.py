@@ -229,6 +229,160 @@ def generate_sumocfg(route_file: str, net_file: str, start_time: str, end_time: 
     except Exception as e:
         raise Exception(f"SUMO配置文件生成失败: {str(e)}")
 
+def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simulation_params: dict, simulation_folder, case_root) -> str:
+    """
+    为仿真运行动态生成sumocfg配置文件
+    
+    Args:
+        case_metadata: 案例元数据
+        simulation_type: 仿真类型 (SimulationType)
+        simulation_params: 仿真参数配置
+        simulation_folder: 仿真输出目录
+        case_root: 案例根目录
+    """
+    try:
+        from pathlib import Path
+        
+        # 获取基础文件路径（相对于仿真目录）
+        config_dir = case_root / "config"
+        
+        # 构建相对路径（从仿真目录到项目根目录的路径）
+        # 仿真目录结构: cases/{case_id}/simulations/{sim_id}/
+        # 需要回到项目根目录: ../../../../
+        
+        # 网络文件路径处理
+        network_file_path = case_metadata['files']['network_file']
+        if network_file_path.startswith('templates/'):
+            # 网络文件在templates目录下，从仿真目录访问
+            net_file = f"../../../../{network_file_path}"
+        else:
+            # 网络文件在config目录下
+            net_file = f"../../config/{Path(network_file_path).name}"
+        
+        route_files = []
+        additional_files = []
+        
+        # 获取路由文件（在config目录下）
+        if 'routes_file' in case_metadata['files']:
+            route_files.append(f"../../config/{Path(case_metadata['files']['routes_file']).name}")
+        
+        # 获取TAZ文件（在config目录下）
+        if 'taz_file' in case_metadata['files']:
+            # TAZ文件需要特殊处理，因为它包含e1/目录的输出路径引用
+            taz_file_name = Path(case_metadata['files']['taz_file']).name
+            additional_files.append(f"../../config/{taz_file_name}")
+            
+            # 复制TAZ文件到仿真目录并修改路径
+            source_taz = case_root / "config" / taz_file_name
+            target_taz = simulation_folder / taz_file_name
+            
+            if source_taz.exists():
+                import shutil
+                shutil.copy2(source_taz, target_taz)
+                
+                # 修改TAZ文件中的e1路径引用，指向当前仿真目录
+                with open(target_taz, 'r', encoding='utf-8') as f:
+                    taz_content = f.read()
+                
+                # 将 file="e1/xxx.xml" 保持不变，因为e1目录就在当前仿真目录下
+                # 不需要修改，因为e1/目录已经在仿真目录下创建了
+                
+                # 更新additional_files引用本地TAZ文件
+                additional_files[-1] = taz_file_name
+        
+        # 时间配置
+        time_range = case_metadata.get('time_range', {})
+        from datetime import datetime
+        if time_range.get('start') and time_range.get('end'):
+            start_dt = datetime.strptime(time_range['start'], '%Y/%m/%d %H:%M:%S')
+            end_dt = datetime.strptime(time_range['end'], '%Y/%m/%d %H:%M:%S')
+            duration = int((end_dt - start_dt).total_seconds())
+        else:
+            duration = 3600  # 默认1小时
+        
+        # 输出配置 - 输出到当前仿真目录
+        output_configs = []
+        output_configs.append('<summary-output value="summary.xml"/>')
+        output_configs.append('<tripinfo-output value="tripinfo.xml"/>')
+        
+        # 根据仿真参数添加可选输出
+        if simulation_params.get('output_vehroute', False):
+            output_configs.append('<vehroute-output value="vehroute.xml"/>')
+        if simulation_params.get('output_fcd', False):
+            output_configs.append('<fcd-output value="fcd.xml"/>')
+        if simulation_params.get('output_netstate', False):
+            output_configs.append('<netstate-dump value="netstate.xml"/>')
+        if simulation_params.get('output_emission', False):
+            output_configs.append('<emission-output value="emission.xml"/>')
+        
+        # 构建input部分
+        route_files_str = ",".join(route_files)
+        input_section = f'''    <input>
+        <net-file value="{net_file}"/>
+        <route-files value="{route_files_str}"/>'''
+        
+        if additional_files:
+            additional_files_str = ",".join(additional_files)
+            input_section += f'\n        <additional-files value="{additional_files_str}"/>'
+        
+        input_section += '\n    </input>'
+        
+        # 构建output部分
+        output_section = f'''    <output>
+        {chr(10).join(f"        {config}" for config in output_configs)}
+    </output>'''
+        
+        # 处理仿真类型特定配置
+        processing_section = '''    <processing>
+        <ignore-route-errors value="true"/>
+        <collision.action value="warn"/>
+    </processing>'''
+        
+        # 中观仿真特殊配置
+        mesoscopic_section = ""
+        if simulation_type.value == "mesoscopic":
+            mesoscopic_section = '''    <mesosim>
+        <meso-recheck value="0.1"/>
+        <meso-multi-queue value="true"/>
+        <meso-junction-control value="true"/>
+    </mesosim>'''
+        
+        # 微观仿真路由配置
+        routing_section = ""
+        if simulation_type.value == "microscopic":
+            routing_section = '''    <routing>
+        <device.rerouting.probability value="0.1"/>
+        <device.rerouting.explicit value="true"/>
+    </routing>'''
+        
+        # 组装完整配置
+        config_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated for simulation: {simulation_folder.name} -->
+<!-- Simulation type: {simulation_type.value} -->
+<configuration>
+{input_section}
+{output_section}
+    
+    <time>
+        <begin value="0"/>
+        <end value="{duration}"/>
+    </time>
+    
+{processing_section}
+    
+    <report>
+        <verbose value="true"/>
+        <no-step-log value="true"/>
+    </report>
+{mesoscopic_section}
+{routing_section}
+</configuration>'''
+        
+        return config_content
+        
+    except Exception as e:
+        raise Exception(f"生成仿真sumocfg失败: {str(e)}")
+
 def save_sumocfg(config_content: str, config_file: str) -> bool:
     """
     保存SUMO配置文件

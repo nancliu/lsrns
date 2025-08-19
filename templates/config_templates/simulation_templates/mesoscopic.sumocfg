@@ -24,11 +24,8 @@
     <mesosim>
         <meso-recheck value="0.1"/>
         <meso-multi-queue value="true"/>
-        <meso-lc-keepright value="true"/>
         <meso-junction-control value="true"/>
     </mesosim>
     
-    <gui_only>
-        <gui-settings-file value="gui-settings.cfg"/>
-    </gui_only>
+
 </configuration> 
