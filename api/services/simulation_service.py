@@ -131,6 +131,28 @@ class SimulationService(BaseService):
     def _create_simulation_metadata(self, request: SimulationRequest, simulation_id: str,
                                    simulation_folder: Path, cfg_file: str) -> Dict[str, Any]:
         """创建仿真元数据"""
+        # 收集输入文件（从案例元数据 files 字段获取来源路径）
+        input_files: Dict[str, Any] = {}
+        try:
+            case_path = Path("cases") / request.case_id
+            case_metadata = MetadataManager.load_case_metadata(case_path)
+            files_info = (case_metadata or {}).get("files", {})
+            network_file = files_info.get("network_file")
+            routes_file = files_info.get("routes_file")
+            taz_file = files_info.get("taz_file")
+            input_files = {
+                "network_file": network_file,
+                "routes_files": [routes_file] if routes_file else [],
+                "taz_files": [taz_file] if taz_file else []
+            }
+        except Exception:
+            # 若无法获取，保持空结构，不影响仿真
+            input_files = {
+                "network_file": None,
+                "routes_files": [],
+                "taz_files": []
+            }
+
         return {
             "simulation_id": simulation_id,
             "case_id": request.case_id,
@@ -143,6 +165,7 @@ class SimulationService(BaseService):
             "description": request.simulation_description,
             "result_folder": str(simulation_folder),
             "config_file": cfg_file,
+            "input_files": input_files,
             "gui": request.gui
         }
     
@@ -392,7 +415,20 @@ class SimulationService(BaseService):
                 if case_dir.is_dir():
                     sim_dir = case_dir / "simulations" / simulation_id
                     if sim_dir.exists():
+                        # 先删除目录
                         shutil.rmtree(sim_dir)
+                        # 同步更新仿真索引
+                        try:
+                            MetadataManager.remove_simulation_from_index(case_dir, simulation_id)
+                        except Exception:
+                            pass
+                        # 可选：刷新案例元数据的更新时间（保持字段统一使用 updated_at）
+                        try:
+                            metadata = MetadataManager.load_case_metadata(case_dir)
+                            metadata["updated_at"] = datetime.now().isoformat()
+                            MetadataManager.save_case_metadata(case_dir, metadata)
+                        except Exception:
+                            pass
                         return
             
             raise Exception(f"未找到仿真: {simulation_id}")

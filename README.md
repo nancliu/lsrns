@@ -1,15 +1,25 @@
-# OD数据处理与仿真系统（v1.0）
+# OD数据处理与仿真系统（v0.6）
 
 ## 项目概述
 
 OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平台，采用现代化模块化架构设计。系统已完成从传统单体架构向完全模块化架构的重构，具有高可维护性、可扩展性和优秀的开发体验。
 
-### 🎯 架构特点
+### 🎯 核心特性
 
 - **完全模块化设计**: API层专注接口，Shared层专注核心功能
-- **清晰的职责分离**: 每个模块职责单一，易于维护和测试
-- **高性能**: 模块导入和服务实例化性能优秀
+- **多类型分析支持**: 精度分析、机理分析、性能分析
+- **完整分析生态**: 图表生成、报告输出、历史查看
 - **现代化技术栈**: FastAPI + Pydantic + Python 3.10+
+- **用户友好界面**: 一站式Web界面，操作简便
+
+### 🔧 系统状态
+
+- ✅ **基础功能**: 页面加载、模板管理完全正常
+- ✅ **数据处理**: OD数据处理功能完整可用
+- ✅ **仿真运行**: 仿真启动、监控、结果查看正常
+- ✅ **分析功能**: 三种分析类型执行和历史查看正常
+- ✅ **案例管理**: 案例创建、查看、管理功能完整
+- ✅ **API服务**: 所有接口经过测试验证
 
 ## 快速开始
 
@@ -54,35 +64,47 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 
 ### 核心功能
 
-1. **案例管理**
-   - 创建新案例
-   - 查看案例列表
-   - 案例详情查看
-   - 案例克隆和删除
+1. **OD数据处理**
+   - 时间范围配置
+   - TAZ和网络文件选择
+   - OD数据生成和路由文件创建
+   - 案例自动创建和管理
 
-2. **仿真控制**
-   - 运行交通仿真
-   - 仿真状态监控
-   - 仿真结果查看
+2. **仿真运行**
+   - 微观/中观仿真支持
+   - GUI/后台运行模式
+   - 多种输出配置（summary、tripinfo、vehroute等）
+   - 实时状态监控
 
-3. **精度分析**
-   - 精度分析执行
-   - 分析结果查看
-   - 报告生成
+3. **结果分析**
+   - **精度分析**: 门架数据与仿真结果对比，生成精度指标
+   - **机理分析**: 交通流机理特性分析，识别交通规律
+   - **性能分析**: 系统性能评估，优化建议生成
+   - **历史查看**: 所有分析类型的历史结果管理
 
-4. **模板管理**
-   - TAZ文件模板
-   - 网络文件模板
-   - 仿真配置模板
+4. **案例管理**
+   - 案例创建、查看、克隆、删除
+   - 案例状态追踪
+   - 搜索和筛选功能
+
+5. **模板管理**
+   - TAZ文件模板（TAZ_5_validated.add.xml等）
+   - 网络文件模板（sichuan系列）
+   - 仿真配置模板（microscopic、mesoscopic）
 
 ### API接口（按业务分组）
 
-- **数据处理**: `POST /api/v1/data/process_od_data/`
-- **案例管理**: `GET /api/v1/case/list_cases/`, `POST /api/v1/case/create_case/`
-- **仿真管理**: `POST /api/v1/simulation/run_simulation/`
-- **结果分析**: `POST /api/v1/analysis/analyze_accuracy/`
-- **模板管理**: `GET /api/v1/template/list_templates/`
-- **文件管理**: `GET /api/v1/file/file_info/{file_path}`
+- **数据处理**: `POST /api/v1/process_od_data/`
+- **案例管理**: `GET /api/v1/list_cases/`, `POST /api/v1/create_case/`
+- **仿真管理**: `POST /api/v1/run_simulation/`, `GET /api/v1/simulations/{case_id}`
+- **结果分析**: 
+  - 精度分析: `POST /api/v1/analyze_accuracy/`
+  - 机理分析: `POST /api/v1/analyze_mechanism/`
+  - 性能分析: `POST /api/v1/analyze_performance/`
+  - 历史结果: `GET /api/v1/analysis/analysis_results/{case_id}?analysis_type={type}`
+  - 分析历史: `GET /api/v1/analysis/analysis_history/{case_id}`
+- **模板管理**: `GET /api/v1/templates/{template_type}`
+- **文件管理**: `GET /api/v1/file_info/{file_path}`
 
 ## 项目结构
 
@@ -118,16 +140,21 @@ OD生成脚本/
 │   │   ├── time_utils.py       # 时间处理工具
 │   │   ├── sumo_utils.py       # SUMO仿真工具
 │   │   ├── validation_utils.py # 验证工具
-│   │   └── taz_utils.py        # TAZ处理工具
+│   │   ├── taz_utils.py        # TAZ处理工具
+│   │   └── data_flow_optimizer.py # 数据流优化工具
 │   ├── data_access/         # 数据访问层
 │   │   ├── connection.py       # 数据库连接
 │   │   ├── db_config.py        # 数据库配置
 │   │   ├── gantry_loader.py    # 门架数据加载
 │   │   └── od_table_resolver.py # OD表解析器
 │   ├── analysis_tools/      # 分析工具
-│   │   └── accuracy_analyzer.py # 精度分析器
+│   │   ├── accuracy_analysis.py # 精度分析器
+│   │   ├── mechanism_analysis.py # 机理分析器
+│   │   └── performance_analysis.py # 性能分析器
 │   └── data_processors/     # 数据处理器
 │       ├── od_processor.py     # OD数据处理器
+│       ├── e1_processor.py     # E1检测器数据处理器
+│       ├── gantry_processor.py # 门架数据处理器
 │       └── simulation_processor.py # 仿真数据处理器
 ├── cases/                    # 案例根目录
 ├── templates/                # 模板文件
@@ -140,59 +167,71 @@ OD生成脚本/
 │   └── styles.css          # 样式文件
 ├── docs/                    # 项目文档
 │   ├── development/         # 开发相关文档
-│   └── api_docs/           # API文档
-├── sim_scripts/            # 仿真脚本（遗留）
-├── requirements.txt        # Python依赖
-└── start_api.bat          # 启动脚本
+│   ├── api_docs/           # API文档
+│   ├── testing/            # 测试相关文档
+│   │   └── Playwright_MCP_测试任务清单.md # 自动化测试清单
+│   └── DEPLOYMENT_GUIDE.md # 部署指南
+├── tests/                  # 测试目录
+│   ├── unit/              # 单元测试
+│   ├── integration/       # 集成测试
+│   └── e2e/               # 端到端测试
+├── test_output/           # 测试输出目录
+├── requirements.txt       # Python依赖
+└── start_api.ps1          # 启动脚本
 ```
 
 ## 使用示例
 
-### 创建案例
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/case/create_case/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "case_name": "测试案例",
-    "description": "这是一个测试案例"
-  }'
-```
-
 ### 处理OD数据
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/data/process_od_data/" \
+curl -X POST "http://localhost:8000/api/v1/process_od_data/" \
   -H "Content-Type: application/json" \
   -d '{
-    "start_time": "2025/01/19 08:00:00",
-    "end_time": "2025/01/19 09:00:00",
-    "case_name": "测试案例"
+    "start_time": "2025-08-11T08:00",
+    "end_time": "2025-08-11T08:15",
+    "interval_minutes": 5,
+    "taz_file": "templates/taz_files/TAZ_5_validated.add.xml",
+    "network_file": "templates/network_files/sichuan202503v6.net.xml",
+    "case_name": "测试案例",
+    "description": "这是一个测试案例"
   }'
 ```
 
 ### 运行仿真
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/simulation/run_simulation/" \
+curl -X POST "http://localhost:8000/api/v1/run_simulation/" \
   -H "Content-Type: application/json" \
   -d '{
-    "case_id": "case_20250119_120000",
+    "case_id": "case_20250822_003318",
     "simulation_name": "测试仿真",
+    "simulation_description": "自动化测试仿真运行功能",
     "gui": false,
-    "simulation_type": "microscopic"
+    "simulation_type": "microscopic",
+    "simulation_outputs": ["summary", "tripinfo"]
   }'
 ```
 
 ### 执行精度分析
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/analysis/analyze_accuracy/" \
+curl -X POST "http://localhost:8000/api/v1/analyze_accuracy/" \
   -H "Content-Type: application/json" \
   -d '{
-    "case_id": "case_20250119_120000",
-    "simulation_ids": ["sim_20250119_130000"]
+    "case_id": "case_20250821_155513",
+    "simulation_ids": ["sim_0821_161746_micro"]
   }'
+```
+
+### 查看分析历史
+
+```bash
+# 查看精度分析历史
+curl "http://localhost:8000/api/v1/analysis/analysis_results/case_20250821_155513?analysis_type=accuracy"
+
+# 查看所有分析类型历史
+curl "http://localhost:8000/api/v1/analysis/analysis_history/case_20250821_155513"
 ```
 
 ## 开发指南
@@ -207,9 +246,10 @@ curl -X POST "http://localhost:8000/api/v1/analysis/analyze_accuracy/" \
 
 2. **Shared层职责**:
    - 核心业务逻辑和算法
-   - 数据访问和处理
+   - 数据访问和处理（门架数据、E1检测器数据）
+   - 分析工具（精度、机理、性能分析）
+   - 数据处理器（OD、门架、仿真数据）
    - 通用工具函数
-   - 可复用组件
 
 ### 新功能开发流程
 
@@ -217,7 +257,10 @@ curl -X POST "http://localhost:8000/api/v1/analysis/analyze_accuracy/" \
    - 数据处理 → `api/services/data_service.py`
    - 案例管理 → `api/services/case_service.py`
    - 仿真控制 → `api/services/simulation_service.py`
-   - 结果分析 → `api/services/analysis_service.py`
+   - 精度分析 → `api/services/accuracy_service.py`
+   - 机理分析 → `api/services/mechanism_service.py`
+   - 性能分析 → `api/services/performance_service.py`
+   - 模板管理 → `api/services/template_service.py`
 
 2. **模块化开发**
    - 请求模型 → `api/models/requests/`
@@ -234,22 +277,35 @@ curl -X POST "http://localhost:8000/api/v1/analysis/analyze_accuracy/" \
 
 ## 测试
 
-系统包含完整的测试覆盖，包括：
+系统包含完整的测试覆盖，使用Playwright MCP进行自动化测试：
 
-- **模块导入测试**: 验证所有模块正确导入
-- **功能测试**: 验证核心功能正常工作
-- **性能测试**: 验证系统性能指标
-- **API测试**: 验证API端点响应
+### 测试范围
+- **基础功能测试**: 页面加载、导航、模板管理
+- **OD数据处理测试**: 时间配置、文件选择、数据生成
+- **仿真运行测试**: 仿真启动、参数配置、状态监控
+- **结果分析测试**: 三种分析类型执行和历史查看
+- **案例管理测试**: 案例列表、详情、操作功能
+- **API接口测试**: 所有核心API端点验证
 
-运行测试：
-
+### 测试执行
 ```bash
-# 运行所有测试
-python -m pytest
+# 启动API服务（必需）
+.\start_api.ps1
 
-# 运行特定测试
-python test_specific_module.py
+# 查看测试清单
+cat docs/testing/Playwright_MCP_测试任务清单.md
+
+# 使用Playwright MCP执行自动化测试
+# （具体执行方式参考测试清单文档）
 ```
+
+### 测试状态（v0.6）
+- ✅ 基础功能：100%通过
+- ✅ OD数据处理：完全正常
+- ✅ 仿真运行：启动和监控正常
+- ✅ 结果分析：所有类型分析和历史查看正常
+- ✅ 案例管理：完整功能验证通过
+- ✅ API接口：所有端点测试通过
 
 ## 故障排除
 
@@ -270,44 +326,52 @@ python test_specific_module.py
    - 验证.env中的数据库配置
    - 确认网络连接
 
-### 性能优化
+### 性能指标（v0.6验证）
 
-- **模块导入时间**: < 100ms
-- **服务实例化时间**: < 10ms
-- **API响应时间**: < 1s
-- **内存使用**: 合理范围内
+- **页面加载时间**: < 3秒 ✅
+- **表单提交响应**: < 2秒 ✅
+- **仿真启动响应**: < 5秒 ✅
+- **API响应时间**: < 1秒 ✅
+- **分析执行**: 精度分析完整执行正常 ✅
+
+### 已知问题
+
+1. **中文字体警告**: 图表生成时出现中文字体缺失警告，但不影响功能
+2. **仿真长时间运行**: 大规模仿真可能需要较长时间完成
 
 ## 版本信息
 
-- **当前版本**: v1.0 🎉
+- **当前版本**: v0.6 🚀
 - **架构状态**: ✅ 完全模块化
-- **重构完成**: 2025-01-19
-- **测试覆盖**: 100%
+- **核心功能**: ✅ 完全可用
+- **测试状态**: ✅ 全面验证通过
 - **Python版本**: 3.10+
 
 ## 重要变更
 
-### v1.0 (2025-01-19) - 架构重构完成
+### v0.6 (2025-08-22) - 分析功能完善和测试验证
 
-- ✅ 完成从单体架构向模块化架构的重构
-- ✅ 实现API层和Shared层的清晰分离
-- ✅ 所有功能迁移到新架构并通过测试
-- ✅ 移除所有向后兼容性代码
-- ✅ 更新所有文档以反映新架构
+- ✅ 完善三类分析功能（精度、机理、性能）
+- ✅ 修复"查看历史结果"功能重要问题
+- ✅ 完整的Playwright MCP自动化测试验证
+- ✅ 所有核心功能端到端测试通过
+- ✅ API接口全面测试验证
+- ✅ 用户界面响应性能优化
 
-### 重构成果
+### 测试验证成果
 
-- **代码组织**: 4个巨文件 → 25+个专业模块
-- **最大文件行数**: 2,952行 → 420行 (减少85.8%)
-- **功能定位时间**: 5-10分钟 → 30秒内 (减少90%)
-- **开发效率**: 显著提升
+- **功能完整性**: 所有主要功能模块验证通过
+- **API稳定性**: 所有分析相关API正常响应
+- **用户体验**: 界面操作流畅，响应迅速
+- **数据完整性**: 分析结果包含丰富图表和报告
 
 ## 文档资源
 
 - [新架构开发指南](docs/development/新架构开发指南.md)
 - [新架构API指南](docs/api_docs/新架构API指南.md)
+- [Playwright MCP测试任务清单](docs/testing/Playwright_MCP_测试任务清单.md)
+- [部署指南](docs/DEPLOYMENT_GUIDE.md)
 - [架构重构完成报告](docs/development/架构重构完成报告.md)
-- [迁移指南](docs/development/迁移指南.md)
 
 ## 许可证
 
@@ -321,7 +385,8 @@ python test_specific_module.py
 
 ---
 
-**文档版本**: v1.0  
-**最后更新**: 2025-01-19  
-**架构状态**: ✅ 完全模块化  
+**文档版本**: v0.6  
+**最后更新**: 2025-08-22  
+**系统状态**: ✅ 核心功能完全可用  
+**测试状态**: ✅ 全面验证通过  
 **维护者**: 开发团队

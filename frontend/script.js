@@ -255,6 +255,7 @@ async function loadCaseSimulations(caseId) {
                 <div class="simulation-card-info">
                     <div><strong>类型:</strong> ${sim.simulation_type === 'microscopic' ? '微观' : '中观'}</div>
                     <div><strong>创建时间:</strong> ${formatDateTime(sim.created_at)}</div>
+                    ${sim.started_at ? `<div><strong>开始时间:</strong> ${formatDateTime(sim.started_at)}</div>` : ''}
                     ${sim.description ? `<div><strong>描述:</strong> ${sim.description}</div>` : ''}
                     ${sim.duration ? `<div><strong>耗时:</strong> ${sim.duration}秒</div>` : ''}
                 </div>
@@ -297,6 +298,13 @@ async function viewSimulationDetail(simulationId) {
         const simulation = response.data;
         
         const modalBody = document.getElementById('modal-body');
+        // 组装输入文件显示
+        const inf = simulation.input_files || {};
+        const netFile = inf.network_file || '—';
+        const routesFiles = (inf.routes_files && inf.routes_files.length) ? inf.routes_files : [];
+        const tazFiles = (inf.taz_files && inf.taz_files.length) ? inf.taz_files : [];
+        const routesHtml = routesFiles.length ? routesFiles.map(u=>`<code title="${u}">${u.split('/').pop()}</code>`).join(' | ') : '—';
+        const tazHtml = tazFiles.length ? tazFiles.map(u=>`<code title="${u}">${u.split('/').pop()}</code>`).join(' | ') : '—';
         modalBody.innerHTML = `
             <h3>仿真详情</h3>
             <div class="detail-info">
@@ -310,6 +318,10 @@ async function viewSimulationDetail(simulationId) {
                 ${simulation.duration ? `<p><strong>耗时:</strong> ${simulation.duration}秒</p>` : ''}
                 ${simulation.description ? `<p><strong>描述:</strong> ${simulation.description}</p>` : ''}
                 <p><strong>结果路径:</strong> ${simulation.result_folder}</p>
+                <h4>输入文件</h4>
+                <p><strong>路网文件:</strong> <code title="${netFile}">${(netFile||'').split('/').pop() || '—'}</code></p>
+                <p><strong>路由文件:</strong> ${routesHtml}</p>
+                <p><strong>TAZ文件:</strong> ${tazHtml}</p>
             </div>
         `;
         showModal();
@@ -507,19 +519,22 @@ async function runAnalysis() {
     try {
         clearAnalysisDebug();
         appendAnalysisDebug('开始分析');
+        // 分析类型已经是英文值，直接使用
+        let englishAnalysisType = analysisType;
+        
         const reqBody = {
             case_id: caseId,
             simulation_ids: selectedSimulations,
-            analysis_type: analysisType
+            analysis_type: englishAnalysisType
         };
         
         // 根据分析类型选择API端点
         let apiEndpoint;
-        if (analysisType === '精度') {
+        if (englishAnalysisType === 'accuracy') {
             apiEndpoint = `${API_BASE_URL}/analyze_accuracy/`;
-        } else if (analysisType === '机理') {
+        } else if (englishAnalysisType === 'mechanism') {
             apiEndpoint = `${API_BASE_URL}/analyze_mechanism/`;
-        } else if (analysisType === '性能') {
+        } else if (englishAnalysisType === 'performance') {
             apiEndpoint = `${API_BASE_URL}/analyze_performance/`;
         } else {
             apiEndpoint = `${API_BASE_URL}/analyze_accuracy/`;
@@ -535,12 +550,35 @@ async function runAnalysis() {
         appendAnalysisDebug('响应', payload);
         updateAnalysisStatus('completed', '分析完成');
         showNotification(`分析启动成功，已选择${selectedSimulations.length}个仿真结果`, 'success');
-        displayAnalysisResult(payload);
+        
+        // 检查返回的数据结构，适配新的API格式
+        let displayData = payload;
+        if (payload && payload.data) {
+            // 新API格式：{success: true, message: "...", data: {...}}
+            displayData = payload.data;
+        }
+        
+        // 添加分析类型信息
+        if (!displayData.analysis_type) {
+            displayData.analysis_type = englishAnalysisType;
+        }
+        
+        displayAnalysisResult(displayData);
     } catch (error) {
         appendAnalysisDebug('错误', { message: error?.message, stack: error?.stack });
         console.error(`${analysisType}分析失败:`, error);
         updateAnalysisStatus('failed', '分析失败');
         showNotification(`${analysisType}分析失败: ${error.message}`, 'error');
+    }
+}
+
+// 辅助函数：将英文分析类型转换为中文显示名称
+function getAnalysisTypeDisplayName(analysisType) {
+    switch(analysisType) {
+        case 'mechanism': return '机理';
+        case 'performance': return '性能';
+        case 'accuracy':
+        default: return '精度';
     }
 }
 
@@ -550,12 +588,8 @@ async function viewAnalysisHistory() {
   if (!caseId) { showNotification('请选择案例', 'warning'); return; }
   // 读取下拉的当前分析类型
   let at = document.getElementById('analysis-type').value;
-  // 结果历史接口使用 accuracy|mechanism|performance 三类约定
-  let historyType;
-  if (at === '精度') historyType = 'accuracy';
-  else if (at === '机理') historyType = 'mechanism';
-  else if (at === '性能') historyType = 'performance';
-  else historyType = 'accuracy';
+  // 分析类型已经是英文值，直接使用
+  let historyType = at;
   try {
     const data = await apiFetch(`${API_BASE_URL}/analysis_results/${caseId}?analysis_type=${encodeURIComponent(historyType)}`);
     const payload = data && data.data ? data.data : data;
@@ -580,7 +614,7 @@ function renderAnalysisHistory(payload) {
   if (!results.length) { area.innerHTML = '<div class="loading">暂无历史结果</div>'; return; }
   const html = `
     <div class="case-card fade-in">
-      <h3>历史${(payload.analysis_type||'accuracy')==='mechanism'?'机理':(payload.analysis_type||'accuracy')==='performance'?'性能':'精度'}结果（${payload.case_id}）</h3>
+      <h3>历史${getAnalysisTypeDisplayName(payload.analysis_type||'accuracy')}结果（${payload.case_id}）</h3>
       <div class="case-info">
         ${results.map(r => `
           <details style="margin-bottom:8px;">
@@ -837,7 +871,6 @@ function displayProcessingResult(result) {
                 <p><strong>运行文件夹:</strong> ${result.run_folder || 'N/A'}</p>
                 <p><strong>OD文件:</strong> ${result.od_file || 'N/A'}</p>
                 <p><strong>路由文件:</strong> ${result.route_file || 'N/A'}</p>
-                <p><strong>配置文件:</strong> ${result.sumocfg_file || 'N/A'}</p>
                 <p><strong>总记录数:</strong> ${result.total_records || 'N/A'}</p>
                 <p><strong>OD对数:</strong> ${result.od_pairs || 'N/A'}</p>
             </div>
@@ -873,9 +906,9 @@ function displayAnalysisResult(result) {
             const typeLabel = at === 'mechanism' ? '机理' : at === 'performance' ? '性能' : '精度';
 
     // 通用部分
-    const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
-    const chartsLinks = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
-    const csvList = Array.isArray(result.csv_urls) ? result.csv_urls : [];
+    const reportLink = result.report_file ? `<p><a class="btn btn-primary" href="${result.report_file}" target="_blank">查看报告</a></p>` : '';
+    const chartsLinks = (result.chart_files && result.chart_files.length) ? `<p><strong>图表:</strong> ${result.chart_files.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+    const csvList = result.csv_files ? Object.values(result.csv_files) : [];
 
             if (at === 'mechanism') {
         // 机理分析渲染：突出两个CSV对比产物
@@ -889,7 +922,7 @@ function displayAnalysisResult(result) {
               <li>仿真输入flow vs 仿真输出车流：${odInputVsOutput ? `<a href="${odInputVsOutput}" target="_blank">od_input_vs_simoutput.csv</a>` : '未生成'}</li>
             </ul>
           </div>`;
-        const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
+        const reportLink = result.report_file ? `<p><a class="btn btn-primary" href="${result.report_file}" target="_blank">查看报告</a></p>` : '';
         area.innerHTML = `
           <div class="case-card fade-in">
             <h3>机理分析结果</h3>
@@ -906,24 +939,24 @@ function displayAnalysisResult(result) {
         return;
     }
 
-    if (at === 'performance') {
-        // 性能分析渲染：强调运行耗时与summary统计
-        const eff = result.efficiency || {};
-        const chartsLinksPerf = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
-        const csvListPerf = Array.isArray(result.csv_urls) ? result.csv_urls : [];
-        const csvLinksPerf = (csvListPerf.length) ? `<p><strong>CSV:</strong> ${csvListPerf.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
-        const reportLinkPerf = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
-        const summaryStats = result.summary_stats || {};
-        const summaryHTML = Object.keys(summaryStats).length ? `
-          <div class="case-info">
-            <p><strong>仿真摘要:</strong> steps=${summaryStats.steps ?? '—'}, loaded_total=${summaryStats.loaded_total ?? '—'}, inserted_total=${summaryStats.inserted_total ?? '—'}, running_max=${summaryStats.running_max ?? '—'}, waiting_max=${summaryStats.waiting_max ?? '—'}, ended_total=${summaryStats.ended_total ?? '—'}</p>
-          </div>` : '';
-        const perfHTML = `
-          <div class="case-info">
-            <p><strong>总耗时:</strong> ${fmtDuration(eff.duration_sec)}</p>
-            <p><strong>图表产出:</strong> ${eff.chart_count ?? '—'} 个，合计 ${fmtBytes(eff.charts_total_bytes)}</p>
-            <p><strong>报告大小:</strong> ${fmtBytes(eff.report_bytes)}</p>
-          </div>`;
+            if (at === 'performance') {
+            // 性能分析渲染：强调运行耗时与summary统计
+            const eff = result.efficiency || {};
+            const chartsLinksPerf = (result.chart_files && result.chart_files.length) ? `<p><strong>图表:</strong> ${result.chart_files.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+            const csvListPerf = result.csv_files ? Object.values(result.csv_files) : [];
+            const csvLinksPerf = (csvListPerf.length) ? `<p><strong>CSV:</strong> ${csvListPerf.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
+            const reportLinkPerf = result.report_file ? `<p><a class="btn btn-primary" href="${result.report_file}" target="_blank">查看报告</a></p>` : '';
+            const summaryStats = result.analysis_summary || {};
+            const summaryHTML = Object.keys(summaryStats).length ? `
+              <div class="case-info">
+                <p><strong>仿真摘要:</strong> steps=${summaryStats.total_steps ?? '—'}, loaded_total=${summaryStats.total_loaded ?? '—'}, inserted_total=${summaryStats.total_inserted ?? '—'}, running_max=${summaryStats.max_running ?? '—'}, waiting_max=${summaryStats.max_waiting ?? '—'}, ended_total=${summaryStats.total_ended ?? '—'}</p>
+              </div>` : '';
+            const perfHTML = `
+              <div class="case-info">
+                <p><strong>分析耗时:</strong> ${eff.total_time ?? '—'}</p>
+                <p><strong>图表产出:</strong> ${eff.chart_count ?? '—'} 个</p>
+                <p><strong>报告大小:</strong> ${eff.report_size ?? '—'}</p>
+              </div>`;
 
         area.innerHTML = `
           <div class="case-card fade-in">

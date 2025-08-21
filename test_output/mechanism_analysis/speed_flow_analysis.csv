@@ -1,2 +1,0 @@
-﻿total_points,speed_range,flow_range,speed_flow_correlation,relationship_type
-100,"[5.0, 90.71972044662662]","[0.0, 137.44771735730296]",-0.9605663332634913,强负相关（拥堵时速度下降，流量减少）

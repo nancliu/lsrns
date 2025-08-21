@@ -45,18 +45,11 @@ class CaseService(BaseService):
             raise Exception(f"案例创建失败: {str(e)}")
     
     def _create_standard_directories(self, case_dir: Path) -> None:
-        """创建标准的案例目录结构"""
-        directories = [
-            "config",
-            "analysis",
-            "analysis/accuracy",
-            "analysis/accuracy/results", 
-            "analysis/accuracy/charts",
-            "analysis/accuracy/reports"
-        ]
+        """创建标准的案例目录结构 - 调用shared层功能"""
+        from shared.utilities.file_utils import DirectoryManager
         
-        for dir_path in directories:
-            (case_dir / dir_path).mkdir(parents=True, exist_ok=True)
+        # 使用shared层的标准案例结构创建功能
+        DirectoryManager.create_case_structure(case_dir.name)
     
     def _create_initial_metadata(self, case_id: str, request: CaseCreationRequest) -> Dict[str, Any]:
         """创建初始元数据"""

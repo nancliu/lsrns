@@ -20,6 +20,44 @@ class GantryDataProcessor:
         self.processed_data = {}
         self.alignment_metadata = {}
         
+    def load_gantry_data(self, gantry_dir: Path) -> pd.DataFrame:
+        """从目录加载门架数据
+        
+        Args:
+            gantry_dir: 包含门架数据文件的目录
+            
+        Returns:
+            加载的门架数据DataFrame
+        """
+        try:
+            if not gantry_dir.exists() or not gantry_dir.is_dir():
+                logger.warning(f"门架数据目录不存在或不可用: {gantry_dir}")
+                return pd.DataFrame()
+            
+            # 查找CSV文件
+            csv_files = list(gantry_dir.glob("*.csv"))
+            if not csv_files:
+                logger.warning(f"门架数据目录下未发现CSV文件: {gantry_dir}")
+                return pd.DataFrame()
+            
+            # 加载第一个CSV文件（通常只有一个）
+            gantry_file = csv_files[0]
+            logger.info(f"加载门架数据文件: {gantry_file}")
+            
+            # 读取CSV文件
+            gantry_data = pd.read_csv(gantry_file)
+            
+            if gantry_data.empty:
+                logger.warning("门架数据文件为空")
+                return pd.DataFrame()
+            
+            logger.info(f"成功加载门架数据: {len(gantry_data)} 条记录")
+            return gantry_data
+            
+        except Exception as e:
+            logger.error(f"加载门架数据失败: {e}")
+            return pd.DataFrame()
+
     def process_for_accuracy_analysis(self, gantry_data: pd.DataFrame, 
                                     e1_data: pd.DataFrame) -> Dict[str, Any]:
         """

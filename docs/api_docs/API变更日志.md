@@ -1,5 +1,45 @@
 # API变更日志
 
+## v0.6.0 (2025-08-22) - 分析功能完善版本
+
+### 🎉 重大更新：分析功能完善和测试验证
+
+本版本完成了三类分析功能的完善，修复了重要的历史结果查看功能，并通过了完整的Playwright MCP自动化测试验证。
+
+#### ✨ 新增功能
+
+**新的分析API**
+- 📊 **机理分析API** (`POST /api/v1/analyze_mechanism/`) - 交通流机理特性分析
+- 📈 **性能分析API** (`POST /api/v1/analyze_performance/`) - 系统性能评估分析
+- 📋 **历史结果API** (`GET /api/v1/analysis/analysis_results/{case_id}?analysis_type={type}`) - 分析历史结果查看
+- 📊 **分析历史API** (`GET /api/v1/analysis/analysis_history/{case_id}`) - 综合分析历史
+- 🔗 **分析映射API** (`GET /api/v1/analysis/analysis_mapping/{case_id}`) - 分析与仿真对应关系
+
+**增强的分析特性**
+- 🛡️ 支持三种分析类型：精度、机理、性能
+- 🔄 完整的历史结果管理和查看
+- 📝 丰富的分析输出：图表、报告、CSV文件
+- 🎯 灵活的数据结构处理
+
+#### 🐛 重要修复
+
+**修复历史结果查看功能**
+- ✅ 修复 `AccuracyAnalysisService.list_analysis_results` 方法缺失问题
+- ✅ 修复 `MechanismAnalysisService.list_analysis_results` 方法缺失问题  
+- ✅ 修复 `PerformanceAnalysisService.list_analysis_results` 方法缺失问题
+- ✅ 修复 `analysis_index.json` 数据结构解析问题
+- ✅ 修复分析类型字段类型兼容性问题
+
+#### ✅ 测试验证
+
+**完整功能验证**
+- 🧪 基础功能测试：100%通过
+- 🧪 OD数据处理测试：完全正常
+- 🧪 仿真运行测试：启动和监控正常
+- 🧪 结果分析测试：所有类型分析和历史查看正常
+- 🧪 案例管理测试：完整功能验证通过
+- 🧪 API接口测试：所有端点测试通过
+
 ## v1.1.0 (2025-01-19) - 架构重构版本
 
 ### 🎉 重大更新：模块化架构重构

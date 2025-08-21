@@ -65,9 +65,20 @@ DB_PORT=5432
 
 - 启动 API（包含前端静态资源）
 
-```powershell
-./start_api.bat
-```
+  优先使用 PowerShell 脚本（避免 .bat 在 UTF-8/BOM 下的乱码问题）：
+
+  ```powershell
+  # 在已激活的非 base Conda 环境中（例如 od_project）
+  Set-Location D:\projects\OD生成脚本
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  .\start_api.ps1
+  ```
+
+  如需使用 .bat（需确保以 ANSI 或 UTF-8 无 BOM 保存，首行必须是 @echo off）：
+
+  ```powershell
+  .\start_api.bat
+  ```
 
 - 浏览器访问前端主页：`http://localhost:8000/index.html`
 

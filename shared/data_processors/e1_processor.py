@@ -25,6 +25,33 @@ class E1DataProcessor:
     - 依据门架 ID 与分钟粒度进行聚合（多车道合并）
     """
 
+    def load_e1_data(self, e1_dir: Path, simulation_start: Optional[datetime] = None) -> pd.DataFrame:
+        """加载E1数据的简化接口（用于机理分析）
+        
+        Args:
+            e1_dir: 包含 E1 XML 文件的目录
+            simulation_start: 仿真起始时间（可选，用于机理分析时可能不需要）
+            
+        Returns:
+            聚合并标准化后的 E1 DataFrame
+        """
+        try:
+            # 如果没有提供simulation_start，尝试从案例元数据获取
+            if simulation_start is None:
+                # 从e1_dir的父目录结构推断仿真目录
+                if "simulations" in e1_dir.parts:
+                    sim_index = e1_dir.parts.index("simulations")
+                    simulation_dir = Path(*e1_dir.parts[:sim_index + 2])  # 包含simulations和仿真ID
+                    simulation_start = self._get_simulation_start_time_from_case(simulation_dir)
+                else:
+                    simulation_start = datetime.now()
+            
+            return self.load_from_directory(e1_dir, simulation_start)
+            
+        except Exception as e:
+            logger.error(f"加载E1数据失败: {e}")
+            return pd.DataFrame()
+
     def load_from_directory(self, e1_dir: Path, simulation_start: datetime) -> pd.DataFrame:
         """从目录加载并聚合 E1 数据。
 
@@ -200,5 +227,33 @@ class E1DataProcessor:
         except Exception as e:
             logger.error(f"解析 E1 XML 失败 {e1_file}: {e}")
             return pd.DataFrame()
+    
+    def _get_simulation_start_time_from_case(self, simulation_dir: Path) -> datetime:
+        """从案例元数据获取仿真开始时间"""
+        try:
+            # 查找案例元数据文件
+            case_dir = simulation_dir.parent.parent
+            metadata_file = case_dir / "metadata.json"
+            
+            if metadata_file.exists():
+                import json
+                with open(metadata_file, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                
+                # 从案例元数据获取时间范围
+                time_range = metadata.get("time_range", {})
+                start_time_str = time_range.get("start")
+                
+                if start_time_str:
+                    from shared.utilities.time_utils import parse_datetime
+                    return parse_datetime(start_time_str)
+            
+            # 如果无法获取，返回当前时间
+            logger.warning("无法从案例元数据获取仿真开始时间，使用当前时间")
+            return datetime.now()
+            
+        except Exception as e:
+            logger.warning(f"无法从案例元数据获取仿真开始时间: {e}")
+            return datetime.now()
 
 

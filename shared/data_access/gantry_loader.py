@@ -79,7 +79,7 @@ class GantryDataLoader:
 				daily_coverage = cur.fetchall()
 				
 				return {
-					"available": len(catalog_data) > 0 and data_stats[0] > 0,
+					"available": data_stats[0] > 0,  # 只要有实际数据就认为可用
 					"catalog_entries": len(catalog_data),
 					"total_records": data_stats[0] if data_stats else 0,
 					"unique_gantries": data_stats[1] if data_stats else 0,

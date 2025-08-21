@@ -23,9 +23,10 @@ class BaseService:
         self._ensure_base_directories()
     
     def _ensure_base_directories(self):
-        """确保基础目录存在"""
-        self.cases_dir.mkdir(exist_ok=True)
-        self.templates_dir.mkdir(exist_ok=True)
+        """确保基础目录存在 - 调用shared层功能"""
+        from shared.utilities.file_utils import ensure_directory
+        ensure_directory(self.cases_dir)
+        ensure_directory(self.templates_dir)
     
     def load_metadata(self, file_path: Path) -> Dict[str, Any]:
         """加载JSON元数据文件"""
@@ -66,8 +67,9 @@ class BaseService:
         return open_db_connection()
     
     def ensure_directory(self, directory: Path) -> None:
-        """确保目录存在"""
-        directory.mkdir(parents=True, exist_ok=True)
+        """确保目录存在 - 调用shared层功能"""
+        from shared.utilities.file_utils import ensure_directory
+        ensure_directory(directory)
 
 
 # 使用shared中的MetadataManager

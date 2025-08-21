@@ -4,7 +4,10 @@ OD数据处理与仿真系统 - 服务层模块
 这个模块将原有的services.py按业务领域重构为多个专门的服务文件:
 - data_service.py: OD数据处理服务 
 - simulation_service.py: 仿真运行服务
-- analysis_service.py: 结果分析服务
+- accuracy_service.py: 精度分析服务
+- mechanism_service.py: 机理分析服务  
+- performance_service.py: 性能分析服务
+- base_metadata_service.py: 基础元数据管理服务
 - case_service.py: 案例管理服务
 - template_service.py: 模板管理服务
 - file_service.py: 文件管理服务
@@ -23,12 +26,8 @@ from .simulation_service import (
     delete_simulation_service,
 )
 
-from .analysis_service import (
-    analyze_accuracy_service,
-    get_case_analysis_history,
-    get_analysis_simulation_mapping,
-    list_analysis_results_service,
-)
+# 分析服务现在通过独立的服务类提供，不再从旧的analysis_service导入
+# 这些函数现在直接在路由中使用各自的服务类
 
 from .case_service import (
     create_case_service,
@@ -60,11 +59,7 @@ __all__ = [
     "get_simulation_detail_service",
     "delete_simulation_service",
     
-    # 分析服务
-    "analyze_accuracy_service",
-    "get_case_analysis_history",
-    "get_analysis_simulation_mapping",
-    "list_analysis_results_service",
+    # 分析服务（现在通过独立的服务类在路由中直接使用）
     
     # 案例管理服务
     "create_case_service",

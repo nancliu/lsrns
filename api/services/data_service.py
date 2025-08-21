@@ -167,7 +167,6 @@ class DataService(BaseService):
             "run_folder": (case_dir / "config").as_posix(),
             "od_file": self.to_posix_rel(od_result.get("od_file")),
             "route_file": self.to_posix_rel(od_result.get("route_file")),
-            "sumocfg_file": self.to_posix_rel(od_result.get("sumocfg_file")),
             "total_records": od_result.get("total_records"),
             "od_pairs": od_result.get("od_pairs")
         }

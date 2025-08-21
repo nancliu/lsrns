@@ -1,2 +1,0 @@
-﻿total_points,flow_range,density_range,flow_density_correlation,quadratic_fit,r_squared
-100,"[0.0, 137.44771735730296]","[0.8283175685403599, 148.03304049007758]",0.695059654778483,"{'a': -0.007887831628153978, 'b': 1.6285865126246135, 'c': 11.55604362249801, 'equation': 'flow = -0.0079*density² + 1.6286*density + 11.5560'}",0.667787455216047
