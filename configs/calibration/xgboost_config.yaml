@@ -1,0 +1,104 @@
+# XGBoost 代理模型配置参数
+
+# 模型基础参数
+model:
+  objective: "reg:squarederror"    # 目标函数: 回归均方误差
+  eval_metric: "rmse"              # 评估指标: 均方根误差
+  random_state: 42                 # 随机种子
+
+# 核心参数
+core_params:
+  n_estimators: 300               # 树的数量
+  max_depth: 6                    # 树的最大深度
+  learning_rate: 0.1              # 学习率
+  subsample: 0.8                  # 样本采样比例
+  colsample_bytree: 0.8           # 特征采样比例
+  colsample_bylevel: 0.8          # 层级特征采样比例
+
+# 正则化参数
+regularization:
+  reg_alpha: 0.1                  # L1正则化
+  reg_lambda: 1.0                 # L2正则化
+  min_child_weight: 1             # 最小子节点权重
+  max_delta_step: 0               # 最大增量步长
+
+# 训练参数
+training:
+  early_stopping_rounds: 50       # 早停轮数
+  validation_split: 0.2           # 验证集比例
+  cross_validation_folds: 5       # 交叉验证折数
+  max_iterations: 1000            # 最大迭代次数
+
+# 特征工程
+feature_engineering:
+  encoding_method: "label"         # 分类变量编码方法: label, onehot
+  scaling_method: "standard"       # 数值变量缩放方法: standard, minmax, robust
+  feature_selection: true          # 启用特征选择
+  selection_threshold: 0.01        # 特征选择阈值
+
+# 增量学习
+incremental_learning:
+  enabled: true                    # 启用增量学习
+  update_frequency: 10             # 更新频率（代）
+  memory_size: 1000                # 记忆大小
+  forgetting_factor: 0.95          # 遗忘因子
+
+# 模型验证
+validation:
+  holdout_ratio: 0.2              # 保留集比例
+  time_series_split: false        # 时间序列分割
+  stratified_sampling: false       # 分层采样
+  confidence_estimation: true      # 置信度估计
+
+# 超参数调优
+hyperparameter_tuning:
+  enabled: true                    # 启用超参数调优
+  method: "bayesian"               # 调优方法: bayesian, grid, random
+  n_trials: 100                    # 调优试验次数
+  cv_folds: 3                      # 交叉验证折数
+  
+  # 调优参数范围
+  param_ranges:
+    max_depth: [3, 8]
+    learning_rate: [0.05, 0.3]
+    n_estimators: [100, 500]
+    subsample: [0.6, 1.0]
+    colsample_bytree: [0.6, 1.0]
+
+# 模型保存和加载
+model_persistence:
+  save_dir: "models"               # 模型保存目录
+  save_format: "pickle"            # 保存格式: pickle, joblib, json
+  version_control: true            # 版本控制
+  auto_save: true                  # 自动保存
+  save_interval: 20                # 保存间隔（代）
+
+# 预测和置信度
+prediction:
+  return_confidence: true          # 返回预测置信度
+  confidence_method: "quantile"    # 置信度计算方法: quantile, bootstrap
+  quantile_levels: [0.1, 0.9]     # 分位数水平
+  bootstrap_samples: 100           # 自助采样数量
+
+# 性能监控
+monitoring:
+  training_history: true           # 记录训练历史
+  feature_importance: true         # 计算特征重要性
+  prediction_tracking: true        # 跟踪预测性能
+  drift_detection: true            # 检测数据漂移
+
+# 输出和日志
+output:
+  log_level: "INFO"                # 日志级别
+  save_predictions: true           # 保存预测结果
+  save_feature_importance: true    # 保存特征重要性
+  plot_training_curves: true       # 绘制训练曲线
+  export_model_info: true          # 导出模型信息
+
+# 并行计算
+parallel:
+  n_jobs: -1                      # 并行作业数 (-1表示使用所有CPU)
+  backend: "threading"             # 并行后端: threading, multiprocessing
+  batch_size: 100                 # 批处理大小
+  memory_efficient: true           # 内存效率模式
+

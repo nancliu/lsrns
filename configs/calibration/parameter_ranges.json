@@ -1,0 +1,125 @@
+{
+  "parameters": {
+    "departSpeed": {
+      "type": "categorical",
+      "values": ["max", "random", 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+      "default": "max",
+      "description": "车辆发车速度，影响插入成功率",
+      "priority": "high"
+    },
+    "departLane": {
+      "type": "categorical", 
+      "values": ["free", "random"],
+      "default": "free",
+      "description": "车辆发车车道选择策略",
+      "priority": "high"
+    },
+    "minGap": {
+      "type": "continuous",
+      "min": 0.5,
+      "max": 3.0,
+      "default": 2.5,
+      "step": 0.1,
+      "description": "最小车头间距，影响路网容量",
+      "priority": "medium"
+    },
+    "sigma": {
+      "type": "continuous",
+      "min": 0.0,
+      "max": 0.5,
+      "default": 0.5,
+      "step": 0.05,
+      "description": "驾驶行为随机性，影响仿真真实性",
+      "priority": "medium"
+    },
+    "impatience": {
+      "type": "continuous",
+      "min": 0.5,
+      "max": 1.0,
+      "default": 0.5,
+      "step": 0.05,
+      "description": "驾驶急躁程度，影响变道行为",
+      "priority": "medium"
+    },
+    "maxDepartDelay": {
+      "type": "continuous",
+      "min": 30,
+      "max": 600,
+      "default": 300,
+      "step": 30,
+      "description": "最大发车延迟，影响仿真时间",
+      "priority": "low"
+    },
+    "laneChangeMode": {
+      "type": "categorical",
+      "values": [0, 1621, 512],
+      "default": 1621,
+      "description": "变道模式，影响交通流稳定性",
+      "priority": "medium"
+    }
+  },
+  "scenarios": {
+    "high_traffic": {
+      "description": "高流量拥堵场景",
+      "recommended_ranges": {
+        "departSpeed": [2.0, 3.0],
+        "departLane": ["random"],
+        "minGap": [1.5, 2.0],
+        "sigma": [0.2, 0.3],
+        "impatience": [0.5, 0.6],
+        "laneChangeMode": [512],
+        "maxDepartDelay": [450, 600]
+      }
+    },
+    "low_traffic": {
+      "description": "低流量畅通场景", 
+      "recommended_ranges": {
+        "departSpeed": ["max"],
+        "departLane": ["free"],
+        "minGap": [2.0, 2.5],
+        "sigma": [0.3, 0.4],
+        "impatience": [0.6, 0.7],
+        "laneChangeMode": [1621],
+        "maxDepartDelay": [300, 450]
+      }
+    },
+    "mixed_traffic": {
+      "description": "混合交通场景",
+      "recommended_ranges": {
+        "departSpeed": [2.5, 4.0],
+        "departLane": ["free", "random"],
+        "minGap": [1.8, 2.3],
+        "sigma": [0.25, 0.35],
+        "impatience": [0.55, 0.65],
+        "laneChangeMode": [1621, 512],
+        "maxDepartDelay": [300, 600]
+      }
+    }
+  },
+  "constraints": {
+    "departSpeed_impatience": {
+      "description": "高速度与高急躁程度不应同时使用",
+      "rule": "if departSpeed > 4.0 then impatience < 0.7"
+    },
+    "minGap_laneChangeMode": {
+      "description": "极小间距时使用限制性变道",
+      "rule": "if minGap < 1.0 then laneChangeMode != 0"
+    }
+  },
+  "sampling": {
+    "initial_samples": 100,
+    "latin_hypercube": true,
+    "random_seed": 42,
+    "validation_split": 0.2
+  },
+  "optimization": {
+    "population_size": 50,
+    "max_generations": 100,
+    "crossover_rate": 0.8,
+    "mutation_rate": 0.1,
+    "elite_size": 5,
+    "convergence_threshold": 0.01,
+    "convergence_generations": 5
+  }
+}
+

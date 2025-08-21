@@ -1,0 +1,81 @@
+# 遗传算法配置参数
+
+# 种群设置
+population:
+  size: 50                    # 种群大小
+  elite_size: 5               # 精英个体数量
+  initial_diversity: 0.8      # 初始种群多样性
+
+# 遗传操作参数
+genetic_operations:
+  selection:
+    method: "tournament"       # 选择方法: tournament, roulette, rank
+    tournament_size: 3         # 锦标赛选择大小
+    pressure: 0.8             # 选择压力
+  
+  crossover:
+    method: "uniform"          # 交叉方法: uniform, single_point, two_point
+    rate: 0.8                 # 交叉概率
+    blend_alpha: 0.5          # 混合交叉参数
+  
+  mutation:
+    method: "gaussian"         # 变异方法: gaussian, uniform, swap
+    rate: 0.1                 # 变异概率
+    gaussian_sigma: 0.1       # 高斯变异标准差
+    uniform_range: 0.2        # 均匀变异范围
+
+# 收敛控制
+convergence:
+  max_generations: 100        # 最大代数
+  convergence_threshold: 0.01 # 收敛阈值
+  convergence_generations: 5  # 连续无改善代数
+  stagnation_limit: 20        # 停滞代数限制
+
+# 适应度评估
+fitness:
+  evaluation_method: "weighted_sum"  # 评估方法: weighted_sum, pareto
+  weights:                           # 权重配置
+    flow_error: 0.30
+    delay_error: 0.30
+    insertion_rate: 0.25
+    network_utilization: 0.15
+  
+  normalization:
+    method: "min_max"          # 归一化方法: min_max, z_score
+    clip_range: [0.0, 1.0]    # 归一化范围
+
+# 多样性保持
+diversity:
+  crowding_distance: true      # 使用拥挤度距离
+  niche_radius: 0.1           # 小生境半径
+  diversity_threshold: 0.3     # 多样性阈值
+  restart_probability: 0.05    # 重启概率
+
+# 约束处理
+constraints:
+  penalty_method: "death"      # 约束处理方法: death, penalty, repair
+  penalty_factor: 1000         # 惩罚因子
+  repair_attempts: 3           # 修复尝试次数
+
+# 并行计算
+parallel:
+  enabled: true                # 启用并行计算
+  max_workers: 4              # 最大工作进程数
+  batch_size: 10              # 批处理大小
+  timeout: 300                # 超时时间（秒）
+
+# 日志和监控
+logging:
+  level: "INFO"                # 日志级别
+  save_history: true           # 保存历史记录
+  save_interval: 10            # 保存间隔（代）
+  plot_progress: true          # 绘制进度图
+  checkpoint_interval: 20      # 检查点间隔
+
+# 输出设置
+output:
+  results_dir: "results"       # 结果目录
+  save_best_individuals: 10    # 保存最优个体数量
+  save_population_history: true # 保存种群历史
+  export_format: "json"        # 导出格式
+
