@@ -1,24 +1,98 @@
-# API文档
+# OD系统API文档
 
-## 概述
+## 📋 概述
 
-OD数据处理与仿真系统提供RESTful API接口，支持案例管理、仿真控制、数据分析等功能。
+本文档提供了OD数据处理与仿真系统的完整API参考。系统采用完全模块化的架构设计，按业务领域组织API端点，提供清晰、易用的接口。
 
-## 基础信息
+## 🏗️ 架构特点
 
-- **基础URL**: `http://localhost:8000/api/v1`
-- **协议**: HTTP/HTTPS
-- **数据格式**: JSON
-- **字符编码**: UTF-8
+### 1. 模块化设计
+- **API层** (`api/`) - 专注于请求/响应处理和业务协调
+- **共享层** (`shared/`) - 包含核心业务逻辑、算法和数据访问
+- 清晰的职责分离，提高代码可维护性
 
-## 认证
+### 2. 业务分组
+- **数据处理组** - OD数据处理相关API
+- **仿真管理组** - 仿真运行和管理API
+- **案例管理组** - 案例CRUD操作API
+- **分析结果组** - 结果分析和查看API
+- **模板管理组** - 模板资源管理API
+- **文件管理组** - 文件操作相关API
 
-当前版本API无需认证，后续版本将支持JWT认证。
+### 3. 统一标准
+- 一致的请求/响应格式
+- 统一的错误处理机制
+- 标准化的状态码和消息
 
-## 响应格式
+## 📚 文档结构
 
-所有API响应都遵循统一格式：
+### 核心文档
+- **[新架构API指南](新架构API指南.md)** - 完整的API参考和开发指南
+- **[API变更日志](API变更日志.md)** - API版本变更记录
 
+### 相关文档
+- **[架构重构完成报告](../development/架构重构完成报告.md)** - 系统架构重构详情
+- **[新架构开发指南](../development/新架构开发指南.md)** - 开发者指南
+- **[门架数据管理说明](../development/门架数据管理说明.md)** - 门架数据管理详情
+
+## 🚀 快速开始
+
+### 1. 环境要求
+- Python 3.8+
+- FastAPI
+- PostgreSQL数据库
+
+### 2. 启动服务
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 启动API服务
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 3. 访问API文档
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## 🔧 核心功能
+
+### OD数据处理
+```bash
+# 处理OD数据并创建案例
+POST /api/v1/data/process_od_data/
+```
+
+### 仿真管理
+```bash
+# 运行仿真
+POST /api/v1/simulation/run_simulation/
+
+# 获取仿真进度
+GET /api/v1/simulation/simulation_progress/{case_id}
+```
+
+### 案例管理
+```bash
+# 列出所有案例
+GET /api/v1/case/list_cases/
+
+# 获取案例详情
+GET /api/v1/case/case_detail/{case_id}
+```
+
+### 精度分析
+```bash
+# 执行精度分析
+POST /api/v1/analysis/analyze_accuracy/
+
+# 获取分析结果
+GET /api/v1/analysis/analysis_results/{case_id}/{simulation_id}
+```
+
+## 📊 响应格式
+
+### 成功响应
 ```json
 {
   "success": true,
@@ -29,168 +103,97 @@ OD数据处理与仿真系统提供RESTful API接口，支持案例管理、仿�
 }
 ```
 
-## 错误处理
-
-### HTTP状态码
-
-- `200 OK`: 请求成功
-- `400 Bad Request`: 请求参数错误
-- `404 Not Found`: 资源不存在
-- `500 Internal Server Error`: 服务器内部错误
-
-### 错误响应格式
-
+### 错误响应
 ```json
 {
-  "detail": "错误描述信息"
+  "success": false,
+  "message": "错误描述",
+  "error_code": "ERROR_CODE",
+  "details": {
+    // 错误详情
+  }
 }
 ```
 
-## API端点分类
+## 🔐 认证与授权
 
-### 1. 数据处理API
+当前版本支持基础认证，未来版本将支持JWT认证和角色权限管理。
 
-- `POST /process_od_data/` - 处理OD数据
-- `POST /run_simulation/` - 运行仿真
-- `POST /analyze_accuracy/` - 精度分析
+## 📈 性能指标
 
-### 2. 案例管理API
+- **响应时间**: 简单查询 < 100ms，复杂计算 < 2s
+- **并发支持**: 多用户并发访问
+- **数据量**: 支持大规模OD数据处理
 
-- `POST /create_case/` - 创建案例
-- `GET /list_cases/` - 获取案例列表
-- `GET /case/{case_id}` - 获取案例详情
-- `DELETE /case/{case_id}` - 删除案例
-- `POST /case/{case_id}/clone` - 克隆案例
+## 🧪 测试
 
-### 3. 文件管理API
-
-- `GET /get_folders/{prefix}` - 获取文件夹列表
-
-### 4. 分析结果API
-
-- `GET /analysis_results/{case_id}` - 按类型列出案例的历史分析结果（参数：`analysis_type=accuracy|mechanism|performance`）
-
-### 5. 模板管理API
-
-- `GET /templates/taz` - 获取TAZ模板
-- `GET /templates/network` - 获取网络模板
-- `GET /templates/simulation` - 获取仿真模板
-
- 
-
-## 数据模型
-
-### 请求模型
-
-#### TimeRangeRequest
-```json
-{
-  "start_time": "2025/07/21 08:00:00",
-  "end_time": "2025/07/21 09:00:00",
-  "schemas_name": "dwd",
-  "interval_minutes": 5
-}
-```
-
-#### SimulationRequest
-```json
-{
-  "run_folder": "cases/case_20250108_120000/simulation",
-  "gui": false,
-  "simulation_type": "microscopic"
-}
-```
-
-#### CaseCreationRequest
-```json
-{
-  "time_range": {
-    "start": "2025/07/21 08:00:00",
-    "end": "2025/07/21 09:00:00"
-  },
-  "config": {},
-  "case_name": "测试案例",
-  "description": "这是一个测试案例"
-}
-```
-
-### 响应模型
-
-#### CaseMetadata
-```json
-{
-  "case_id": "case_20250108_120000",
-  "case_name": "测试案例",
-  "created_at": "2025-01-08T12:00:00",
-  "updated_at": "2025-01-08T12:30:00",
-  "time_range": {
-    "start": "2025/07/21 08:00:00",
-    "end": "2025/07/21 09:00:00"
-  },
-  "config": {},
-  "status": "created",
-  "description": "这是一个测试案例",
-  "statistics": {},
-  "files": {}
-}
-```
-
-## 使用示例
-
-### 创建案例
-
+### 单元测试
 ```bash
-curl -X POST "http://localhost:8000/api/v1/create_case/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "time_range": {
-      "start": "2025/07/21 08:00:00",
-      "end": "2025/07/21 09:00:00"
-    },
-    "config": {},
-    "case_name": "测试案例",
-    "description": "这是一个测试案例"
-  }'
+# 运行所有测试
+pytest
+
+# 运行特定模块测试
+pytest tests/unit/services/
+
+# 生成覆盖率报告
+pytest --cov=api --cov-report=html
 ```
 
-### 获取案例列表
-
+### API测试
 ```bash
-curl "http://localhost:8000/api/v1/list_cases/?page=1&page_size=10"
+# 使用内置测试客户端
+python -m pytest tests/integration/ -v
 ```
 
-### 运行仿真
+## 🔄 版本管理
 
-```bash
-curl -X POST "http://localhost:8000/api/v1/run_simulation/" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "run_folder": "cases/case_20250108_120000/simulation",
-    "gui": false,
-    "simulation_type": "microscopic"
-  }'
-```
+### 当前版本
+- **v2.0.0** - 完全重构版本，采用模块化架构
 
-## 速率限制
+### 版本策略
+- 主版本号：重大架构变更
+- 次版本号：新功能添加
+- 修订版本号：Bug修复和性能优化
 
-当前版本无速率限制，后续版本将根据需求添加。
+## 🚨 重要变更
 
-## 版本控制
+### v2.0.0 重大变更
+- ✅ 完成架构重构，实现完全模块化
+- ✅ 移除向后兼容性，采用全新架构
+- ✅ 优化API组织结构，按业务分组
+- ✅ 提升开发体验和代码质量
 
-API版本通过URL路径控制，当前版本为v1。
+## 🤝 贡献指南
 
-## 更新日志
+### 报告问题
+- 使用GitHub Issues报告Bug
+- 提供详细的错误信息和复现步骤
 
-### v1.0.0 (2025-01-08)
-- 初始版本发布
-- 支持案例管理
-- 支持仿真控制
-- 支持精度分析
-- 支持模板管理
- 
+### 功能建议
+- 通过GitHub Discussions讨论新功能
+- 提交Feature Request Issue
 
-## 更多信息
+### 代码贡献
+- Fork项目并创建功能分支
+- 遵循代码风格指南
+- 添加适当的测试和文档
 
-- [数据模型详细说明](data_models.md)
-- [API端点详细文档](api_endpoints.md)
-- [错误处理指南](error_handling.md) 
+## 📞 支持
+
+### 获取帮助
+- 查看[常见问题解答](../FAQ.md)
+- 搜索现有Issues
+- 创建新的Issue
+
+### 联系方式
+- 开发团队：dev-team@yourorg.com
+- 项目维护者：maintainer@yourorg.com
+
+## 📄 许可证
+
+本项目采用MIT许可证，详见[LICENSE](../../LICENSE)文件。
+
+---
+
+*最后更新: 2025年1月19日*
+*文档版本: v2.0.0* 

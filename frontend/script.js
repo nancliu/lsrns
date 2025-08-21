@@ -89,6 +89,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeNavigation();
     initializeEventListeners();
     loadInitialData();
+    
+    // 修复时间输入框格式问题
+    fixTimeInputFormats();
 });
 
 /**
@@ -356,7 +359,7 @@ async function loadAnalysisSimulations(caseId) {
         
         const checkboxesHtml = completedSimulations.map(sim => `
             <div class="checkbox-item">
-                <input type="checkbox" id="sim_${sim.simulation_id}" value="${sim.simulation_id}">
+                <input type="checkbox" id="sim_${sim.simulation_id}" name="simulation" value="${sim.simulation_id}">
                 <label for="sim_${sim.simulation_id}" class="checkbox-item-label">
                     ${sim.simulation_name || sim.simulation_id}
                     <span class="checkbox-item-info">
@@ -487,8 +490,7 @@ async function runSimulation() {
 async function runAnalysis() {
     const caseId = document.getElementById('analysis-case').value;
     let analysisType = document.getElementById('analysis-type').value;
-    // 与后端枚举兼容：mechanism -> traffic_flow
-    if (analysisType === 'mechanism') analysisType = 'traffic_flow';
+            // 分析类型映射已更新，不再需要转换
     if (!caseId) { showNotification('请选择案例', 'warning'); return; }
     
     // 获取选中的仿真结果
@@ -506,12 +508,26 @@ async function runAnalysis() {
         clearAnalysisDebug();
         appendAnalysisDebug('开始分析');
         const reqBody = {
+            case_id: caseId,
             simulation_ids: selectedSimulations,
             analysis_type: analysisType
         };
-        appendAnalysisDebug('请求', { url: `${API_BASE_URL}/analyze_accuracy/`, body: reqBody });
+        
+        // 根据分析类型选择API端点
+        let apiEndpoint;
+        if (analysisType === '精度') {
+            apiEndpoint = `${API_BASE_URL}/analyze_accuracy/`;
+        } else if (analysisType === '机理') {
+            apiEndpoint = `${API_BASE_URL}/analyze_mechanism/`;
+        } else if (analysisType === '性能') {
+            apiEndpoint = `${API_BASE_URL}/analyze_performance/`;
+        } else {
+            apiEndpoint = `${API_BASE_URL}/analyze_accuracy/`;
+        }
+        
+        appendAnalysisDebug('请求', { url: apiEndpoint, body: reqBody });
         updateAnalysisStatus('analyzing', '分析中...');
-        const result = await apiFetch(`${API_BASE_URL}/analyze_accuracy/`, {
+        const result = await apiFetch(apiEndpoint, {
             method: 'POST',
             body: JSON.stringify(reqBody)
         });
@@ -522,9 +538,9 @@ async function runAnalysis() {
         displayAnalysisResult(payload);
     } catch (error) {
         appendAnalysisDebug('错误', { message: error?.message, stack: error?.stack });
-        console.error('精度分析失败:', error);
+        console.error(`${analysisType}分析失败:`, error);
         updateAnalysisStatus('failed', '分析失败');
-        showNotification(`精度分析失败: ${error.message}`, 'error');
+        showNotification(`${analysisType}分析失败: ${error.message}`, 'error');
     }
 }
 
@@ -534,9 +550,12 @@ async function viewAnalysisHistory() {
   if (!caseId) { showNotification('请选择案例', 'warning'); return; }
   // 读取下拉的当前分析类型
   let at = document.getElementById('analysis-type').value;
-  if (at === 'mechanism') at = 'traffic_flow';
   // 结果历史接口使用 accuracy|mechanism|performance 三类约定
-  const historyType = at === 'traffic_flow' ? 'mechanism' : (at || 'accuracy');
+  let historyType;
+  if (at === '精度') historyType = 'accuracy';
+  else if (at === '机理') historyType = 'mechanism';
+  else if (at === '性能') historyType = 'performance';
+  else historyType = 'accuracy';
   try {
     const data = await apiFetch(`${API_BASE_URL}/analysis_results/${caseId}?analysis_type=${encodeURIComponent(historyType)}`);
     const payload = data && data.data ? data.data : data;
@@ -851,14 +870,14 @@ function displayAnalysisResult(result) {
     if (!area) return;
     if (area.style.display === 'none') area.style.display = 'block';
     const at = (result.analysis_type || '').toLowerCase();
-    const typeLabel = at === 'traffic_flow' ? '机理' : at === 'performance' ? '性能' : '精度';
+            const typeLabel = at === 'mechanism' ? '机理' : at === 'performance' ? '性能' : '精度';
 
     // 通用部分
     const reportLink = result.report_url ? `<p><a class="btn btn-primary" href="${result.report_url}" target="_blank">查看报告</a></p>` : '';
     const chartsLinks = (result.chart_urls && result.chart_urls.length) ? `<p><strong>图表:</strong> ${result.chart_urls.map(u=>`<a href=\"${u}\" target=\"_blank\">${u.split('/').pop()}</a>`).join(' | ')}</p>` : '';
     const csvList = Array.isArray(result.csv_urls) ? result.csv_urls : [];
 
-    if (at === 'traffic_flow') {
+            if (at === 'mechanism') {
         // 机理分析渲染：突出两个CSV对比产物
         const odObservedVsInput = csvList.find(u => /od_observed_vs_input\.csv$/i.test(u));
         const odInputVsOutput = csvList.find(u => /od_input_vs_simoutput\.csv$/i.test(u));
@@ -1120,7 +1139,77 @@ function setDefaultLastWeekMonday0800To0900() {
     if (endInput) endInput.value = toLocalInput(end);
 }
 
+/**
+ * 修复时间输入框格式问题
+ */
+function fixTimeInputFormats() {
+    const startTimeInput = document.getElementById('start-time');
+    const endTimeInput = document.getElementById('end-time');
+    
+    if (startTimeInput && endTimeInput) {
+        // 设置默认时间值
+        const now = new Date();
+        const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+        const endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 15, 0);
+        
+        // 格式化为 YYYY-MM-DDTHH:MM 格式
+        startTimeInput.value = startTime.toISOString().slice(0, 16);
+        endTimeInput.value = endTime.toISOString().slice(0, 16);
+        
+        // 添加输入验证
+        startTimeInput.addEventListener('change', function() {
+            const value = this.value;
+            if (value && !isValidTimeFormat(value)) {
+                console.warn('开始时间格式无效:', value);
+                // 尝试修复格式
+                const fixedValue = fixTimeFormat(value);
+                if (fixedValue) {
+                    this.value = fixedValue;
+                }
+            }
+        });
+        
+        endTimeInput.addEventListener('change', function() {
+            const value = this.value;
+            if (value && !isValidTimeFormat(value)) {
+                console.warn('结束时间格式无效:', value);
+                // 尝试修复格式
+                const fixedValue = fixTimeFormat(value);
+                if (fixedValue) {
+                    this.value = fixedValue;
+                }
+            }
+        });
+    }
+}
+
+/**
+ * 验证时间格式是否正确
+ */
+function isValidTimeFormat(timeStr) {
+    const timeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+    return timeRegex.test(timeStr);
+}
+
+/**
+ * 修复时间格式
+ */
+function fixTimeFormat(timeStr) {
+    try {
+        // 尝试解析时间字符串
+        const date = new Date(timeStr);
+        if (isNaN(date.getTime())) {
+            return null;
+        }
+        // 返回正确的格式
+        return date.toISOString().slice(0, 16);
+    } catch (e) {
+        console.error('时间格式修复失败:', e);
+        return null;
+    }
+}
+
 // 初始化时设置默认时间
 document.addEventListener('DOMContentLoaded', () => {
-    try { setDefaultLastWeekMonday0800To0900(); } catch {}
+    // try { setDefaultLastWeekMonday0800To0900(); } catch {}
 }); 

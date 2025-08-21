@@ -151,14 +151,17 @@ class SimulationProcessor:
 
             def get_sim_time_from_summary() -> Optional[float]:
                 try:
-                    # 从sumocfg中已写入的summary_output相对路径推导：<config_dir>/../../simulation/summary.xml
-                    # 这里仍兼容优先读取运行目录下的summary.xml
+                    # 修复路径解析问题：优先检查运行目录下的summary.xml
                     candidates = []
                     if run_folder:
                         candidates.append(os.path.join(run_folder, "summary.xml"))
-                    # 回退：config_dir/../../simulation/summary.xml
+                    
+                    # 回退路径：从config目录到simulation目录
                     cfg_dir = config_dir
                     candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulation/summary.xml")))
+                    
+                    # 额外回退路径：从config目录到simulations/sim_xxx目录
+                    candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulations/*/summary.xml")))
  
                     def _mtime_ok(path: str) -> bool:
                         try:
@@ -211,11 +214,18 @@ class SimulationProcessor:
 
             def get_expected_duration_from_summary_header() -> Optional[int]:
                 try:
+                    # 修复路径解析问题：优先检查运行目录下的summary.xml
                     candidates = []
                     if run_folder:
                         candidates.append(os.path.join(run_folder, "summary.xml"))
+                    
+                    # 回退路径：从config目录到simulation目录
                     cfg_dir = config_dir
                     candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulation/summary.xml")))
+                    
+                    # 额外回退路径：从config目录到simulations/sim_xxx目录
+                    candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulations/*/summary.xml")))
+                    
                     for sf in candidates:
                         if os.path.exists(sf):
                             try:

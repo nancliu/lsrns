@@ -1,0 +1,38 @@
+---
+description: "保持每个功能模块简单，遵守单一职责原则"
+globs: 
+alwaysApply: false
+
+rules:
+  # 方法规则
+  - max_function_length: 30       # 方法体不超过30行
+  - max_function_parameters: 5    # 参数不超过5个
+  - forbid_nested_blocks: 3       # 禁止超过3层嵌套
+  - require_type_hints: true      # 函数参数和返回值必须有类型注解
+
+  # 类规则
+  - max_class_length: 300         # 类总行数限制
+  - suggest_split_if_many_methods: 10
+
+  # 命名规则
+  - variable_naming: snake_case
+  - function_naming: snake_case
+  - class_naming: PascalCase
+  - constant_naming: UPPER_CASE
+
+  # 代码风格
+  - enforce_indentation: 4
+  - max_line_length: 100
+  - forbid_print: true
+  - require_docstring: true
+  - docstring_style: google
+
+  # 错误处理
+  - suggest_early_return: true
+  - forbid_broad_except: true
+
+  # 推荐工具
+  - formatter: black
+  - linter: ruff
+  - import_sorter: isort
+---

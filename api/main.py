@@ -15,7 +15,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse  # 新增
 from api.routes import router
-from api.compatibility import compatibility_router
 
 # 创建FastAPI应用实例
 app = FastAPI(
@@ -42,20 +41,19 @@ async def root():
 
 # 注册路由
 app.include_router(router, prefix="/api/v1")
-app.include_router(compatibility_router, prefix="/api/v1/compat")
-
-# 挂载静态文件
-# 先挂载 cases，用于访问分析报告与图表
-app.mount("/cases", StaticFiles(directory="cases"), name="cases")
-# 添加模板文件静态挂载，解决远程访问模板文件的问题
-app.mount("/templates", StaticFiles(directory="templates"), name="templates")
-# 再挂载前端
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 @app.get("/health")
 async def health_check():
     """健康检查端点"""
     return {"status": "healthy"}
+
+# 挂载静态文件（放在路由与健康检查之后，避免覆盖动态路由）
+# 先挂载 cases，用于访问分析报告与图表
+app.mount("/cases", StaticFiles(directory="cases", html=True), name="cases")
+# 添加模板文件静态挂载，解决远程访问模板文件的问题
+app.mount("/templates", StaticFiles(directory="templates", html=True), name="templates")
+# 再挂载前端
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn

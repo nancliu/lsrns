@@ -182,7 +182,8 @@ class AccuracyAnalyzer:
                     "begin": float(interval.get("begin")),
                     "end": float(interval.get("end")),
                     "nVehContrib": int(interval.get("nVehContrib", 0)),
-                    "flow": float(interval.get("flow", 0)),
+                    # 修复：SUMO E1检测器的流量字段是"entered"，不是"flow"
+                    "flow": float(interval.get("entered", 0)),  # 从entered字段获取流量
                     "occupancy": float(interval.get("occupancy", 0)),
                     "speed": float(interval.get("speed", 0)),
                     "file": e1_file.name
@@ -248,15 +249,45 @@ class AccuracyAnalyzer:
         try:
             metrics: Dict[str, Any] = {}
             
+            # 列名统一为小写，便于对齐
+            simulated_df = simulated_data.copy()
+            observed_df = observed_data.copy()
+            try:
+                simulated_df.columns = [str(c).strip().lower() for c in simulated_df.columns]
+                observed_df.columns = [str(c).strip().lower() for c in observed_df.columns]
+            except Exception:
+                pass
+            
             # 确保数据对齐
-            common_columns = simulated_data.columns.intersection(observed_data.columns)
+            common_columns = simulated_df.columns.intersection(observed_df.columns)
+            if len(common_columns) == 0:
+                # 尝试同义列名映射：将观测数据列重命名为仿真数据常用列
+                column_aliases = {
+                    "flow": ["flow", "volume", "count", "veh_count", "traffic_flow", "q"],
+                    "speed": ["speed", "avg_speed", "speed_kmh", "v"],
+                    "occupancy": ["occupancy", "occ"],
+                }
+                # 为观测数据寻找可映射到标准列名的来源列
+                rename_map: Dict[str, str] = {}
+                for std_col, candidates in column_aliases.items():
+                    for cand in candidates:
+                        if cand in observed_df.columns:
+                            rename_map[cand] = std_col
+                            break
+                # 仅在仿真侧存在相应标准列时才重命名观测列，避免引入无关列
+                available_std_cols = set(simulated_df.columns)
+                rename_map = {src: dst for src, dst in rename_map.items() if dst in available_std_cols}
+                if rename_map:
+                    observed_df = observed_df.rename(columns=rename_map)
+                    common_columns = simulated_df.columns.intersection(observed_df.columns)
+            
             if len(common_columns) == 0:
                 logger.warning("仿真数据和观测数据没有共同的列")
                 return metrics
             
             # 对齐数据
-            aligned_sim = simulated_data[common_columns]
-            aligned_obs = observed_data[common_columns]
+            aligned_sim = simulated_df[common_columns]
+            aligned_obs = observed_df[common_columns]
             
             # 计算各种精度指标
             for col in common_columns:
@@ -286,11 +317,11 @@ class AccuracyAnalyzer:
                         metrics[f"{col}_mape"] = mape
                         metrics[f"{col}_sample_size"] = int(mape_mask.sum())
                     
-                    # 计算相关系数
+                    # 相关系数
                     correlation = np.corrcoef(sim_values, obs_values)[0, 1]
                     if not np.isnan(correlation):
                         metrics[f"{col}_correlation"] = correlation
-
+                    
                     # GEH 指标（flow 专用）
                     if col.lower() == "flow":
                         geh_vals = self._compute_geh(sim_values.to_numpy(dtype=float), obs_values.to_numpy(dtype=float))
@@ -589,6 +620,257 @@ class AccuracyAnalyzer:
             logger.error(f"生成精度分析报告失败: {e}")
             return ""
     
+    def _export_csvs(self, simulated_data: pd.DataFrame, observed_data: pd.DataFrame, metrics: Dict[str, Any]) -> Dict[str, str]:
+        """导出标准化CSV产物，返回导出文件映射"""
+        exports: Dict[str, str] = {}
+        try:
+            base_dir = self.reports_dir if self.reports_dir is not None else Path(".")
+            base_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 1) accuracy_results.csv: 将metrics展平为两列
+            acc_csv = base_dir / "accuracy_results.csv"
+            try:
+                import pandas as pd
+                m_df = pd.DataFrame([metrics]) if isinstance(metrics, dict) else pd.DataFrame()
+                if not m_df.empty:
+                    m_df.to_csv(acc_csv, index=False, encoding="utf-8-sig")
+                else:
+                    pd.DataFrame(columns=["metric", "value"]).to_csv(acc_csv, index=False, encoding="utf-8-sig")
+                exports["accuracy_results.csv"] = acc_csv.as_posix()
+            except Exception:
+                pass
+            
+            # 2) gantry_data_raw.csv: 贴合数据库表结构的原始数据
+            raw_csv = base_dir / "gantry_data_raw.csv"
+            try:
+                import pandas as pd
+                # 导出观测数据（门架数据）的原始格式
+                if not observed_data.empty:
+                    # 确保包含所有必要的原始字段
+                    raw_columns = ['gantry_id', 'start_time', 'flow', 'speed']
+                    available_columns = [col for col in raw_columns if col in observed_data.columns]
+                    
+                    if available_columns:
+                        raw_data = observed_data[available_columns].copy()
+                        # 添加额外的原始字段（如果存在）
+                        extra_columns = ['k1', 'k2', 'k3', 'k4', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                                       't1', 't2', 't3', 't4', 't5', 't6', 'total_k', 'total_h', 'total_t',
+                                       'avg_duration', 'distance']
+                        for col in extra_columns:
+                            if col in observed_data.columns:
+                                raw_data[col] = observed_data[col]
+                        
+                        raw_data.to_csv(raw_csv, index=False, encoding="utf-8-sig")
+                        exports["gantry_data_raw.csv"] = raw_csv.as_posix()
+                        logger.info(f"导出门架原始数据: {raw_csv}")
+            except Exception as e:
+                logger.error(f"导出门架原始数据失败: {e}")
+            
+            # 3) e1_detector_data.csv: 贴合XML数据的E1检测器数据
+            e1_csv = base_dir / "e1_detector_data.csv"
+            try:
+                import pandas as pd
+                # 导出仿真数据（E1检测器数据）的格式
+                if not simulated_data.empty:
+                    # 确保包含分析所需的核心字段
+                    e1_columns = ['detector_id', 'begin', 'end', 'flow', 'occupancy', 'speed']
+                    available_columns = [col for col in e1_columns if col in simulated_data.columns]
+                    
+                    if available_columns:
+                        e1_data = simulated_data[available_columns].copy()
+                        # 重命名列以匹配门架数据格式
+                        column_mapping = {
+                            'detector_id': 'gantry_id',  # 假设检测器ID对应门架ID
+                            'begin': 'start_time',
+                            'end': 'end_time'
+                        }
+                        e1_data = e1_data.rename(columns=column_mapping)
+                        
+                        e1_data.to_csv(e1_csv, index=False, encoding="utf-8-sig")
+                        exports["e1_detector_data.csv"] = e1_csv.as_posix()
+                        logger.info(f"导出E1检测器数据: {e1_csv}")
+            except Exception as e:
+                logger.error(f"导出E1检测器数据失败: {e}")
+            
+            # 4) detailed_records.csv: 对齐共同列，导出逐行对比
+            detail_csv = base_dir / "detailed_records.csv"
+            try:
+                import pandas as pd
+                sim_df = simulated_data.copy()
+                obs_df = observed_data.copy()
+                sim_df.columns = [str(c).strip().lower() for c in sim_df.columns]
+                obs_df.columns = [str(c).strip().lower() for c in obs_df.columns]
+                common = sim_df.columns.intersection(obs_df.columns)
+                if len(common) > 0:
+                    # 仅保留公共列并截齐长度
+                    sim_slim = sim_df[common].reset_index(drop=True)
+                    obs_slim = obs_df[common].reset_index(drop=True)
+                    min_len = min(len(sim_slim), len(obs_slim))
+                    if min_len > 0:
+                        merged = pd.concat({"sim": sim_slim.iloc[:min_len], "obs": obs_slim.iloc[:min_len]}, axis=1)
+                        merged.to_csv(detail_csv, index=False, encoding="utf-8-sig")
+                exports["detailed_records.csv"] = detail_csv.as_posix()
+            except Exception:
+                pass
+            
+            # 5) gantry_accuracy_analysis.csv: 按门架ID汇总精度分析
+            gantry_csv = base_dir / "gantry_accuracy_analysis.csv"
+            try:
+                import pandas as pd, numpy as np
+                sim_df = simulated_data.copy()
+                obs_df = observed_data.copy()
+                sim_df.columns = [str(c).strip().lower() for c in sim_df.columns]
+                obs_df.columns = [str(c).strip().lower() for c in obs_df.columns]
+                
+                # 查找ID列
+                id_col = None
+                for col in ("gantry_id", "detector_id", "id"):
+                    if col in sim_df.columns and col in obs_df.columns:
+                        id_col = col
+                        break
+                
+                if id_col is not None:
+                    # 按门架ID分组计算精度指标
+                    cands = [c for c in ("flow", "speed", "occupancy") if c in sim_df.columns and c in obs_df.columns]
+                    rows = []
+                    
+                    for gid, s_grp in sim_df.groupby(id_col):
+                        try:
+                            o_grp = obs_df[obs_df[id_col] == gid]
+                            if o_grp.empty:
+                                continue
+                            
+                            row = {id_col: gid}
+                            for c in cands:
+                                # 计算该门架的MAE
+                                s_values = s_grp[c].dropna().to_numpy(dtype=float)
+                                o_values = o_grp[c].dropna().to_numpy(dtype=float)
+                                
+                                if len(s_values) > 0 and len(o_values) > 0:
+                                    min_len = min(len(s_values), len(o_values))
+                                    mae = float(np.nanmean(np.abs(s_values[:min_len] - o_values[:min_len])))
+                                    row[f"{c}_mae"] = mae
+                                    
+                                    # 计算相对误差
+                                    if np.any(o_values[:min_len] != 0):
+                                        rel_error = np.abs(s_values[:min_len] - o_values[:min_len]) / o_values[:min_len]
+                                        row[f"{c}_relative_error_pct"] = float(np.nanmean(rel_error) * 100)
+                            
+                            rows.append(row)
+                        except Exception as e:
+                            logger.warning(f"计算门架 {gid} 精度指标失败: {e}")
+                            continue
+                    
+                    if rows:
+                        gantry_df = pd.DataFrame(rows)
+                        gantry_df.to_csv(gantry_csv, index=False, encoding="utf-8-sig")
+                        exports["gantry_accuracy_analysis.csv"] = gantry_csv.as_posix()
+                        logger.info(f"导出门架精度分析: {gantry_csv}")
+            except Exception as e:
+                logger.error(f"导出门架精度分析失败: {e}")
+            
+            # 6) time_accuracy_analysis.csv: 按时间段汇总精度分析
+            time_csv = base_dir / "time_accuracy_analysis.csv"
+            try:
+                import pandas as pd, numpy as np
+                sim_df = simulated_data.copy()
+                obs_df = observed_data.copy()
+                
+                for df in (sim_df, obs_df):
+                    try:
+                        df.columns = [str(c).strip().lower() for c in df.columns]
+                    except Exception:
+                        pass
+                
+                # 选择时间列
+                t_col = None
+                for col in ("begin", "timestamp", "time", "start_time"):
+                    if col in sim_df.columns and col in obs_df.columns:
+                        t_col = col
+                        break
+                
+                if t_col is not None:
+                    cands = [c for c in ("flow", "speed", "occupancy") if c in sim_df.columns and c in obs_df.columns]
+                    rows = []
+                    
+                    # 获取共同的时间点
+                    sim_times = set(sim_df[t_col].dropna())
+                    obs_times = set(obs_df[t_col].dropna())
+                    common_times = sorted(sim_times.intersection(obs_times))
+                    
+                    for t in common_times:
+                        s_sub = sim_df[sim_df[t_col] == t]
+                        o_sub = obs_df[obs_df[t_col] == t]
+                        
+                        if not s_sub.empty and not o_sub.empty:
+                            row = {t_col: t}
+                            for c in cands:
+                                # 计算该时间点的MAE
+                                s_values = s_sub[c].dropna().to_numpy(dtype=float)
+                                o_values = o_sub[c].dropna().to_numpy(dtype=float)
+                                
+                                if len(s_values) > 0 and len(o_values) > 0:
+                                    min_len = min(len(s_values), len(o_values))
+                                    mae = float(np.nanmean(np.abs(s_values[:min_len] - o_values[:min_len])))
+                                    row[f"{c}_mae"] = mae
+                            
+                            rows.append(row)
+                    
+                    if rows:
+                        time_df = pd.DataFrame(rows)
+                        time_df.to_csv(time_csv, index=False, encoding="utf-8-sig")
+                        exports["time_accuracy_analysis.csv"] = time_csv.as_posix()
+                        logger.info(f"导出时间精度分析: {time_csv}")
+            except Exception as e:
+                logger.error(f"导出时间精度分析失败: {e}")
+            
+            # 7) anomaly_analysis.csv: 基于对齐数据的相对误差阈值筛选
+            anomaly_csv = base_dir / "anomaly_analysis.csv"
+            try:
+                import pandas as pd, numpy as np
+                sim_df = simulated_data.copy()
+                obs_df = observed_data.copy()
+                sim_df.columns = [str(c).strip().lower() for c in sim_df.columns]
+                obs_df.columns = [str(c).strip().lower() for c in obs_df.columns]
+                common = sim_df.columns.intersection(obs_df.columns)
+                
+                an_rows = []
+                for c in [x for x in ("flow", "speed", "occupancy") if x in common]:
+                    min_len = min(len(sim_df[c]), len(obs_df[c]))
+                    if min_len <= 0:
+                        continue
+                    
+                    s = sim_df[c].to_numpy(dtype=float)[:min_len]
+                    o = obs_df[c].to_numpy(dtype=float)[:min_len]
+                    mask = o != 0
+                    
+                    if mask.any():
+                        rel = np.zeros_like(s, dtype=float)
+                        rel[mask] = np.abs((s[mask] - o[mask]) / o[mask]) * 100
+                        
+                        for idx, val in enumerate(rel):
+                            if np.isfinite(val) and val >= 50:  # 阈值：50%
+                                an_rows.append({
+                                    "index": int(idx), 
+                                    "metric": c, 
+                                    "relative_error_pct": float(val), 
+                                    "sim": float(s[idx]), 
+                                    "obs": float(o[idx])
+                                })
+                
+                if an_rows:
+                    anomaly_df = pd.DataFrame(an_rows)
+                    anomaly_df.to_csv(anomaly_csv, index=False, encoding="utf-8-sig")
+                    exports["anomaly_analysis.csv"] = anomaly_csv.as_posix()
+                    logger.info(f"导出异常分析: {anomaly_csv}")
+            except Exception as e:
+                logger.error(f"导出异常分析失败: {e}")
+            
+            return exports
+        except Exception as e:
+            logger.error(f"CSV导出失败: {e}")
+            return exports
+
     def analyze_accuracy(self, simulation_folder: str, observed_data: pd.DataFrame,
                         analysis_type: str = "comprehensive") -> Dict[str, Any]:
         """
@@ -637,6 +919,9 @@ class AccuracyAnalyzer:
             # 生成报告
             report_file = self.generate_accuracy_report(metrics, chart_files)
             
+            # 导出标准CSV
+            exported_csvs = self._export_csvs(simulated_data, observed_data, metrics)
+            
             # 保存结果
             _t1 = datetime.now()
             duration_sec = (_t1 - _t0).total_seconds()
@@ -683,6 +968,7 @@ class AccuracyAnalyzer:
                 "metrics": metrics,
                 "chart_files": chart_files,
                 "report_file": report_file,
+                "exported_csvs": exported_csvs,
                 "analysis_time": datetime.now().isoformat(),
                 "data_summary": {
                     "simulated_records": len(simulated_data),
@@ -706,7 +992,7 @@ class AccuracyAnalyzer:
                     "charts_total_bytes": charts_total_bytes,
                     "report_bytes": report_bytes,
                     "summary_stats": summary_stats
-                }
+                },
             }
             
             # 保存结果到JSON文件

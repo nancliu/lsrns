@@ -1,0 +1,2 @@
+﻿total_points,residual_range,residual_mean,residual_std,residual_timeseries_chart
+100,"[-71.63132281948619, 65.81639453781678]",5.968558980384841e-15,30.61511230690396,test_output\mechanism_analysis\charts\flow_residual_timeseries.png
