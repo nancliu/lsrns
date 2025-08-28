@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.font_manager as fm
+from matplotlib import rcParams
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import logging
@@ -21,6 +23,9 @@ class AccuracyAnalysis:
         self.analysis_results = {}
         self.charts_dir = None
         self.reports_dir = None
+        # 初始化绘图与中文字体
+        self._preferred_cn_font = None
+        self._setup_plot_style()
         
     def set_output_dirs(self, charts_dir: str, reports_dir: str):
         """设置输出目录"""
@@ -32,6 +37,56 @@ class AccuracyAnalysis:
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info(f"设置输出目录: 图表={charts_dir}, 报告={reports_dir}")
+    
+    def _setup_plot_style(self) -> None:
+        """配置绘图风格与中文字体，避免中文字符缺失警告。"""
+        try:
+            # 基本配色
+            sns.set_palette("husl")
+        except Exception:
+            pass
+        # 配置中文字体
+        self._ensure_chinese_font()
+
+    def _ensure_chinese_font(self) -> None:
+        """设置支持中文的字体到 rcParams（优先系统常见中文字体）。"""
+        candidates = [
+            "Microsoft YaHei",  # Windows 常见
+            "SimHei",           # Windows/部分环境
+            "Noto Sans CJK SC", # Noto
+            "Source Han Sans CN",
+            "WenQuanYi Zen Hei",
+            "Arial Unicode MS",
+        ]
+        picked = None
+        for name in candidates:
+            try:
+                # 若能找到该字体文件则认为可用
+                fm.findfont(name, fallback_to_default=False)
+                picked = name
+                break
+            except Exception:
+                continue
+        if not picked:
+            picked = "Microsoft YaHei"  # 尝试指定，若无则由matplotlib回退
+        self._preferred_cn_font = picked
+        try:
+            rcParams["font.sans-serif"] = [picked, "DejaVu Sans", "Arial Unicode MS"]
+            rcParams["axes.unicode_minus"] = False
+        except Exception:
+            pass
+        
+        logger.info(f"设置中文字体: {picked}")
+    
+    def _ensure_font_for_plot(self) -> None:
+        """确保当前绘图使用正确的中文字体"""
+        try:
+            # 重新应用字体设置，确保当前matplotlib实例使用正确字体
+            if self._preferred_cn_font:
+                rcParams["font.sans-serif"] = [self._preferred_cn_font, "DejaVu Sans", "Arial Unicode MS"]
+                rcParams["axes.unicode_minus"] = False
+        except Exception as e:
+            logger.warning(f"重新应用字体设置失败: {e}")
     
     def analyze_accuracy(self, aligned_data: pd.DataFrame) -> Dict[str, Any]:
         """
@@ -90,10 +145,10 @@ class AccuracyAnalysis:
         try:
             metrics = {}
             
-            # 流量精度指标
-            if 'gantry_flow' in aligned_data.columns and 'e1_flow' in aligned_data.columns:
-                gantry_flow = aligned_data['gantry_flow'].dropna()
-                e1_flow = aligned_data['e1_flow'].dropna()
+            # 流量精度指标（切换为 volume）
+            if 'gantry_volume' in aligned_data.columns and 'e1_volume' in aligned_data.columns:
+                gantry_flow = aligned_data['gantry_volume'].dropna()
+                e1_flow = aligned_data['e1_volume'].dropna()
                 
                 if len(gantry_flow) > 0 and len(e1_flow) > 0:
                     min_len = min(len(gantry_flow), len(e1_flow))
@@ -171,10 +226,10 @@ class AccuracyAnalysis:
                 
                 metrics = {'gantry_id': gantry_id}
                 
-                # 流量精度
-                if 'gantry_flow' in gantry_subset.columns and 'e1_flow' in gantry_subset.columns:
-                    gantry_flow = gantry_subset['gantry_flow'].dropna()
-                    e1_flow = gantry_subset['e1_flow'].dropna()
+                # 流量精度（切换为 volume）
+                if 'gantry_volume' in gantry_subset.columns and 'e1_volume' in gantry_subset.columns:
+                    gantry_flow = gantry_subset['gantry_volume'].dropna()
+                    e1_flow = gantry_subset['e1_volume'].dropna()
                     
                     if len(gantry_flow) > 0 and len(e1_flow) > 0:
                         min_len = min(len(gantry_flow), len(e1_flow))
@@ -229,10 +284,10 @@ class AccuracyAnalysis:
                 
                 metrics = {'time_key': time_key}
                 
-                # 流量精度
-                if 'gantry_flow' in time_subset.columns and 'e1_flow' in time_subset.columns:
-                    gantry_flow = time_subset['gantry_flow'].dropna()
-                    e1_flow = time_subset['e1_flow'].dropna()
+                # 流量精度（切换为 volume）
+                if 'gantry_volume' in time_subset.columns and 'e1_volume' in time_subset.columns:
+                    gantry_flow = time_subset['gantry_volume'].dropna()
+                    e1_flow = time_subset['e1_volume'].dropna()
                     
                     if len(gantry_flow) > 0 and len(e1_flow) > 0:
                         min_len = min(len(gantry_flow), len(e1_flow))
@@ -275,14 +330,15 @@ class AccuracyAnalysis:
             
             chart_files = []
             
-            # 1. 流量对比散点图
-            if 'gantry_flow' in aligned_data.columns and 'e1_flow' in aligned_data.columns:
+            # 1. 车辆数(volume)对比散点图
+            if 'gantry_volume' in aligned_data.columns and 'e1_volume' in aligned_data.columns:
+                self._ensure_font_for_plot()  # 确保字体设置
                 plt.figure(figsize=(10, 8))
-                plt.scatter(aligned_data['e1_flow'], aligned_data['gantry_flow'], alpha=0.6)
-                plt.plot([0, aligned_data['e1_flow'].max()], [0, aligned_data['e1_flow'].max()], 'r--', label='理想线')
-                plt.xlabel('E1检测器流量')
-                plt.ylabel('门架流量')
-                plt.title('门架流量 vs E1检测器流量')
+                plt.scatter(aligned_data['e1_volume'], aligned_data['gantry_volume'], alpha=0.6)
+                plt.plot([0, aligned_data['e1_volume'].max()], [0, aligned_data['gantry_volume'].max()], 'r--', label='理想线')
+                plt.xlabel('E1检测器车辆数 (volume)')
+                plt.ylabel('门架车辆数 (volume)')
+                plt.title('门架车辆数 vs E1检测器车辆数')
                 plt.legend()
                 plt.grid(True, alpha=0.3)
                 
@@ -293,6 +349,7 @@ class AccuracyAnalysis:
             
             # 2. 速度对比散点图
             if 'gantry_speed' in aligned_data.columns and 'e1_speed' in aligned_data.columns:
+                self._ensure_font_for_plot()  # 确保字体设置
                 plt.figure(figsize=(10, 8))
                 plt.scatter(aligned_data['e1_speed'], aligned_data['gantry_speed'], alpha=0.6)
                 plt.plot([0, aligned_data['e1_speed'].max()], [0, aligned_data['e1_speed'].max()], 'r--', label='理想线')
@@ -307,14 +364,15 @@ class AccuracyAnalysis:
                 plt.close()
                 chart_files.append(str(chart_file))
             
-            # 3. 误差分布直方图
-            if 'gantry_flow' in aligned_data.columns and 'e1_flow' in aligned_data.columns:
-                flow_error = aligned_data['gantry_flow'] - aligned_data['e1_flow']
+            # 3. 误差分布直方图（volume）
+            if 'gantry_volume' in aligned_data.columns and 'e1_volume' in aligned_data.columns:
+                flow_error = aligned_data['gantry_volume'] - aligned_data['e1_volume']
+                self._ensure_font_for_plot()  # 确保字体设置
                 plt.figure(figsize=(10, 6))
                 plt.hist(flow_error.dropna(), bins=30, alpha=0.7, edgecolor='black')
-                plt.xlabel('流量误差 (门架 - E1)')
+                plt.xlabel('车辆数误差 volume (门架 - E1)')
                 plt.ylabel('频次')
-                plt.title('流量误差分布')
+                plt.title('车辆数误差分布 (volume)')
                 plt.grid(True, alpha=0.3)
                 
                 chart_file = self.charts_dir / "flow_error_distribution.png"
@@ -328,8 +386,8 @@ class AccuracyAnalysis:
                 if chart_file:
                     chart_files.append(chart_file)
             
-            # 5. 精度等级分类图（新增）
-            if 'gantry_flow' in aligned_data.columns and 'e1_flow' in aligned_data.columns:
+            # 5. 精度等级分类图（使用 volume）
+            if 'gantry_volume' in aligned_data.columns and 'e1_volume' in aligned_data.columns:
                 chart_file = self._generate_accuracy_classification(aligned_data)
                 if chart_file:
                     chart_files.append(chart_file)
@@ -368,9 +426,9 @@ class AccuracyAnalysis:
                 for time_key in aligned_data['time_key'].unique():
                     subset = aligned_data[(aligned_data['gantry_id'] == gantry_id) & 
                                        (aligned_data['time_key'] == time_key)]
-                    if not subset.empty and 'gantry_flow' in subset.columns and 'e1_flow' in subset.columns:
-                        gantry_flow = subset['gantry_flow'].iloc[0]
-                        e1_flow = subset['e1_flow'].iloc[0]
+                    if not subset.empty and 'gantry_volume' in subset.columns and 'e1_volume' in subset.columns:
+                        gantry_flow = subset['gantry_volume'].iloc[0]
+                        e1_flow = subset['e1_volume'].iloc[0]
                         
                         # 处理E1流量为0的情况
                         if e1_flow == 0:
@@ -390,9 +448,7 @@ class AccuracyAnalysis:
             heatmap_df = pd.DataFrame(heatmap_data, columns=['gantry_id', 'time_key', 'mape'])
             heatmap_pivot = heatmap_df.pivot(index='gantry_id', columns='time_key', values='mape')
             
-            # 设置matplotlib中文字体
-            plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei']
-            plt.rcParams['axes.unicode_minus'] = False
+            # 字体已在初始化时设置，无需重复设置
             
             plt.figure(figsize=(12, 8))
             
@@ -459,9 +515,8 @@ class AccuracyAnalysis:
             if not mape_values and e1_zero_count == 0:
                 return None
             
-            # 设置matplotlib中文字体
-            plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei']
-            plt.rcParams['axes.unicode_minus'] = False
+            # 确保字体设置
+            self._ensure_font_for_plot()
             
             # 创建子图
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
@@ -554,6 +609,9 @@ class AccuracyAnalysis:
             if not error_sources:
                 return None
             
+            # 确保字体设置
+            self._ensure_font_for_plot()
+            
             # 创建误差来源对比图
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
             
@@ -615,6 +673,9 @@ class AccuracyAnalysis:
             if not quality_metrics:
                 return None
             
+            # 确保字体设置
+            self._ensure_font_for_plot()
+            
             # 创建数据质量评估图
             fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
             
@@ -673,15 +734,16 @@ class AccuracyAnalysis:
     def _generate_e1_anomaly_diagnosis(self, aligned_data: pd.DataFrame) -> Optional[str]:
         """生成E1数据异常诊断图"""
         try:
-            if 'e1_flow' not in aligned_data.columns:
+            if 'e1_volume' not in aligned_data.columns:
                 return None
             
             # 统计E1流量为0的记录数量
-            e1_zero_count = aligned_data['e1_flow'].value_counts().get(0, 0)
+            e1_zero_count = aligned_data['e1_volume'].value_counts().get(0, 0)
             
             # 如果E1流量为0的记录数量超过总记录的50%，则认为存在异常
             total_records = len(aligned_data)
             if e1_zero_count > total_records * 0.5:
+                self._ensure_font_for_plot()  # 确保字体设置
                 plt.figure(figsize=(10, 6))
                 plt.bar(['E1流量为0的记录数', '总记录数'], [e1_zero_count, total_records])
                 plt.ylabel('数量')
@@ -1135,10 +1197,16 @@ class AccuracyAnalysis:
                 # 根据文件名生成友好的图表标题
                 friendly_name = self._get_friendly_chart_name(chart_name)
                 
+                # 修正：使用正确的相对路径
+                # 报告文件在 analysis/accuracy/ 目录下
+                # 图表文件在 analysis/accuracy/charts/ 目录下
+                # 所以从报告引用图表应该使用 charts/文件名
+                chart_relative_path = f"charts/{chart_name}"
+                
                 html += f"""
                     <div class="chart-container">
                         <h3>{friendly_name}</h3>
-                        <img src="{chart_file}" alt="{friendly_name}" loading="lazy">
+                        <img src="{chart_relative_path}" alt="{friendly_name}" loading="lazy">
                     </div>
                 """
             
@@ -1223,11 +1291,8 @@ class AccuracyAnalysis:
                 time_metrics.to_csv(time_file, index=False, encoding="utf-8-sig")
                 csv_files["time_level_metrics.csv"] = str(time_file)
             
-            # 4. 对齐数据
-            if not aligned_data.empty:
-                aligned_file = self.reports_dir / "aligned_comparison_data.csv"
-                aligned_data.to_csv(aligned_file, index=False, encoding="utf-8-sig")
-                csv_files["aligned_comparison_data.csv"] = str(aligned_file)
+            # 4. 对齐数据 - 已由数据对齐阶段生成，此处不再重复生成
+            # 使用 aligned_data_for_accuracy.csv 作为统一的对齐数据文件
             
             logger.info(f"导出了 {len(csv_files)} 个CSV文件")
             return csv_files

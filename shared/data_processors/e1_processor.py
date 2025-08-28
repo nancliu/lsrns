@@ -60,7 +60,7 @@ class E1DataProcessor:
             simulation_start: 仿真起始绝对时间（用于将 XML 中的相对秒转换为绝对时间）
 
         Returns:
-            聚合并标准化后的 E1 DataFrame（列至少包括 gantry_id, start_time, time_key, flow, speed, occupancy）
+            聚合并标准化后的 E1 DataFrame（列至少包括 gantry_id, start_time, time_key, volume, speed, occupancy）
         """
         try:
             if not e1_dir.exists() or not e1_dir.is_dir():
@@ -105,7 +105,7 @@ class E1DataProcessor:
                 pass
 
             # 必需列检查（宽松处理）
-            required = ["gantry_id", "start_time", "flow"]
+            required = ["gantry_id", "start_time", "volume"]
             missing = [c for c in required if c not in df.columns]
             if missing:
                 logger.warning(f"E1 数据缺少必要列: {missing}")
@@ -113,7 +113,7 @@ class E1DataProcessor:
             # 类型转换
             if "start_time" in df.columns:
                 df["start_time"] = pd.to_datetime(df["start_time"])  # 绝对时间
-            for col in ("flow", "speed", "occupancy", "nvehcontrib"):
+            for col in ("volume", "speed", "occupancy", "nvehcontrib", "nvehentered", "harmonicmeanspeed", "vehiclelength", "begin", "end"):
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -122,7 +122,7 @@ class E1DataProcessor:
                 df["time_key"] = df["start_time"].dt.floor("1min")
 
             # 过滤无效
-            subset_cols = [c for c in ["gantry_id", "start_time", "flow"] if c in df.columns]
+            subset_cols = [c for c in ["gantry_id", "start_time", "volume"] if c in df.columns]
             if subset_cols:
                 df = df.dropna(subset=subset_cols)
 
@@ -134,7 +134,7 @@ class E1DataProcessor:
     def aggregate_minutely(self, e1_df: pd.DataFrame) -> pd.DataFrame:
         """将多车道 E1 数据按分钟、门架聚合。
 
-        - flow: 求和
+        - volume: 求和（车辆数）
         - speed: 以 nVehContrib 加权平均（若无则退化为均值）
         - occupancy: 平均
         - 输出同时包含 start_time（取 time_key）和 time_key
@@ -156,23 +156,51 @@ class E1DataProcessor:
                 df["nvehcontrib"] = 1.0
 
             group_cols = ["gantry_id", "time_key"]
-            agg_df = (
-                df.groupby(group_cols).apply(
-                    lambda g: pd.Series({
-                        "flow": g["flow"].sum(skipna=True) if "flow" in g else 0.0,
-                        "speed": (g["speed"].mul(g["nvehcontrib"]).sum(skipna=True) / g["nvehcontrib"].sum(skipna=True))
-                                  if ("speed" in g and g["nvehcontrib"].sum(skipna=True) > 0) else (g["speed"].mean(skipna=True) if "speed" in g else 0.0),
-                        "occupancy": g["occupancy"].mean(skipna=True) if "occupancy" in g else 0.0,
-                        "nvehcontrib": g["nvehcontrib"].sum(skipna=True),
-                    })
-                ).reset_index()
-            )
+            # 检查flow字段是否存在
+            has_flow = "flow" in df.columns
+            logger.info(f"E1数据聚合: flow字段存在 = {has_flow}, 可用列 = {list(df.columns)}")
+            
+            agg_dict = {
+                "volume": "sum",
+                "speed": lambda x: (x * df.loc[x.index, "nvehcontrib"]).sum() / df.loc[x.index, "nvehcontrib"].sum() if "nvehcontrib" in df.columns and df.loc[x.index, "nvehcontrib"].sum() > 0 else x.mean(),
+                "occupancy": "mean",
+                "nvehcontrib": "sum",
+                "nvehentered": "sum",
+                "harmonicmeanspeed": "mean",
+                "vehiclelength": "mean",
+                "begin": "min",
+                "end": "max"
+            }
+            
+            # 如果存在flow字段，添加到聚合中
+            if has_flow:
+                agg_dict["flow"] = "sum"  # flow字段按时间区间求和
+                logger.info("已添加flow字段到聚合字典")
+            else:
+                logger.warning("E1数据中缺少flow字段，将使用volume字段作为替代")
+                # 如果没有flow字段，将volume作为flow的替代
+                agg_dict["flow"] = "sum"  # 使用volume作为flow
+            
+            # 使用兼容的聚合方式，避免pandas版本问题
+            agg_df = df.groupby(group_cols).agg(agg_dict).reset_index()
 
             # 输出 start_time（用于与对齐结果中的 e1_time 对应）
             agg_df["start_time"] = agg_df["time_key"]
 
-            # 列顺序整理
-            cols = [c for c in ["gantry_id", "start_time", "time_key", "flow", "speed", "occupancy", "nvehcontrib"] if c in agg_df.columns]
+            # 列顺序整理 - 确保flow字段包含在内
+            base_cols = ["gantry_id", "start_time", "time_key"]
+            data_cols = ["flow", "volume", "speed", "occupancy", "nvehcontrib", "nvehentered", "harmonicmeanspeed", "vehiclelength", "begin", "end"]
+            
+            # 按优先级选择列
+            cols = base_cols + [c for c in data_cols if c in agg_df.columns]
+            
+            # 如果没有flow字段但有volume字段，将volume复制为flow
+            if "flow" not in cols and "volume" in cols:
+                agg_df["flow"] = agg_df["volume"]
+                cols.append("flow")
+                logger.info("已将volume字段复制为flow字段")
+            
+            logger.info(f"最终输出列: {cols}")
             return agg_df[cols]
         except Exception as e:
             logger.error(f"E1 数据聚合失败: {e}")
@@ -180,8 +208,13 @@ class E1DataProcessor:
 
     def _parse_single_xml(self, e1_file: Path, simulation_start: datetime) -> pd.DataFrame:
         """解析单个 E1 XML 文件为 DataFrame。
-
-        列：detector_id, gantry_id, start_time, end_time, begin, end, flow, speed, occupancy, nVehContrib
+        
+        按照实际的SUMO E1检测器输出格式进行解析：
+        - 根标签：<detector>
+        - 数据标签：<interval> 直接包含所有属性
+        - 关键字段：id, begin, end, nVehContrib, flow, occupancy, speed, harmonicMeanSpeed, length, nVehEntered
+        
+        输出列：detector_id, gantry_id, start_time, end_time, begin, end, flow, volume, speed, occupancy, nVehContrib, nVehEntered
         """
         try:
             import xml.etree.ElementTree as ET
@@ -189,18 +222,38 @@ class E1DataProcessor:
             tree = ET.parse(e1_file)
             root = tree.getroot()
 
+            # 检查根标签
+            if root.tag != "detector":
+                logger.warning(f"XML文件 {e1_file} 根标签不是detector: {root.tag}")
+                return pd.DataFrame()
+
             rows: List[Dict[str, Any]] = []
-            for interval in root.findall(".//interval"):
+            
+            # 解析每个interval标签
+            for interval in root.findall("interval"):
+                # 获取检测器ID
                 detector_id = interval.get("id")
+                if not detector_id:
+                    logger.warning(f"interval标签缺少id属性: {e1_file}")
+                    continue
+                    
+                # 获取时间区间
                 begin_sec = float(interval.get("begin", 0))
                 end_sec = float(interval.get("end", 0))
-                # 修复：SUMO E1检测器的流量字段是"entered"，不是"flow"
-                flow = float(interval.get("entered", 0))  # 从entered字段获取流量
-                speed = float(interval.get("speed", 0))
-                occupancy = float(interval.get("occupancy", 0))
-                n_veh = int(interval.get("nVehContrib", 0))
-
-                # 绝对时间
+                
+                # 获取核心字段 - 直接使用XML属性值，不需要复杂检查
+                flow = float(interval.get("flow", 0))                    # 交通流量（辆/小时）
+                n_veh_contrib = int(interval.get("nVehContrib", 0))     # 贡献车辆数
+                occupancy = float(interval.get("occupancy", 0))         # 占有率
+                speed = float(interval.get("speed", 0))                 # 平均速度
+                harmonic_mean_speed = float(interval.get("harmonicMeanSpeed", 0))  # 调和平均速度
+                vehicle_length = float(interval.get("length", 0))       # 车辆长度
+                n_veh_entered = int(interval.get("nVehEntered", 0))    # 进入车辆数
+                
+                # volume字段（保持向后兼容）
+                volume = n_veh_entered
+                
+                # 转换为绝对时间
                 start_time = simulation_start + timedelta(seconds=begin_sec)
                 end_time = simulation_start + timedelta(seconds=end_sec)
 
@@ -210,22 +263,47 @@ class E1DataProcessor:
                 else:
                     gantry_id = detector_id
 
-                rows.append({
+                # 构建数据行
+                row = {
                     "detector_id": detector_id,
                     "gantry_id": gantry_id,
                     "start_time": start_time,
                     "end_time": end_time,
                     "begin": begin_sec,
                     "end": end_sec,
-                    "flow": flow,
-                    "speed": speed,
-                    "occupancy": occupancy,
-                    "nVehContrib": n_veh,
-                })
-
-            return pd.DataFrame(rows)
+                    "flow": flow,                    # 核心字段：交通流量
+                    "volume": volume,                # 兼容字段：车辆计数
+                    "speed": speed,                  # 平均速度
+                    "occupancy": occupancy,          # 占有率
+                    "nVehContrib": n_veh_contrib,   # 贡献车辆数
+                    "nVehEntered": n_veh_entered,   # 进入车辆数
+                    "harmonicMeanSpeed": harmonic_mean_speed,  # 调和平均速度
+                    "vehicleLength": vehicle_length, # 车辆长度
+                }
+                
+                rows.append(row)
+            
+            if not rows:
+                logger.warning(f"XML文件 {e1_file} 解析后无数据")
+                return pd.DataFrame()
+            
+            # 创建DataFrame
+            df = pd.DataFrame(rows)
+            
+            # 验证flow字段
+            if "flow" in df.columns:
+                flow_stats = df["flow"].describe()
+                logger.debug(f"文件 {e1_file.name} flow字段统计: {flow_stats}")
+            else:
+                logger.error(f"文件 {e1_file.name} flow字段缺失！")
+            
+            logger.info(f"成功解析E1 XML文件: {e1_file.name}, 数据行数: {len(df)}")
+            return df
+            
         except Exception as e:
             logger.error(f"解析 E1 XML 失败 {e1_file}: {e}")
+            import traceback
+            logger.error(f"错误详情: {traceback.format_exc()}")
             return pd.DataFrame()
     
     def _get_simulation_start_time_from_case(self, simulation_dir: Path) -> datetime:

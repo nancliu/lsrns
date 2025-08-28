@@ -163,6 +163,11 @@ class AccuracyAnalyzer:
         """
         解析E1检测器XML文件
         
+        按照实际的SUMO E1检测器输出格式进行解析：
+        - 根标签：<detector>
+        - 数据标签：<interval> 直接包含所有属性
+        - 关键字段：id, begin, end, nVehContrib, flow, occupancy, speed, harmonicMeanSpeed, length, nVehEntered
+        
         Args:
             e1_file: E1检测器文件路径
             
@@ -176,16 +181,35 @@ class AccuracyAnalyzer:
             root = tree.getroot()
             
             data = []
-            for interval in root.findall(".//interval"):
+            
+            # 按照实际格式：根标签是 <detector>，数据标签是 <interval>
+            for interval in root.findall("interval"):
+                detector_id = interval.get("id")
+                
+                # 跳过没有ID的interval标签
+                if not detector_id:
+                    continue
+                    
+                begin_sec = float(interval.get("begin", 0))
+                end_sec = float(interval.get("end", 0))
+                
+                # 直接使用nVehEntered字段作为车辆数
+                n_veh_entered = int(interval.get("nVehEntered", 0))
+                
+                # 车辆数直接等于进入车辆数，不进行流量转换
+                flow = n_veh_entered
+                
                 record = {
-                    "detector_id": interval.get("id"),
-                    "begin": float(interval.get("begin")),
-                    "end": float(interval.get("end")),
+                    "detector_id": detector_id,
+                    "begin": begin_sec,
+                    "end": end_sec,
                     "nVehContrib": int(interval.get("nVehContrib", 0)),
-                    # 修复：SUMO E1检测器的流量字段是"entered"，不是"flow"
-                    "flow": float(interval.get("entered", 0)),  # 从entered字段获取流量
+                    "flow": flow,  # 基于nVehEntered计算的流量
                     "occupancy": float(interval.get("occupancy", 0)),
                     "speed": float(interval.get("speed", 0)),
+                    "nVehEntered": n_veh_entered,  # 添加原始进入车辆数
+                    "harmonicMeanSpeed": float(interval.get("harmonicMeanSpeed", 0)),
+                    "vehicleLength": float(interval.get("length", 0)),
                     "file": e1_file.name
                 }
                 data.append(record)

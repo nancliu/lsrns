@@ -261,7 +261,6 @@ async function loadCaseSimulations(caseId) {
                 </div>
                 <div class="simulation-card-actions">
                     <button class="btn btn-secondary" onclick="viewSimulationDetail('${sim.simulation_id}')">查看详情</button>
-                    ${sim.status === 'completed' ? `<button class="btn btn-primary" onclick="analyzeSimulation('${sim.simulation_id}')">分析结果</button>` : ''}
                     <button class="btn btn-danger" onclick="deleteSimulation('${sim.simulation_id}')">删除</button>
                 </div>
             </div>
@@ -295,16 +294,22 @@ function formatDateTime(dateString) {
 async function viewSimulationDetail(simulationId) {
     try {
         const response = await apiFetch(`${API_BASE_URL}/simulation/${simulationId}`);
-        const simulation = response.data;
+        const simulation = response && (response.data ?? response);
+        if (!simulation || typeof simulation !== 'object') {
+            throw new Error('无效的仿真数据');
+        }
         
         const modalBody = document.getElementById('modal-body');
         // 组装输入文件显示
         const inf = simulation.input_files || {};
+        const basename = (p) => {
+            try { if (!p) return '—'; const parts = String(p).split(/[\\\/]/); return parts.pop() || String(p); } catch { return String(p || '—'); }
+        };
         const netFile = inf.network_file || '—';
-        const routesFiles = (inf.routes_files && inf.routes_files.length) ? inf.routes_files : [];
-        const tazFiles = (inf.taz_files && inf.taz_files.length) ? inf.taz_files : [];
-        const routesHtml = routesFiles.length ? routesFiles.map(u=>`<code title="${u}">${u.split('/').pop()}</code>`).join(' | ') : '—';
-        const tazHtml = tazFiles.length ? tazFiles.map(u=>`<code title="${u}">${u.split('/').pop()}</code>`).join(' | ') : '—';
+        const routesFiles = Array.isArray(inf.routes_files) ? inf.routes_files : [];
+        const tazFiles = Array.isArray(inf.taz_files) ? inf.taz_files : [];
+        const routesHtml = routesFiles.length ? routesFiles.map(u=>`<code title="${u}">${basename(u)}</code>`).join(' | ') : '—';
+        const tazHtml = tazFiles.length ? tazFiles.map(u=>`<code title="${u}">${basename(u)}</code>`).join(' | ') : '—';
         modalBody.innerHTML = `
             <h3>仿真详情</h3>
             <div class="detail-info">
@@ -317,9 +322,9 @@ async function viewSimulationDetail(simulationId) {
                 ${simulation.completed_at ? `<p><strong>完成时间:</strong> ${formatDateTime(simulation.completed_at)}</p>` : ''}
                 ${simulation.duration ? `<p><strong>耗时:</strong> ${simulation.duration}秒</p>` : ''}
                 ${simulation.description ? `<p><strong>描述:</strong> ${simulation.description}</p>` : ''}
-                <p><strong>结果路径:</strong> ${simulation.result_folder}</p>
+                <p><strong>结果路径:</strong> ${simulation.result_folder || '—'}</p>
                 <h4>输入文件</h4>
-                <p><strong>路网文件:</strong> <code title="${netFile}">${(netFile||'').split('/').pop() || '—'}</code></p>
+                <p><strong>路网文件:</strong> <code title="${netFile}">${basename(netFile)}</code></p>
                 <p><strong>路由文件:</strong> ${routesHtml}</p>
                 <p><strong>TAZ文件:</strong> ${tazHtml}</p>
             </div>
@@ -462,7 +467,7 @@ async function runSimulation() {
             method: 'POST',
             body: JSON.stringify(requestData)
         });
-        // 启动成功后，先显示“已启动”，结果面板状态以轮询完成为准
+        // 启动成功后，先显示"已启动"，结果面板状态以轮询完成为准
         const payload = result && result.data ? result.data : result;
         showNotification('仿真已启动', 'success');
         currentSim.caseId = caseId;
@@ -607,171 +612,277 @@ async function viewAnalysisHistory() {
   }
 }
 
+// =============== 统一的HTML模板生成函数 ===============
+// 生成核心指标概览HTML
+function generateOverviewHTML(result, isHistory = false) {
+    const mBase = result.accuracy_metrics || {};
+    const flowMape = firstNonNull(mBase.flow_mape, mBase.mape);
+    const gehMean = firstNonNull(mBase.flow_geh_mean, mBase.geh_mean);
+    const gehPass = firstNonNull(mBase.flow_geh_pass_rate, mBase.geh_pass_rate);
+    const sampleSize = firstNonNull(mBase.flow_sample_size, mBase.sample_size);
+    
+    // 颜色函数
+    const mapeColor = (v)=> (isFiniteNumber(v) ? (v <= 15 ? '#27ae60' : v <= 30 ? '#f39c12' : '#e74c3c') : '#7f8c8d');
+    const gehPassColor = (v)=> (isFiniteNumber(v) ? (v >= 85 ? '#27ae60' : v >= 60 ? '#f39c12' : '#e74c3c') : '#7f8c8d');
+    
+    // 根据是否为历史记录调整样式
+    const gridStyle = isHistory ? 
+        'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;' :
+        'display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:10px 0;';
+    const cardStyle = isHistory ? 
+        'background:#f6f8fa;border-radius:6px;padding:8px;text-align:center;' :
+        'background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;';
+    const titleStyle = isHistory ? 'opacity:.8;font-size:11px;' : 'opacity:.8;font-size:12px;';
+    const valueStyle = isHistory ? 'font-size:18px;font-weight:600;' : 'font-size:22px;font-weight:600;';
+    const descStyle = isHistory ? 'opacity:.7;font-size:10px;' : 'opacity:.7;font-size:12px;';
+    
+    return `
+      <div style="${gridStyle}">
+        <div style="${cardStyle}">
+          <div style="${titleStyle}">MAPE</div>
+          <div style="${valueStyle}color:${mapeColor(flowMape)};">${formatMetricValue(flowMape, true, 1)}</div>
+          <div style="${descStyle}">目标≤15%</div>
+        </div>
+        <div style="${cardStyle}">
+          <div style="${titleStyle}">GEH均值</div>
+          <div style="${valueStyle}">${formatMetricValue(gehMean, false, 2)}</div>
+          <div style="${descStyle}">目标≤5</div>
+        </div>
+        <div style="${cardStyle}">
+          <div style="${titleStyle}">GEH合格率</div>
+          <div style="${valueStyle}color:${gehPassColor(gehPass)};">${formatMetricValue(gehPass, true, 1)}</div>
+          <div style="${descStyle}">参考≥85%</div>
+        </div>
+        <div style="${cardStyle}">
+          <div style="${titleStyle}">样本量</div>
+          <div style="${valueStyle}">${formatMetricValue(sampleSize, false, 0)}</div>
+          <div style="${descStyle}">有效记录</div>
+        </div>
+      </div>`;
+}
+
+// 生成数据规模HTML
+function generateDataScaleHTML(result, isHistory = false) {
+    const dataSummary = result.data_summary || {};
+    const gantryRecords = dataSummary.gantry_data?.total_records || '—';
+    const e1Records = dataSummary.e1_data?.total_records || '—';
+    const alignedRecords = dataSummary.aligned_data?.total_records || '—';
+    
+    if (isHistory) {
+        return `
+          <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+            <p><strong>门架记录数:</strong> ${gantryRecords}</p>
+            <p><strong>E1记录数:</strong> ${e1Records}</p>
+            <p><strong>对齐记录数:</strong> ${alignedRecords}</p>
+          </div>`;
+    } else {
+        return `
+          <div class="case-info">
+            <p><strong>门架记录数:</strong> ${gantryRecords}</p>
+            <p><strong>E1记录数:</strong> ${e1Records}</p>
+            <p><strong>对齐记录数:</strong> ${alignedRecords}</p>
+          </div>`;
+    }
+}
+
+// 生成文件链接HTML
+function generateFileLinksHTML(result, isHistory = false) {
+    const csvOrdered = orderCsvFiles(result.csv_files || []);
+    const chartsOrdered = orderChartFiles(result.chart_files || []);
+    
+    // CSV文件中文名称映射
+    const csvNameMap = {
+        'gantry_data_standardized.csv': '门架数据标准化',
+        'e1_data_standardized.csv': 'E1检测器数据标准化',
+        'aligned_data_for_accuracy.csv': '精度分析对齐数据',
+        'alignment_metadata.json': '数据对齐元信息',
+        'basic_accuracy_metrics.csv': '基础精度指标',
+        'gantry_level_metrics.csv': '门架级别指标',
+        'time_level_metrics.csv': '时间级别指标',
+        'aligned_data_for_accuracy.csv': '精度分析对齐数据'
+    };
+    
+    // 图表文件中文名称映射
+    const chartNameMap = {
+        'flow_scatter.png': '流量散点图',
+        'speed_scatter.png': '速度散点图',
+        'flow_error_distribution.png': '流量误差分布',
+        'accuracy_heatmap.png': '精度热力图',
+        'accuracy_classification.png': '精度分类图',
+        'error_source_analysis.png': '误差来源分析',
+        'data_quality_assessment.png': '数据质量评估',
+        'e1_anomaly_diagnosis.png': 'E1异常诊断'
+    };
+    
+    // 生成CSV链接HTML
+    const csvLinks = (csvOrdered && csvOrdered.length) ? `
+      <div ${isHistory ? 'style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;"' : 'class="case-info"'}">
+        <p><strong>CSV文件:</strong></p>
+        <div style="margin-left:16px;font-family:monospace;font-size:${isHistory ? '12px' : '13px'};">
+          ${csvOrdered.map(u => {
+            // 构建正确的文件URL - 使用完整路径
+            let fileUrl;
+            if (u.startsWith('http')) {
+              fileUrl = u;
+            } else {
+              // 处理Windows和Unix路径格式，确保路径正确
+              const normalizedPath = u.replace(/\\/g, '/');
+              fileUrl = `${encodeURIComponent(normalizedPath)}`;
+            }
+                         // 只显示文件名，不显示路径
+             const fileName = u.split(/[\\\/]/).pop() || u;
+             // 获取中文名称，如果没有映射则使用文件名
+             const chineseName = csvNameMap[fileName] || fileName;
+             return `<div><a href="${fileUrl}" target="_blank" download="${fileName}" style="color:#007bff;text-decoration:none;">📄 ${chineseName}: ${fileName}</a></div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
+    
+    // 生成图表链接HTML
+    const chartsLinks = (chartsOrdered && chartsOrdered.length) ? `
+      <div ${isHistory ? 'style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;"' : 'class="case-info"'}">
+        <p><strong>图表文件:</strong></p>
+        <div style="margin-left:16px;font-family:monospace;font-size:${isHistory ? '12px' : '13px'};">
+          ${chartsOrdered.map(u => {
+            // 构建正确的文件URL - 使用完整路径
+            let fileUrl;
+            if (u.startsWith('http')) {
+              fileUrl = u;
+            } else {
+              // 处理Windows和Unix路径格式，确保路径正确
+              const normalizedPath = u.replace(/\\/g, '/');
+              fileUrl = `${encodeURIComponent(normalizedPath)}`;
+            }
+                         // 只显示文件名，不显示路径
+             const fileName = u.split(/[\\\/]/).pop() || u;
+             // 获取中文名称，如果没有映射则使用文件名
+             const chineseName = chartNameMap[fileName] || fileName;
+             return `<div><a href="${fileUrl}" target="_blank" style="color:#007bff;text-decoration:none;">🖼️ ${chineseName}: ${fileName}</a></div>`;
+          }).join('')}
+        </div>
+      </div>` : '';
+    
+    return { csvLinks, chartsLinks };
+}
+
+// 生成核心头部HTML
+function generateCoreHeaderHTML(result, isHistory = false) {
+    const duration = calculateDuration(result.created_at, result.completed_at);
+    
+    if (isHistory) {
+        return `
+          <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+            <p><strong>分析批次:</strong> ${result.analysis_id || result.folder}</p>
+            <p><strong>开始时间:</strong> ${formatDateTime(result.created_at)}</p>
+            <p><strong>完成时间:</strong> ${formatDateTime(result.completed_at)}</p>
+            <p><strong>耗时:</strong> ${duration}</p>
+            <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+          </div>`;
+    } else {
+        return `
+          <div class="case-info">
+            <p><strong>分析批次:</strong> ${result.analysis_id || 'N/A'}</p>
+            <p><strong>开始时间:</strong> ${formatDateTime(result.created_at)}</p>
+            <p><strong>完成时间:</strong> ${formatDateTime(result.completed_at)}</p>
+            <p><strong>耗时:</strong> ${duration}</p>
+            <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
+          </div>`;
+    }
+}
+
+// 生成报告链接HTML
+function generateReportLinkHTML(result, isHistory = false) {
+    if (isHistory) {
+        return `
+          <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+            <p><strong>报告链接:</strong> ${result.report_html ? `<a href="${result.report_html}" target="_blank" class="btn btn-primary" style="display:inline-block;margin-left:8px;padding:6px 12px;background:#007bff;color:white;text-decoration:none;border-radius:4px;font-size:13px;">📊 查看报告</a>` : 'N/A'}</p>
+          </div>`;
+    } else {
+        return `
+          <div class="case-info">
+            ${result.report_file ? `<p><a class="btn btn-primary" href="${result.report_file}" target="_blank" style="display:inline-block;padding:8px 16px;background:#007bff;color:white;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">📊 查看报告</a></p>` : ''}
+          </div>`;
+    }
+}
+
+// =============== 重构后的主要函数 ===============
+function displayAnalysisResult(result) {
+    const area = document.getElementById('analysis-result');
+    if (!area) return;
+    if (area.style.display === 'none') area.style.display = 'block';
+    
+    const at = (result.analysis_type || '').toLowerCase();
+    const typeLabel = at === 'mechanism' ? '机理' : at === 'performance' ? '性能' : '精度';
+    
+    // 使用统一的模板生成函数
+    const overviewHTML = generateOverviewHTML(result, false);
+    const dataScaleHTML = generateDataScaleHTML(result, false);
+    const { csvLinks, chartsLinks } = generateFileLinksHTML(result, false);
+    const coreHeaderHTML = generateCoreHeaderHTML(result, false);
+    const reportLinkHTML = generateReportLinkHTML(result, false);
+    
+    // 渲染结果页面
+    area.innerHTML = `
+      <div class="case-card fade-in">
+        <h3>${typeLabel}分析结果</h3>
+        ${coreHeaderHTML}
+        <h4>核心指标</h4>
+        ${overviewHTML}
+        <h4>数据规模</h4>
+        ${dataScaleHTML}
+        <h4>产物链接</h4>
+        ${reportLinkHTML}
+        ${csvLinks}
+        ${chartsLinks}
+      </div>`;
+}
+
 function renderAnalysisHistory(payload) {
-  const area = document.getElementById('analysis-history');
-  if (!area) return;
-  const results = (payload && payload.results) || [];
-  if (!results.length) { area.innerHTML = '<div class="loading">暂无历史结果</div>'; return; }
-  
-  const html = `
-    <div class="case-card fade-in">
-      <h3>历史${getAnalysisTypeDisplayName(payload.analysis_type||'accuracy')}结果（${payload.case_id}）</h3>
-      <div class="case-info">
-        ${results.map(r => {
-          const csvOrdered = orderCsvFiles(r.csv_files || []);
-          const chartsOrdered = orderChartFiles(r.chart_files || []);
-          
-          // 获取核心指标
-          const metrics = r.accuracy_metrics || {};
-          const flowMape = metrics.flow_mape || metrics.mape || '—';
-          const gehMean = metrics.flow_geh_mean || metrics.geh_mean || '—';
-          const gehPass = metrics.flow_geh_pass_rate || metrics.geh_pass_rate || '—';
-          const sampleSize = metrics.flow_sample_size || metrics.sample_size || '—';
-          
-          // 格式化数值显示
-          const formatMetricValue = (value, isPercent = false, decimals = 2) => {
-            if (value === '—' || value === null || value === undefined) return '—';
-            if (typeof value === 'number') {
-              if (isPercent) {
-                return value.toFixed(1) + '%';
-              } else {
-                return value.toFixed(decimals);
-              }
-            }
-            return value;
-          };
-          
-          const formattedMape = formatMetricValue(flowMape, true, 1);
-          const formattedGehMean = formatMetricValue(gehMean, false, 2);
-          const formattedGehPass = formatMetricValue(gehPass, true, 1);
-          const formattedSampleSize = formatMetricValue(sampleSize, false, 0);
-          
-          // 获取数据规模
-          const dataSummary = r.data_summary || {};
-          const gantryRecords = dataSummary.gantry_data?.total_records || '—';
-          const e1Records = dataSummary.e1_data?.total_records || '—';
-          const alignedRecords = dataSummary.aligned_data?.total_records || '—';
-          
-          // 计算耗时
-          const calculateDuration = (startTime, endTime) => {
-            if (!startTime || !endTime) return '—';
-            try {
-              const start = new Date(startTime);
-              const end = new Date(endTime);
-              if (isNaN(start.getTime()) || isNaN(end.getTime())) return '—';
-              const diffMs = end - start;
-              const diffSec = Math.round(diffMs / 1000);
-              if (diffSec < 60) return `${diffSec}秒`;
-              const minutes = Math.floor(diffSec / 60);
-              const seconds = diffSec % 60;
-              return `${minutes}分${seconds}秒`;
-            } catch {
-              return '—';
-            }
-          };
-          
-          const duration = calculateDuration(r.created_at, r.completed_at);
-          
-          return `
-          <details style="margin-bottom:16px;border:1px solid #e1e5e9;border-radius:8px;padding:8px;">
-            <summary style="cursor:pointer;font-weight:600;color:#2c3e50;">
-              <strong>${r.analysis_id || r.folder}</strong> 
-              <span style="opacity:.7;font-weight:normal;">（${formatDateTime(r.created_at)}）</span>
-            </summary>
-            <div style="margin-top:12px;">
-              <!-- 核心头部 -->
-              <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                <p><strong>分析批次:</strong> ${r.analysis_id || r.folder}</p>
-                <p><strong>开始时间:</strong> ${formatDateTime(r.created_at)}</p>
-                <p><strong>完成时间:</strong> ${formatDateTime(r.completed_at)}</p>
-                <p><strong>耗时:</strong> ${duration}</p>
-                <p><strong>状态:</strong> ${r.status || 'N/A'}</p>
+    const area = document.getElementById('analysis-history');
+    if (!area) return;
+    const results = (payload && payload.results) || [];
+    if (!results.length) { area.innerHTML = '<div class="loading">暂无历史结果</div>'; return; }
+    
+    const html = `
+      <div class="case-card fade-in">
+        <h3>历史${getAnalysisTypeDisplayName(payload.analysis_type||'accuracy')}结果（${payload.case_id}）</h3>
+        <div class="case-info">
+          ${results.map(r => {
+            // 使用统一的模板生成函数
+            const overviewHTML = generateOverviewHTML(r, true);
+            const dataScaleHTML = generateDataScaleHTML(r, true);
+            const { csvLinks, chartsLinks } = generateFileLinksHTML(r, true);
+            const coreHeaderHTML = generateCoreHeaderHTML(r, true);
+            const reportLinkHTML = generateReportLinkHTML(r, true);
+            
+            return `
+            <details style="margin-bottom:16px;border:1px solid #e1e5e9;border-radius:8px;padding:8px;">
+              <summary style="cursor:pointer;font-weight:600;color:#2c3e50;">
+                <strong>${r.analysis_id || r.folder}</strong> 
+                <span style="opacity:.7;font-weight:normal;">（${formatDateTime(r.created_at)}）</span>
+              </summary>
+              <div style="margin-top:12px;">
+                <!-- 核心头部 -->
+                ${coreHeaderHTML}
+                
+                <!-- 核心指标 -->
+                <h4 style="margin:16px 0 8px 0;color:#2c3e50;">核心指标</h4>
+                ${overviewHTML}
+                
+                <!-- 数据规模 -->
+                <h4 style="margin:16px 0 8px 0;color:#2c3e50;">数据规模</h4>
+                ${dataScaleHTML}
+                
+                <!-- 产物链接 -->
+                <h4 style="margin:16px 0 8px 0;color:#2c3e50;">产物链接</h4>
+                ${reportLinkHTML}
+                ${csvLinks}
+                ${chartsLinks}
               </div>
-              
-              <!-- 核心指标 -->
-              <h4 style="margin:16px 0 8px 0;color:#2c3e50;">核心指标</h4>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;">
-                <div style="background:#f6f8fa;border-radius:6px;padding:8px;text-align:center;">
-                  <div style="opacity:.8;font-size:11px;">MAPE</div>
-                  <div style="font-size:18px;font-weight:600;color:${flowMape <= 15 ? '#27ae60' : flowMape <= 30 ? '#f39c12' : '#e74c3c'};">${formattedMape}</div>
-                  <div style="opacity:.7;font-size:10px;">目标≤15%</div>
-                </div>
-                <div style="background:#f6f8fa;border-radius:6px;padding:8px;text-align:center;">
-                  <div style="opacity:.8;font-size:11px;">GEH均值</div>
-                  <div style="font-size:18px;font-weight:600;">${formattedGehMean}</div>
-                  <div style="opacity:.7;font-size:10px;">目标≤5</div>
-                </div>
-                <div style="background:#f6f8fa;border-radius:6px;padding:8px;text-align:center;">
-                  <div style="opacity:.8;font-size:11px;">GEH合格率</div>
-                  <div style="font-size:18px;font-weight:600;color:${gehPass >= 85 ? '#27ae60' : gehPass >= 60 ? '#f39c12' : '#e74c3c'};">${formattedGehPass}</div>
-                  <div style="opacity:.7;font-size:10px;">参考≥85%</div>
-                </div>
-                <div style="background:#f6f8fa;border-radius:6px;padding:8px;text-align:center;">
-                  <div style="opacity:.8;font-size:11px;">样本量</div>
-                  <div style="font-size:18px;font-weight:600;">${formattedSampleSize}</div>
-                  <div style="opacity:.7;font-size:10px;">有效记录</div>
-                </div>
-              </div>
-              
-              <!-- 数据规模 -->
-              <h4 style="margin:16px 0 8px 0;color:#2c3e50;">数据规模</h4>
-              <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                <p><strong>门架记录数:</strong> ${gantryRecords}</p>
-                <p><strong>E1记录数:</strong> ${e1Records}</p>
-                <p><strong>对齐记录数:</strong> ${alignedRecords}</p>
-              </div>
-              
-              <!-- 产物链接 -->
-              <h4 style="margin:16px 0 8px 0;color:#2c3e50;">产物链接</h4>
-              <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                <p><strong>报告链接:</strong> ${r.report_html ? `<a href="${r.report_html}" target="_blank" class="btn btn-primary" style="display:inline-block;margin-left:8px;padding:6px 12px;background:#007bff;color:white;text-decoration:none;border-radius:4px;font-size:13px;">📊 查看报告</a>` : 'N/A'}</p>
-              </div>
-              
-              ${csvOrdered && csvOrdered.length ? `
-                <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                  <p><strong>CSV文件:</strong></p>
-                  <div style="margin-left:16px;font-family:monospace;font-size:12px;">
-                    ${csvOrdered.map(u => {
-                      // 构建正确的文件URL - 使用完整路径
-                      let fileUrl;
-                      if (u.startsWith('http')) {
-                        fileUrl = u;
-                      } else {
-                        // 处理Windows和Unix路径格式，确保路径正确
-                        const normalizedPath = u.replace(/\\/g, '/');
-                        fileUrl = `/api/v1/files/${encodeURIComponent(normalizedPath)}`;
-                      }
-                      // 只显示文件名，不显示路径
-                      const fileName = u.split(/[\\\/]/).pop() || u;
-                      return `<div><a href="${fileUrl}" target="_blank" download="${fileName}" style="color:#007bff;text-decoration:none;">📄 ${fileName}</a></div>`;
-                    }).join('')}
-                  </div>
-                </div>` : ''}
-              ${chartsOrdered && chartsOrdered.length ? `
-                <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                  <p><strong>图表文件:</strong></p>
-                  <div style="margin-left:16px;font-family:monospace;font-size:12px;">
-                    ${chartsOrdered.map(u => {
-                      // 构建正确的文件URL - 使用完整路径
-                      let fileUrl;
-                      if (u.startsWith('http')) {
-                        fileUrl = u;
-                      } else {
-                        // 处理Windows和Unix路径格式，确保路径正确
-                        const normalizedPath = u.replace(/\\/g, '/');
-                        fileUrl = `/api/v1/files/${encodeURIComponent(normalizedPath)}`;
-                      }
-                      // 只显示文件名，不显示路径
-                      const fileName = u.split(/[\\\/]/).pop() || u;
-                      return `<div><a href="${fileUrl}" target="_blank" style="color:#007bff;text-decoration:none;">🖼️ ${fileName}</a></div>`;
-                    }).join('')}
-                  </div>
-                </div>` : ''}
-            </div>
-          </details>`; }).join('')}
-      </div>
-    </div>`;
-  area.innerHTML = html;
+            </details>`; }).join('')}
+        </div>
+      </div>`;
+    area.innerHTML = html;
 }
 
 // =============== 案例列表与筛选 ===============
@@ -1043,175 +1154,6 @@ function displaySimulationResult(result) {
     `;
 }
 
-function displayAnalysisResult(result) {
-    const area = document.getElementById('analysis-result');
-    if (!area) return;
-    if (area.style.display === 'none') area.style.display = 'block';
-    const at = (result.analysis_type || '').toLowerCase();
-            const typeLabel = at === 'mechanism' ? '机理' : at === 'performance' ? '性能' : '精度';
-
-    // 获取CSV和图表文件列表，并排序
-    const csvList = result.csv_files ? Object.values(result.csv_files) : [];
-    const csvOrdered = orderCsvFiles(csvList);
-    const chartsOrdered = orderChartFiles(result.chart_files || []);
-
-    // 精度/性能默认渲染（沿用原模板，精度有指标，性能可拓展）
-    const mBase = result.metrics || result.accuracy_metrics || {};
-    const flowMape = firstNonNull(mBase.flow_mape, mBase.mape);
-    const gehMean = firstNonNull(mBase.flow_geh_mean, mBase.geh_mean);
-    const gehPass = firstNonNull(mBase.flow_geh_pass_rate, mBase.geh_pass_rate);
-    const sampleSize = firstNonNull(mBase.flow_sample_size, mBase.sample_size);
-    
-    // 精简数据规模
-    const dataSummary = result.data_summary || {};
-    const gantryRecords = dataSummary.gantry_data?.total_records || '—';
-    const e1Records = dataSummary.e1_data?.total_records || '—';
-    const alignedRecords = dataSummary.aligned_data?.total_records || '—';
-
-    const mapeColor = (v)=> (isFiniteNumber(v) ? (v <= 15 ? '#27ae60' : v <= 30 ? '#f39c12' : '#e74c3c') : '#7f8c8d');
-    const gehPassColor = (v)=> (isFiniteNumber(v) ? (v >= 85 ? '#27ae60' : v >= 60 ? '#f39c12' : '#e74c3c') : '#7f8c8d');
-
-    // 核心指标概览
-    const overviewHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:10px 0;">
-        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
-          <div style="opacity:.8;font-size:12px;">MAPE</div>
-          <div style="font-size:22px;font-weight:600;color:${mapeColor(flowMape)};">${fmtPercent(flowMape)}</div>
-          <div style="opacity:.7;font-size:12px;">目标≤15%</div>
-        </div>
-        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
-          <div style="opacity:.8;font-size:12px;">GEH均值</div>
-          <div style="font-size:22px;font-weight:600;">${fmtNumber(gehMean,2)}</div>
-          <div style="opacity:.7;font-size:12px;">目标≤5</div>
-        </div>
-        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
-          <div style="opacity:.8;font-size:12px;">GEH合格率</div>
-          <div style="font-size:22px;font-weight:600;color:${gehPassColor(gehPass)};">${fmtPercent(gehPass)}</div>
-          <div style="opacity:.7;font-size:12px;">参考≥85%</div>
-        </div>
-        <div style="background:#f6f8fa;border-radius:8px;padding:12px;text-align:center;">
-          <div style="opacity:.8;font-size:12px;">样本量</div>
-          <div style="font-size:22px;font-weight:600;">${isFiniteNumber(sampleSize)?Math.round(sampleSize):'—'}</div>
-          <div style="opacity:.7;font-size:12px;">有效记录</div>
-        </div>
-      </div>`;
-
-    // 精简数据规模
-    const dataScaleHTML = `
-      <div class="case-info">
-        <p><strong>门架记录数:</strong> ${gantryRecords}</p>
-        <p><strong>E1记录数:</strong> ${e1Records}</p>
-        <p><strong>对齐记录数:</strong> ${alignedRecords}</p>
-      </div>`;
-
-    // 改进的CSV和图表链接显示 - 只显示文件名，链接指向完整路径
-    const csvLinks = (csvOrdered && csvOrdered.length) ? `
-      <div class="case-info">
-        <p><strong>CSV文件:</strong></p>
-        <div style="margin-left:16px;font-family:monospace;font-size:13px;">
-          ${csvOrdered.map(u=>{
-            // 构建正确的文件URL - 使用完整路径
-            let fileUrl;
-            if (u.startsWith('http')) {
-              fileUrl = u;
-            } else {
-              // 处理Windows和Unix路径格式，确保路径正确
-              const normalizedPath = u.replace(/\\/g, '/');
-              fileUrl = `/api/v1/files/${encodeURIComponent(normalizedPath)}`;
-            }
-            // 只显示文件名，不显示路径
-            const fileName = u.split(/[\\\/]/).pop() || u;
-            return `<div><a href="${fileUrl}" target="_blank" download="${fileName}" style="color:#007bff;text-decoration:none;">📄 ${fileName}</a></div>`;
-          }).join('')}
-        </div>
-      </div>` : '';
-    
-    const chartsLinksDetailed = (chartsOrdered && chartsOrdered.length) ? `
-      <div class="case-info">
-        <p><strong>图表文件:</strong></p>
-        <div style="margin-left:16px;font-family:monospace;font-size:13px;">
-          ${chartsOrdered.map(u=>{
-            // 构建正确的文件URL - 使用完整路径
-            let fileUrl;
-            if (u.startsWith('http')) {
-              fileUrl = u;
-            } else {
-              // 处理Windows和Unix路径格式，确保路径正确
-              const normalizedPath = u.replace(/\\/g, '/');
-              fileUrl = `/api/v1/files/${encodeURIComponent(normalizedPath)}`;
-            }
-            // 只显示文件名，不显示路径
-            const fileName = u.split(/[\\\/]/).pop() || u;
-            return `<div><a href="${fileUrl}" target="_blank" style="color:#007bff;text-decoration:none;">🖼️ ${fileName}</a></div>`;
-          }).join('')}
-        </div>
-      </div>` : '';
-
-    // 格式化时间显示
-    const formatDisplayTime = (timeStr) => {
-        if (!timeStr) return 'N/A';
-        try {
-            const date = new Date(timeStr);
-            if (isNaN(date.getTime())) return timeStr;
-            return date.toLocaleString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        } catch {
-            return timeStr;
-        }
-    };
-
-    // 计算耗时
-    const calculateDuration = (startTime, endTime) => {
-        if (!startTime || !endTime) return '—';
-        try {
-            const start = new Date(startTime);
-            const end = new Date(endTime);
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) return '—';
-            const diffMs = end - start;
-            const diffSec = Math.round(diffMs / 1000);
-            if (diffSec < 60) return `${diffSec}秒`;
-            const minutes = Math.floor(diffSec / 60);
-            const seconds = diffSec % 60;
-            return `${minutes}分${seconds}秒`;
-        } catch {
-            return '—';
-        }
-    };
-
-    const duration = calculateDuration(result.created_at, result.completed_at);
-
-    // 通用部分
-    const reportLink = result.report_file ? `<p><a class="btn btn-primary" href="${result.report_file}" target="_blank" style="display:inline-block;padding:8px 16px;background:#007bff;color:white;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">📊 查看报告</a></p>` : '';
-
-    area.innerHTML = `
-      <div class="case-card fade-in">
-        <h3>${typeLabel}分析结果</h3>
-        <div class="case-info">
-          <p><strong>分析批次:</strong> ${result.analysis_id || 'N/A'}</p>
-          <p><strong>开始时间:</strong> ${formatDisplayTime(result.created_at)}</p>
-          <p><strong>完成时间:</strong> ${formatDisplayTime(result.completed_at)}</p>
-          <p><strong>耗时:</strong> ${duration}</p>
-          <p><strong>状态:</strong> ${result.status || 'N/A'}</p>
-        </div>
-        <h4>核心指标</h4>
-        ${overviewHTML}
-        <h4>数据规模</h4>
-        ${dataScaleHTML}
-        <h4>产物链接</h4>
-        <div class="case-info">
-          ${reportLink}
-        </div>
-        ${csvLinks}
-        ${chartsLinksDetailed}
-      </div>`;
-}
-
 // =============== 辅助格式化 ===============
 function isFiniteNumber(v) { return typeof v === 'number' && isFinite(v); }
 function firstNonNull(...vals) { for (const v of vals) { if (v !== undefined && v !== null) return v; } return undefined; }
@@ -1232,6 +1174,37 @@ function fmtDuration(sec) {
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
+// 格式化指标值
+function formatMetricValue(value, isPercent = false, decimals = 2) {
+    if (value === '—' || value === null || value === undefined) return '—';
+    if (typeof value === 'number') {
+        if (isPercent) {
+            return value.toFixed(1) + '%';
+        } else {
+            return value.toFixed(decimals);
+        }
+    }
+    return value;
+}
+
+// 计算耗时
+function calculateDuration(startTime, endTime) {
+    if (!startTime || !endTime) return '—';
+    try {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return '—';
+        const diffMs = end - start;
+        const diffSec = Math.round(diffMs / 1000);
+        if (diffSec < 60) return `${diffSec}秒`;
+        const minutes = Math.floor(diffSec / 60);
+        const seconds = diffSec % 60;
+        return `${minutes}分${seconds}秒`;
+    } catch {
+        return '—';
+    }
+}
+
 // 固定顺序：CSV与图表
 function orderCsvFiles(files) {
   if (!Array.isArray(files)) return [];
@@ -1243,7 +1216,7 @@ function orderCsvFiles(files) {
     /basic_accuracy_metrics\.csv$/i,
     /gantry_level_metrics\.csv$/i,
     /time_level_metrics\.csv$/i,
-    /aligned_comparison_data\.csv$/i,
+            /aligned_data_for_accuracy\.csv$/i,
   ];
   const scored = files.map(u=>({u, s: (()=>{ for (let i=0;i<order.length;i++){ if (order[i].test(u)) return i; } return order.length+files.indexOf(u); })()}));
   scored.sort((a,b)=>a.s-b.s);
@@ -1342,6 +1315,11 @@ function showCaseDetails(c) {
 }
 
 function closeModal() { const modal = document.getElementById('modal'); if (modal) modal.style.display = 'none'; }
+
+function showModal() {
+    const modal = document.getElementById('modal');
+    if (modal) modal.style.display = 'block';
+}
 
 // 添加CSS动画
 const style = document.createElement('style');

@@ -64,13 +64,33 @@ class AccuracyAnalysisService(BaseMetadataService):
                     "case_id": case_id,
                     "simulation_id": simulation_id,
                     "analysis_type": "accuracy",
-                    "output_folder": str(analysis_dir),
-                    "chart_files": analysis_results.get("results", {}).get("chart_files", []),
-                    "report_file": analysis_results.get("results", {}).get("report_file", ""),
-                    "csv_files": analysis_results.get("results", {}).get("csv_files", []),
+                    # 前端精简页面所需的核心字段
+                    "created_at": analysis_results.get("created_at", ""),
+                    "completed_at": analysis_results.get("completed_at", ""),
+                    "status": analysis_results.get("status", "completed"),
+                    # 核心指标
                     "accuracy_metrics": analysis_results.get("results", {}).get("accuracy_metrics", {}),
+                    # 数据规模
                     "data_summary": analysis_results.get("results", {}).get("data_summary", {}),
-                    "analysis_metadata": analysis_results.get("analysis_metadata", {})
+                    # 产物链接
+                    "report_file": analysis_results.get("results", {}).get("report_file", ""),
+                    "chart_files": analysis_results.get("results", {}).get("chart_files", []),
+                    "csv_files": analysis_results.get("results", {}).get("csv_files", []),
+                    # 兼容字段（保持向后兼容）
+                    "result_folder": str(analysis_dir),
+                    "started_at": analysis_results.get("created_at", ""),
+                    "output_folder": str(analysis_dir),
+                    "analysis_metadata": analysis_results.get("analysis_metadata", {}),
+                    "source_stats": {
+                        "data_source_used": "gantry+e1",
+                        "e1_total_files": analysis_results.get("results", {}).get("data_summary", {}).get("e1_data", {}).get("total_records"),
+                        "e1_valid_tables": analysis_results.get("results", {}).get("data_summary", {}).get("e1_data", {}).get("unique_detectors"),
+                        "e1_parse_failures": 0
+                    },
+                    "alignment": {
+                        "common_columns": ["gantry_id", "time_key"],
+                        "mape_zero_policy": "filter"
+                    }
                 }
             }
             
@@ -404,78 +424,117 @@ class AccuracyAnalysisService(BaseMetadataService):
     
     async def _run_accuracy_analysis(self, case_dir: Path, simulation_dir: Path, analysis_dir: Path) -> Dict[str, Any]:
         """执行精度分析的核心逻辑"""
-        # 1. 解析门架数据
-        gantry_data = self._resolve_gantry_data(case_dir)
-        
-        # 2. 解析E1检测器数据
-        e1_data = self._resolve_e1_data(simulation_dir)
-        
-        # 3. 创建精度分析专用目录 - 调用shared层功能
-        accuracy_dir = analysis_dir / "accuracy"
-        from shared.utilities.file_utils import ensure_directory
-        ensure_directory(accuracy_dir)
-        
-        # 4. 执行数据对齐和导出
-        alignment_results = self._run_alignment_and_exports(gantry_data, e1_data, accuracy_dir)
-        
-        # 5. 执行精度分析（使用shared层分析器）
-        analyzer = AccuracyAnalysis()
-        charts_dir = accuracy_dir / "charts"
-        reports_dir = accuracy_dir
-        
-        analyzer.set_output_dirs(str(charts_dir), str(reports_dir))
-        analysis_results = analyzer.analyze_accuracy(alignment_results['aligned_data'])
-        
-        # 5. 构建完整的分析结果（用于元数据更新）
-        complete_results = {
-            "analysis_id": analysis_dir.name,
-            "analysis_type": "accuracy",
-            "status": "completed",
-            "created_at": pd.Timestamp.now().isoformat(),
-            "completed_at": pd.Timestamp.now().isoformat(),
+        try:
+            # 记录分析开始时间
+            analysis_start_time = pd.Timestamp.now()
+            logger.info(f"精度分析开始: {analysis_start_time}")
             
-            # 分析结果
-            "results": {
-                "chart_files": analysis_results.get("chart_files", []),
-                "report_file": analysis_results.get("report_file", ""),
-                "csv_files": alignment_results.get("csv_exports", []),
-                "accuracy_metrics": analysis_results.get("basic_metrics", {}),
-                "data_summary": {
-                    "gantry_data": {
-                        "total_records": len(gantry_data),
-                        "unique_gantries": gantry_data['gantry_id'].nunique() if 'gantry_id' in gantry_data.columns else 0
-                    },
-                    "e1_data": {
-                        "total_records": len(e1_data),
-                        "unique_detectors": e1_data['gantry_id'].nunique() if 'gantry_id' in e1_data.columns else 0
-                    },
-                    "aligned_data": {
-                        "total_records": len(alignment_results.get('aligned_data', pd.DataFrame())),
-                        "unique_gantries": alignment_results.get('aligned_data', pd.DataFrame())['gantry_id'].nunique() if not alignment_results.get('aligned_data', pd.DataFrame()).empty and 'gantry_id' in alignment_results.get('aligned_data', pd.DataFrame()).columns else 0
+            # 1. 解析门架数据
+            gantry_data = self._resolve_gantry_data(case_dir)
+            
+            # 2. 解析E1检测器数据
+            e1_data = self._resolve_e1_data(simulation_dir)
+            
+            # 3. 创建精度分析专用目录 - 调用shared层功能
+            accuracy_dir = analysis_dir / "accuracy"
+            from shared.utilities.file_utils import ensure_directory
+            ensure_directory(accuracy_dir)
+            
+            # 4. 执行数据对齐和导出
+            alignment_results = self._run_alignment_and_exports(gantry_data, e1_data, accuracy_dir)
+            
+            # 5. 执行精度分析（使用shared层分析器）
+            analyzer = AccuracyAnalysis()
+            charts_dir = accuracy_dir / "charts"
+            reports_dir = accuracy_dir
+            
+            analyzer.set_output_dirs(str(charts_dir), str(reports_dir))
+            analysis_results = analyzer.analyze_accuracy(alignment_results['aligned_data'])
+            
+            # 记录分析结束时间
+            analysis_end_time = pd.Timestamp.now()
+            analysis_duration = analysis_end_time - analysis_start_time
+            logger.info(f"精度分析完成: {analysis_end_time}, 耗时: {analysis_duration}")
+            
+            # 6. 构建完整的分析结果（用于元数据更新）
+            complete_results = {
+                "analysis_id": analysis_dir.name,
+                "analysis_type": "accuracy",
+                "status": "completed",
+                "created_at": analysis_start_time.isoformat(),
+                "completed_at": analysis_end_time.isoformat(),
+                "analysis_duration_seconds": analysis_duration.total_seconds(),
+                
+                # 分析结果
+                "results": {
+                    "chart_files": analysis_results.get("chart_files", []),
+                    "report_file": analysis_results.get("report_file", ""),
+                    # 合并：对齐阶段导出的CSV + 分析阶段导出的CSV
+                    "csv_files": (alignment_results.get("csv_exports", []) or []) + (list(analysis_results.get("csv_files", {}).values()) if isinstance(analysis_results.get("csv_files", {}), dict) else (analysis_results.get("csv_files", []) or [])),
+                    "accuracy_metrics": analysis_results.get("basic_metrics", {}),
+                    "data_summary": {
+                        "gantry_data": {
+                            "total_records": len(gantry_data),
+                            "unique_gantries": gantry_data['gantry_id'].nunique() if 'gantry_id' in gantry_data.columns else 0
+                        },
+                        "e1_data": {
+                            "total_records": len(e1_data),
+                            "unique_detectors": e1_data['gantry_id'].nunique() if 'gantry_id' in e1_data.columns else 0
+                        },
+                        "aligned_data": {
+                            "total_records": len(alignment_results.get('aligned_data', pd.DataFrame())),
+                            "unique_gantries": alignment_results.get('aligned_data', pd.DataFrame())['gantry_id'].nunique() if not alignment_results.get('aligned_data', pd.DataFrame()).empty and 'gantry_id' in alignment_results.get('aligned_data', pd.DataFrame()).columns else 0
+                        }
                     }
-                }
-            },
-            
-            # 分析元数据
-            "analysis_metadata": {
-                "analysis_tool": "accuracy_analyzer",
-                "analysis_version": "1.0.0",
-                "analysis_parameters": {
-                    "data_alignment": "gantry_id + time_key",
-                    "precision_metrics": ["MAE", "MSE", "RMSE", "MAPE", "GEH", "correlation"]
                 },
-                "analysis_workflow": [
-                    "门架数据加载",
-                    "E1数据加载", 
-                    "数据对齐",
-                    "精度指标计算",
-                    "图表生成",
-                    "报告生成"
-                ]
+                
+                # 分析元数据
+                "analysis_metadata": {
+                    "analysis_tool": "accuracy_analyzer",
+                    "analysis_version": "1.0.0",
+                    "analysis_start_time": analysis_start_time.isoformat(),
+                    "analysis_end_time": analysis_end_time.isoformat(),
+                    "analysis_duration_seconds": analysis_duration.total_seconds(),
+                    "analysis_parameters": {
+                        "data_alignment": "gantry_id + time_key",
+                        "precision_metrics": ["MAE", "MSE", "RMSE", "MAPE", "GEH", "correlation"]
+                    },
+                    "analysis_workflow": [
+                        "门架数据加载",
+                        "E1数据加载", 
+                        "数据对齐",
+                        "精度指标计算",
+                        "图表生成",
+                        "报告生成"
+                    ]
+                }
             }
-        }
-        
-        return complete_results
+            
+            logger.info(f"精度分析结果构建完成，耗时: {analysis_duration}")
+            return complete_results
+            
+        except Exception as e:
+            # 如果分析失败，记录失败时间
+            analysis_end_time = pd.Timestamp.now()
+            analysis_duration = analysis_end_time - analysis_start_time
+            
+            error_results = {
+                "analysis_id": analysis_dir.name,
+                "analysis_type": "accuracy",
+                "status": "failed",
+                "created_at": analysis_start_time.isoformat(),
+                "completed_at": analysis_end_time.isoformat(),
+                "analysis_duration_seconds": analysis_duration.total_seconds(),
+                "error": str(e),
+                "error_timestamp": analysis_end_time.isoformat(),
+                "error_details": {
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                }
+            }
+            
+            logger.error(f"精度分析执行失败: {e}, 耗时: {analysis_duration}")
+            raise Exception(f"精度分析执行失败: {e}")
     
     def _resolve_gantry_data(self, case_dir: Path):
         """解析门架数据 - 调用shared层模块"""

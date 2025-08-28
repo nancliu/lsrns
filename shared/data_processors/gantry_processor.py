@@ -110,8 +110,8 @@ class GantryDataProcessor:
             # 标准化列名
             processed.columns = [str(col).strip().lower() for col in processed.columns]
             
-            # 确保必要列存在
-            required_cols = ['gantry_id', 'start_time', 'flow']
+            # 确保必要列存在（以 volume 为标准字段）
+            required_cols = ['gantry_id', 'start_time']
             missing_cols = [col for col in required_cols if col not in processed.columns]
             if missing_cols:
                 logger.warning(f"门架数据缺少必要列: {missing_cols}")
@@ -123,14 +123,20 @@ class GantryDataProcessor:
             # 直接以区间开始时间生成时间键（用于对齐，精确到分钟）
             processed['time_key'] = processed['start_time'].dt.floor('1min')
             
-            # 数据类型转换
-            if 'flow' in processed.columns:
-                processed['flow'] = pd.to_numeric(processed['flow'], errors='coerce')
+            # 统一计数列为 volume
+            if 'flow' in processed.columns and 'volume' not in processed.columns:
+                processed['volume'] = pd.to_numeric(processed['flow'], errors='coerce')
+                processed = processed.drop(columns=['flow'], errors='ignore')
+            if 'volume' in processed.columns:
+                processed['volume'] = pd.to_numeric(processed['volume'], errors='coerce')
             if 'speed' in processed.columns:
                 processed['speed'] = pd.to_numeric(processed['speed'], errors='coerce')
             
             # 过滤无效数据
-            processed = processed.dropna(subset=['gantry_id', 'start_time', 'flow'])
+            drop_required = ['gantry_id', 'start_time']
+            if 'volume' in processed.columns:
+                drop_required.append('volume')
+            processed = processed.dropna(subset=drop_required)
             
             logger.info(f"门架数据标准化完成: {len(processed)}条记录")
             logger.info(f"时间范围: {processed['start_time'].min()} - {processed['start_time'].max()}")
@@ -154,12 +160,16 @@ class GantryDataProcessor:
             # 标准化列名
             processed.columns = [str(col).strip().lower() for col in processed.columns]
             
+            # 检查flow字段是否存在
+            if "flow" not in processed.columns:
+                logger.warning("E1数据缺少flow字段，这可能导致精度分析不准确")
+            
             # 检查并处理列名映射
             # E1数据应该包含detector_id和gantry_id两列
             # detector_id是原始检测器ID（如G420151001000110010_0）
             # gantry_id是门架ID（如G420151001000110010）
             
-            # 确保必要列存在
+            # 确保必要列存在（flow字段是必需的，用于精度分析）
             required_cols = ['gantry_id', 'start_time', 'flow']
             missing_cols = [col for col in required_cols if col not in processed.columns]
             if missing_cols:
@@ -203,9 +213,9 @@ class GantryDataProcessor:
                 logger.warning("门架数据或E1数据为空，无法对齐")
                 return pd.DataFrame(), {}
 
-            # 仅保留字段并重命名，便于 merge
-            g_cols = ['gantry_id', 'time_key', 'start_time', 'flow', 'speed']
-            e_cols = ['gantry_id', 'time_key', 'start_time', 'flow', 'speed', 'occupancy']
+            # 仅保留字段并重命名，便于 merge（统一使用 volume，不再使用 flow）
+            g_cols = ['gantry_id', 'time_key', 'start_time', 'volume', 'speed']
+            e_cols = ['gantry_id', 'time_key', 'start_time', 'volume', 'speed', 'occupancy']
 
             g = gantry_data.copy()
             e = e1_data.copy()
@@ -253,12 +263,12 @@ class GantryDataProcessor:
             # 重命名列后合并
             g_renamed = g.rename(columns={
                 'start_time': 'gantry_time',
-                'flow': 'gantry_flow',
+                'volume': 'gantry_volume',
                 'speed': 'gantry_speed',
             })
             e_renamed = e.rename(columns={
                 'start_time': 'e1_time',
-                'flow': 'e1_flow',
+                'volume': 'e1_volume',
                 'speed': 'e1_speed',
                 'occupancy': 'e1_occupancy',
             })
@@ -296,14 +306,24 @@ class GantryDataProcessor:
             output_dir.mkdir(parents=True, exist_ok=True)
             exported_files = {}
             
-            # 1. 导出门架标准化数据
+            # 1. 导出门架标准化数据（将 flow 列重命名为 volume，并去掉 flow 以避免误解）
             if "gantry_standardized" in self.processed_data:
                 gantry_file = output_dir / "gantry_data_standardized.csv"
-                self.processed_data["gantry_standardized"].to_csv(gantry_file, index=False, encoding="utf-8-sig")
+                try:
+                    df_out = self.processed_data["gantry_standardized"].copy()
+                    if "flow" in df_out.columns:
+                        if "volume" not in df_out.columns:
+                            df_out["volume"] = df_out["flow"]
+                        # 移除 flow 列，避免歧义
+                        df_out = df_out.drop(columns=["flow"], errors="ignore")
+                    df_out.to_csv(gantry_file, index=False, encoding="utf-8-sig")
+                except Exception:
+                    # 回退：直接导出原始，尽量不阻断流程
+                    self.processed_data["gantry_standardized"].to_csv(gantry_file, index=False, encoding="utf-8-sig")
                 exported_files["gantry_data_standardized.csv"] = str(gantry_file)
                 logger.info(f"导出门架标准化数据: {gantry_file}")
             
-            # 2. 导出E1标准化数据
+            # 2. 导出E1标准化数据（保持现有逻辑，包含 flow 与 volume，不做列删改）
             if "e1_standardized" in self.processed_data:
                 e1_file = output_dir / "e1_data_standardized.csv"
                 self.processed_data["e1_standardized"].to_csv(e1_file, index=False, encoding="utf-8-sig")
