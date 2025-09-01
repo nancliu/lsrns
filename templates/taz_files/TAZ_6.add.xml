@@ -71,17 +71,19 @@
     <inductionLoop id="G420151001001120010_1" lane="-15344_1" pos="615.16" period="300.00" file="e1/G420151001001120010_1.xml"/>
     <inductionLoop id="G420151001001120010_2" lane="-15344_2" pos="615.16" period="300.00" file="e1/G420151001001120010_2.xml"/>
     <inductionLoop id="G420151001001120010_3" lane="-15344_3" pos="615.16" period="300.00" file="e1/G420151001001120010_3.xml"/>
-    <inductionLoop id="G420151001001210010_0" lane="-760_0" pos="213.16" period="300.00" file="e1/G420151001001210010_0.xml"/>
-    <inductionLoop id="G420151001001210010_1" lane="-760_1" pos="213.16" period="300.00" file="e1/G420151001001210010_1.xml"/>
-    <inductionLoop id="G420151001001210010_2" lane="-760_2" pos="213.16" period="300.00" file="e1/G420151001001210010_2.xml"/>
-    <inductionLoop id="G420151001001220010_1" lane="-11526_1" pos="892.43" period="300.00" file="e1/G420151001001220010_1.xml"/>
-    <inductionLoop id="G420151001001220010_2" lane="-11526_2" pos="892.43" period="300.00" file="e1/G420151001001220010_2.xml"/>
-    <inductionLoop id="G420151001001220010_3" lane="-11526_3" pos="892.43" period="300.00" file="e1/G420151001001220010_3.xml"/>
+    <inductionLoop id="G420151001001210010_0" lane="-1842.115_0" pos="200" period="300.00" file="e1/G420151001001210010_0.xml"/>
+    <inductionLoop id="G420151001001210010_1" lane="-1842.115_1" pos="200" period="300.00" file="e1/G420151001001210010_1.xml"/>
+    <inductionLoop id="G420151001001210010_2" lane="-1842.115_2" pos="200" period="300.00" file="e1/G420151001001210010_2.xml"/>
+    <inductionLoop id="G420151001001210010_3" lane="-1842.115_3" pos="200" period="300.00" file="e1/G420151001001210010_3.xml"/>
+    <inductionLoop id="G420151001001220010_1" lane="-15156_1" pos="200" period="300.00" file="e1/G420151001001220010_1.xml"/>
+    <inductionLoop id="G420151001001220010_2" lane="-15156_2" pos="200" period="300.00" file="e1/G420151001001220010_2.xml"/>
+    <inductionLoop id="G420151001001220010_3" lane="-15156_3" pos="200" period="300.00" file="e1/G420151001001220010_3.xml"/>
+    <inductionLoop id="G420151001001220010_4" lane="-15156_4" pos="200" period="300.00" file="e1/G420151001001220010_4.xml"/>
     <inductionLoop id="G420151001001310010_0" lane="-6140_0" pos="97.04" period="300.00" file="e1/G420151001001310010_0.xml"/>
     <inductionLoop id="G420151001001310010_1" lane="-6140_1" pos="97.04" period="300.00" file="e1/G420151001001310010_1.xml"/>
     <inductionLoop id="G420151001001310010_2" lane="-6140_2" pos="97.04" period="300.00" file="e1/G420151001001310010_2.xml"/>
-    <inductionLoop id="G420151001001310010_3" lane="-6140_1" pos="97.04" period="300.00" file="e1/G420151001001310010_3.xml"/>
-    <inductionLoop id="G420151001001310010_4" lane="-6140_2" pos="97.04" period="300.00" file="e1/G420151001001310010_4.xml"/>
+    <inductionLoop id="G420151001001310010_3" lane="-6140_3" pos="97.04" period="300.00" file="e1/G420151001001310010_3.xml"/>
+    <inductionLoop id="G420151001001310010_4" lane="-6140_4" pos="97.04" period="300.00" file="e1/G420151001001310010_4.xml"/>
     <inductionLoop id="G420151001001320010_1" lane="-13696_1" pos="118.14" period="300.00" file="e1/G420151001001320010_1.xml"/>
     <inductionLoop id="G420151001001320010_2" lane="-13696_2" pos="118.14" period="300.00" file="e1/G420151001001320010_2.xml"/>
     <inductionLoop id="G420151001001320010_3" lane="-13696_3" pos="118.14" period="300.00" file="e1/G420151001001320010_3.xml"/>

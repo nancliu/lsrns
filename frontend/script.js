@@ -997,9 +997,9 @@ function updateTemplateSelects() {
             opt.textContent = t.name;
             tazSelect.appendChild(opt);
         });
-        // 默认选择 TAZ_5 系列
-        const taz5 = Array.from(tazSelect.options).find(o => /TAZ_5/i.test(o.textContent) || /TAZ_5/i.test(o.value));
-        if (taz5) tazSelect.value = taz5.value; else if (tazSelect.options[1]) tazSelect.selectedIndex = 1;
+        // 默认选择 TAZ_6.add.xml
+        const taz6 = Array.from(tazSelect.options).find(o => /TAZ_6\.add\.xml/i.test(o.textContent) || /TAZ_6\.add\.xml/i.test(o.value));
+        if (taz6) tazSelect.value = taz6.value; else if (tazSelect.options[1]) tazSelect.selectedIndex = 1;
     }
     const netSelect = document.getElementById('network-file');
     if (netSelect && currentTemplates.network) {
@@ -1010,9 +1010,9 @@ function updateTemplateSelects() {
             opt.textContent = t.name;
             netSelect.appendChild(opt);
         });
-        // 默认选择 v6 版本
-        const v6 = Array.from(netSelect.options).find(o => /v6/i.test(o.textContent) || /v6/i.test(o.value));
-        if (v6) netSelect.value = v6.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
+        // 默认选择 sichuan202508v7.net.xml
+        const v7 = Array.from(netSelect.options).find(o => /sichuan202508v7\.net\.xml/i.test(o.textContent) || /sichuan202508v7\.net\.xml/i.test(o.value));
+        if (v7) netSelect.value = v7.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
     }
 }
 

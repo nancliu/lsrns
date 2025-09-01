@@ -11,6 +11,7 @@ from typing import Dict, List, Tuple, Optional, Any
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import logging
+import json
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +20,47 @@ logger = logging.getLogger(__name__)
 class ODProcessor:
     """OD数据处理器类"""
     
-    def __init__(self):
+    def __init__(self, vehicle_config_path: Optional[str] = None):
+        """
+        初始化OD处理器
+        
+        Args:
+            vehicle_config_path: 车型配置文件路径，如果为None则使用默认路径
+        """
+        self.vehicle_config_path = vehicle_config_path or "templates/config_templates/vehicle_templates/vehicle_types.json"
+        self.vehicle_types = {}
+        self.vehicle_mapping = {}
+        self._load_vehicle_config()
+    
+    def _load_vehicle_config(self) -> None:
+        """加载车型配置文件并构建车型映射"""
+        try:
+            config_path = Path(self.vehicle_config_path)
+            if not config_path.exists():
+                logger.warning(f"车型配置文件不存在: {config_path}，使用默认映射")
+                self._create_default_mapping()
+                return
+            
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            self.vehicle_types = config.get('vehicle_types', {})
+            
+            # 构建车型ID到车型类型的映射
+            self.vehicle_mapping = {}
+            for vehicle_type, config_data in self.vehicle_types.items():
+                valid_ids = config_data.get('valid_ids', [])
+                for vehicle_id in valid_ids:
+                    self.vehicle_mapping[vehicle_id] = vehicle_type
+            
+            logger.info(f"成功加载车型配置，共 {len(self.vehicle_types)} 种车型类型，{len(self.vehicle_mapping)} 个车型ID")
+            
+        except Exception as e:
+            logger.error(f"加载车型配置文件失败: {e}，使用默认映射")
+            self._create_default_mapping()
+    
+    def _create_default_mapping(self) -> None:
+        """创建默认的车型映射（作为备用方案）"""
         self.vehicle_mapping = {
             "k1": "passenger_small",
             "k2": "passenger_small", 
@@ -31,11 +72,60 @@ class ODProcessor:
             "h4": "truck_large",
             "h5": "truck_large",
             "h6": "truck_large",
-            "t1": "bus_small",
-            "t2": "bus_large",
-            "t3": "bus_large",
-            "t4": "bus_large"
+            "t1": "special_small",
+            "t2": "special_small",
+            "t3": "special_large",
+            "t4": "special_large",
+            "t5": "special_large",
+            "t6": "special_large"
         }
+        logger.info("使用默认车型映射")
+    
+    def get_vehicle_type(self, vehicle_id: str) -> str:
+        """
+        根据车型ID获取车型类型
+        
+        Args:
+            vehicle_id: 车型ID (如 'k1', 'h2', 't3')
+            
+        Returns:
+            车型类型 (如 'passenger_small', 'truck_large', 'special_small')
+        """
+        return self.vehicle_mapping.get(vehicle_id, 'passenger_small')
+    
+    def get_vehicle_config(self, vehicle_type: str) -> Dict[str, Any]:
+        """
+        获取指定车型类型的配置信息
+        
+        Args:
+            vehicle_type: 车型类型
+            
+        Returns:
+            车型配置字典
+        """
+        return self.vehicle_types.get(vehicle_type, {})
+    
+    def get_all_vehicle_types(self) -> List[str]:
+        """
+        获取所有可用的车型类型列表
+        
+        Returns:
+            车型类型列表
+        """
+        return list(self.vehicle_types.keys())
+    
+    def get_vehicle_ids_by_type(self, vehicle_type: str) -> List[str]:
+        """
+        获取指定车型类型下的所有车型ID
+        
+        Args:
+            vehicle_type: 车型类型
+            
+        Returns:
+            车型ID列表
+        """
+        config = self.vehicle_types.get(vehicle_type, {})
+        return config.get('valid_ids', [])
     
     def calculate_duration(self, start_time: str, end_time: str) -> int:
         """
@@ -169,13 +259,32 @@ class ODProcessor:
         logger.info(f"开始生成ROU XML文件: {output_file}")
         root = ET.Element("routes")
         
-        # 车辆类型定义
+        # 车辆类型定义 - 使用配置文件中的参数
         for vt in sorted(set(flow_df.get('vtype', []))):
             v = ET.SubElement(root, "vType")
             v.set("id", str(vt))
-            # 基础占位属性，可根据需要微调
-            v.set("accel", "1.0"); v.set("decel", "4.5"); v.set("sigma", "0.5")
-            v.set("length", "5"); v.set("maxSpeed", "27.78")
+            
+            # 从车型配置中获取参数，如果没有则使用默认值
+            vehicle_config = self.vehicle_types.get(str(vt), {})
+            if vehicle_config:
+                # 使用配置文件中的参数
+                v.set("accel", str(vehicle_config.get('accel', 1.0)))
+                v.set("decel", str(vehicle_config.get('decel', 4.5)))
+                v.set("sigma", str(vehicle_config.get('sigma', 0.5)))
+                v.set("length", str(vehicle_config.get('length', 5.0)))
+                v.set("maxSpeed", str(vehicle_config.get('maxSpeed', 27.78)))
+                v.set("color", str(vehicle_config.get('color', 'white')))
+                v.set("vClass", str(vehicle_config.get('vClass', 'passenger')))
+                v.set("carFollowModel", str(vehicle_config.get('carFollowModel', 'IDM')))
+                logger.debug(f"使用配置文件参数定义车型 {vt}: {vehicle_config}")
+            else:
+                # 使用默认参数
+                v.set("accel", "1.0")
+                v.set("decel", "4.5")
+                v.set("sigma", "0.5")
+                v.set("length", "5")
+                v.set("maxSpeed", "27.78")
+                logger.debug(f"使用默认参数定义车型 {vt}")
         
         # 按begin时间排序，确保SUMO不会发出排序警告
         sorted_flow_df = flow_df.sort_values('begin').reset_index(drop=True)
@@ -253,6 +362,9 @@ class ODProcessor:
             route_file = gen_file(".rou.xml")
  
             # 单SQL：在数据库内完成5分钟分桶与聚合以及车辆类型映射
+            # 动态生成车型映射CASE语句
+            vehicle_case_clause = self._generate_vehicle_case_clause()
+            
             base_sql = f"""
             WITH params AS (
               SELECT 
@@ -271,15 +383,7 @@ class ODProcessor:
                 date_bin((p.interval_min||' minutes')::interval, t."start_time", p.start_ts) + (p.interval_min||' minutes')::interval     AS ts_end,
                 COALESCE(NULLIF(t."start_square_code", ''), t."start_station_code")                                                        AS "fromTaz",
                 COALESCE(NULLIF(t."end_square_code", ''),   t."end_station_code")                                                          AS "toTaz",
-                CASE
-                  WHEN t."vehicle_type" IN ('k1','k2')              THEN 'passenger_small'
-                  WHEN t."vehicle_type" IN ('k3','k4')              THEN 'passenger_large'
-                  WHEN t."vehicle_type" IN ('h1','h2')              THEN 'truck_small'
-                  WHEN t."vehicle_type" IN ('h3','h4','h5','h6')    THEN 'truck_large'
-                  WHEN t."vehicle_type" IN ('t1')                   THEN 'bus_small'
-                  WHEN t."vehicle_type" IN ('t2','t3','t4')         THEN 'bus_large'
-                  ELSE 'passenger_small'
-                END AS "vtype",
+                {vehicle_case_clause} AS "vtype",
                 COUNT(*)::bigint AS cnt
               FROM "{schemas_name}"."{table_name}" t
               CROSS JOIN params p
@@ -350,3 +454,30 @@ class ODProcessor:
                 "success": False,
                 "error": str(e)
             } 
+    
+    def _generate_vehicle_case_clause(self) -> str:
+        """
+        动态生成车型映射的CASE语句
+        
+        Returns:
+            SQL CASE语句字符串
+        """
+        case_parts = []
+        
+        # 按车型类型分组车型ID
+        type_groups = {}
+        for vehicle_id, vehicle_type in self.vehicle_mapping.items():
+            if vehicle_type not in type_groups:
+                type_groups[vehicle_type] = []
+            type_groups[vehicle_type].append(f"'{vehicle_id}'")
+        
+        # 生成CASE语句
+        for vehicle_type, vehicle_ids in type_groups.items():
+            ids_str = ','.join(vehicle_ids)
+            case_parts.append(f"WHEN t.\"vehicle_type\" IN ({ids_str}) THEN '{vehicle_type}'")
+        
+        # 添加默认情况
+        case_parts.append("ELSE 'passenger_small'")
+        
+        case_clause = "CASE\n  " + "\n  ".join(case_parts) + "\nEND"
+        return case_clause 

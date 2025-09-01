@@ -1,4 +1,4 @@
-# OD数据处理与仿真系统（v0.65）
+# OD数据处理与仿真系统（v0.7）
 
 ## 项目概述
 
@@ -62,6 +62,16 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 
 ## 系统功能
 
+### 车型模板配置
+
+系统支持通过配置文件定义车型参数，实现动态车型管理：
+
+- **配置文件**: `templates/config_templates/vehicle_templates/vehicle_types.json`
+- **支持车型**: passenger_small、truck_large、special_small、special_large等
+- **参数配置**: accel、decel、length、maxSpeed、color、vClass、carFollowModel
+- **动态生成**: 根据模板自动生成rou.xml文件中的vType定义
+- **灵活映射**: 支持车型ID到车型类型的灵活映射配置
+
 ### 核心功能
 
 1. **OD数据处理**
@@ -88,9 +98,10 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
    - 搜索和筛选功能
 
 5. **模板管理**
-   - TAZ文件模板（TAZ_5_validated.add.xml等）
-   - 网络文件模板（sichuan系列）
+   - TAZ文件模板（TAZ_6.add.xml等）
+   - 网络文件模板（sichuan202508v7.net.xml等）
    - 仿真配置模板（microscopic、mesoscopic）
+   - 车型模板配置（vehicle_types.json）
 
 ### API接口（按业务分组）
 
@@ -299,7 +310,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 # （具体执行方式参考测试清单文档）
 ```
 
-### 测试状态（v0.65）
+### 测试状态（v0.7）
 - ✅ 基础功能：100%通过
 - ✅ OD数据处理：完全正常
 - ✅ 仿真运行：启动和监控正常
@@ -326,7 +337,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
    - 验证.env中的数据库配置
    - 确认网络连接
 
-### 性能指标（v0.65验证）
+### 性能指标（v0.7验证）
 
 - **页面加载时间**: < 3秒 ✅
 - **表单提交响应**: < 2秒 ✅
@@ -341,13 +352,23 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ## 版本信息
 
-- **当前版本**: v0.65 🚀
+- **当前版本**: v0.7 🚀
 - **架构状态**: ✅ 完全模块化
 - **核心功能**: ✅ 完全可用
 - **测试状态**: ✅ 全面验证通过
 - **Python版本**: 3.10+
 
 ## 重要变更
+
+### v0.7 - 车型模板配置和前端优化
+
+- ✅ 更新TAZ文件默认选项为TAZ_6.add.xml
+- ✅ 更新网络文件默认选项为sichuan202508v7.net.xml
+- ✅ 完善车型模板配置文件（vehicle_types.json）
+- ✅ 重构ODProcessor类，移除硬编码车型定义
+- ✅ 根据车型模板动态生成rou.xml文件
+- ✅ 优化前端默认文件选择逻辑
+- ✅ 删除冗余备份文件，保持代码整洁
 
 ### v0.65 (2025-08-22) - 版本更新和功能优化
 
@@ -385,8 +406,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ---
 
-**文档版本**: v0.65  
-**最后更新**: 2025-08-22  
+**文档版本**: v0.7  
 **系统状态**: ✅ 核心功能完全可用  
 **测试状态**: ✅ 全面验证通过  
 **维护者**: 开发团队
