@@ -15,6 +15,39 @@ logger = logging.getLogger(__name__)
 
 class EdgeDataAnalysisService(BaseMetadataService):
     """EdgeData 分析服务类"""
+
+    @staticmethod
+    def _to_json_safe(obj: Any) -> Any:
+        """递归转换为可JSON序列化的对象（处理numpy/pandas标量）"""
+        try:
+            import numpy as _np  # 延迟导入以避免非必要依赖
+        except Exception:
+            _np = None
+
+        if obj is None:
+            return None
+        # 基本类型
+        if isinstance(obj, (str, bool, int, float)):
+            return obj
+        # numpy 标量
+        if _np is not None and isinstance(obj, (_np.integer, _np.floating)):
+            return obj.item()
+        # pandas Timestamp 等
+        if hasattr(obj, 'isoformat') and callable(getattr(obj, 'isoformat')):
+            try:
+                return obj.isoformat()
+            except Exception:
+                pass
+        # 映射/序列
+        if isinstance(obj, dict):
+            return {str(EdgeDataAnalysisService._to_json_safe(k)): EdgeDataAnalysisService._to_json_safe(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [EdgeDataAnalysisService._to_json_safe(v) for v in obj]
+        # 其他对象尝试转字符串
+        try:
+            return str(obj)
+        except Exception:
+            return None
     
     async def analyze_edgedata(self, case_id: str, simulation_ids: List[str]) -> Dict[str, Any]:
         """
@@ -72,7 +105,7 @@ class EdgeDataAnalysisService(BaseMetadataService):
             # 不创建/不更新 案例级 metadata.json，且不更新仿真分支元数据。
             base_dir, analysis_dir = self.prepare_analysis_dirs(case_root, "edgedata")
             
-            # 执行 EdgeData 分析的核心逻辑
+            # 执行 EdgeData 分析的核心逻辑（已在内部清洗DataFrame等不可序列化对象）
             analysis_results = await self._run_edgedata_analysis(
                 case_root, simulation_folders, analysis_dir, simulation_ids
             )
@@ -81,7 +114,26 @@ class EdgeDataAnalysisService(BaseMetadataService):
             self.update_metadata_for_analysis(case_root, simulation_ids, "edgedata", analysis_results, base_dir)
             
             logger.info("EdgeData分析完成")
-            return analysis_results
+            # 返回精简后的结果结构，保持与精度分析一致的响应风格
+            return {
+                "success": True,
+                "message": "EdgeData分析完成",
+                "data": EdgeDataAnalysisService._to_json_safe({
+                    "analysis_id": analysis_results.get("analysis_id", analysis_dir.parent.name),
+                    "case_id": case_id,
+                    "simulation_ids": simulation_ids,
+                    "analysis_type": "edgedata",
+                    "created_at": analysis_results.get("created_at", ""),
+                    "completed_at": analysis_results.get("completed_at", ""),
+                    "status": analysis_results.get("status", "completed"),
+                    "result_folder": str(analysis_dir),
+                    "output_folder": analysis_results.get("reports_directory", ""),
+                    "report_file": analysis_results.get("results", {}).get("report_file", ""),
+                    "chart_files": analysis_results.get("results", {}).get("chart_files", []),
+                    "csv_files": analysis_results.get("results", {}).get("csv_files", []),
+                    "summary": analysis_results.get("results", {}).get("summary", {})
+                })
+            }
             
         except Exception as e:
             logger.error(f"EdgeData分析失败: {e}")
@@ -244,7 +296,11 @@ class EdgeDataAnalysisService(BaseMetadataService):
     
     async def _run_edgedata_analysis(self, case_root: Path, simulation_folders: List[Path], 
                                    analysis_dir: Path, simulation_ids: List[str]) -> Dict[str, Any]:
-        """执行 EdgeData 分析的核心逻辑"""
+        """执行 EdgeData 分析的核心逻辑
+
+        注意：清洗不可序列化对象（如 pandas.DataFrame），仅返回可JSON序列化的结构，
+        并构造符合 BaseMetadataService 期望的 "results" 字段。
+        """
         try:
             # 创建 EdgeData 分析专用目录
             edgedata_dir = analysis_dir / "edgedata"
@@ -257,41 +313,88 @@ class EdgeDataAnalysisService(BaseMetadataService):
             reports_dir = edgedata_dir
             
             analyzer.set_output_dirs(str(charts_dir), str(reports_dir))
-            analysis_results = analyzer.analyze_edgedata(simulation_folders, simulation_ids)
-            
-            # 构建完整的分析结果（用于元数据更新）
+            raw_results = analyzer.analyze_edgedata(simulation_folders, simulation_ids)
+
+            # 提取可序列化的摘要信息，避免携带DataFrame
+            edgedata_summary = raw_results.get("edgedata_summary", {}) if isinstance(raw_results, dict) else {}
+            if isinstance(edgedata_summary, dict):
+                # 移除可能包含DataFrame的键
+                if "data" in edgedata_summary:
+                    edgedata_summary = {k: v for k, v in edgedata_summary.items() if k != "data"}
+
+            flow_analysis = raw_results.get("flow_analysis", {}) if isinstance(raw_results, dict) else {}
+            speed_analysis = raw_results.get("speed_analysis", {}) if isinstance(raw_results, dict) else {}
+            density_analysis = raw_results.get("density_analysis", {}) if isinstance(raw_results, dict) else {}
+            temporal_analysis = raw_results.get("temporal_analysis", {}) if isinstance(raw_results, dict) else {}
+
+            # 归纳一个简要 summary，便于前端展示
+            summary = {
+                "total_records": edgedata_summary.get("total_records", 0),
+                "edge_count": edgedata_summary.get("edge_count", 0),
+                "simulation_count": edgedata_summary.get("simulation_count", len(simulation_ids)),
+                "time_range": edgedata_summary.get("time_range", {}),
+                "flow_overall": flow_analysis.get("overall_stats", {}),
+                "speed_overall": speed_analysis.get("overall_stats", {}),
+                "density_overall": density_analysis.get("overall_stats", {}),
+            }
+
+            chart_files = raw_results.get("chart_files", [])
+            report_file = raw_results.get("report_file", "")
+            csv_files = raw_results.get("csv_files", [])
+
+            # 生成时间信息
+            from datetime import datetime as _dt
+            created_at = _dt.now().isoformat()
+            completed_at = _dt.now().isoformat()
+
+            # 构建完整的分析结果（用于元数据更新），包含 results 子结构
             complete_results = {
-                **analysis_results,
                 "analysis_id": analysis_dir.parent.name,
                 "case_id": case_root.name,
                 "simulation_ids": simulation_ids,
+                "created_at": created_at,
+                "completed_at": completed_at,
+                "status": "completed",
+                "analysis_type": "edgedata",
                 "analysis_directory": str(edgedata_dir.relative_to(case_root)),
                 "charts_directory": str(charts_dir.relative_to(case_root)),
-                "reports_directory": str(reports_dir.relative_to(case_root))
+                "reports_directory": str(reports_dir.relative_to(case_root)),
+                "results": {
+                    "chart_files": chart_files,
+                    "report_file": report_file,
+                    "csv_files": csv_files,
+                    "summary": summary,
+                    # 如有需要，可附带较轻量的统计明细（均为可序列化dict）
+                    "flow_analysis": flow_analysis,
+                    "speed_analysis": speed_analysis,
+                    "density_analysis": density_analysis,
+                    "temporal_analysis": temporal_analysis,
+                    "file_summary": edgedata_summary.get("file_summary", {}),
+                },
+                # 不将原始DataFrame写入结果
             }
             
-            return complete_results
+            return EdgeDataAnalysisService._to_json_safe(complete_results)
             
         except Exception as e:
             logger.error(f"EdgeData分析核心逻辑执行失败: {e}")
             raise
 
 
-# 创建服务实例
-edgedata_analysis_service = EdgeDataAnalysisService()
-
-
 # 导出服务函数 (保持向后兼容)
 async def analyze_edgedata_service(case_id: str, simulation_ids: List[str]) -> Dict[str, Any]:
     """EdgeData 分析服务函数"""
-    return await edgedata_analysis_service.analyze_edgedata(case_id, simulation_ids)
+    service = EdgeDataAnalysisService(Path("cases"))
+    return await service.analyze_edgedata(case_id, simulation_ids)
 
 
 async def list_edgedata_analysis_results_service(case_id: str) -> Dict[str, Any]:
     """列出 EdgeData 分析结果服务函数"""
-    return await edgedata_analysis_service.list_analysis_results(case_id, "edgedata")
+    service = EdgeDataAnalysisService(Path("cases"))
+    return await service.list_analysis_results(case_id, "edgedata")
 
 
 async def get_edgedata_analysis_detail_service(case_id: str, analysis_batch_id: str) -> Dict[str, Any]:
     """获取 EdgeData 分析详情服务函数"""
-    return await edgedata_analysis_service.get_analysis_detail(case_id, analysis_batch_id, "edgedata")
+    service = EdgeDataAnalysisService(Path("cases"))
+    return await service.get_analysis_detail(case_id, analysis_batch_id, "edgedata")

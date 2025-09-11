@@ -450,85 +450,158 @@ class EdgeDataAnalysis:
                                  density_analysis: Dict[str, Any],
                                  temporal_analysis: Dict[str, Any],
                                  chart_files: List[str]) -> str:
-        """生成 EdgeData 分析报告"""
+        """生成 EdgeData 分析报告（HTML，内嵌图表链接与样式）"""
         try:
-            report_content = []
-            report_content.append("# EdgeData 交通流分析报告")
-            report_content.append(f"\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            report_content.append("\n" + "="*50)
-            
-            # 1. 流量分析部分
-            if flow_analysis and "overall_stats" in flow_analysis:
-                report_content.append("\n## 1. 交通流量分析")
-                stats = flow_analysis["overall_stats"]
-                report_content.append(f"\n### 总体统计")
-                report_content.append(f"- 总进入车辆数: {stats.get('total_vehicles_entered', 0):,}")
-                report_content.append(f"- 总离开车辆数: {stats.get('total_vehicles_left', 0):,}")
-                report_content.append(f"- 平均流量: {stats.get('avg_flow_rate', 0):.2f} 车辆/小时")
-                report_content.append(f"- 最大流量: {stats.get('max_flow_rate', 0):.2f} 车辆/小时")
-                
-                if "top_flow_edges" in flow_analysis:
-                    report_content.append(f"\n### 高流量路段 (Top 5)")
-                    for i, (edge_id, flow) in enumerate(list(flow_analysis["top_flow_edges"].items())[:5], 1):
-                        report_content.append(f"{i}. 路段 {edge_id}: {flow:.2f} 车辆/小时")
-            
-            # 2. 速度分析部分
-            if speed_analysis and "overall_stats" in speed_analysis:
-                report_content.append("\n## 2. 交通速度分析")
-                stats = speed_analysis["overall_stats"]
-                report_content.append(f"\n### 总体统计")
-                report_content.append(f"- 平均速度: {stats.get('avg_speed', 0):.2f} m/s")
-                report_content.append(f"- 最大速度: {stats.get('max_speed', 0):.2f} m/s")
-                report_content.append(f"- 最小速度: {stats.get('min_speed', 0):.2f} m/s")
-                report_content.append(f"- 速度标准差: {stats.get('std_speed', 0):.2f} m/s")
-                
-                if "low_speed_edges" in speed_analysis:
-                    report_content.append(f"\n### 低速路段 (Top 5)")
-                    for i, (edge_id, speed) in enumerate(list(speed_analysis["low_speed_edges"].items())[:5], 1):
-                        report_content.append(f"{i}. 路段 {edge_id}: {speed:.2f} m/s")
-            
-            # 3. 密度分析部分
-            if density_analysis and "overall_stats" in density_analysis:
-                report_content.append("\n## 3. 交通密度分析")
-                stats = density_analysis["overall_stats"]
-                report_content.append(f"\n### 总体统计")
-                report_content.append(f"- 平均密度: {stats.get('avg_density', 0):.2f} 车辆/km")
-                report_content.append(f"- 最大密度: {stats.get('max_density', 0):.2f} 车辆/km")
-                report_content.append(f"- 平均占用率: {stats.get('avg_occupancy', 0):.4f}")
-                
-                if "congestion_analysis" in density_analysis:
-                    cong_stats = density_analysis["congestion_analysis"]
-                    report_content.append(f"\n### 拥堵分析")
-                    report_content.append(f"- 平均拥堵指数: {cong_stats.get('avg_congestion_index', 0):.4f}")
-                    report_content.append(f"- 最大拥堵指数: {cong_stats.get('max_congestion_index', 0):.4f}")
-            
-            # 4. 时间模式分析
-            if temporal_analysis and "peak_analysis" in temporal_analysis:
-                report_content.append("\n## 4. 时间模式分析")
-                peak_stats = temporal_analysis["peak_analysis"]
-                report_content.append(f"\n### 峰值分析")
-                report_content.append(f"- 流量峰值时间: {peak_stats.get('peak_flow_time', 0)} 秒")
-                report_content.append(f"- 流量峰值: {peak_stats.get('peak_flow_value', 0):.2f} 车辆/小时")
-                report_content.append(f"- 拥堵峰值时间: {peak_stats.get('peak_congestion_time', 0)} 秒")
-                report_content.append(f"- 拥堵峰值: {peak_stats.get('peak_congestion_value', 0):.4f}")
-            
-            # 5. 图表列表
-            if chart_files:
-                report_content.append("\n## 5. 分析图表")
-                for chart_file in chart_files:
-                    chart_name = Path(chart_file).name
-                    report_content.append(f"- {chart_name}")
-            
-            report_content.append(f"\n\n报告生成完成 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # 保存报告
-            report_file = self.reports_dir / "edgedata_analysis_report.md"
+            # 计算相对路径，保证报告中图片能显示
+            rel_charts = []
+            for cf in chart_files:
+                try:
+                    rel = Path(cf).relative_to(self.reports_dir)
+                except Exception:
+                    # 退化：若无法相对，则仅取文件名并放在 charts/ 前缀下
+                    rel = Path("charts") / Path(cf).name
+                rel_charts.append(rel.as_posix())
+
+            # 提取核心统计
+            def _fmt_float(v, digits=2):
+                try:
+                    return f"{float(v):.{digits}f}"
+                except Exception:
+                    return str(v)
+
+            flow = flow_analysis.get("overall_stats", {}) if flow_analysis else {}
+            speed = speed_analysis.get("overall_stats", {}) if speed_analysis else {}
+            density = density_analysis.get("overall_stats", {}) if density_analysis else {}
+            peak = (temporal_analysis or {}).get("peak_analysis", {})
+
+            # HTML 模板
+            html = f"""
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+<head>
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>EdgeData 交通流分析报告</title>
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Microsoft YaHei', sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }}
+    .container {{ max-width: 1100px; margin: 0 auto; padding: 24px; }}
+    .header {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }}
+    .title {{ font-size: 24px; font-weight: 700; color: #f8fafc; }}
+    .subtitle {{ color: #94a3b8; font-size: 14px; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }}
+    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.2); }}
+    .card h3 {{ margin: 0 0 8px; font-size: 16px; color: #f1f5f9; }}
+    .metric {{ display: flex; align-items: baseline; gap: 6px; margin: 6px 0; }}
+    .metric .label {{ color: #94a3b8; font-size: 13px; }}
+    .metric .value {{ color: #e5e7eb; font-weight: 600; }}
+    .section {{ margin-top: 24px; }}
+    .section h2 {{ font-size: 18px; margin: 0 0 12px; color: #f8fafc; }}
+    .img-wrap {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 12px; margin-bottom: 16px; text-align: center; }}
+    img {{ max-width: 100%; height: auto; border-radius: 8px; }}
+    table {{ width: 100%; border-collapse: collapse; border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }}
+    th, td {{ padding: 10px 12px; border-bottom: 1px solid #1f2937; }}
+    th {{ background: #0b1220; color: #cbd5e1; text-align: left; }}
+    tr:nth-child(even) td {{ background: #0b1220; }}
+    .footer {{ margin-top: 24px; color: #64748b; font-size: 12px; text-align: right; }}
+    a {{ color: #60a5fa; text-decoration: none; }}
+  </style>
+  <script>
+    // 轻量交互：折叠/展开
+    function toggle(id) {{
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    }}
+  </script>
+  </head>
+<body>
+  <div class=\"container\">
+    <div class=\"header\">
+      <div class=\"title\">EdgeData 交通流分析报告</div>
+      <div class=\"subtitle\">生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+    </div>
+
+    <div class=\"grid\">
+      <div class=\"card\">
+        <h3>流量概览</h3>
+        <div class=\"metric\"><span class=\"label\">平均流量</span><span class=\"value\">{_fmt_float(flow.get('avg_flow_rate', 0))} 车辆/小时</span></div>
+        <div class=\"metric\"><span class=\"label\">最大流量</span><span class=\"value\">{_fmt_float(flow.get('max_flow_rate', 0))} 车辆/小时</span></div>
+        <div class=\"metric\"><span class=\"label\">总进入车辆</span><span class=\"value\">{flow.get('total_vehicles_entered', 0):,}</span></div>
+      </div>
+      <div class=\"card\">
+        <h3>速度概览</h3>
+        <div class=\"metric\"><span class=\"label\">平均速度</span><span class=\"value\">{_fmt_float(speed.get('avg_speed', 0))} m/s</span></div>
+        <div class=\"metric\"><span class=\"label\">最大速度</span><span class=\"value\">{_fmt_float(speed.get('max_speed', 0))} m/s</span></div>
+        <div class=\"metric\"><span class=\"label\">最小速度</span><span class=\"value\">{_fmt_float(speed.get('min_speed', 0))} m/s</span></div>
+      </div>
+      <div class=\"card\">
+        <h3>密度与拥堵</h3>
+        <div class=\"metric\"><span class=\"label\">平均密度</span><span class=\"value\">{_fmt_float(density.get('avg_density', 0))} 车辆/km</span></div>
+        <div class=\"metric\"><span class=\"label\">平均占用率</span><span class=\"value\">{_fmt_float(density.get('avg_occupancy', 0), 4)}</span></div>
+      </div>
+      <div class=\"card\">
+        <h3>峰值时段</h3>
+        <div class=\"metric\"><span class=\"label\">流量峰值时间</span><span class=\"value\">{peak.get('peak_flow_time', '-')}</span></div>
+        <div class=\"metric\"><span class=\"label\">拥堵峰值时间</span><span class=\"value\">{peak.get('peak_congestion_time', '-')}</span></div>
+      </div>
+    </div>
+
+    <div class=\"section\">
+      <h2>图表</h2>
+      {''.join([f'<div class=\"img-wrap\"><img alt=\"chart\" src=\"{src}\" /></div>' for src in rel_charts])}
+    </div>
+
+    <div class=\"section\">
+      <h2 onclick=\"toggle('tables')\" style=\"cursor:pointer\">统计明细（点击折叠）</h2>
+      <div id=\"tables\"> 
+        <div class=\"card\">
+          <h3>低速路段（Top 10）</h3>
+          <table>
+            <thead><tr><th>edge_id</th><th>avg_speed</th></tr></thead>
+            <tbody>
+            {''.join([f"<tr><td>{eid}</td><td>{_fmt_float(val)}</td></tr>" for eid, val in (list((speed_analysis or {}).get('low_speed_edges', {}).items())[:10])])}
+            </tbody>
+          </table>
+        </div>
+        <div class=\"card\">
+          <h3>高流量路段（Top 10）</h3>
+          <table>
+            <thead><tr><th>edge_id</th><th>avg_flow_rate</th></tr></thead>
+            <tbody>
+            {''.join([f"<tr><td>{eid}</td><td>{_fmt_float(val)}</td></tr>" for eid, val in (list((flow_analysis or {}).get('top_flow_edges', {}).items())[:10])])}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class=\"section\">
+      <h2>导出文件</h2>
+      <div class=\"card\">
+        <p>CSV 导出文件位于本目录，或 charts 子目录中的图表。</p>
+        <ul>
+          <li><a href=\"edgedata_raw_data.csv\">edgedata_raw_data.csv</a></li>
+          <li><a href=\"edgedata_temporal_stats.csv\">edgedata_temporal_stats.csv</a></li>
+          <li><a href=\"edgedata_edge_flow_stats.csv\">edgedata_edge_flow_stats.csv</a></li>
+          <li><a href=\"edgedata_edge_speed_stats.csv\">edgedata_edge_speed_stats.csv</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class=\"footer\">OD生成脚本 · EdgeData 报告</div>
+  </div>
+</body>
+</html>
+"""
+
+            # 保存 HTML 报告
+            report_file = self.reports_dir / "edgedata_analysis_report.html"
             with open(report_file, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(report_content))
-            
+                f.write(html)
+
             logger.info(f"EdgeData分析报告已生成: {report_file}")
             return str(report_file)
-            
+
         except Exception as e:
             logger.error(f"EdgeData分析报告生成失败: {e}")
             return ""
