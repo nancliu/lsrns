@@ -5,7 +5,7 @@
 from fastapi import APIRouter
 from typing import Optional
 import logging
-from ..models import AccuracyAnalysisRequest, MechanismAnalysisRequest, PerformanceAnalysisRequest, BaseResponse
+from ..models import AccuracyAnalysisRequest, EdgeDataAnalysisRequest, MechanismAnalysisRequest, PerformanceAnalysisRequest, BaseResponse
 # 不再从api.services导入旧函数，直接使用服务类
 from .middleware import handle_service_errors, create_success_response
 
@@ -85,6 +85,9 @@ async def get_analysis_results(case_id: str, analysis_type: Optional[str] = "acc
     elif analysis_type == "performance":
         from ..services.performance_service import PerformanceAnalysisService
         service = PerformanceAnalysisService(cases_dir)
+    elif analysis_type == "edgedata":
+        from ..services.edgedata_service import EdgeDataAnalysisService
+        service = EdgeDataAnalysisService(cases_dir)
     else:
         # 默认使用精度分析服务
         from ..services.accuracy_service import AccuracyAnalysisService
@@ -128,6 +131,40 @@ async def analyze_performance(request: PerformanceAnalysisRequest):
     # 执行性能分析
     result = await performance_service.analyze_performance(request.case_id, request.simulation_ids)
     return create_success_response("性能分析成功", result)
+
+
+@router.post("/analyze_edgedata/", response_model=BaseResponse)
+@handle_service_errors
+async def analyze_edgedata(request: EdgeDataAnalysisRequest):
+    """
+    EdgeData分析
+    """
+    from ..services.edgedata_service import EdgeDataAnalysisService
+    from pathlib import Path
+    
+    # 创建EdgeData分析服务实例
+    cases_dir = Path("cases")
+    edgedata_service = EdgeDataAnalysisService(cases_dir)
+    
+    # 执行EdgeData分析
+    result = await edgedata_service.analyze_edgedata(request.case_id, request.simulation_ids)
+    return create_success_response("EdgeData分析成功", result)
+
+
+@router.get("/edgedata_results/{case_id}")
+@handle_service_errors
+async def get_edgedata_results(case_id: str):
+    """
+    获取EdgeData分析结果
+    """
+    from ..services.edgedata_service import EdgeDataAnalysisService
+    from pathlib import Path
+    
+    # 创建服务实例获取EdgeData分析结果
+    cases_dir = Path("cases")
+    service = EdgeDataAnalysisService(cases_dir)
+    data = await service.list_analysis_results(case_id, "edgedata")
+    return create_success_response("获取EdgeData分析结果成功", data)
 
 
 @router.get("/accuracy_results/{case_id}")

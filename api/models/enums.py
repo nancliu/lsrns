@@ -26,3 +26,4 @@ class AnalysisType(str, Enum):
     ACCURACY = "accuracy"
     MECHANISM = "mechanism"
     PERFORMANCE = "performance"
+    EDGEDATA = "edgedata"

@@ -26,3 +26,10 @@ class PerformanceAnalysisRequest(BaseModel):
     case_id: str = Field(..., description="案例ID")
     simulation_ids: List[str] = Field(..., description="仿真结果ID列表")
     analysis_type: Optional[AnalysisType] = Field(AnalysisType.PERFORMANCE, description="分析类型")
+
+
+class EdgeDataAnalysisRequest(BaseModel):
+    """EdgeData分析请求模型"""
+    case_id: str = Field(..., description="案例ID")
+    simulation_ids: List[str] = Field(..., description="仿真结果ID列表")
+    analysis_type: Optional[AnalysisType] = Field(AnalysisType.EDGEDATA, description="分析类型")

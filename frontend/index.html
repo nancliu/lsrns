@@ -159,8 +159,12 @@
                                     <input type="checkbox" id="sim-out-emission">
                                     <span>emission</span>
                                 </label>
+                                <label style="display:flex;align-items:center;gap:6px;">
+                                    <input type="checkbox" id="sim-out-edgedata">
+                                    <span>edgedata</span>
+                                </label>
                             </div>
-                            <div style="font-size:12px;color:#666;margin-top:6px;">建议默认仅开启 summary 与 tripinfo；vehroute/netstate/fcd/emission 按需开启以避免过多I/O。</div>
+                            <div style="font-size:12px;color:#666;margin-top:6px;">建议默认仅开启 summary 与 tripinfo；vehroute/netstate/fcd/emission/edgedata 按需开启以避免过多I/O。</div>
                         </div>
                     </div>
                     
@@ -219,6 +223,7 @@
                             <option value="accuracy">精度</option>
                             <option value="mechanism">机理</option>
                             <option value="performance">性能</option>
+                            <option value="edgedata">EdgeData</option>
                         </select>
                     </div>
                     

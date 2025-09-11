@@ -18,7 +18,7 @@ from .base import BaseResponse, TimestampMixin, IdentifierMixin
 # 导入请求模型
 from .requests.data_requests import TimeRangeRequest
 from .requests.simulation_requests import SimulationRequest
-from .requests.analysis_requests import AccuracyAnalysisRequest, MechanismAnalysisRequest, PerformanceAnalysisRequest
+from .requests.analysis_requests import AccuracyAnalysisRequest, EdgeDataAnalysisRequest, MechanismAnalysisRequest, PerformanceAnalysisRequest
 from .requests.case_requests import CaseCreationRequest, CaseCloneRequest
 
 # 导入响应模型
@@ -39,7 +39,7 @@ __all__ = [
     "BaseResponse", "TimestampMixin", "IdentifierMixin",
     
     # 请求
-    "TimeRangeRequest", "SimulationRequest", "AccuracyAnalysisRequest", "MechanismAnalysisRequest", "PerformanceAnalysisRequest",
+    "TimeRangeRequest", "SimulationRequest", "AccuracyAnalysisRequest", "EdgeDataAnalysisRequest", "MechanismAnalysisRequest", "PerformanceAnalysisRequest",
     "CaseCreationRequest", "CaseCloneRequest",
     
     # 响应

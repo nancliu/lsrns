@@ -1,4 +1,4 @@
-# OD数据处理与仿真系统（v0.7）
+# OD数据处理与仿真系统（v0.8）
 
 ## 项目概述
 
@@ -7,7 +7,7 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 ### 🎯 核心特性
 
 - **完全模块化设计**: API层专注接口，Shared层专注核心功能
-- **多类型分析支持**: 精度分析、机理分析、性能分析
+- **多类型分析支持**: 精度分析、机理分析、性能分析、EdgeData分析
 - **完整分析生态**: 图表生成、报告输出、历史查看
 - **现代化技术栈**: FastAPI + Pydantic + Python 3.10+
 - **用户友好界面**: 一站式Web界面，操作简便
@@ -56,9 +56,9 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 
 4. **访问系统**
 
-   - API服务: http://localhost:8000
-   - API文档: http://localhost:8000/docs
-   - 前端主页: http://localhost:8000/index.html
+   - API服务: <http://localhost:8000>
+   - API文档: <http://localhost:8000/docs>
+   - 前端主页: <http://localhost:8000/index.html>
 
 ## 系统功能
 
@@ -83,13 +83,14 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 2. **仿真运行**
    - 微观/中观仿真支持
    - GUI/后台运行模式
-   - 多种输出配置（summary、tripinfo、vehroute等）
+   - 多种输出配置（summary、tripinfo、vehroute、edgedata等）
    - 实时状态监控
 
 3. **结果分析**
    - **精度分析**: 门架数据与仿真结果对比，生成精度指标
    - **机理分析**: 交通流机理特性分析，识别交通规律
    - **性能分析**: 系统性能评估，优化建议生成
+   - **EdgeData分析**: SUMO EdgeData交通流分析，路段级别统计
    - **历史查看**: 所有分析类型的历史结果管理
 
 4. **案例管理**
@@ -108,10 +109,11 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 - **数据处理**: `POST /api/v1/process_od_data/`
 - **案例管理**: `GET /api/v1/list_cases/`, `POST /api/v1/create_case/`
 - **仿真管理**: `POST /api/v1/run_simulation/`, `GET /api/v1/simulations/{case_id}`
-- **结果分析**: 
+- **结果分析**:
   - 精度分析: `POST /api/v1/analyze_accuracy/`
   - 机理分析: `POST /api/v1/analyze_mechanism/`
   - 性能分析: `POST /api/v1/analyze_performance/`
+  - EdgeData分析: `POST /api/v1/analyze_edgedata/`
   - 历史结果: `GET /api/v1/analysis/analysis_results/{case_id}?analysis_type={type}`
   - 分析历史: `GET /api/v1/analysis/analysis_history/{case_id}`
 - **模板管理**: `GET /api/v1/templates/{template_type}`
@@ -119,7 +121,7 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 
 ## 项目结构
 
-```
+```text
 OD生成脚本/
 ├── api/                      # API接口层
 │   ├── main.py              # FastAPI主程序（唯一入口）
@@ -161,7 +163,8 @@ OD生成脚本/
 │   ├── analysis_tools/      # 分析工具
 │   │   ├── accuracy_analysis.py # 精度分析器
 │   │   ├── mechanism_analysis.py # 机理分析器
-│   │   └── performance_analysis.py # 性能分析器
+│   │   ├── performance_analysis.py # 性能分析器
+│   │   └── edgedata_analysis.py # EdgeData分析器
 │   └── data_processors/     # 数据处理器
 │       ├── od_processor.py     # OD数据处理器
 │       ├── e1_processor.py     # E1检测器数据处理器
@@ -171,6 +174,7 @@ OD生成脚本/
 ├── templates/                # 模板文件
 │   ├── taz_files/           # TAZ文件模板
 │   ├── network_files/       # 网络文件模板
+│   ├── edge_add/            # EdgeData配置模板
 │   └── config_templates/    # 配置模板
 ├── frontend/                # 前端文件
 │   ├── index.html          # 主页面
@@ -220,7 +224,11 @@ curl -X POST "http://localhost:8000/api/v1/run_simulation/" \
     "simulation_description": "自动化测试仿真运行功能",
     "gui": false,
     "simulation_type": "microscopic",
-    "simulation_outputs": ["summary", "tripinfo"]
+    "simulation_params": {
+      "output_summary": true,
+      "output_tripinfo": true,
+      "output_edgedata": true
+    }
   }'
 ```
 
@@ -235,11 +243,26 @@ curl -X POST "http://localhost:8000/api/v1/analyze_accuracy/" \
   }'
 ```
 
+### 执行EdgeData分析
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/analyze_edgedata/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_id": "case_20250821_155513",
+    "simulation_ids": ["sim_0821_161746_micro"],
+    "analysis_type": "edgedata"
+  }'
+```
+
 ### 查看分析历史
 
 ```bash
 # 查看精度分析历史
 curl "http://localhost:8000/api/v1/analysis/analysis_results/case_20250821_155513?analysis_type=accuracy"
+
+# 查看EdgeData分析历史
+curl "http://localhost:8000/api/v1/analysis/analysis_results/case_20250821_155513?analysis_type=edgedata"
 
 # 查看所有分析类型历史
 curl "http://localhost:8000/api/v1/analysis/analysis_history/case_20250821_155513"
@@ -271,6 +294,7 @@ curl "http://localhost:8000/api/v1/analysis/analysis_history/case_20250821_15551
    - 精度分析 → `api/services/accuracy_service.py`
    - 机理分析 → `api/services/mechanism_service.py`
    - 性能分析 → `api/services/performance_service.py`
+   - EdgeData分析 → `api/services/edgedata_service.py`
    - 模板管理 → `api/services/template_service.py`
 
 2. **模块化开发**
@@ -291,6 +315,7 @@ curl "http://localhost:8000/api/v1/analysis/analysis_history/case_20250821_15551
 系统包含完整的测试覆盖，使用Playwright MCP进行自动化测试：
 
 ### 测试范围
+
 - **基础功能测试**: 页面加载、导航、模板管理
 - **OD数据处理测试**: 时间配置、文件选择、数据生成
 - **仿真运行测试**: 仿真启动、参数配置、状态监控
@@ -299,6 +324,7 @@ curl "http://localhost:8000/api/v1/analysis/analysis_history/case_20250821_15551
 - **API接口测试**: 所有核心API端点验证
 
 ### 测试执行
+
 ```bash
 # 启动API服务（必需）
 .\start_api.ps1
@@ -311,6 +337,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 ```
 
 ### 测试状态（v0.7）
+
 - ✅ 基础功能：100%通过
 - ✅ OD数据处理：完全正常
 - ✅ 仿真运行：启动和监控正常
@@ -352,13 +379,24 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ## 版本信息
 
-- **当前版本**: v0.7 🚀
+- **当前版本**: v0.8 🚀
 - **架构状态**: ✅ 完全模块化
 - **核心功能**: ✅ 完全可用
 - **测试状态**: ✅ 全面验证通过
 - **Python版本**: 3.10+
 
 ## 重要变更
+
+### v0.8 - EdgeData 分析功能集成
+
+- ✅ 新增 EdgeData 分析支持，基于 SUMO EdgeData 输出
+- ✅ 完整的 EdgeData 分析工具链：数据解析、图表生成、报告输出
+- ✅ 前端界面完整集成：仿真输出配置、分析类型选择
+- ✅ API 完整支持：EdgeData 分析端点、历史结果查看
+- ✅ 模板化配置：基于 additional 文件的 EdgeData 输出配置
+- ✅ 智能路径管理：EdgeData 输出到专用 edgedata/ 子目录
+- ✅ 多路径兼容：支持新旧仿真结果的 EdgeData 文件检测
+- ✅ 完整测试验证：前端功能测试通过，集成测试完成
 
 ### v0.7 - 车型模板配置和前端优化
 
@@ -406,7 +444,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ---
 
-**文档版本**: v0.7  
+**文档版本**: v0.8  
 **系统状态**: ✅ 核心功能完全可用  
 **测试状态**: ✅ 全面验证通过  
 **维护者**: 开发团队

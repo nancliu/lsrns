@@ -408,7 +408,8 @@ async function runSimulation() {
         output_vehroute: document.getElementById('sim-out-vehroute').checked,
         output_netstate: document.getElementById('sim-out-netstate').checked,
         output_fcd: document.getElementById('sim-out-fcd').checked,
-        output_emission: document.getElementById('sim-out-emission').checked
+        output_emission: document.getElementById('sim-out-emission').checked,
+        output_edgedata: document.getElementById('sim-out-edgedata').checked
     };
     
     if (!caseId) { showNotification('请选择案例', 'warning'); return; }
@@ -541,6 +542,8 @@ async function runAnalysis() {
             apiEndpoint = `${API_BASE_URL}/analyze_mechanism/`;
         } else if (englishAnalysisType === 'performance') {
             apiEndpoint = `${API_BASE_URL}/analyze_performance/`;
+        } else if (englishAnalysisType === 'edgedata') {
+            apiEndpoint = `${API_BASE_URL}/analyze_edgedata/`;
         } else {
             apiEndpoint = `${API_BASE_URL}/analyze_accuracy/`;
         }
@@ -582,6 +585,7 @@ function getAnalysisTypeDisplayName(analysisType) {
     switch(analysisType) {
         case 'mechanism': return '机理';
         case 'performance': return '性能';
+        case 'edgedata': return 'EdgeData';
         case 'accuracy':
         default: return '精度';
     }

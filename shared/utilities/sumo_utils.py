@@ -137,6 +137,41 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 	else:
 		duration = 3600
 	
+	# 处理 edgeData additional 文件
+	edgedata_files = []
+	if simulation_params.get('output_edgedata', False):
+		# 创建 edgedata 子目录
+		edgedata_dir = simulation_folder / "edgedata"
+		edgedata_dir.mkdir(exist_ok=True)
+		
+		# 复制并修改模板 edgeData.add.xml 到仿真目录
+		edgedata_template = Path("templates/edge_add/edgeData.add.xml")
+		if edgedata_template.exists():
+			edgedata_target = simulation_folder / "edgeData.add.xml"
+			try:
+				# 读取模板内容
+				with open(edgedata_template, 'r', encoding='utf-8') as f:
+					template_content = f.read()
+				
+				# 修改输出文件路径，指向 edgedata 子目录
+				modified_content = template_content.replace(
+					'file="edgedata.xml"',
+					'file="edgedata/edgedata.xml"'
+				)
+				
+				# 写入修改后的内容到仿真目录
+				with open(edgedata_target, 'w', encoding='utf-8') as f:
+					f.write(modified_content)
+				
+				edgedata_files.append("edgeData.add.xml")
+				print(f"edgeData.add.xml 已复制并配置到仿真目录: {edgedata_target}")
+				print(f"EdgeData 输出将生成在: {simulation_folder / 'edgedata' / 'edgedata.xml'}")
+			except Exception as e:
+				print(f"警告：edgeData.add.xml 复制失败: {e}")
+	
+	# 构建 additional 文件列表（TAZ + edgeData）
+	additional_files = taz_files + edgedata_files
+	
 	# 构建input section
 	route_files_str = ",".join(route_files) if route_files else ""
 	
@@ -147,8 +182,8 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 	if route_files_str:
 		input_lines.append(f'        <route-files value="{route_files_str}"/>')
 	
-	if taz_files:
-		input_lines.append(f'        <additional-files value="{",".join(taz_files)}"/>')
+	if additional_files:
+		input_lines.append(f'        <additional-files value="{",".join(additional_files)}"/>')
 	
 	input_section = f'''    <input>
 {chr(10).join(input_lines)}
