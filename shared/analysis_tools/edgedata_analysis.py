@@ -490,6 +490,9 @@ class EdgeDataAnalysis:
             # 预计算时间字符串，避免f-string中的复杂表达式
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
+            # 预生成图表HTML，避免f-string中的嵌套f-string
+            chart_html = ''.join([f'<div class="img-wrap"><img alt="chart" src="{src}" /></div>' for src in rel_charts])
+            
             # 预定义CSS样式，避免f-string中的复杂选择器
             css_styles = """
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Microsoft YaHei', sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
@@ -569,7 +572,7 @@ class EdgeDataAnalysis:
 
     <div class=\"section\">
       <h2>图表</h2>
-      {''.join([f'<div class=\"img-wrap\"><img alt=\"chart\" src=\"{src}\" /></div>' for src in rel_charts])}
+      {chart_html}
     </div>
 
     <div class=\"section\">
