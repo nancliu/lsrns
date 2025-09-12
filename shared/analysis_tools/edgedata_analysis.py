@@ -486,6 +486,9 @@ class EdgeDataAnalysis:
             speed = speed_analysis.get("overall_stats", {}) if speed_analysis else {}
             density = density_analysis.get("overall_stats", {}) if density_analysis else {}
             peak = (temporal_analysis or {}).get("peak_analysis", {})
+            
+            # 预计算时间字符串，避免f-string中的复杂表达式
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             # HTML 模板
             html = f"""
@@ -531,7 +534,7 @@ class EdgeDataAnalysis:
   <div class=\"container\">
     <div class=\"header\">
       <div class=\"title\">EdgeData 交通流分析报告</div>
-      <div class=\"subtitle\">生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+      <div class=\"subtitle\">生成时间：{current_time}</div>
     </div>
 
     <div class=\"grid\">
