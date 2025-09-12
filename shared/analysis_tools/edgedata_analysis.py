@@ -489,6 +489,31 @@ class EdgeDataAnalysis:
             
             # 预计算时间字符串，避免f-string中的复杂表达式
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 预定义CSS样式，避免f-string中的复杂选择器
+            css_styles = """
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Microsoft YaHei', sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .title { font-size: 24px; font-weight: 700; color: #f8fafc; }
+    .subtitle { color: #94a3b8; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+    .card h3 { margin: 0 0 8px; font-size: 16px; color: #f1f5f9; }
+    .metric { display: flex; align-items: baseline; gap: 6px; margin: 6px 0; }
+    .metric .label { color: #94a3b8; font-size: 13px; }
+    .metric .value { color: #e5e7eb; font-weight: 600; }
+    .section { margin-top: 24px; }
+    .section h2 { font-size: 18px; margin: 0 0 12px; color: #f8fafc; }
+    .img-wrap { background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 12px; margin-bottom: 16px; text-align: center; }
+    img { max-width: 100%; height: auto; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #1f2937; }
+    th { background: #0b1220; color: #cbd5e1; text-align: left; }
+    tr:nth-child(even) td { background: #0b1220; }
+    .footer { margin-top: 24px; color: #64748b; font-size: 12px; text-align: right; }
+    a { color: #60a5fa; text-decoration: none; }
+"""
 
             # HTML 模板
             html = f"""
@@ -499,27 +524,7 @@ class EdgeDataAnalysis:
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>EdgeData 交通流分析报告</title>
   <style>
-    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Microsoft YaHei', sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }}
-    .container {{ max-width: 1100px; margin: 0 auto; padding: 24px; }}
-    .header {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }}
-    .title {{ font-size: 24px; font-weight: 700; color: #f8fafc; }}
-    .subtitle {{ color: #94a3b8; font-size: 14px; }}
-    .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }}
-    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.2); }}
-    .card h3 {{ margin: 0 0 8px; font-size: 16px; color: #f1f5f9; }}
-    .metric {{ display: flex; align-items: baseline; gap: 6px; margin: 6px 0; }}
-    .metric .label {{ color: #94a3b8; font-size: 13px; }}
-    .metric .value {{ color: #e5e7eb; font-weight: 600; }}
-    .section {{ margin-top: 24px; }}
-    .section h2 {{ font-size: 18px; margin: 0 0 12px; color: #f8fafc; }}
-    .img-wrap {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 12px; margin-bottom: 16px; text-align: center; }}
-    img {{ max-width: 100%; height: auto; border-radius: 8px; }}
-    table {{ width: 100%; border-collapse: collapse; border: 1px solid #1f2937; border-radius: 8px; overflow: hidden; }}
-    th, td {{ padding: 10px 12px; border-bottom: 1px solid #1f2937; }}
-    th {{ background: #0b1220; color: #cbd5e1; text-align: left; }}
-    tr:nth-child(even) td {{ background: #0b1220; }}
-    .footer {{ margin-top: 24px; color: #64748b; font-size: 12px; text-align: right; }}
-    a {{ color: #60a5fa; text-decoration: none; }}
+{css_styles}
   </style>
   <script>
     // 轻量交互：折叠/展开
