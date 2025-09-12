@@ -445,6 +445,19 @@ class EdgeDataAnalysis:
             logger.error(f"EdgeData图表生成失败: {e}")
             return []
     
+    def _format_table_rows(self, data_dict: Dict[str, Any], limit: int) -> str:
+        """格式化表格行，避免f-string中的反斜杠问题"""
+        def _fmt_float(v, digits=2):
+            try:
+                return f"{float(v):.{digits}f}"
+            except Exception:
+                return str(v)
+        
+        rows = []
+        for i, (eid, val) in enumerate(list(data_dict.items())[:limit]):
+            rows.append(f"<tr><td>{eid}</td><td>{_fmt_float(val)}</td></tr>")
+        return ''.join(rows)
+
     def _generate_edgedata_report(self, flow_analysis: Dict[str, Any],
                                  speed_analysis: Dict[str, Any],
                                  density_analysis: Dict[str, Any],
@@ -559,7 +572,7 @@ class EdgeDataAnalysis:
           <table>
             <thead><tr><th>edge_id</th><th>avg_speed</th></tr></thead>
             <tbody>
-            {''.join([f"<tr><td>{eid}</td><td>{_fmt_float(val)}</td></tr>" for eid, val in (list((speed_analysis or {}).get('low_speed_edges', {}).items())[:10])])}
+            {self._format_table_rows((speed_analysis or {}).get('low_speed_edges', {}), 10)}
             </tbody>
           </table>
         </div>
@@ -568,7 +581,7 @@ class EdgeDataAnalysis:
           <table>
             <thead><tr><th>edge_id</th><th>avg_flow_rate</th></tr></thead>
             <tbody>
-            {''.join([f"<tr><td>{eid}</td><td>{_fmt_float(val)}</td></tr>" for eid, val in (list((flow_analysis or {}).get('top_flow_edges', {}).items())[:10])])}
+            {self._format_table_rows((flow_analysis or {}).get('top_flow_edges', {}), 10)}
             </tbody>
           </table>
         </div>
