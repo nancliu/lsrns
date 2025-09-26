@@ -32,6 +32,7 @@ class SimulationService(BaseService):
 
             # 生成配置文件
             cfg_file = self._generate_simulation_config(case_path, simulation_folder, request)
+            cfg_file_abs = str(Path(cfg_file).resolve())
 
             # 创建并保存仿真元数据（pending）
             sim_metadata = self._create_simulation_metadata(request, simulation_id, simulation_folder, cfg_file)
@@ -43,6 +44,7 @@ class SimulationService(BaseService):
                 "simulation_id": simulation_id,
                 "run_folder": str(simulation_folder),
                 "config_file": cfg_file,
+                "config_file_abs": cfg_file_abs,
                 "status": "pending",
             }
         except Exception as e:

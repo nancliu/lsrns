@@ -252,6 +252,18 @@ curl -X POST "http://localhost:8000/api/v1/simulation/prepare_simulation/" \
 curl -X POST "http://localhost:8000/api/v1/simulation/start_simulation/?case_id=case_20250822_003318&simulation_id=sim_0821_161746_micro&gui=false"
 ```
 
+准备接口返回包含相对与绝对路径：
+
+```json
+{
+  "simulation_id": "sim_0915_143000_micro",
+  "status": "pending",
+  "run_folder": "cases/<case_id>/simulations/<sim_id>",
+  "config_file": "cases/<case_id>/simulations/<sim_id>/simulation.sumocfg",
+  "config_file_abs": "D:/projects/OD生成脚本/cases/<case_id>/simulations/<sim_id>/simulation.sumocfg"
+}
+```
+
 ### 执行精度分析
 
 ```bash

@@ -76,7 +76,17 @@ POST /api/v1/data/process_od_data/
 POST /api/v1/simulation/prepare_simulation/
 ```
 
-请求体与 `run_simulation` 相同。仅生成 `sim_xxx/simulation.sumocfg` 与元数据，返回 `status=pending`、`simulation_id`、`run_folder`、`config_file`。
+请求体与 `run_simulation` 相同。仅生成 `sim_xxx/simulation.sumocfg` 与元数据，返回：
+
+```json
+{
+  "simulation_id": "sim_0915_143000_micro",
+  "status": "pending",
+  "run_folder": "cases/<case_id>/simulations/<sim_id>",
+  "config_file": "cases/<case_id>/simulations/<sim_id>/simulation.sumocfg",
+  "config_file_abs": "D:/projects/OD生成脚本/cases/<case_id>/simulations/<sim_id>/simulation.sumocfg"
+}
+```
 
 #### 启动仿真（新）
 ```
