@@ -85,6 +85,11 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
    - GUI/后台运行模式
    - 多种输出配置（summary、tripinfo、vehroute、edgedata等）
    - 实时状态监控
+   - 前端支持三按钮：
+     - “仅准备配置” → 只生成 `sim_xxx/simulation.sumocfg`，状态为 pending
+     - “启动已准备仿真” → 启动指定 pending 仿真并开始轮询
+     - “一键启动（准备+运行）” → 兼容旧流程，内部先 prepare 再 start
+   - 仿真卡片集成启动：pending 状态的卡片支持直接“启动”
 
 3. **结果分析**
    - **精度分析**: 门架数据与仿真结果对比，生成精度指标
@@ -401,6 +406,17 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 - **Python版本**: 3.10+
 
 ## 重要变更
+
+### v0.9.0 - 仿真两步拆分与前端更新
+
+- 新增两步式仿真 API：
+  - `POST /api/v1/simulation/prepare_simulation/`：仅生成 `simulation.sumocfg` 与仿真目录，写入 `status=pending`
+  - `POST /api/v1/simulation/start_simulation/`：基于 `simulation_id` 启动后台仿真，状态变为 `running`
+- 保留兼容旧接口：`POST /api/v1/simulation/run_simulation/` 内部复用 prepare→start
+- 前端更新：
+  - 新增“仅准备配置”“启动已准备仿真”按钮，原“启动仿真”更名为“一键启动（准备+运行）”
+  - 仿真卡片在 `pending` 状态显示“启动”按钮，直接调用后端启动
+- 文档更新：API 指南、部署指南、变更日志同步说明两步式流程
 
 ### v0.8 - EdgeData 分析功能集成
 
