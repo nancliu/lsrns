@@ -64,7 +64,3 @@ alwaysApply: true
 - 规则文件位于 `.cursor/rules/` 目录
 - 可根据项目发展需要更新规则内容
 - 建议定期回顾和优化规则
-description:
-globs:
-alwaysApply: false
----

@@ -3,6 +3,7 @@ SUMO配置工具函数（shared）
 """
 from pathlib import Path
 from typing import Dict, Any
+import re
 from shared.utilities.time_utils import parse_datetime
 
 
@@ -143,31 +144,61 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 		# 创建 edgedata 子目录
 		edgedata_dir = simulation_folder / "edgedata"
 		edgedata_dir.mkdir(exist_ok=True)
-		
-		# 复制并修改模板 edgeData.add.xml 到仿真目录
-		edgedata_template = Path("templates/edge_add/edgeData.add.xml")
-		if edgedata_template.exists():
-			edgedata_target = simulation_folder / "edgeData.add.xml"
-			try:
-				# 读取模板内容
-				with open(edgedata_template, 'r', encoding='utf-8') as f:
+
+		# 选择模板（优先自定义，其次默认）；若均不存在则使用内置默认
+		template_candidates = [
+			Path("templates/edge_add/edgeData_custom.add.xml"),
+			Path("templates/edge_add/edgeData.add.xml"),
+		]
+		edgedata_target = simulation_folder / "edgeData.add.xml"
+		template_path = next((p for p in template_candidates if p.exists()), None)
+
+		try:
+			if template_path:
+				with open(template_path, 'r', encoding='utf-8') as f:
 					template_content = f.read()
-				
-				# 修改输出文件路径，指向 edgedata 子目录
-				modified_content = template_content.replace(
-					'file="edgedata.xml"',
-					'file="edgedata/edgedata.xml"'
+			else:
+				# 内置默认：全量边，不包含 edges 属性
+				template_content = (
+					'<?xml version="1.0" encoding="UTF-8"?>\n'
+					'<additional>\n'
+					'  <edgeData id="ed1"\n'
+					'    freq="300"\n'
+					'    file="edgedata.xml"\n'
+					'    excludeEmpty="true"\n'
+					'    withInternal="false"/>\n'
+					'</additional>'
 				)
-				
-				# 写入修改后的内容到仿真目录
-				with open(edgedata_target, 'w', encoding='utf-8') as f:
-					f.write(modified_content)
-				
-				edgedata_files.append("edgeData.add.xml")
-				print(f"edgeData.add.xml 已复制并配置到仿真目录: {edgedata_target}")
-				print(f"EdgeData 输出将生成在: {simulation_folder / 'edgedata' / 'edgedata.xml'}")
-			except Exception as e:
-				print(f"警告：edgeData.add.xml 复制失败: {e}")
+
+			# 修改输出文件路径至 edgedata 子目录（如已是目标路径则保持不变）
+			modified_content = re.sub(
+				r'file="edgedata(?:/edgedata)?\.xml"',
+				'file="edgedata/edgedata.xml"',
+				template_content
+			)
+
+			# 默认移除模板中的 edges 属性（除非显式允许保留）
+			# 通过 simulation_params['edgedata_use_template_edges']=True 保留模板 edges
+			if not simulation_params.get('edgedata_use_template_edges', False):
+				modified_content = re.sub(r'\s+edges="[^\"]*"', '', modified_content)
+
+			with open(edgedata_target, 'w', encoding='utf-8') as f:
+				f.write(modified_content)
+
+			edgedata_files.append("edgeData.add.xml")
+			if template_path:
+				print(
+					f"edgeData.add.xml 已由模板复制: {template_path} -> {edgedata_target}"
+				)
+			else:
+				print(
+					f"edgeData.add.xml 使用内置默认生成: {edgedata_target}"
+				)
+			print(
+				f"EdgeData 输出将生成在: {simulation_folder / 'edgedata' / 'edgedata.xml'}"
+			)
+		except Exception as e:
+			print(f"警告：edgeData.add.xml 生成失败: {e}")
 	
 	# 构建 additional 文件列表（TAZ + edgeData）
 	additional_files = taz_files + edgedata_files

@@ -71,7 +71,21 @@ POST /api/v1/data/process_od_data/
 
 ### 仿真管理组 (`/api/v1/simulation/`)
 
-#### 运行仿真
+#### 准备仿真（新）
+```
+POST /api/v1/simulation/prepare_simulation/
+```
+
+请求体与 `run_simulation` 相同。仅生成 `sim_xxx/simulation.sumocfg` 与元数据，返回 `status=pending`、`simulation_id`、`run_folder`、`config_file`。
+
+#### 启动仿真（新）
+```
+POST /api/v1/simulation/start_simulation/
+```
+
+查询参数：`case_id`、`simulation_id`、`gui`（可选，默认 false）。基于已准备的配置启动后台仿真。
+
+#### 运行仿真（兼容）
 ```
 POST /api/v1/simulation/run_simulation/
 ```

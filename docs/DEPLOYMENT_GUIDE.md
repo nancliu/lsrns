@@ -97,8 +97,11 @@ DB_PORT=5432
 
 ### 4.3 仿真运行
 
-- 在“仿真运行”栏目选择案例，点击“启动仿真”
-- 页面自动轮询进度（基于 `simulation/summary.xml`），完成后产物在 `cases/{case_id}/simulation/`
+- 新推荐：两步式
+  - 先“仅准备配置”（生成 `sim_xxx/simulation.sumocfg`，状态为 pending，可人工检查/修改）
+  - 再“启动已准备仿真”（后台启动并轮询进度）
+- 兼容旧流程：“一键启动（准备+运行）”按钮等同于直接调用 `/run_simulation/`
+- 页面自动轮询进度（基于 `progress.json`），完成后产物在 `cases/{case_id}/simulations/<sim_id>/`
 
 ### 4.4 结果分析（结果分析栏目）
 
@@ -151,7 +154,7 @@ cases/{case_id}/
 
 ## 9. 注意事项与弃用说明
 
-- 唯一 sumocfg 生成实现：`api/utils.generate_sumocfg`（避免混用）
+- 唯一 sumocfg 生成实现：`shared/utilities/sumo_utils.generate_sumocfg_for_simulation`（避免混用）
 - `shared/data_processors/simulation_processor.generate_sumocfg` 已弃用（保留但抛出说明性异常）
 - `sim_scripts/*`、`accuracy_analysis` 目录下部分脚本为旧版/样例，仅用于研发/验证，勿与主实现混用
 - 安装依赖必须在非 base 环境；优先 mamba 安装，无法安装的再 pip

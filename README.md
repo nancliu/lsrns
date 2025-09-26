@@ -1,4 +1,4 @@
-# OD数据处理与仿真系统（v0.8）
+# OD数据处理与仿真系统（v0.9.0）
 
 ## 项目概述
 
@@ -215,8 +215,11 @@ curl -X POST "http://localhost:8000/api/v1/process_od_data/" \
 
 ### 运行仿真
 
+两种方式：
+
+1) 一键启动（兼容旧接口）
 ```bash
-curl -X POST "http://localhost:8000/api/v1/run_simulation/" \
+curl -X POST "http://localhost:8000/api/v1/simulation/run_simulation/" \
   -H "Content-Type: application/json" \
   -d '{
     "case_id": "case_20250822_003318",
@@ -224,12 +227,24 @@ curl -X POST "http://localhost:8000/api/v1/run_simulation/" \
     "simulation_description": "自动化测试仿真运行功能",
     "gui": false,
     "simulation_type": "microscopic",
-    "simulation_params": {
-      "output_summary": true,
-      "output_tripinfo": true,
-      "output_edgedata": true
-    }
+    "simulation_params": {"output_summary": true, "output_tripinfo": true, "output_edgedata": true}
   }'
+```
+
+2) 两步式（推荐）
+```bash
+# 准备
+curl -X POST "http://localhost:8000/api/v1/simulation/prepare_simulation/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_id": "case_20250822_003318",
+    "gui": false,
+    "simulation_type": "microscopic",
+    "simulation_params": {"output_summary": true, "output_tripinfo": true}
+  }'
+
+# 启动（使用上一步返回的 simulation_id）
+curl -X POST "http://localhost:8000/api/v1/simulation/start_simulation/?case_id=case_20250822_003318&simulation_id=sim_0821_161746_micro&gui=false"
 ```
 
 ### 执行精度分析
@@ -379,7 +394,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ## 版本信息
 
-- **当前版本**: v0.8 🚀
+- **当前版本**: v0.9.0 🚀
 - **架构状态**: ✅ 完全模块化
 - **核心功能**: ✅ 完全可用
 - **测试状态**: ✅ 全面验证通过
@@ -444,7 +459,7 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ---
 
-**文档版本**: v0.8  
+**文档版本**: v0.9.0  
 **系统状态**: ✅ 核心功能完全可用  
 **测试状态**: ✅ 全面验证通过  
 **维护者**: 开发团队

@@ -83,6 +83,7 @@ function toBackendTime(dtLocal) {
 let currentCases = [];
 let currentTemplates = {};
 let currentSim = { caseId: null, startedAt: null };
+let lastPrepared = { caseId: null, simulationId: null, runFolder: null, configFile: null };
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -129,6 +130,10 @@ function initializeEventListeners() {
 
     const runSimBtn = document.getElementById('run-simulation-btn');
     if (runSimBtn) runSimBtn.addEventListener('click', runSimulation);
+    const prepareSimBtn = document.getElementById('prepare-simulation-btn');
+    if (prepareSimBtn) prepareSimBtn.addEventListener('click', prepareSimulation);
+    const startPreparedBtn = document.getElementById('start-prepared-simulation-btn');
+    if (startPreparedBtn) startPreparedBtn.addEventListener('click', startPreparedSimulation);
 
     const refreshSimCasesBtn = document.getElementById('refresh-simulation-cases-btn');
     if (refreshSimCasesBtn) refreshSimCasesBtn.addEventListener('click', loadCases);
@@ -262,6 +267,7 @@ async function loadCaseSimulations(caseId) {
                 <div class="simulation-card-actions">
                     <button class="btn btn-secondary" onclick="viewSimulationDetail('${sim.simulation_id}')">查看详情</button>
                     <button class="btn btn-danger" onclick="deleteSimulation('${sim.simulation_id}')">删除</button>
+                    ${sim.status === 'pending' ? `<button class="btn btn-primary" onclick="startSimulationFromCard('${sim.simulation_id}', '${caseId}')">启动</button>` : ''}
                 </div>
             </div>
         `).join('');
@@ -502,6 +508,214 @@ async function runSimulation() {
         showNotification(`仿真运行失败: ${errorMsg}`, 'error');
         hideProgressBar();
     }
+}
+
+// 新增：仅准备仿真配置
+async function prepareSimulation() {
+  const caseId = document.getElementById('simulation-case').value;
+  const simulationType = document.getElementById('simulation-type').value;
+  const guiMode = document.getElementById('gui-mode').value === 'true';
+  const simulationName = document.getElementById('simulation-name').value.trim();
+  const simulationDescription = document.getElementById('simulation-description').value.trim();
+
+  const simulationParams = {
+    output_summary: document.getElementById('sim-out-summary').checked,
+    output_tripinfo: document.getElementById('sim-out-tripinfo').checked,
+    output_vehroute: document.getElementById('sim-out-vehroute').checked,
+    output_netstate: document.getElementById('sim-out-netstate').checked,
+    output_fcd: document.getElementById('sim-out-fcd').checked,
+    output_emission: document.getElementById('sim-out-emission').checked,
+    output_edgedata: document.getElementById('sim-out-edgedata').checked
+  };
+
+  if (!caseId) { showNotification('请选择案例', 'warning'); return; }
+  try {
+    updateSimulationStatus('processing', '正在准备仿真配置...');
+    const req = {
+      case_id: caseId,
+      gui: guiMode,
+      simulation_type: simulationType,
+      simulation_name: simulationName || null,
+      simulation_description: simulationDescription || null,
+      simulation_params: simulationParams
+    };
+    const resp = await apiFetch(`${API_BASE_URL}/prepare_simulation/`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    });
+    const payload = resp && resp.data ? resp.data : resp;
+    lastPrepared = {
+      caseId,
+      simulationId: payload.simulation_id,
+      runFolder: payload.run_folder,
+      configFile: payload.config_file
+    };
+    updateSimulationStatus('pending', `已生成配置（未启动），ID=${payload.simulation_id}`);
+    showNotification('仿真配置已准备，可检查sumocfg后再启动', 'success');
+    await loadCaseSimulations(caseId);
+  } catch (e) {
+    console.error(e);
+    updateSimulationStatus('failed', '准备失败');
+    showNotification(`准备仿真失败: ${e.message || e}`, 'error');
+  }
+}
+
+// 新增：启动已准备的仿真
+async function startPreparedSimulation() {
+  const caseId = document.getElementById('simulation-case').value || lastPrepared.caseId;
+  const guiMode = document.getElementById('gui-mode').value === 'true';
+  if (!caseId || !lastPrepared.simulationId) {
+    showNotification('请先准备仿真配置或选择案例', 'warning');
+    return;
+  }
+  try {
+    updateSimulationStatus('running', '正在启动仿真...');
+    showProgressBar();
+
+    const resp = await apiFetch(`${API_BASE_URL}/start_simulation/?case_id=${encodeURIComponent(caseId)}&simulation_id=${encodeURIComponent(lastPrepared.simulationId)}&gui=${guiMode}`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    const payload = resp && resp.data ? resp.data : resp;
+    showNotification('仿真已启动', 'success');
+    currentSim.caseId = caseId;
+    currentSim.startedAt = payload.started_at || new Date().toISOString();
+    displaySimulationResult({
+      run_folder: lastPrepared.runFolder || `cases/${caseId}/simulation`,
+      simulation_type: payload.simulation_type,
+      gui: guiMode,
+      started_at: currentSim.startedAt,
+      status: 'started'
+    });
+
+    const progressBar = document.getElementById('simulation-progress');
+    const fill = progressBar ? progressBar.querySelector('.progress-fill') : null;
+    let pollTimer = null;
+    const pollOnce = async () => {
+      try {
+        const ts = Date.now();
+        const p = await apiFetch(`${API_BASE_URL}/simulation_progress/${caseId}?_=${ts}`);
+        const data = p && p.data ? p.data : p;
+        const pct = (data && typeof data.percent === 'number') ? Math.max(0, Math.min(100, data.percent)) : 0;
+        const msg = data && data.message ? data.message : '';
+        if (fill) fill.style.width = `${pct}%`;
+        updateSimulationStatus('running', `仿真中 ${pct}%${msg ? `（${msg}）` : ''}`);
+        if (data && (data.status === 'completed' || data.status === 'failed')) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          if (data.status === 'completed') {
+            updateSimulationStatus('completed', `仿真完成 100%`);
+            if (fill) fill.style.width = '100%';
+            const endTs = data && data.updated_at ? data.updated_at : new Date().toISOString();
+            displaySimulationResult({
+              run_folder: lastPrepared.runFolder || `cases/${caseId}/simulation`,
+              simulation_type: payload.simulation_type,
+              gui: guiMode,
+              started_at: currentSim.startedAt,
+              ended_at: endTs,
+              status: 'completed'
+            });
+          } else {
+            updateSimulationStatus('failed', `仿真失败 ${pct}%${msg ? `（${msg}）` : ''}`);
+            displaySimulationResult({
+              run_folder: lastPrepared.runFolder || `cases/${caseId}/simulation`,
+              simulation_type: payload.simulation_type,
+              gui: guiMode,
+              started_at: currentSim.startedAt,
+              status: 'failed'
+            });
+          }
+          hideProgressBar();
+          await loadCaseSimulations(caseId);
+        }
+      } catch {}
+    };
+    pollTimer = setInterval(pollOnce, 10000);
+    setTimeout(pollOnce, 1200);
+  } catch (e) {
+    console.error(e);
+    updateSimulationStatus('failed', '启动失败');
+    showNotification(`启动仿真失败: ${e.message || e}`, 'error');
+    hideProgressBar();
+  }
+}
+
+// 从卡片直接启动（针对 pending 项）
+async function startSimulationFromCard(simulationId, caseId) {
+  try {
+    const guiMode = document.getElementById('gui-mode').value === 'true';
+    // 记录为最近一次准备
+    lastPrepared.simulationId = simulationId;
+    lastPrepared.caseId = caseId;
+    // 发起启动
+    updateSimulationStatus('running', '正在启动仿真...');
+    showProgressBar();
+    const resp = await apiFetch(`${API_BASE_URL}/start_simulation/?case_id=${encodeURIComponent(caseId)}&simulation_id=${encodeURIComponent(simulationId)}&gui=${guiMode}`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    const payload = resp && resp.data ? resp.data : resp;
+    showNotification('仿真已启动', 'success');
+    currentSim.caseId = caseId;
+    currentSim.startedAt = payload.started_at || new Date().toISOString();
+    displaySimulationResult({
+      run_folder: payload.run_folder || `cases/${caseId}/simulation`,
+      simulation_type: payload.simulation_type,
+      gui: guiMode,
+      started_at: currentSim.startedAt,
+      status: 'started'
+    });
+
+    const progressBar = document.getElementById('simulation-progress');
+    const fill = progressBar ? progressBar.querySelector('.progress-fill') : null;
+    let pollTimer = null;
+    const pollOnce = async () => {
+      try {
+        const ts = Date.now();
+        const p = await apiFetch(`${API_BASE_URL}/simulation_progress/${caseId}?_=${ts}`);
+        const data = p && p.data ? p.data : p;
+        const pct = (data && typeof data.percent === 'number') ? Math.max(0, Math.min(100, data.percent)) : 0;
+        const msg = data && data.message ? data.message : '';
+        if (fill) fill.style.width = `${pct}%`;
+        updateSimulationStatus('running', `仿真中 ${pct}%${msg ? `（${msg}）` : ''}`);
+        if (data && (data.status === 'completed' || data.status === 'failed')) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          if (data.status === 'completed') {
+            updateSimulationStatus('completed', `仿真完成 100%`);
+            if (fill) fill.style.width = '100%';
+            const endTs = data && data.updated_at ? data.updated_at : new Date().toISOString();
+            displaySimulationResult({
+              run_folder: payload.run_folder || `cases/${caseId}/simulation`,
+              simulation_type: payload.simulation_type,
+              gui: guiMode,
+              started_at: currentSim.startedAt,
+              ended_at: endTs,
+              status: 'completed'
+            });
+          } else {
+            updateSimulationStatus('failed', `仿真失败 ${pct}%${msg ? `（${msg}）` : ''}`);
+            displaySimulationResult({
+              run_folder: payload.run_folder || `cases/${caseId}/simulation`,
+              simulation_type: payload.simulation_type,
+              gui: guiMode,
+              started_at: currentSim.startedAt,
+              status: 'failed'
+            });
+          }
+          hideProgressBar();
+          await loadCaseSimulations(caseId);
+        }
+      } catch {}
+    };
+    pollTimer = setInterval(pollOnce, 10000);
+    setTimeout(pollOnce, 1200);
+  } catch (e) {
+    console.error(e);
+    updateSimulationStatus('failed', '启动失败');
+    showNotification(`启动仿真失败: ${e.message || e}`, 'error');
+    hideProgressBar();
+  }
 }
 
 // =============== 精度分析 ===============

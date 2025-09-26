@@ -1,5 +1,22 @@
 # API变更日志
 
+## v0.9.0 (2025-09-26) - 仿真两步拆分与前端改造
+
+变更要点：
+
+- 新增仿真两步接口：
+  - POST `/api/v1/simulation/prepare_simulation/`：仅生成 `simulation.sumocfg` 与仿真目录，写入元数据 `status=pending`
+  - POST `/api/v1/simulation/start_simulation/`：基于已准备的 `simulation_id` 启动后台仿真，更新为 `running`
+- 保留兼容旧接口：
+  - POST `/api/v1/simulation/run_simulation/` 继续可用，内部走 prepare→start 流程
+- 前端页面改造：
+  - 新增按钮“仅准备配置”“启动已准备仿真”，原“启动仿真”更名为“一键启动（准备+运行）”
+  - 仿真卡片在 `pending` 状态下支持直接“启动”
+
+注意：`shared.data_processors.simulation_processor.generate_sumocfg` 仍为弃用接口，不影响此次改造。
+
+---
+
 ## v0.65.0 (2025-08-22) - 分析功能完善版本
 
 ### 🎉 重大更新：分析功能完善和测试验证

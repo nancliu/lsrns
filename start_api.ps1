@@ -71,7 +71,7 @@ if ($needInstall) {
 }
 
 # 启动 API 服务
-Write-Host '[INFO] 启动 API 服务（http://localhost:8000/docs）'
+Write-Host '[INFO] 启动 API 服务（http://localhost:8000/）'
 python -X utf8 -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 

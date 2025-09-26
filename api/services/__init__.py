@@ -24,6 +24,8 @@ from .simulation_service import (
     get_case_simulations_service,
     get_simulation_detail_service,
     delete_simulation_service,
+    prepare_simulation_service,
+    start_simulation_service,
 )
 
 # 分析服务现在通过独立的服务类提供，不再从旧的analysis_service导入
@@ -58,6 +60,8 @@ __all__ = [
     "get_case_simulations_service",
     "get_simulation_detail_service",
     "delete_simulation_service",
+    "prepare_simulation_service",
+    "start_simulation_service",
     
     # 分析服务（现在通过独立的服务类在路由中直接使用）
     

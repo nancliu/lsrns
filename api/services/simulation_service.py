@@ -16,45 +16,108 @@ from .base_service import BaseService, MetadataManager, DirectoryManager
 class SimulationService(BaseService):
     """仿真运行服务类"""
     
+    async def prepare_simulation(self, request: SimulationRequest) -> Dict[str, Any]:
+        """准备仿真：仅创建目录与生成 sumocfg，不启动仿真。
+
+        Args:
+            request: 仿真请求参数。
+
+        Returns:
+            包含 simulation_id、run_folder、config_file、status=pending 的信息。
+        """
+        try:
+            # 验证案例并创建仿真目录
+            case_path = self._validate_case(request.case_id)
+            simulation_id, simulation_folder = self._create_simulation_structure(case_path, request)
+
+            # 生成配置文件
+            cfg_file = self._generate_simulation_config(case_path, simulation_folder, request)
+
+            # 创建并保存仿真元数据（pending）
+            sim_metadata = self._create_simulation_metadata(request, simulation_id, simulation_folder, cfg_file)
+            sim_metadata["status"] = "pending"
+            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+            MetadataManager.update_simulations_index(case_path, simulation_id, sim_metadata)
+
+            return {
+                "simulation_id": simulation_id,
+                "run_folder": str(simulation_folder),
+                "config_file": cfg_file,
+                "status": "pending",
+            }
+        except Exception as e:
+            raise Exception(f"准备仿真失败: {str(e)}")
+
+    async def start_simulation(self, case_id: str, simulation_id: str, gui: bool = False) -> Dict[str, Any]:
+        """启动仿真：基于已准备的 sim 目录与配置文件启动后台仿真。
+
+        Args:
+            case_id: 案例ID。
+            simulation_id: 仿真ID（准备阶段生成）。
+            gui: 是否启用 GUI。
+
+        Returns:
+            启动结果，包含 simulation_id、run_folder、status=started 等。
+        """
+        try:
+            # 导入仿真处理器
+            from shared.data_processors.simulation_processor import SimulationProcessor
+
+            # 校验目录与配置
+            case_path = self._validate_case(case_id)
+            simulation_folder = Path("cases") / case_id / "simulations" / simulation_id
+            if not simulation_folder.exists():
+                raise Exception(f"仿真目录不存在: {simulation_folder}")
+
+            sim_metadata = MetadataManager.load_simulation_metadata(simulation_folder)
+            cfg_file = sim_metadata.get("config_file") or str(simulation_folder / "simulation.sumocfg")
+            if not Path(cfg_file).exists():
+                raise Exception(f"未找到配置文件: {cfg_file}")
+
+            # 创建仿真处理器并设置SUMO环境
+            sim_processor = SimulationProcessor()
+            self._setup_sumo_environment(sim_processor)
+
+            # 构建仿真参数并初始化进度
+            request_params = {
+                "run_folder": str(simulation_folder),
+                "gui": gui,
+                "mesoscopic": sim_metadata.get("simulation_type") == "mesoscopic",
+                "config_file": cfg_file,
+                "expected_duration": sim_metadata.get("simulation_params", {}).get("expected_duration"),
+            }
+            self._init_progress_file(simulation_folder)
+
+            # 更新元数据与案例状态
+            sim_metadata["status"] = "running"
+            sim_metadata["started_at"] = datetime.now().isoformat()
+            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+            self._update_case_status(case_path, CaseStatus.SIMULATING)
+
+            # 后台运行仿真
+            self._start_background_simulation(sim_processor, request_params, case_path, simulation_id, simulation_folder)
+
+            return {
+                "simulation_id": simulation_id,
+                "run_folder": str(simulation_folder),
+                "gui": gui,
+                "mesoscopic": sim_metadata.get("simulation_type") == "mesoscopic",
+                "simulation_type": sim_metadata.get("simulation_type"),
+                "started_at": datetime.now().isoformat(),
+                "status": "started",
+            }
+        except Exception as e:
+            raise Exception(f"启动仿真失败: {str(e)}")
+
     async def run_simulation(self, request: SimulationRequest) -> Dict[str, Any]:
         """
         运行仿真的主要业务逻辑
         """
         try:
-            # 导入仿真处理器
-            from shared.data_processors.simulation_processor import SimulationProcessor
-            
-            # 创建仿真处理器并设置SUMO环境
-            sim_processor = SimulationProcessor()
-            self._setup_sumo_environment(sim_processor)
-            
-            # 验证案例并创建仿真目录
-            case_path = self._validate_case(request.case_id)
-            simulation_id, simulation_folder = self._create_simulation_structure(case_path, request)
-            
-            # 生成配置文件
-            cfg_file = self._generate_simulation_config(case_path, simulation_folder, request)
-            
-            # 创建并保存仿真元数据
-            sim_metadata = self._create_simulation_metadata(request, simulation_id, simulation_folder, cfg_file)
-            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
-            
-            # 更新案例状态和索引
-            self._update_case_status(case_path, CaseStatus.SIMULATING)
-            MetadataManager.update_simulations_index(case_path, simulation_id, sim_metadata)
-            
-            # 准备仿真参数
-            request_params = self._build_simulation_params(request, simulation_folder, cfg_file)
-            
-            # 初始化进度文件
-            self._init_progress_file(simulation_folder)
-            
-            # 后台运行仿真
-            self._start_background_simulation(sim_processor, request_params, case_path, 
-                                            simulation_id, simulation_folder)
-            
-            return self._build_simulation_response(request, simulation_id, request_params)
-            
+            # 兼容旧接口：先准备，再启动
+            prepared = await self.prepare_simulation(request)
+            start_result = await self.start_simulation(request.case_id, prepared["simulation_id"], gui=request.gui or False)
+            return start_result
         except Exception as e:
             raise Exception(f"仿真运行失败: {str(e)}")
     
@@ -465,3 +528,13 @@ async def get_simulation_detail_service(simulation_id: str) -> Dict[str, Any]:
 async def delete_simulation_service(simulation_id: str) -> None:
     """删除仿真服务函数"""
     return await simulation_service.delete_simulation(simulation_id)
+
+
+async def prepare_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
+    """准备仿真服务函数：仅生成配置不启动"""
+    return await simulation_service.prepare_simulation(request)
+
+
+async def start_simulation_service(case_id: str, simulation_id: str, gui: bool = False) -> Dict[str, Any]:
+    """启动仿真服务函数：基于已准备的配置启动"""
+    return await simulation_service.start_simulation(case_id, simulation_id, gui)

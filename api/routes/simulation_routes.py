@@ -7,7 +7,8 @@ from ..models import SimulationRequest, BaseResponse
 from ..services import (
     run_simulation_service, get_simulation_progress_service,
     get_case_simulations_service, get_simulation_detail_service,
-    delete_simulation_service
+    delete_simulation_service,
+    prepare_simulation_service, start_simulation_service
 )
 from .middleware import handle_service_errors, create_success_response
 
@@ -23,6 +24,26 @@ async def run_simulation(request: SimulationRequest):
     """
     result = await run_simulation_service(request)
     return create_success_response("仿真运行成功", result)
+
+
+@router.post("/prepare_simulation/", response_model=BaseResponse)
+@handle_service_errors
+async def prepare_simulation(request: SimulationRequest):
+    """
+    准备仿真：生成配置但不启动
+    """
+    result = await prepare_simulation_service(request)
+    return create_success_response("准备仿真成功", result)
+
+
+@router.post("/start_simulation/", response_model=BaseResponse)
+@handle_service_errors
+async def start_simulation(case_id: str, simulation_id: str, gui: bool = False):
+    """
+    启动仿真：基于已准备的 sim 目录
+    """
+    result = await start_simulation_service(case_id, simulation_id, gui)
+    return create_success_response("启动仿真成功", result)
 
 
 @router.get("/simulation_progress/{case_id}")
