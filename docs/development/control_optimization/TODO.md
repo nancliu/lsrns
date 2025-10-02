@@ -34,20 +34,41 @@
 
 ### Epic 2: 并行实例管理增强 (预计3-4天)
 
-#### Story 2.1: 实例状态管理完善
+#### Story 2.1: 实例状态管理与实时监测 ⭐ **核心更新**
 **优先级**: P0 (阻塞后续开发)
 
-- [ ] **任务2.1.1**: 实现任务状态入库
-  - 表设计: `control_optimization.task_status` (task_id, batch_id, status, timestamps)
-  - API: `GET /api/v1/control_optimization/tasks/{task_id}/status`
-  - 文件: `api/services/task_manager_service.py`
+**设计确认**:
+- ✅ 监测间隔：30秒（默认，可配置）
+- ✅ 数据存储：元数据文件为主，数据库可选
+- ✅ 峰值监测：从summary.xml实时读取
 
-- [ ] **任务2.1.2**: 批次级状态汇总
-  - 统计: running_count, completed_count, failed_count
-  - API: `GET /api/v1/control_optimization/batches/{batch_id}/summary`
-  - 文件: `api/services/batch_manager_service.py`
+- [ ] **任务2.1.1**: Summary实时监测器实现
+  - 类: `SummaryRealTimeMonitor`（文件尾部追踪）
+  - 监测间隔: 30秒（可通过环境变量`MONITORING_INTERVAL`配置）
+  - 峰值提取: 读取`running`属性，自动识别峰值
+  - 文件: `shared/utilities/control_optimization/summary_monitor.py`
+  - 参考: [SUMO_Summary实时监测技术方案.md](./SUMO_Summary实时监测技术方案.md)
 
-- [ ] **任务2.1.3**: 失败任务诊断
+- [ ] **任务2.1.2**: Worker进程集成Summary监测
+  - 修改: `shared/utilities/control_optimization/parallel_simulator.py`
+  - 集成点: `_run_simulation_worker()` 函数
+  - 更新: `instance_status.json`（包含峰值数据）
+  - 间隔: 30秒更新一次
+
+- [ ] **任务2.1.3**: 批次状态文件实时更新
+  - 文件: `batch_status.json`
+  - 更新频率: 30秒
+  - 汇总内容: 所有实例的状态分布、总峰值
+  - 实现: 主进程定时读取各实例状态并汇总
+
+- [ ] **任务2.1.4**: 批次/实例状态查询API
+  - API 1: `GET /api/v1/control_optimization/batches/{batch_id}/status`
+  - API 2: `GET /api/v1/control_optimization/batches/{batch_id}/instances`
+  - API 3: `GET /api/v1/control_optimization/batches/{batch_id}/instances/{instance_id}/status`
+  - 返回: 包含峰值车辆数、实时比、交通指标
+  - 文件: `api/routes/control_optimization_routes.py`
+
+- [ ] **任务2.1.5**: 失败任务诊断
   - 错误分类: timeout, sumo_error, config_error, system_error
   - 错误信息存储与查询
   - 文件: `shared/utilities/control_optimization/error_classifier.py`
