@@ -1228,9 +1228,9 @@ function updateTemplateSelects() {
             opt.textContent = t.name;
             netSelect.appendChild(opt);
         });
-        // 默认选择 sichuan202508v7.net.xml
-        const v7 = Array.from(netSelect.options).find(o => /sichuan202508v7\.net\.xml/i.test(o.textContent) || /sichuan202508v7\.net\.xml/i.test(o.value));
-        if (v7) netSelect.value = v7.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
+        // 默认选择 sichuan202510v8.net.xml
+        const v8 = Array.from(netSelect.options).find(o => /sichuan202510v8\.net\.xml/i.test(o.textContent) || /sichuan202510v8\.net\.xml/i.test(o.value));
+        if (v8) netSelect.value = v8.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
     }
 }
 
