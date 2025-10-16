@@ -1,12 +1,24 @@
 {
   "network_templates": {
+    "sichuan202510v8": {
+      "name": "sichuan202510v8.net.xml",
+      "description": "四川网络文件版本8，最新版本",
+      "file_path": "sichuan202510v8.net.xml",
+      "version": "8.0",
+      "created_date": "2025-10-15",
+      "status": "latest",
+      "file_size_mb": 18,
+      "node_count": 0,
+      "edge_count": 0,
+      "junction_count": 0
+    },
     "sichuan202508v7": {
       "name": "sichuan202508v7.net.xml",
-      "description": "四川网络文件版本7，最新版本",
+      "description": "四川网络文件版本7，旧版本",
       "file_path": "sichuan202508v7.net.xml",
       "version": "7.0",
       "created_date": "2025-08-15",
-      "status": "latest",
+      "status": "stable",
       "file_size_mb": 18,
       "node_count": 0,
       "edge_count": 0,
