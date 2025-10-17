@@ -595,3 +595,25 @@ credentials.json
 .claude/
 api_test/
 test_*.py
+
+# ==========================================
+# Speckit 相关忽略规则
+# ==========================================
+
+# 特性开发工作区（开发中的特性）
+specs/*/
+!specs/**/spec.md.template
+
+# 个人上下文和笔记
+.specify/memory/context.md
+.specify/memory/notes.md
+.specify/memory/drafts/
+
+# 临时文件
+.specify/**/*.tmp
+.specify/**/*.bak
+
+# 个人配置
+.cursor/settings.json
+.cursor/mcp.json
+

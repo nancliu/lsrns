@@ -72,6 +72,16 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
 - **动态生成**: 根据模板自动生成rou.xml文件中的vType定义
 - **灵活映射**: 支持车型ID到车型类型的灵活映射配置
 
+### 数据源集成
+
+系统支持与HOMDS（高速公路运营管理决策支持系统）数据源集成：
+
+- **基准流量数据**: 门架、OD对、收费广场的24小时分时段流量模式
+- **KPI评估数据**: 16批次历史数据，9个可用KPI指标
+- **真实观测数据**: 5分钟粒度门架流量、OD流量、匝道流量
+- **维度映射数据**: TAZ与门架/收费广场的映射关系
+- **数据说明文档**: 完整的8份数据说明文档，约15万字
+
 ### 核心功能
 
 1. **OD数据处理**
@@ -469,11 +479,22 @@ cat docs/testing/Playwright_MCP_测试任务清单.md
 
 ## 文档资源
 
+### 核心开发文档
 - [新架构开发指南](docs/development/新架构开发指南.md)
 - [新架构API指南](docs/api_docs/新架构API指南.md)
 - [Playwright MCP测试任务清单](docs/testing/Playwright_MCP_测试任务清单.md)
 - [部署指南](docs/DEPLOYMENT_GUIDE.md)
 - [架构重构完成报告](docs/development/架构重构完成报告.md)
+
+### 数据说明文档包（HOMDS系统）
+- [数据说明文档总览](docs/data_in_db/README.md) - 快速导航索引
+- [数据清单与使用指南](docs/data_in_db/数据清单与使用指南.md) - 数据总览、仿真流程、FAQ
+- [查询示例集](docs/data_in_db/查询示例集.md) - SQL查询代码模板（10大类60+示例）
+- [基准流量数据说明](docs/data_in_db/baseline_schema基准流量数据说明.md) - 基准流量模式数据详解
+- [KPI评估数据说明](docs/data_in_db/highway_schema数据说明.md) - KPI评估与批次分析详解
+- [真实流量数据说明](docs/data_in_db/DWD_四表结构说明.md) - 真实流量明细数据详解
+- [DWD数据表使用指南](docs/data_in_db/DWD_Tables_Usage_Guide.md) - DWD数据表使用指南
+- [维度映射表说明](docs/data_in_db/DIM_TAZ_GANTRY_SQUARE_Mappings.md) - 维度映射表设计与使用说明
 
 ## 许可证
 
