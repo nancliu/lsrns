@@ -12,14 +12,15 @@
         <p>Traffic Control Simulation & Optimization</p>
     </header>
 
-    <nav class="main-nav">
-        <button class="nav-btn active" data-view="strategies">策略管理</button>
-        <button class="nav-btn" data-view="plans">方案管理</button>
-        <button class="nav-btn" data-view="batch">批量仿真</button>
-        <button class="nav-btn" data-view="optimization">优化分析</button>
-    </nav>
+    <div class="container">
+        <nav class="main-nav">
+            <button class="nav-btn active" data-view="strategies">策略管理</button>
+            <button class="nav-btn" data-view="plans">方案管理</button>
+            <button class="nav-btn" data-view="batch">批量仿真</button>
+            <button class="nav-btn" data-view="optimization">优化分析</button>
+        </nav>
 
-    <main id="content-area">
+        <main id="content-area">
         <!-- Dynamic content area -->
         <section id="view-strategies" class="view-content active">
             <h2>策略管理 (Strategy Management)</h2>
@@ -44,7 +45,8 @@
             <p class="placeholder">Phase 0: 优化分析功能开发中...</p>
             <p>未来功能：指标计算、方案排序、可视化对比</p>
         </section>
-    </main>
+        </main>
+    </div>
 
     <footer>
         <p>OD数据处理与仿真系统 - 交通管控优化模块 | Phase 0 基础设施</p>
