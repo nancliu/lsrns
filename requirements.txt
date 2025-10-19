@@ -2,9 +2,10 @@
 
 # Web Framework
 fastapi==0.104.1
-uvicorn[standard]==0.27.1
+uvicorn==0.27.1
+httptools==0.6.1 
 
-direnv
+# direnv (shell tool, not Python package)
 
 # Data Processing (pin 兼容版本，避免 numpy/scipy 二进制不兼容)
 pandas==2.2.2
