@@ -1,0 +1,44 @@
+{
+  "template_id": "tec_truck_ban",
+  "template_name": "收费站入口管控 - 货车禁入",
+  "description": "高峰期禁止货车进入指定收费站，减少大型车辆对交通流的影响，提高通行效率。适用于货车比例高、拥堵严重的收费站。",
+  "strategy_type": "TEC",
+  "parameters_schema": [
+    {
+      "parameter_name": "entrance_ids",
+      "parameter_type": "array",
+      "description": "受管控的收费站入口列表",
+      "required": true,
+      "default_value": [],
+      "unit": null
+    },
+    {
+      "parameter_name": "control_mode",
+      "parameter_type": "string",
+      "description": "管控模式：restrict（限制）",
+      "required": true,
+      "default_value": "restrict",
+      "allowed_values": ["restrict"],
+      "unit": null
+    },
+    {
+      "parameter_name": "vehicle_type_restrictions",
+      "parameter_type": "array",
+      "description": "禁入车型列表",
+      "required": true,
+      "default_value": ["truck", "trailer"],
+      "unit": null
+    },
+    {
+      "parameter_name": "time_intervals",
+      "parameter_type": "array",
+      "description": "货车禁入时段",
+      "required": true,
+      "default_value": [[6, 10], [16, 20]],
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-19T00:00:00Z",
+  "updated_at": "2025-10-19T00:00:00Z"
+}

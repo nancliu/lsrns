@@ -10,16 +10,88 @@ router = APIRouter()
 
 
 # ==================== 策略模板 Templates ====================
-@router.get("/templates/", response_model=List[Dict[str, Any]])
+# Phase 1A: Full implementation with template loading and validation
+
+import logging
+from fastapi import HTTPException, status
+from api.services.control_template_service import ControlTemplateService
+from api.models.control.responses.template_responses import (
+    TemplateListResponse,
+    TemplateDetailResponse,
+    ErrorResponse
+)
+
+logger = logging.getLogger(__name__)
+
+# Initialize template service
+template_service = ControlTemplateService()
+
+
+@router.get("/templates/", response_model=TemplateListResponse)
 async def list_control_templates():
-    """获取所有策略模板列表 (Phase 0 stub)"""
-    return []
+    """
+    获取所有策略模板列表 (Phase 1A implemented)
+
+    Returns:
+        TemplateListResponse with all valid templates and statistics
+    """
+    try:
+        logger.info("GET /api/v1/control/templates/ - Listing templates")
+        response = template_service.list_templates()
+        logger.info(f"Successfully returned {response.total_count} templates")
+        return response
+    except Exception as e:
+        logger.error(f"Error listing templates: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "INTERNAL_SERVER_ERROR",
+                "message": "Failed to retrieve templates",
+                "details": {"error_type": type(e).__name__}
+            }
+        )
 
 
-@router.get("/templates/{template_id}", response_model=Dict[str, Any])
+@router.get("/templates/{template_id}", response_model=TemplateDetailResponse)
 async def get_control_template(template_id: str):
-    """获取指定模板详情 (Phase 0 stub)"""
-    return {}
+    """
+    获取指定模板详情 (Phase 1A implemented)
+
+    Args:
+        template_id: Unique template identifier
+
+    Returns:
+        TemplateDetailResponse with complete template details
+    """
+    try:
+        logger.info(f"GET /api/v1/control/templates/{template_id} - Retrieving template")
+        response = template_service.get_template_detail(template_id)
+
+        if response is None:
+            logger.warning(f"Template not found: {template_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "TEMPLATE_NOT_FOUND",
+                    "message": f"Template with ID '{template_id}' not found",
+                    "details": {"requested_id": template_id}
+                }
+            )
+
+        logger.info(f"Successfully returned template: {template_id}")
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving template {template_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "INTERNAL_SERVER_ERROR",
+                "message": "Failed to retrieve template",
+                "details": {"template_id": template_id, "error_type": type(e).__name__}
+            }
+        )
 
 
 # ==================== 控制策略 Strategies ====================

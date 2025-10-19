@@ -4,54 +4,237 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>交通管控仿真优化系统</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶栏 */
+        .top-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .top-bar h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 200px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin: 0;
+        }
+
+        .sidebar-nav a {
+            display: block;
+            padding: 15px 30px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            background: #34495e;
+            border-left-color: #3498db;
+        }
+
+        .sidebar-nav a.active {
+            background: #34495e;
+            border-left-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        /* 主内容区 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-section {
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .welcome-section h2 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .welcome-section p {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            line-height: 1.8;
+        }
+
+        /* 功能卡片 */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .feature-desc {
+            color: #7f8c8d;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .card-templates { border-top: 4px solid #3498db; }
+        .card-plans { border-top: 4px solid #2ecc71; }
+        .card-simulations { border-top: 4px solid #e74c3c; }
+        .card-optimization { border-top: 4px solid #f39c12; }
+    </style>
 </head>
 <body>
-    <header>
+    <!-- 顶栏 -->
+    <div class="top-bar">
         <h1>交通管控仿真优化系统</h1>
-        <p>Traffic Control Simulation & Optimization</p>
-    </header>
-
-    <div class="container">
-        <nav class="main-nav">
-            <button class="nav-btn active" data-view="strategies">策略管理</button>
-            <button class="nav-btn" data-view="plans">方案管理</button>
-            <button class="nav-btn" data-view="batch">批量仿真</button>
-            <button class="nav-btn" data-view="optimization">优化分析</button>
-        </nav>
-
-        <main id="content-area">
-        <!-- Dynamic content area -->
-        <section id="view-strategies" class="view-content active">
-            <h2>策略管理 (Strategy Management)</h2>
-            <p class="placeholder">Phase 0: 策略管理功能开发中...</p>
-            <p>未来功能：创建、编辑、删除控制策略（基于模板）</p>
-        </section>
-
-        <section id="view-plans" class="view-content">
-            <h2>方案管理 (Plan Management)</h2>
-            <p class="placeholder">Phase 0: 方案管理功能开发中...</p>
-            <p>未来功能：组建方案、生成Additional文件</p>
-        </section>
-
-        <section id="view-batch" class="view-content">
-            <h2>批量仿真 (Batch Simulation)</h2>
-            <p class="placeholder">Phase 0: 批量仿真功能开发中...</p>
-            <p>未来功能：并行运行多个方案、进度监控</p>
-        </section>
-
-        <section id="view-optimization" class="view-content">
-            <h2>优化分析 (Optimization Analysis)</h2>
-            <p class="placeholder">Phase 0: 优化分析功能开发中...</p>
-            <p>未来功能：指标计算、方案排序、可视化对比</p>
-        </section>
-        </main>
+        <a href="../index.html" class="back-btn">返回主系统</a>
     </div>
 
-    <footer>
-        <p>OD数据处理与仿真系统 - 交通管控优化模块 | Phase 0 基础设施</p>
-    </footer>
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="templates.html">策略管理</a></li>
+                <li><a href="plans.html">方案管理</a></li>
+                <li><a href="simulations.html">并行仿真</a></li>
+                <li><a href="optimization.html">方案优化</a></li>
+            </ul>
+        </div>
 
-    <script src="app.js"></script>
+        <!-- 主内容区 -->
+        <div class="content-area">
+            <div class="welcome-section">
+                <h2>欢迎使用交通管控仿真优化系统</h2>
+                <p>
+                    本系统支持交通管控策略的设计、仿真与优化。通过预定义的策略模板，
+                    您可以快速创建管控方案，进行并行仿真对比，并基于评估指标进行方案优化。
+                </p>
+
+                <div class="features-grid">
+                    <div class="feature-card card-templates" onclick="location.href='templates.html'">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-title">策略管理</div>
+                        <div class="feature-desc">
+                            浏览和管理交通控制策略模板（VSS、DHS、TEC），查看策略参数配置
+                        </div>
+                    </div>
+
+                    <div class="feature-card card-plans" onclick="location.href='plans.html'">
+                        <div class="feature-icon">📝</div>
+                        <div class="feature-title">方案管理</div>
+                        <div class="feature-desc">
+                            基于策略模板创建具体的管控方案，配置参数和应用场景
+                        </div>
+                    </div>
+
+                    <div class="feature-card card-simulations" onclick="location.href='simulations.html'">
+                        <div class="feature-icon">🚀</div>
+                        <div class="feature-title">并行仿真</div>
+                        <div class="feature-desc">
+                            批量执行多个管控方案的仿真，进行横向对比分析
+                        </div>
+                    </div>
+
+                    <div class="feature-card card-optimization" onclick="location.href='optimization.html'">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">方案优化</div>
+                        <div class="feature-desc">
+                            基于仿真结果评估方案效果，推荐最优管控策略组合
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -1,12 +1,16 @@
 """
 控制模块数据模型导出
+
+Phase 1A: Template browsing functionality
+Future phases: Strategy, Plan, BatchSimulation
 """
 
-from .entities import ControlTemplate, Strategy, Plan, BatchSimulation
+from .entities import ControlTemplate, StrategyType, ParameterSchema, TemplateIndexEntry, TemplatesIndex
 
 __all__ = [
     "ControlTemplate",
-    "Strategy",
-    "Plan",
-    "BatchSimulation"
+    "StrategyType",
+    "ParameterSchema",
+    "TemplateIndexEntry",
+    "TemplatesIndex"
 ]

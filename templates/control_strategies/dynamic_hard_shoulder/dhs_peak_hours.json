@@ -1,0 +1,43 @@
+{
+  "template_id": "dhs_peak_hours",
+  "template_name": "动态硬路肩 - 高峰时段",
+  "description": "高峰期开放硬路肩作为临时车道，增加道路通行能力。适用于拥堵严重的高速公路路段，通过临时车道缓解交通压力。",
+  "strategy_type": "DHS",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_segments",
+      "parameter_type": "array",
+      "description": "可开放硬路肩的路段列表",
+      "required": true,
+      "default_value": [],
+      "unit": null
+    },
+    {
+      "parameter_name": "opening_hours",
+      "parameter_type": "array",
+      "description": "硬路肩开放时段",
+      "required": true,
+      "default_value": [[7, 9], [17, 19]],
+      "unit": null
+    },
+    {
+      "parameter_name": "closing_hours",
+      "parameter_type": "array",
+      "description": "硬路肩关闭时段",
+      "required": true,
+      "default_value": [[9, 17], [19, 7]],
+      "unit": null
+    },
+    {
+      "parameter_name": "lane_usage_rules",
+      "parameter_type": "string",
+      "description": "硬路肩使用规则说明",
+      "required": false,
+      "default_value": "仅限小型车辆，限速80km/h",
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-19T00:00:00Z",
+  "updated_at": "2025-10-19T00:00:00Z"
+}

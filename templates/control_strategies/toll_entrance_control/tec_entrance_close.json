@@ -1,0 +1,36 @@
+{
+  "template_id": "tec_entrance_close",
+  "template_name": "收费站入口管控 - 入口封闭",
+  "description": "高峰期临时关闭特定收费站入口，引导车辆分流至其他入口，缓解局部拥堵。适用于交通需求超过路段承载能力的紧急情况。",
+  "strategy_type": "TEC",
+  "parameters_schema": [
+    {
+      "parameter_name": "entrance_ids",
+      "parameter_type": "array",
+      "description": "需要关闭的收费站入口列表",
+      "required": true,
+      "default_value": [],
+      "unit": null
+    },
+    {
+      "parameter_name": "control_mode",
+      "parameter_type": "string",
+      "description": "管控模式：close（关闭）",
+      "required": true,
+      "default_value": "close",
+      "allowed_values": ["close"],
+      "unit": null
+    },
+    {
+      "parameter_name": "time_intervals",
+      "parameter_type": "array",
+      "description": "入口关闭时段",
+      "required": true,
+      "default_value": [[7, 9], [17, 19]],
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-19T00:00:00Z",
+  "updated_at": "2025-10-19T00:00:00Z"
+}

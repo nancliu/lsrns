@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略管理 - 交通管控仿真优化系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶栏 */
+        .top-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .top-bar h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 200px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin: 0;
+        }
+
+        .sidebar-nav a {
+            display: block;
+            padding: 15px 30px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            background: #34495e;
+            border-left-color: #3498db;
+        }
+
+        .sidebar-nav a.active {
+            background: #34495e;
+            border-left-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        /* 主内容区 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .content-header h2 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .content-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        /* 工作流步骤指示器 */
+        .workflow-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ecf0f1;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .step.active .step-number {
+            background: #3498db;
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .step-label {
+            margin-left: 10px;
+            font-size: 0.95rem;
+            color: #7f8c8d;
+        }
+
+        .step.active .step-label {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .step-arrow {
+            margin: 0 20px;
+            color: #bdc3c7;
+            font-size: 1.5rem;
+        }
+
+        /* 步骤内容区 */
+        .step-content {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .step-content h3 {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+
+        /* 模板选择区 */
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .template-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .template-card:hover {
+            border-color: #3498db;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+
+        .template-card.selected {
+            border-color: #3498db;
+            background: #ebf5fb;
+        }
+
+        .template-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .template-title {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .strategy-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        .badge-VSS { background: #3498db; }
+        .badge-DHS { background: #2ecc71; }
+        .badge-TEC { background: #e74c3c; }
+
+        .template-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* 边选择器区域 */
+        .edge-selector-container {
+            min-height: 300px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #7f8c8d;
+        }
+
+        .edge-selector-placeholder {
+            padding: 60px 20px;
+        }
+
+        .selected-edges-list {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .edge-tag {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            margin: 5px;
+            font-size: 0.85rem;
+        }
+
+        .edge-tag .remove {
+            margin-left: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* 参数配置区 */
+        .params-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-hint {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        /* 操作按钮 */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 策略实例列表 */
+        .strategies-list {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .strategies-list h3 {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-left: 4px solid #2ecc71;
+            padding-left: 15px;
+        }
+
+        .strategy-item {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .strategy-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .strategy-info {
+            flex: 1;
+        }
+
+        .strategy-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .strategy-meta {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .strategy-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .icon-btn:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+
+        /* Loading & Error */
+        .loading, .error {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.1rem;
+            color: #7f8c8d;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-btn:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶栏 -->
+    <div class="top-bar">
+        <h1>交通管控仿真优化系统</h1>
+        <a href="../index.html" class="back-btn">返回主系统</a>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="templates.html" class="active">策略管理</a></li>
+                <li><a href="plans.html">方案管理</a></li>
+                <li><a href="simulations.html">并行仿真</a></li>
+                <li><a href="optimization.html">方案优化</a></li>
+            </ul>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="content-area">
+            <div class="content-header">
+                <h2>策略管理</h2>
+                <p class="content-subtitle">创建和管理交通控制策略实例</p>
+            </div>
+
+            <!-- 工作流步骤指示器 -->
+            <div class="workflow-steps">
+                <div class="step active" id="step-indicator-1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">选择模板</div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step" id="step-indicator-2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">选择路段</div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step" id="step-indicator-3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">配置参数</div>
+                </div>
+            </div>
+
+            <!-- 步骤1: 选择策略模板 -->
+            <div class="step-content" id="step1-content">
+                <h3>步骤1：选择策略模板</h3>
+                <div id="templates-container" class="templates-grid"></div>
+                <div id="loading" class="loading">加载中...</div>
+                <div id="error" class="error" style="display: none;"></div>
+            </div>
+
+            <!-- 步骤2: 选择路段 (默认隐藏) -->
+            <div class="step-content" id="step2-content" style="display: none;">
+                <h3>步骤2：选择管控路段</h3>
+                <div class="edge-selector-container" id="edge-selector">
+                    <div class="edge-selector-placeholder">
+                        <p>📍 边选择器功能（Phase 1B）</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem;">支持从数据库查询路段、多维度筛选、路网可视化</p>
+                    </div>
+                </div>
+                <div class="selected-edges-list" id="selected-edges" style="display: none;">
+                    <strong>已选路段：</strong>
+                    <div id="edge-tags"></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="previousStep()">上一步</button>
+                    <button class="btn btn-primary" onclick="nextStep()" id="step2-next">下一步</button>
+                </div>
+            </div>
+
+            <!-- 步骤3: 配置参数 (默认隐藏) -->
+            <div class="step-content" id="step3-content" style="display: none;">
+                <h3>步骤3：配置策略参数</h3>
+                <form class="params-form" id="params-form">
+                    <!-- 动态生成参数表单 -->
+                </form>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="previousStep()">上一步</button>
+                    <button class="btn btn-secondary" onclick="resetForm()">重置</button>
+                    <button class="btn btn-primary" onclick="createStrategy()">生成策略实例</button>
+                </div>
+            </div>
+
+            <!-- 已创建的策略实例列表 -->
+            <div class="strategies-list" style="margin-top: 30px;">
+                <h3>已创建的策略实例</h3>
+                <div id="strategies-list-container">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">暂无策略实例</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let currentStep = 1;
+        let templates = [];
+        let selectedTemplate = null;
+        let selectedEdges = [];
+        let strategyInstances = [];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchTemplates();
+        });
+
+        // 获取模板列表
+        async function fetchTemplates() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const containerEl = document.getElementById('templates-container');
+
+            try {
+                loadingEl.style.display = 'block';
+                errorEl.style.display = 'none';
+                containerEl.innerHTML = '';
+
+                const response = await fetch('/api/v1/control/templates/');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                templates = data.templates;
+
+                renderTemplateCards(templates);
+                loadingEl.style.display = 'none';
+
+            } catch (error) {
+                console.error('Error fetching templates:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = `加载失败: ${error.message}`;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // 渲染模板卡片
+        function renderTemplateCards(templates) {
+            const container = document.getElementById('templates-container');
+
+            if (templates.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; grid-column: 1 / -1;">暂无模板</p>';
+                return;
+            }
+
+            templates.forEach(template => {
+                const card = createTemplateCard(template);
+                container.appendChild(card);
+            });
+        }
+
+        // 创建模板卡片
+        function createTemplateCard(template) {
+            const card = document.createElement('div');
+            card.className = 'template-card';
+            card.onclick = () => selectTemplate(template);
+
+            const strategyType = template.strategy_type;
+            const strategyNames = {
+                'VSS': '可变限速',
+                'DHS': '动态硬路肩',
+                'TEC': '收费站管控'
+            };
+
+            card.innerHTML = `
+                <div class="template-header">
+                    <div class="template-title">${template.template_name}</div>
+                    <span class="strategy-badge badge-${strategyType}">${strategyNames[strategyType]}</span>
+                </div>
+                <div class="template-description">${template.description}</div>
+            `;
+
+            return card;
+        }
+
+        // 选择模板
+        function selectTemplate(template) {
+            selectedTemplate = template;
+
+            // 更新视觉选中状态
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // 自动进入步骤2
+            setTimeout(() => {
+                currentStep = 2;
+                updateStepDisplay();
+            }, 300);
+        }
+
+        // 更新步骤显示
+        function updateStepDisplay() {
+            // 更新步骤指示器
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`step-indicator-${i}`);
+                if (i < currentStep) {
+                    indicator.classList.add('completed');
+                    indicator.classList.remove('active');
+                } else if (i === currentStep) {
+                    indicator.classList.add('active');
+                    indicator.classList.remove('completed');
+                } else {
+                    indicator.classList.remove('active', 'completed');
+                }
+            }
+
+            // 显示/隐藏步骤内容
+            document.getElementById('step1-content').style.display = currentStep === 1 ? 'block' : 'none';
+            document.getElementById('step2-content').style.display = currentStep === 2 ? 'block' : 'none';
+            document.getElementById('step3-content').style.display = currentStep === 3 ? 'block' : 'none';
+
+            // 如果进入步骤3，生成参数表单
+            if (currentStep === 3 && selectedTemplate) {
+                generateParamsForm(selectedTemplate);
+            }
+        }
+
+        // 下一步
+        function nextStep() {
+            if (currentStep < 3) {
+                currentStep++;
+                updateStepDisplay();
+            }
+        }
+
+        // 上一步
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        }
+
+        // 生成参数表单
+        function generateParamsForm(template) {
+            const form = document.getElementById('params-form');
+            form.innerHTML = '';
+
+            // 策略名称（必填）
+            const nameGroup = document.createElement('div');
+            nameGroup.className = 'form-group';
+            nameGroup.innerHTML = `
+                <label>策略名称 *</label>
+                <input type="text" id="param-strategy-name" required>
+                <span class="form-hint">为该策略实例命名</span>
+            `;
+            form.appendChild(nameGroup);
+
+            // 策略描述
+            const descGroup = document.createElement('div');
+            descGroup.className = 'form-group';
+            descGroup.innerHTML = `
+                <label>策略描述</label>
+                <textarea id="param-strategy-description" rows="3"></textarea>
+                <span class="form-hint">可选</span>
+            `;
+            form.appendChild(descGroup);
+
+            // 动态生成模板参数
+            template.parameters_schema.forEach(param => {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+
+                let inputHtml = '';
+                if (param.parameter_type === 'integer' || param.parameter_type === 'float') {
+                    inputHtml = `<input type="number" id="param-${param.parameter_name}"
+                                   ${param.required ? 'required' : ''}
+                                   ${param.min_value !== null ? `min="${param.min_value}"` : ''}
+                                   ${param.max_value !== null ? `max="${param.max_value}"` : ''}
+                                   ${param.default_value !== null ? `value="${param.default_value}"` : ''}
+                                   step="${param.parameter_type === 'float' ? '0.01' : '1'}">`;
+                } else if (param.parameter_type === 'string') {
+                    inputHtml = `<input type="text" id="param-${param.parameter_name}"
+                                   ${param.required ? 'required' : ''}
+                                   ${param.default_value !== null ? `value="${param.default_value}"` : ''}>`;
+                } else if (param.parameter_type === 'boolean') {
+                    inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>
+                                   <option value="true">是</option>
+                                   <option value="false">否</option>
+                                 </select>`;
+                }
+
+                group.innerHTML = `
+                    <label>${param.description} ${param.required ? '*' : ''}</label>
+                    ${inputHtml}
+                    <span class="form-hint">${param.unit || ''} ${param.min_value !== null && param.max_value !== null ? `范围: ${param.min_value}-${param.max_value}` : ''}</span>
+                `;
+                form.appendChild(group);
+            });
+        }
+
+        // 重置表单
+        function resetForm() {
+            currentStep = 1;
+            selectedTemplate = null;
+            selectedEdges = [];
+            updateStepDisplay();
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+        }
+
+        // 创建策略实例
+        function createStrategy() {
+            if (!selectedTemplate) {
+                alert('请先选择策略模板');
+                return;
+            }
+
+            // 收集参数
+            const strategyName = document.getElementById('param-strategy-name').value;
+            const strategyDescription = document.getElementById('param-strategy-description').value;
+
+            if (!strategyName) {
+                alert('请输入策略名称');
+                return;
+            }
+
+            const configuredParams = {};
+            selectedTemplate.parameters_schema.forEach(param => {
+                const input = document.getElementById(`param-${param.parameter_name}`);
+                if (input) {
+                    configuredParams[param.parameter_name] = input.value;
+                }
+            });
+
+            // TODO: 调用API创建策略
+            console.log('Creating strategy:', {
+                template_id: selectedTemplate.template_id,
+                strategy_name: strategyName,
+                description: strategyDescription,
+                configured_params: configuredParams,
+                selected_edges: selectedEdges
+            });
+
+            alert('策略实例创建功能将在后端API完成后实现');
+
+            // 重置表单
+            resetForm();
+        }
+    </script>
+</body>
+</html>

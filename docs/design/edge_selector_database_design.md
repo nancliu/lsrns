@@ -535,16 +535,129 @@ ORDER BY e.start_stake;
 
 ---
 
-## 7. 后续优化方向
+## 7. 特殊场景支持 ⭐
+
+### 7.1 收费入口管控（TEC - Toll Entrance Control）
+
+**场景需求**：根据TAZ选择收费入口边，控制特定入口流量
+
+**解决方案**：✅ **已支持，立即可用**
+
+```python
+# 方案1: 基于节点类型筛选（推荐）
+entrance_edges = query_edges_with_filters(
+    route_codes=["G4202"],
+    node_types=["entrance"]  # ✅ 已支持
+)
+
+# 方案2: 基于边类型筛选
+entrance_edges = query_edges_with_filters(
+    route_codes=["G4202"],
+    edge_types=["highway.motorway_link"],  # 入口匝道
+    node_types=["entrance"]
+)
+
+# 方案3: 结合TAZ筛选（可选扩展）
+entrance_edges = query_edges_by_taz(
+    taz_ids=["G00055100200104010"],
+    source_types=["toll_square"]  # gantry/toll_square
+)
+```
+
+**数据支持**：
+- ✅ `multiscale_node_units.node_type = 'entrance'`（15+个入口边）
+- ✅ `taz_demonstration_mapping`表（461条TAZ映射记录）
+- ✅ `sim_network_edges.type = 'highway.motorway_link'`（入口匝道标识）
+
+**参考文档**：[edge_selector_special_scenarios.md](edge_selector_special_scenarios.md)
+
+---
+
+### 7.2 动态硬路肩管控（DHS - Dynamic Hard Shoulder）
+
+**场景需求**：选择具备应急车道的主路，动态开放应急车道
+
+**解决方案**：△ **基本支持，建议扩展**
+
+**短期方案（推断）**：
+```python
+# 基于车道数推断（≥5车道可能有应急车道）
+dhs_edges = query_edges_with_filters(
+    route_codes=["G4202"],
+    edge_types=["highway.motorway"],  # 主路
+    min_lanes=5,                      # ≥5车道
+    min_length=800
+)
+```
+
+**推荐方案（精确识别）**：
+```python
+# 关联车道表精确识别应急车道
+dhs_edges = query_edges_with_emergency_lanes(
+    route_codes=["G4202"],
+    section_codes=["G4202001"],
+    route_direction="clockwise",  # 方向筛选
+    min_stake=10.0,
+    max_stake=50.0,
+    min_length=800
+)
+
+# 返回结果包含应急车道信息
+for edge in dhs_edges:
+    print(f"边ID: {edge.edge_id}")
+    print(f"应急车道数: {edge.emergency_lane_count}")
+    print(f"应急车道索引: {edge.emergency_lane_indexes}")
+```
+
+**数据支持**：
+- ✅ `sim_network_lanes`表（车道级别配置，含`disallow`字段）
+- ✅ `sim_network_edges.type = 'highway.motorway'`（主路标识）
+- ✅ G4202路线有20+个5-6车道的主路边
+
+**实现清单**：
+- [ ] 新增`edge_types`参数（P0，0.5天）
+- [ ] 新增`query_edges_with_emergency_lanes()`函数（P1，1-2天）
+- [ ] 可选：数据库添加`has_emergency_lane`字段（P2）
+
+**参考文档**：
+- 详细方案：[edge_selector_special_scenarios.md](edge_selector_special_scenarios.md)
+- 快速答案：[edge_selector_scenarios_answer.md](edge_selector_scenarios_answer.md)
+
+---
+
+### 7.3 扩展维度汇总
+
+| 维度 | 参数 | 状态 | 优先级 | 适用场景 |
+|------|------|------|--------|---------|
+| 路线编码 | route_codes | ✅ 已支持 | P0 | 所有场景 |
+| 路段编码 | section_codes | ✅ 已支持 | P0 | 所有场景 |
+| 方向 | route_direction | ✅ 已支持 | P0 | 所有场景 |
+| 桩号范围 | min/max_stake | ✅ 已支持 | P0 | 所有场景 |
+| 路段长度 | min/max_length | ✅ 已支持 | P0 | 所有场景 |
+| 车道数 | min_lanes | ✅ 已支持 | P0 | 所有场景 |
+| 节点类型 | node_types | ✅ 已支持 | P0 | TEC入口管控 |
+| 门架筛选 | with_gantry | ✅ 已支持 | P0 | 需要观测数据 |
+| 示范段 | demonstration_ids | ✅ 已支持 | P0 | 预定义区域 |
+| **边类型** | **edge_types** | 📋 **待实现** | **P0** | **TEC, DHS** |
+| **TAZ筛选** | **taz_ids** | 📋 **可选** | **P2** | **TEC** |
+| **应急车道** | **has_emergency_lane** | 📋 **可选** | **P1** | **DHS** |
+
+**总计**: 9种已支持 + 3种待扩展 = **12种筛选维度**
+
+---
+
+## 8. 后续优化方向
 
 1. **缓存机制**：将常用查询结果缓存到Redis
 2. **全文搜索**：支持路段名称模糊搜索
 3. **空间查询**：基于PostGIS的地理位置筛选
 4. **批量操作**：支持批量选择区域内所有路段
 5. **历史记录**：保存用户的筛选条件和选择结果
+6. **智能推荐**：根据控制策略类型推荐合适的边
 
 ---
 
-**文档版本**: v1.0
+**文档版本**: v1.1
 **最后更新**: 2025-10-19
+**更新内容**: 新增特殊场景支持（TEC/DHS）
 **维护者**: OD_SIM开发团队

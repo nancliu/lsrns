@@ -1,0 +1,53 @@
+{
+  "template_id": "vss_moderate",
+  "template_name": "可变限速 - 中等控制",
+  "description": "适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段。通过动态调整限速值来平衡交通流量，减少拥堵风险。",
+  "strategy_type": "VSS",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_edges",
+      "parameter_type": "array",
+      "description": "受限速影响的路段列表，输入SUMO网络中的edge ID",
+      "required": true,
+      "default_value": [],
+      "unit": null
+    },
+    {
+      "parameter_name": "speed_limit",
+      "parameter_type": "integer",
+      "description": "限速值（公里/小时）",
+      "required": true,
+      "default_value": 80,
+      "min_value": 40,
+      "max_value": 100,
+      "unit": "km/h"
+    },
+    {
+      "parameter_name": "time_intervals",
+      "parameter_type": "array",
+      "description": "限速生效的时段列表，格式：[[开始小时, 结束小时]]",
+      "required": true,
+      "default_value": [[7, 9], [17, 19]],
+      "unit": null
+    },
+    {
+      "parameter_name": "speed_levels",
+      "parameter_type": "array",
+      "description": "分级限速值列表，支持根据流量动态调整",
+      "required": false,
+      "default_value": [100, 80, 60],
+      "unit": "km/h"
+    },
+    {
+      "parameter_name": "applicable_vehicle_types",
+      "parameter_type": "array",
+      "description": "适用的车辆类型列表，留空表示所有车型",
+      "required": false,
+      "default_value": [],
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-19T00:00:00Z",
+  "updated_at": "2025-10-19T00:00:00Z"
+}

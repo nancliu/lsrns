@@ -1,0 +1,53 @@
+{
+  "template_id": "vss_strict",
+  "template_name": "可变限速 - 严格控制",
+  "description": "适用于拥堵严重时段的严格限速控制，限速值60-80 km/h，用于缓解下游瓶颈、降低事故风险。实施更低的速度限制以提高交通流稳定性。",
+  "strategy_type": "VSS",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_edges",
+      "parameter_type": "array",
+      "description": "受限速影响的路段列表",
+      "required": true,
+      "default_value": [],
+      "unit": null
+    },
+    {
+      "parameter_name": "speed_limit",
+      "parameter_type": "integer",
+      "description": "严格限速值（公里/小时）",
+      "required": true,
+      "default_value": 60,
+      "min_value": 40,
+      "max_value": 80,
+      "unit": "km/h"
+    },
+    {
+      "parameter_name": "time_intervals",
+      "parameter_type": "array",
+      "description": "严格限速生效时段",
+      "required": true,
+      "default_value": [[7, 10], [16, 20]],
+      "unit": null
+    },
+    {
+      "parameter_name": "speed_levels",
+      "parameter_type": "array",
+      "description": "分级严格限速值",
+      "required": false,
+      "default_value": [80, 60, 40],
+      "unit": "km/h"
+    },
+    {
+      "parameter_name": "applicable_vehicle_types",
+      "parameter_type": "array",
+      "description": "适用车型列表",
+      "required": false,
+      "default_value": [],
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-19T00:00:00Z",
+  "updated_at": "2025-10-19T00:00:00Z"
+}

@@ -2,14 +2,15 @@
 控制模块实体模型导出
 """
 
-from .template import ControlTemplate
-from .strategy import Strategy
-from .plan import Plan
-from .batch_simulation import BatchSimulation
+from .template import ControlTemplate, StrategyType, ParameterSchema, TemplateIndexEntry, TemplatesIndex
+
+# Phase 1A: Only ControlTemplate and related models are implemented
+# Future phases will add: Strategy, Plan, BatchSimulation
 
 __all__ = [
     "ControlTemplate",
-    "Strategy",
-    "Plan",
-    "BatchSimulation"
+    "StrategyType",
+    "ParameterSchema",
+    "TemplateIndexEntry",
+    "TemplatesIndex"
 ]
