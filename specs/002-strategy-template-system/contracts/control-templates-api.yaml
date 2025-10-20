@@ -1,0 +1,359 @@
+openapi: 3.0.3
+info:
+  title: Control Strategy Templates API
+  description: |
+    API for browsing and retrieving traffic control strategy templates.
+    Phase 1A provides read-only access to pre-defined templates (VSS, DHS, TEC).
+  version: 1.0.0
+  contact:
+    name: OD_SIM Development Team
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+tags:
+  - name: Templates
+    description: Strategy template browsing and retrieval
+
+paths:
+  /control/templates/:
+    get:
+      tags:
+        - Templates
+      summary: List all strategy templates
+      description: |
+        Retrieve a list of all available traffic control strategy templates.
+        Returns summary information for each template (id, name, type, description preview).
+        Templates are auto-loaded from `templates/control_strategies/` at server startup.
+      operationId: listTemplates
+      responses:
+        '200':
+          description: Successfully retrieved template list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateSummary'
+                  total_count:
+                    type: integer
+                    description: Total number of available templates
+                    example: 5
+                  by_type:
+                    type: object
+                    description: Count of templates per strategy type
+                    additionalProperties:
+                      type: integer
+                    example:
+                      VSS: 2
+                      DHS: 1
+                      TEC: 2
+              examples:
+                phase1a_templates:
+                  summary: Phase 1A template list (5 templates)
+                  value:
+                    templates:
+                      - template_id: vss_moderate
+                        template_name: 可变限速 - 中等控制
+                        strategy_type: VSS
+                        description_preview: 适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段...
+                      - template_id: vss_strict
+                        template_name: 可变限速 - 严格控制
+                        strategy_type: VSS
+                        description_preview: 适用于拥堵严重时段的严格限速控制，限速值60-80 km/h，用于缓解下游瓶颈...
+                      - template_id: dhs_peak_hours
+                        template_name: 动态硬路肩 - 高峰时段开放
+                        strategy_type: DHS
+                        description_preview: 在高峰时段开放硬路肩车道，增加车道容量，缓解主线拥堵...
+                      - template_id: tec_truck_ban
+                        template_name: 收费站入口管控 - 货车禁入
+                        strategy_type: TEC
+                        description_preview: 在特定时段禁止货车进入高速公路，减少大型车辆对通行能力的影响...
+                      - template_id: tec_entrance_close
+                        template_name: 收费站入口管控 - 入口关闭
+                        strategy_type: TEC
+                        description_preview: 完全关闭特定入口匝道，阻止车辆进入拥堵路段...
+                    total_count: 5
+                    by_type:
+                      VSS: 2
+                      DHS: 1
+                      TEC: 2
+        '500':
+          description: Server error (e.g., template loading failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /control/templates/{template_id}:
+    get:
+      tags:
+        - Templates
+      summary: Get template details
+      description: |
+        Retrieve complete information about a specific template, including all parameter definitions,
+        validation rules, and default values. Used for template detail modal view.
+      operationId: getTemplateById
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          description: Unique template identifier (e.g., "vss_moderate")
+          schema:
+            type: string
+            pattern: '^[a-z0-9_]+$'
+          example: vss_moderate
+      responses:
+        '200':
+          description: Successfully retrieved template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateDetail'
+              examples:
+                vss_moderate:
+                  summary: VSS Moderate Template
+                  value:
+                    template_id: vss_moderate
+                    template_name: 可变限速 - 中等控制
+                    description: 适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段。通过分时段调整限速，平滑车流，避免下游瓶颈堵塞。
+                    strategy_type: VSS
+                    parameters_schema:
+                      - parameter_name: affected_edges
+                        parameter_type: array
+                        description: 受限速影响的路段列表，使用路段ID标识
+                        required: true
+                        default_value: []
+                        min_value: null
+                        max_value: null
+                        allowed_values: null
+                        unit: null
+                      - parameter_name: speed_limit
+                        parameter_type: integer
+                        description: 限速值（公里/小时）
+                        required: true
+                        default_value: 80
+                        min_value: 40
+                        max_value: 100
+                        allowed_values: null
+                        unit: km/h
+                      - parameter_name: time_intervals
+                        parameter_type: array
+                        description: 限速生效的时段列表，格式：[[7, 9], [17, 19]] 表示7-9点和17-19点
+                        required: true
+                        default_value:
+                          - [7, 9]
+                          - [17, 19]
+                        min_value: null
+                        max_value: null
+                        allowed_values: null
+                        unit: null
+                      - parameter_name: applicable_vehicle_types
+                        parameter_type: array
+                        description: 受限速约束的车型列表，默认为空表示所有车型
+                        required: false
+                        default_value: []
+                        min_value: null
+                        max_value: null
+                        allowed_values: null
+                        unit: null
+                    version: "1.0"
+                    created_at: "2025-10-19T00:00:00Z"
+                    updated_at: "2025-10-19T00:00:00Z"
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: TEMPLATE_NOT_FOUND
+                message: Template 'invalid_id' not found
+                details: null
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    TemplateSummary:
+      type: object
+      description: Summary information for a strategy template (used in list view)
+      required:
+        - template_id
+        - template_name
+        - strategy_type
+        - description_preview
+      properties:
+        template_id:
+          type: string
+          description: Unique template identifier
+          pattern: '^[a-z0-9_]+$'
+          example: vss_moderate
+        template_name:
+          type: string
+          description: Display name (Chinese)
+          minLength: 1
+          maxLength: 100
+          example: 可变限速 - 中等控制
+        strategy_type:
+          $ref: '#/components/schemas/StrategyType'
+        description_preview:
+          type: string
+          description: First 100 characters of template description
+          maxLength: 100
+          example: 适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段...
+
+    TemplateDetail:
+      type: object
+      description: Complete template information including parameter schemas
+      required:
+        - template_id
+        - template_name
+        - description
+        - strategy_type
+        - parameters_schema
+        - version
+        - created_at
+        - updated_at
+      properties:
+        template_id:
+          type: string
+          description: Unique template identifier
+          pattern: '^[a-z0-9_]+$'
+          example: vss_moderate
+        template_name:
+          type: string
+          description: Display name (Chinese)
+          minLength: 1
+          maxLength: 100
+          example: 可变限速 - 中等控制
+        description:
+          type: string
+          description: Detailed explanation (Chinese)
+          minLength: 1
+          maxLength: 500
+          example: 适用于高峰期的中等强度限速控制，限速值80-100 km/h...
+        strategy_type:
+          $ref: '#/components/schemas/StrategyType'
+        parameters_schema:
+          type: array
+          description: Array of parameter definitions
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/ParameterSchema'
+        version:
+          type: string
+          description: Template version (semantic versioning)
+          pattern: '^\d+\.\d+(\.\d+)?$'
+          example: "1.0"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp (ISO 8601)
+          example: "2025-10-19T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last modification timestamp (ISO 8601)
+          example: "2025-10-19T00:00:00Z"
+
+    ParameterSchema:
+      type: object
+      description: Definition of a configurable parameter within a template
+      required:
+        - parameter_name
+        - parameter_type
+        - description
+        - required
+      properties:
+        parameter_name:
+          type: string
+          description: Parameter identifier (lowercase, alphanumeric + underscores)
+          pattern: '^[a-z0-9_]+$'
+          minLength: 1
+          maxLength: 50
+          example: speed_limit
+        parameter_type:
+          type: string
+          description: Data type of parameter
+          enum:
+            - integer
+            - float
+            - string
+            - boolean
+            - array
+          example: integer
+        description:
+          type: string
+          description: Parameter explanation (Chinese)
+          minLength: 1
+          maxLength: 200
+          example: 限速值（公里/小时）
+        required:
+          type: boolean
+          description: Whether parameter is mandatory when creating strategy instances
+          example: true
+        default_value:
+          description: Default value if not specified (type varies)
+          nullable: true
+          example: 80
+        min_value:
+          type: number
+          description: Minimum value (for numeric types only)
+          nullable: true
+          example: 40
+        max_value:
+          type: number
+          description: Maximum value (for numeric types only)
+          nullable: true
+          example: 100
+        allowed_values:
+          type: array
+          description: Enum values for restricted choices (optional)
+          nullable: true
+          items: {}
+          example: null
+        unit:
+          type: string
+          description: Display unit (e.g., "km/h", "seconds") for numeric types
+          nullable: true
+          maxLength: 20
+          example: km/h
+
+    StrategyType:
+      type: string
+      description: Traffic control strategy category
+      enum:
+        - VSS  # Variable Speed Signs
+        - DHS  # Dynamic Hard Shoulder
+        - TEC  # Toll Entrance Control
+      example: VSS
+
+    ErrorResponse:
+      type: object
+      description: Standard error response format
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code (uppercase, snake_case)
+          example: TEMPLATE_NOT_FOUND
+        message:
+          type: string
+          description: Human-readable error description (Chinese)
+          example: 模板 'invalid_id' 未找到
+        details:
+          description: Optional contextual information (type varies)
+          nullable: true
+          example: null
