@@ -105,11 +105,21 @@ A traffic control engineer needs to narrow down segment selection using a hierar
 
 - What happens when filter criteria produce zero matching segments? → System returns empty results with a clear message "No segments match the specified criteria" without errors.
 - What happens when a user selects an invalid combination of filters (e.g., min_stake > max_stake)? → System validates filter parameters and returns validation error message before querying database.
-- What happens when the database connection fails during a query? → System catches the database error, logs it, and returns a user-friendly error message "Unable to retrieve segment data, please try again."
+- What happens when the database connection fails during a query? → System automatically retries once after 500ms delay. If both attempts fail, system logs the error and returns a user-friendly error message "Unable to retrieve segment data, please try again."
 - What happens when the user applies very broad filters returning 1000+ segments? → System returns results but displays a warning "Too many results (1000+), please add more filters to narrow down selection."
 - What happens when gantry or lane data is missing for some segments? → System still returns the segment but shows gantry_count as 0 or emergency_lane_count as "unknown" with appropriate UI indicators.
 - What happens when a segment has multiple node types (connected to different junction types)? → System shows the node type from the from_junction by default, with an option to see all connected node types.
 - What happens when the user switches between different demonstration areas rapidly? → System debounces or cancels previous queries to show only the latest results.
+
+## Clarifications
+
+### Session 2025-10-20
+
+- Q: What level of observability is required for debugging query performance and monitoring operational health? → A: Application-level logging with structured events (query params, result counts, timing, errors)
+- Q: What retry strategy should be implemented for transient database connection failures? → A: Basic retry with exponential backoff (2 attempts: immediate, +500ms delay)
+- Q: What authentication/authorization mechanism is required for the edge query API endpoints? → A: Read-only access, no authentication required (use existing .env database credentials)
+- Q: What scaling strategy should be implemented to handle user growth beyond the initial 10 concurrent users? → A: Vertical scaling strategy with connection pooling optimization (increase pool size as needed, tune query performance)
+- Q: Should response caching be implemented for frequently accessed metadata to improve performance? → A: Response caching with 5-minute TTL for metadata endpoints (routes, sections, demonstrations)
 
 ## Requirements *(mandatory)*
 
@@ -117,7 +127,7 @@ A traffic control engineer needs to narrow down segment selection using a hierar
 
 **Database Query Module**
 
-- **FR-001**: System MUST provide a query function `query_edges_with_filters()` that accepts 9 filter parameters: route_codes, section_codes, node_types, min_stake, max_stake, min_length, max_length, route_direction, demonstration_ids, min_lanes, with_gantry
+- **FR-001**: System MUST provide a query function `query_edges_with_filters()` that accepts 11 filter parameters: route_codes, section_codes, node_types, min_stake, max_stake, min_length, max_length, route_direction, demonstration_ids, min_lanes, with_gantry
 - **FR-002**: System MUST query data from PostgreSQL database schema `dim` including tables: sim_network_edges, multiscale_node_units, point_gantry, sim_network_junctions
 - **FR-003**: System MUST support filtering by route codes (e.g., G4202, SA2, G5) with support for multiple route selection
 - **FR-004**: System MUST support filtering by section codes (e.g., G4202001, G4202002) as a hierarchical level between routes and edges
@@ -179,6 +189,39 @@ A traffic control engineer needs to narrow down segment selection using a hierar
 - **FR-042**: System MUST define EdgeQueryRequest model accepting all filter parameters as optional fields
 - **FR-043**: System MUST define EdgeQueryResponse model with edges array and total_count
 - **FR-044**: System SHOULD define EdgeInfoWithLanes model extending EdgeInfo with: emergency_lane_count, emergency_lane_indexes for DHS scenarios
+
+**Logging and Observability**
+
+- **FR-045**: System MUST log all filter query operations with structured events including: timestamp, filter_parameters (route_codes, section_codes, node_types, stake_range, etc.), result_count, query_execution_time_ms
+- **FR-046**: System MUST log database query errors with error_type, error_message, query_context (without exposing sensitive data)
+- **FR-047**: System MUST log query performance warnings when execution time exceeds 1500ms threshold
+- **FR-048**: System MUST use Python logging module with appropriate log levels: INFO for normal queries, WARNING for slow queries or large result sets, ERROR for failures
+- **FR-049**: System SHOULD structure log entries as JSON-compatible format to enable future integration with log aggregation tools
+
+**Error Handling and Resilience**
+
+- **FR-050**: System MUST implement retry logic for database connection failures with exponential backoff: maximum 2 attempts (immediate first attempt, second attempt after 500ms delay)
+- **FR-051**: System MUST distinguish between retryable errors (connection timeout, connection refused) and non-retryable errors (authentication failure, invalid query syntax)
+- **FR-052**: System MUST log retry attempts including attempt_number and delay_ms for debugging purposes
+- **FR-053**: System MUST return appropriate HTTP status codes: 503 Service Unavailable for database connection failures after retry exhaustion, 500 Internal Server Error for unexpected failures
+
+**Security and Access Control**
+
+- **FR-054**: System MUST use read-only database access through existing database connection configuration from .env file (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT)
+- **FR-055**: System MUST NOT require authentication or authorization for edge query API endpoints (internal tool assumption)
+- **FR-056**: System MUST prevent SQL injection through parameterized queries using SQLAlchemy ORM or prepared statements
+- **FR-057**: System MUST NOT log database credentials or sensitive connection details in any log output
+
+**Performance and Scalability**
+
+- **FR-058**: System MUST use SQLAlchemy connection pooling with configurable pool_size (initial: 10 connections) and max_overflow (initial: 5) to support concurrent users
+- **FR-059**: System SHOULD monitor connection pool utilization through logging to identify when pool size adjustment is needed
+- **FR-060**: System MUST ensure database queries use appropriate indexes on route_code, section_code, and junction-related fields to maintain <400ms query performance
+- **FR-061**: System SHOULD support vertical scaling by allowing connection pool parameters to be adjusted via environment variables or configuration without code changes
+- **FR-062**: System MUST implement response caching with 5-minute TTL (time-to-live) for metadata endpoints: `/api/v1/control/edges/routes`, `/api/v1/control/edges/sections`, `/api/v1/control/edges/demonstrations`
+- **FR-063**: System SHOULD use in-memory caching mechanism (e.g., Python functools.lru_cache or cachetools with TTL support) to minimize external dependencies
+- **FR-064**: System MUST include cache hit/miss information in structured logs for performance monitoring
+- **FR-065**: System SHOULD NOT cache the main query endpoint `/api/v1/control/edges/query` as filter combinations are too diverse for effective caching
 
 ### Key Entities *(include if feature involves data)*
 
@@ -249,8 +292,10 @@ A traffic control engineer needs to narrow down segment selection using a hierar
 
 7. **Database Access**: Must use existing database connection configuration from .env file and shared/data_access/connection.py.
 
-8. **Data Privacy**: No sensitive traffic data should be logged or exposed through error messages.
+8. **Data Privacy**: No sensitive traffic data should be logged or exposed through error messages. Database credentials must never appear in logs.
 
-9. **Concurrent Users**: System should support at least 10 concurrent users performing filter operations without significant performance degradation.
+9. **Security Model**: No authentication required for API endpoints (internal tool for traffic engineers with network access to application server).
 
-10. **Incremental Delivery**: Feature must be deliverable in phases - core filtering (P1), TEC support (P2), DHS support (P3), visualization (P4) - with each phase independently usable.
+10. **Concurrent Users**: System should support at least 10 concurrent users performing filter operations without significant performance degradation. Vertical scaling approach: increase connection pool size and optimize query performance as user base grows to 50+ users.
+
+11. **Incremental Delivery**: Feature must be deliverable in phases - core filtering (P1), TEC support (P2), DHS support (P3), visualization (P4) - with each phase independently usable.

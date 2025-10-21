@@ -581,11 +581,11 @@ entrance_edges = query_edges_by_taz(
 
 **短期方案（推断）**：
 ```python
-# 基于车道数推断（≥5车道可能有应急车道）
+# 基于车道数推断（≥4车道可能有应急车道）
 dhs_edges = query_edges_with_filters(
     route_codes=["G4202"],
     edge_types=["highway.motorway"],  # 主路
-    min_lanes=5,                      # ≥5车道
+    min_lanes=4,                      # ≥4车道
     min_length=800
 )
 ```

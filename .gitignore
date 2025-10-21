@@ -617,3 +617,7 @@ test_*.py
 .cursor/settings.json
 .cursor/mcp.json
 
+# mamba 
+bash/
+
+nul

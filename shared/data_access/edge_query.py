@@ -200,7 +200,7 @@ def query_edges_with_filters(
 
 
 def get_available_route_codes() -> List[str]:
-    """获取所有可用的路线编码"""
+    """获取所有可用的路线编码（简单列表）"""
     conn = None
     cur = None
 
@@ -217,6 +217,46 @@ def get_available_route_codes() -> List[str]:
         return route_codes
     except Exception as e:
         logger.error(f"Error getting route codes: {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+def get_available_routes() -> List[Dict]:
+    """
+    获取所有可用的路线信息（带边数统计）
+
+    Returns:
+        List[Dict]: 路线信息列表，包含 route_code 和 edge_count
+    """
+    conn = None
+    cur = None
+
+    try:
+        conn = open_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT
+                route_code,
+                COUNT(*) as edge_count
+            FROM dim.sim_network_edges
+            WHERE route_code IS NOT NULL
+            GROUP BY route_code
+            ORDER BY route_code
+        """)
+        results = [
+            {
+                "route_code": row[0],
+                "edge_count": row[1]
+            }
+            for row in cur.fetchall()
+        ]
+        return results
+    except Exception as e:
+        logger.error(f"Error getting available routes: {e}")
         raise
     finally:
         if cur:
@@ -284,6 +324,19 @@ def get_available_section_codes(route_code: Optional[str] = None) -> List[Dict]:
             cur.close()
         if conn:
             conn.close()
+
+
+def get_available_sections(route_code: Optional[str] = None) -> List[Dict]:
+    """
+    获取可用的路段信息（别名，与 get_available_section_codes 相同）
+
+    Args:
+        route_code: 可选，指定路线编码，返回该路线下的路段
+
+    Returns:
+        List[Dict]: 路段信息列表，包含 section_code, route_code, edge_count, stake_range
+    """
+    return get_available_section_codes(route_code)
 
 
 def get_demonstration_info() -> List[Dict]:

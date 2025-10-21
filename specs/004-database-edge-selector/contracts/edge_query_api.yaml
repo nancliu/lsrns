@@ -1,0 +1,526 @@
+openapi: 3.0.3
+info:
+  title: Edge Selector API
+  version: 1.0.0
+  description: |
+    Database-driven road edge filtering API for traffic control strategy selection.
+
+    Provides multi-dimensional filtering of road segments (edges) based on route, section,
+    stake range, length, lanes, node type, and gantry presence.
+
+    **Features**:
+    - 9 filter dimensions with hierarchical filtering (Route → Section → Edge)
+    - Metadata endpoints for route/section/demonstration dropdowns
+    - Response caching for metadata endpoints (5-minute TTL)
+    - Automatic warnings for large result sets (>50 edges)
+
+  contact:
+    name: OD_SIM Development Team
+  license:
+    name: Internal Use Only
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: http://{server}:8000/api/v1
+    description: Production server
+    variables:
+      server:
+        default: localhost
+
+tags:
+  - name: edges
+    description: Edge filtering and query operations
+  - name: metadata
+    description: Metadata for filter dropdowns (routes, sections, demonstrations)
+
+paths:
+  /control/edges/query:
+    get:
+      tags:
+        - edges
+      summary: Query edges with filters
+      description: |
+        Filter road edges based on multiple criteria. All filter parameters are optional.
+        Empty query returns all edges (warning: may return 1000+ results).
+
+        **Hierarchical Filtering Strategy**:
+        1. Start with route_codes to narrow to ~1000 edges
+        2. Add section_codes to reduce to ~600 edges
+        3. Add additional filters (stake range, length, lanes) to get 10-20 target edges
+
+        **Performance**: Query completes in <2 seconds for typical filter combinations.
+
+      operationId: queryEdges
+      parameters:
+        - name: route_codes
+          in: query
+          description: Comma-separated route codes (e.g., "G4202,SA2,G5")
+          required: false
+          schema:
+            type: string
+            example: "G4202"
+
+        - name: section_codes
+          in: query
+          description: Comma-separated section codes (e.g., "G4202001,G4202002")
+          required: false
+          schema:
+            type: string
+            example: "G4202001"
+
+        - name: node_types
+          in: query
+          description: Comma-separated node types (diverging, merging, entrance, exit)
+          required: false
+          schema:
+            type: string
+            enum: [diverging, merging, entrance, exit]
+            example: "diverging,merging"
+
+        - name: min_stake
+          in: query
+          description: Minimum stake number in kilometers (≥0)
+          required: false
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            example: 10.0
+
+        - name: max_stake
+          in: query
+          description: Maximum stake number in kilometers (≥0, must be ≥ min_stake)
+          required: false
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            example: 50.0
+
+        - name: min_length
+          in: query
+          description: Minimum edge length in meters (>0)
+          required: false
+          schema:
+            type: number
+            format: float
+            exclusiveMinimum: true
+            minimum: 0
+            example: 500
+
+        - name: max_length
+          in: query
+          description: Maximum edge length in meters (>0, must be ≥ min_length)
+          required: false
+          schema:
+            type: number
+            format: float
+            exclusiveMinimum: true
+            minimum: 0
+            example: 2000
+
+        - name: route_direction
+          in: query
+          description: Route direction filter
+          required: false
+          schema:
+            type: string
+            enum: [clockwise, counterclockwise]
+            example: "clockwise"
+
+        - name: demonstration_ids
+          in: query
+          description: Comma-separated demonstration area IDs (e.g., "5,7")
+          required: false
+          schema:
+            type: string
+            example: "5"
+
+        - name: min_lanes
+          in: query
+          description: Minimum number of lanes (≥1)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 3
+
+        - name: with_gantry
+          in: query
+          description: If true, return only edges with at least one gantry
+          required: false
+          schema:
+            type: boolean
+            default: false
+            example: true
+
+      responses:
+        '200':
+          description: Successful query response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeQueryResponse'
+              examples:
+                normal_result:
+                  summary: Normal result (10-20 edges)
+                  value:
+                    edges:
+                      - edge_id: "-5880"
+                        route_code: "SA2"
+                        section_code: "SA002002"
+                        start_stake: 139.2
+                        end_stake: 140.6
+                        length: 1328.0
+                        num_lanes: 3
+                        route_direction: "counterclockwise"
+                        node_type: "diverging"
+                        gantry_count: 3
+                        gantry_ids: ["G001", "G002", "G003"]
+                    total_count: 15
+                    warning: null
+
+                large_result:
+                  summary: Large result set (>50 edges) with warning
+                  value:
+                    edges: []
+                    total_count: 68
+                    warning: "Large result set (68), consider adding more filters for better precision."
+
+                empty_result:
+                  summary: No matching edges
+                  value:
+                    edges: []
+                    total_count: 0
+                    warning: null
+
+        '400':
+          description: Invalid filter parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_stake_range:
+                  summary: max_stake < min_stake
+                  value:
+                    detail: "max_stake must be >= min_stake"
+
+                invalid_node_type:
+                  summary: Invalid node type value
+                  value:
+                    detail: "Invalid node types: ['invalid']. Must be one of: {'diverging', 'merging', 'entrance', 'exit'}"
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '503':
+          description: Service unavailable (database connection failure after retry)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Unable to retrieve segment data, please try again."
+
+  /control/edges/routes:
+    get:
+      tags:
+        - metadata
+      summary: Get available route codes
+      description: |
+        Returns list of all available route codes from database.
+
+        **Caching**: Response cached for 5 minutes (300 seconds).
+        **Performance**: <100ms with caching
+
+      operationId: getRoutes
+      responses:
+        '200':
+          description: List of available routes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: ["G4202", "G5", "G76", "S81", "SA2"]
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /control/edges/sections:
+    get:
+      tags:
+        - metadata
+      summary: Get available section codes
+      description: |
+        Returns list of section codes, optionally filtered by route.
+
+        **Caching**: Response cached for 5 minutes (300 seconds).
+        **Performance**: <100ms with caching
+
+        **Use Case**: Populate section dropdown after user selects route.
+
+      operationId: getSections
+      parameters:
+        - name: route_code
+          in: query
+          description: Filter sections by route code (optional)
+          required: false
+          schema:
+            type: string
+            example: "G4202"
+
+      responses:
+        '200':
+          description: List of section information
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SectionInfo'
+              examples:
+                all_sections:
+                  summary: All sections (no filter)
+                  value:
+                    - section_code: "G4202001"
+                      route_code: "G4202"
+                      edge_count: 621
+                      min_stake: 1.17
+                      max_stake: 85.68
+                      stake_range: "K1.17-K85.68"
+                    - section_code: "G4202002"
+                      route_code: "G4202"
+                      edge_count: 577
+                      min_stake: 85.68
+                      max_stake: 168.35
+                      stake_range: "K85.68-K168.35"
+
+                filtered_by_route:
+                  summary: Sections for G4202 only
+                  value:
+                    - section_code: "G4202001"
+                      route_code: "G4202"
+                      edge_count: 621
+                      min_stake: 1.17
+                      max_stake: 85.68
+                      stake_range: "K1.17-K85.68"
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /control/edges/demonstrations:
+    get:
+      tags:
+        - metadata
+      summary: Get demonstration area information
+      description: |
+        Returns list of predefined demonstration areas for quick selection.
+
+        **Caching**: Response cached for 5 minutes (300 seconds).
+        **Performance**: <100ms with caching
+
+      operationId: getDemonstrations
+      responses:
+        '200':
+          description: List of demonstration areas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DemonstrationInfo'
+              example:
+                - demonstration_id: 5
+                  route_code: "G4202"
+                  edge_count: 1198
+                  stake_range: "1.17-85.68km"
+                - demonstration_id: 7
+                  route_code: "SA2"
+                  edge_count: 234
+                  stake_range: "10.50-45.30km"
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    EdgeInfoResponse:
+      type: object
+      required:
+        - edge_id
+        - route_code
+        - gantry_count
+        - gantry_ids
+      properties:
+        edge_id:
+          type: string
+          description: SUMO edge ID
+          example: "-5880"
+        route_code:
+          type: string
+          description: Route code (e.g., G4202, SA2)
+          example: "SA2"
+        section_code:
+          type: string
+          nullable: true
+          description: Section code (e.g., G4202001)
+          example: "SA002002"
+        start_stake:
+          type: number
+          format: float
+          nullable: true
+          description: Start stake number in kilometers
+          example: 139.2
+        end_stake:
+          type: number
+          format: float
+          nullable: true
+          description: End stake number in kilometers
+          example: 140.6
+        length:
+          type: number
+          format: float
+          nullable: true
+          description: Edge length in meters
+          example: 1328.0
+        num_lanes:
+          type: integer
+          nullable: true
+          description: Number of lanes
+          example: 3
+        route_direction:
+          type: string
+          nullable: true
+          enum: [clockwise, counterclockwise]
+          description: Route direction
+          example: "counterclockwise"
+        node_type:
+          type: string
+          nullable: true
+          enum: [diverging, merging, entrance, exit]
+          description: Associated node type
+          example: "diverging"
+        gantry_count:
+          type: integer
+          description: Number of gantries on this edge
+          default: 0
+          example: 3
+        gantry_ids:
+          type: array
+          items:
+            type: string
+          description: List of gantry IDs
+          example: ["G001", "G002", "G003"]
+
+    EdgeQueryResponse:
+      type: object
+      required:
+        - edges
+        - total_count
+      properties:
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeInfoResponse'
+          description: List of edges matching filters
+        total_count:
+          type: integer
+          description: Total number of edges found
+          example: 15
+        warning:
+          type: string
+          nullable: true
+          description: Warning message (e.g., too many results)
+          example: "Large result set (68), consider adding more filters for better precision."
+
+    SectionInfo:
+      type: object
+      required:
+        - section_code
+        - route_code
+        - edge_count
+        - stake_range
+      properties:
+        section_code:
+          type: string
+          description: Section code
+          example: "G4202001"
+        route_code:
+          type: string
+          description: Parent route code
+          example: "G4202"
+        edge_count:
+          type: integer
+          description: Number of edges in this section
+          example: 621
+        min_stake:
+          type: number
+          format: float
+          nullable: true
+          description: Minimum stake in kilometers
+          example: 1.17
+        max_stake:
+          type: number
+          format: float
+          nullable: true
+          description: Maximum stake in kilometers
+          example: 85.68
+        stake_range:
+          type: string
+          description: Stake range display string
+          example: "K1.17-K85.68"
+
+    DemonstrationInfo:
+      type: object
+      required:
+        - demonstration_id
+        - route_code
+        - edge_count
+        - stake_range
+      properties:
+        demonstration_id:
+          type: integer
+          description: Demonstration area ID
+          example: 5
+        route_code:
+          type: string
+          description: Route code
+          example: "G4202"
+        edge_count:
+          type: integer
+          description: Number of edges in demonstration area
+          example: 1198
+        stake_range:
+          type: string
+          description: Stake range display string
+          example: "1.17-85.68km"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: "max_stake must be >= min_stake"

@@ -11,6 +11,23 @@ $env:PYTHONUTF8 = '1'
 
 Write-Host "[INFO] 当前目录: $PWD"
 
+# 检查端口 8000 是否已被占用（服务已启动）
+$port = 8000
+$listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+if ($listener) {
+  Write-Warning "[WARN] 检测到服务已在端口 $port 上运行"
+  $pid = $listener.OwningProcess | Select-Object -First 1
+  Write-Host "[INFO] 正在停止现有进程 (PID: $pid)..."
+
+  try {
+    Stop-Process -Id $pid -Force -ErrorAction Stop
+    Start-Sleep -Seconds 2
+    Write-Host "[INFO] 现有服务已停止"
+  } catch {
+    Write-Warning "[WARN] 无法停止进程: $($_.Exception.Message)"
+  }
+}
+
 # 检查 Conda 环境（禁止在 base 安装/运行业务包）
 if (-not $env:CONDA_DEFAULT_ENV) {
   Write-Warning '[WARN] 未检测到已激活的 Conda 环境。请先激活非 base 环境后再运行。'
