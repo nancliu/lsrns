@@ -10,6 +10,19 @@ cd /d %~dp0
 REM Title
 title Starting OD Data Processing and Simulation System API Service
 
+REM Check if service is already running on port 8000
+echo(Checking if service is already running on port 8000...
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":8000" ^| find "LISTENING"') do (
+    set "PID=%%a"
+    if defined PID (
+        echo(Service is already running on port 8000 ^(PID: !PID!^)
+        echo(Stopping existing process...
+        taskkill /F /PID !PID! >nul 2>&1
+        timeout /t 2 /nobreak >nul
+        echo(Existing service stopped
+    )
+)
+
 echo(Checking Python environment...
 python --version >nul 2>&1
 if errorlevel 1 (

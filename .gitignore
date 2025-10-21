@@ -601,8 +601,8 @@ test_*.py
 # ==========================================
 
 # 特性开发工作区（开发中的特性）
-specs/*/
-!specs/**/spec.md.template
+# specs/*/
+# !specs/**/spec.md.template
 
 # 个人上下文和笔记
 .specify/memory/context.md
@@ -617,3 +617,7 @@ specs/*/
 .cursor/settings.json
 .cursor/mcp.json
 
+# mamba 
+bash/
+
+nul

@@ -547,16 +547,191 @@
             <!-- 步骤2: 选择路段 (默认隐藏) -->
             <div class="step-content" id="step2-content" style="display: none;">
                 <h3>步骤2：选择管控路段</h3>
-                <div class="edge-selector-container" id="edge-selector">
-                    <div class="edge-selector-placeholder">
-                        <p>📍 边选择器功能（Phase 1B）</p>
-                        <p style="margin-top: 10px; font-size: 0.9rem;">支持从数据库查询路段、多维度筛选、路网可视化</p>
+
+                <!-- 已选模板信息卡片 -->
+                <div id="selected-template-info" class="selected-template-info" style="background: #ebf5fb; border-left: 4px solid #3498db; padding: 15px; margin-bottom: 20px; border-radius: 4px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #2c3e50;">已选模板：</strong>
+                            <span id="info-template-name" style="font-size: 1.1rem; color: #2c3e50; margin-left: 10px;"></span>
+                            <span id="info-strategy-badge" class="strategy-badge" style="margin-left: 10px;"></span>
+                        </div>
+                        <button class="btn btn-secondary" onclick="changeTemplate()" style="padding: 6px 15px; font-size: 0.9rem;">更换模板</button>
+                    </div>
+                    <div id="info-filter-hint" style="margin-top: 10px; padding: 10px; background: white; border-radius: 4px; font-size: 0.9rem;"></div>
+                </div>
+
+                <!-- 嵌入式路段选择器 -->
+                <div class="edge-selector-embedded" style="border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <!-- 筛选面板 -->
+                    <div class="filter-panel" style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 15px; color: #2c3e50;">筛选条件</h4>
+
+                        <!-- 第一行：层级筛选（路线、路段） -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label for="route-codes" style="display: block; margin-bottom: 5px; font-weight: 600;">路线代码</label>
+                                <select id="route-codes" multiple size="4" style="width: 100%; padding: 5px;">
+                                    <option value="">加载中...</option>
+                                </select>
+                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d;">支持多选 (Ctrl+点击)</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="section-codes" style="display: block; margin-bottom: 5px; font-weight: 600;">路段代码</label>
+                                <select id="section-codes" multiple size="4" style="width: 100%; padding: 5px;">
+                                    <option value="">请先选择路线</option>
+                                </select>
+                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d;">根据路线自动过滤</span>
+                            </div>
+                        </div>
+
+                        <!-- 第二行：数值范围筛选 -->
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label for="min-stake" style="display: block; margin-bottom: 5px; font-weight: 600;">最小桩号 (km)</label>
+                                <input type="number" id="min-stake" min="0" step="0.1" placeholder="0.0" style="width: 100%; padding: 8px;">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="max-stake" style="display: block; margin-bottom: 5px; font-weight: 600;">最大桩号 (km)</label>
+                                <input type="number" id="max-stake" min="0" step="0.1" placeholder="100.0" style="width: 100%; padding: 8px;">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="min-length" style="display: block; margin-bottom: 5px; font-weight: 600;">最小长度 (m)</label>
+                                <input type="number" id="min-length" min="1" step="1" placeholder="500" style="width: 100%; padding: 8px;">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="max-length" style="display: block; margin-bottom: 5px; font-weight: 600;">最大长度 (m)</label>
+                                <input type="number" id="max-length" min="1" step="1" placeholder="2000" style="width: 100%; padding: 8px;">
+                            </div>
+                        </div>
+
+                        <!-- 第三行：特征筛选 -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="min-lanes" style="display: block; margin-bottom: 5px; font-weight: 600;">最小车道数</label>
+                                <input type="number" id="min-lanes" min="1" step="1" placeholder="3" style="width: 100%; padding: 8px;">
+                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d;">DHS≥4</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="route-direction" style="display: block; margin-bottom: 5px; font-weight: 600;">行驶方向</label>
+                                <select id="route-direction" style="width: 100%; padding: 8px;">
+                                    <option value="">全部</option>
+                                    <option value="upstream">上行</option>
+                                    <option value="downstream">下行</option>
+                                    <option value="clockwise">顺时针</option>
+                                    <option value="counterclockwise">逆时针</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="node-types" style="display: block; margin-bottom: 5px; font-weight: 600;">节点类型</label>
+                                <select id="node-types" multiple size="4" style="width: 100%; padding: 5px;">
+                                    <option value="normal">普通路段</option>
+                                    <option value="diverging">分流</option>
+                                    <option value="merging">汇流</option>
+                                    <option value="lane_increase">车道增加</option>
+                                    <option value="lane_decrease">车道减少</option>
+                                    <option value="entrance">入口</option>
+                                    <option value="exit">出口</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="demonstration-ids" style="display: block; margin-bottom: 5px; font-weight: 600;">示范段</label>
+                                <select id="demonstration-ids" multiple size="3" style="width: 100%; padding: 5px;">
+                                    <option value="">加载中...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 门架筛选 -->
+                        <div style="margin-top: 15px;">
+                            <div class="form-group" style="display: inline-block;">
+                                <label for="with-gantry" style="margin-right: 10px; font-weight: 600;">包含门架:</label>
+                                <select id="with-gantry" style="padding: 8px; min-width: 100px;">
+                                    <option value="false">否</option>
+                                    <option value="true">是</option>
+                                </select>
+                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d; margin-left: 10px;">仅返回有门架观测数据的路段</span>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons" style="margin-top: 15px; justify-content: flex-start;">
+                            <button class="btn btn-secondary" onclick="resetFilters()">重置筛选</button>
+                            <button class="btn btn-primary" onclick="queryEdges()" id="query-btn">查询路段</button>
+                        </div>
+                    </div>
+
+                    <!-- 结果面板 -->
+                    <div class="results-panel">
+                        <h4 style="margin-bottom: 10px; color: #2c3e50;">查询结果</h4>
+                        <div id="results-info" class="results-info" style="display: none; background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                            <div>
+                                <strong>查询结果：</strong><span id="result-count">0</span> 条
+                                <span style="margin-left: 20px;">已选择: <span id="selected-count">0</span> 条</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.9rem;" onclick="selectAll()">全选</button>
+                                <button class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.9rem; margin-left: 10px;" onclick="deselectAll()">取消全选</button>
+                            </div>
+                        </div>
+
+                        <div id="warning-message" class="warning-message" style="display: none; background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-bottom: 10px; border-radius: 4px;"></div>
+
+                        <div id="results-container">
+                            <div class="empty" style="text-align: center; padding: 30px; color: #7f8c8d;">请设置筛选条件并点击"查询路段"</div>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table id="results-table" class="results-table" style="display: none; width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8f9fa;">
+                                        <th style="padding: 10px;"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll()"></th>
+                                        <th style="padding: 10px;">路段ID</th>
+                                        <th style="padding: 10px;">路线</th>
+                                        <th style="padding: 10px;">路段代码</th>
+                                        <th style="padding: 10px;">桩号范围</th>
+                                        <th style="padding: 10px;">长度(m)</th>
+                                        <th style="padding: 10px;">车道</th>
+                                        <th style="padding: 10px;">方向</th>
+                                        <th style="padding: 10px;">节点类型</th>
+                                        <th style="padding: 10px;">门架数</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 网络可视化面板 (Phase 1B - US4) -->
+                    <div class="viz-panel" style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin-top: 20px;">
+                        <h4 style="margin-bottom: 15px; color: #2c3e50;">网络可视化</h4>
+                        <div class="viz-controls" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                            <button class="btn btn-primary" onclick="loadVisualization()" style="padding: 8px 20px; font-size: 0.95rem;">加载网络地图</button>
+                            <button class="btn btn-secondary" onclick="resetView()" style="padding: 8px 20px; font-size: 0.95rem;">重置视图</button>
+                            <button class="btn btn-secondary" onclick="clearVizSelection()" style="padding: 8px 20px; font-size: 0.95rem;">清除可视化选择</button>
+                            <div class="viz-info" style="margin-left: auto; font-size: 0.9rem; color: #7f8c8d;">
+                                <span>可视化选中: <strong id="viz-selected-count">0</strong> 条路段</span>
+                                <span style="margin-left: 15px; font-size: 0.85rem;">
+                                    💡 提示: 鼠标滚轮缩放，拖动平移，点击路段选择
+                                </span>
+                            </div>
+                        </div>
+                        <div id="network-viz-container" style="position: relative; width: 100%; height: 500px; background: #ffffff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                            <canvas id="network-canvas" style="width: 100%; height: 100%; cursor: default;"></canvas>
+                            <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; display: none;">正在加载网络几何数据...</div>
+                            <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; display: none;"></div>
+                            <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6;">点击"加载网络地图"按钮可视化路网结构</div>
+                        </div>
                     </div>
                 </div>
-                <div class="selected-edges-list" id="selected-edges" style="display: none;">
-                    <strong>已选路段：</strong>
-                    <div id="edge-tags"></div>
-                </div>
+
                 <div class="action-buttons">
                     <button class="btn btn-secondary" onclick="previousStep()">上一步</button>
                     <button class="btn btn-primary" onclick="nextStep()" id="step2-next">下一步</button>
@@ -707,10 +882,50 @@
             document.getElementById('step2-content').style.display = currentStep === 2 ? 'block' : 'none';
             document.getElementById('step3-content').style.display = currentStep === 3 ? 'block' : 'none';
 
+            // 如果进入步骤2，显示已选模板信息
+            if (currentStep === 2 && selectedTemplate) {
+                showTemplateInfo(selectedTemplate);
+            }
+
             // 如果进入步骤3，生成参数表单
             if (currentStep === 3 && selectedTemplate) {
                 generateParamsForm(selectedTemplate);
             }
+        }
+
+        // 显示已选模板信息
+        function showTemplateInfo(template) {
+            const infoCard = document.getElementById('selected-template-info');
+            const templateNameEl = document.getElementById('info-template-name');
+            const badgeEl = document.getElementById('info-strategy-badge');
+            const hintEl = document.getElementById('info-filter-hint');
+
+            const strategyType = template.strategy_type;
+            const strategyNames = {
+                'VSS': '可变限速',
+                'DHS': '动态硬路肩',
+                'TEC': '收费站管控'
+            };
+
+            templateNameEl.textContent = template.template_name;
+            badgeEl.textContent = strategyNames[strategyType];
+            badgeEl.className = `strategy-badge badge-${strategyType}`;
+
+            // 根据策略类型提供智能筛选提示
+            const filterHints = {
+                'VSS': '💡 <strong>筛选建议：</strong>可变限速通常应用于主路路段，建议筛选：车道数≥3、路段长度500-2000米',
+                'DHS': '💡 <strong>筛选建议：</strong>动态硬路肩需要宽路段，建议筛选：车道数≥4、主路类型路段',
+                'TEC': '💡 <strong>筛选建议：</strong>收费站管控针对入口匝道，建议筛选：节点类型=入口、临近收费站'
+            };
+
+            hintEl.innerHTML = filterHints[strategyType];
+            infoCard.style.display = 'block';
+        }
+
+        // 更换模板
+        function changeTemplate() {
+            currentStep = 1;
+            updateStepDisplay();
         }
 
         // 下一步
@@ -837,5 +1052,28 @@
             resetForm();
         }
     </script>
+
+    <!-- 路段选择器功能模块 -->
+    <script src="js/edge_selector_embedded.js?v=20251021"></script>
+    <!-- 网络可视化模块 (Phase 1B - US4) -->
+    <script src="js/network_viz.js?v=20251021"></script>
+
+    <!-- Debug: 模块加载检查 -->
+    <script>
+        setTimeout(() => {
+            console.log('=== 模块加载状态检查 ===');
+            console.log('EdgeSelector:', typeof EdgeSelector);
+            console.log('window.networkViz:', typeof window.networkViz);
+            if (window.networkViz) {
+                console.log('  - init:', typeof window.networkViz.init);
+                console.log('  - loadGeometry:', typeof window.networkViz.loadGeometry);
+                console.log('  - highlightEdges:', typeof window.networkViz.highlightEdges);
+            } else {
+                console.error('❌ window.networkViz 未定义！请检查 network_viz.js 是否正确加载');
+            }
+            console.log('=========================');
+        }, 500);
+    </script>
 </body>
 </html>
+

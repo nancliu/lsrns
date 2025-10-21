@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Viz Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        #network-viz-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: #f5f7fa;
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+        #network-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .viz-loading, .viz-error, .viz-empty {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+        }
+        .viz-loading { color: #3498db; display: none; }
+        .viz-error { color: #e74c3c; display: none; }
+        .viz-empty { color: #95a5a6; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #debug-output {
+            background: #f0f0f0;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Network Visualization Test Page</h1>
+
+    <div>
+        <button onclick="testModuleLoaded()">1. Test Module Loaded</button>
+        <button onclick="testInit()">2. Test Init</button>
+        <button onclick="testLoadGeometry()">3. Test Load Geometry</button>
+        <button onclick="testResetView()">4. Test Reset View</button>
+    </div>
+
+    <div id="network-viz-container">
+        <canvas id="network-canvas"></canvas>
+        <div class="viz-loading">Loading...</div>
+        <div class="viz-error"></div>
+        <div class="viz-empty">Click "Test Init" to initialize</div>
+    </div>
+
+    <div>
+        <strong>Selected Count:</strong> <span id="viz-selected-count">0</span>
+    </div>
+
+    <div id="debug-output">Debug output will appear here...</div>
+
+    <script src="js/network_viz.js?v=1.2"></script>
+
+    <script>
+        const debugOutput = document.getElementById('debug-output');
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugOutput.textContent += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+
+        function testModuleLoaded() {
+            log('Testing if network_viz module is loaded...');
+            log('window.networkViz: ' + typeof window.networkViz);
+
+            if (window.networkViz) {
+                log('✓ window.networkViz exists');
+                log('  - init: ' + typeof window.networkViz.init);
+                log('  - loadGeometry: ' + typeof window.networkViz.loadGeometry);
+                log('  - highlightEdges: ' + typeof window.networkViz.highlightEdges);
+                log('  - resetView: ' + typeof window.networkViz.resetView);
+                log('  - setSelected: ' + typeof window.networkViz.setSelected);
+                log('  - clearSelected: ' + typeof window.networkViz.clearSelected);
+            } else {
+                log('✗ window.networkViz NOT found!');
+            }
+        }
+
+        function testInit() {
+            log('\nTesting initialization...');
+
+            if (!window.networkViz || typeof window.networkViz.init !== 'function') {
+                log('✗ ERROR: networkViz.init is not a function');
+                return;
+            }
+
+            const result = window.networkViz.init('network-canvas');
+            log('Init result: ' + result);
+
+            if (result) {
+                log('✓ Canvas initialized successfully');
+                document.querySelector('.viz-empty').style.display = 'none';
+            } else {
+                log('✗ Canvas initialization failed');
+            }
+        }
+
+        async function testLoadGeometry() {
+            log('\nTesting load geometry...');
+
+            if (!window.networkViz || typeof window.networkViz.loadGeometry !== 'function') {
+                log('✗ ERROR: networkViz.loadGeometry is not a function');
+                return;
+            }
+
+            try {
+                // Test with route G4202
+                const success = await window.networkViz.loadGeometry(['G4202']);
+
+                if (success) {
+                    log('✓ Geometry loaded successfully');
+                } else {
+                    log('✗ Geometry loading failed');
+                }
+            } catch (error) {
+                log('✗ ERROR: ' + error.message);
+            }
+        }
+
+        function testResetView() {
+            log('\nTesting reset view...');
+
+            if (!window.networkViz || typeof window.networkViz.resetView !== 'function') {
+                log('✗ ERROR: networkViz.resetView is not a function');
+                return;
+            }
+
+            window.networkViz.resetView();
+            log('✓ Reset view called');
+        }
+
+        // Auto-run module check on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('Page loaded, running auto-check...');
+                testModuleLoaded();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

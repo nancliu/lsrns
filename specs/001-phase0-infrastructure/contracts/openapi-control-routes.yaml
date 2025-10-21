@@ -1,0 +1,669 @@
+openapi: 3.1.0
+info:
+  title: 交通管控仿真系统 - Control Strategy API
+  description: |
+    管控策略优化模块的API接口规范。
+
+    **Phase 0状态**: 本文档定义完整的API契约，但Phase 0仅实现空路由（stub endpoints）。
+    完整业务逻辑将在Phase 1-4逐步实现。
+
+    **功能模块**:
+    - 策略模板管理 (Templates)
+    - 控制策略管理 (Strategies)
+    - 控制方案管理 (Plans)
+    - 批量仿真管理 (Batch Simulations)
+
+  version: 0.1.0-phase0
+  contact:
+    name: OD Simulation Team
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+tags:
+  - name: Templates
+    description: 策略模板管理
+  - name: Strategies
+    description: 控制策略实例管理
+  - name: Plans
+    description: 控制方案管理
+  - name: Batch Simulations
+    description: 批量仿真任务管理
+
+paths:
+  # ==================== 策略模板 Templates ====================
+  /control/templates/:
+    get:
+      tags: [Templates]
+      summary: 获取所有策略模板列表
+      description: |
+        返回系统中所有可用的策略模板。
+        Phase 0: 返回空列表 []
+        Phase 1A: 返回实际模板数据
+      operationId: listControlTemplates
+      responses:
+        '200':
+          description: 成功返回模板列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ControlTemplate'
+              examples:
+                phase0_empty:
+                  summary: Phase 0 - Empty response
+                  value: []
+                phase1a_populated:
+                  summary: Phase 1A - With templates
+                  value:
+                    - template_id: "vss_moderate_001"
+                      template_name: "可变限速-中等强度"
+                      strategy_type: "vss"
+                      parameters_schema:
+                        speed_limit:
+                          type: "integer"
+                          minimum: 40
+                          maximum: 120
+                          default: 80
+                      description: "适用于高峰时段流量疏导"
+
+  /control/templates/{template_id}:
+    get:
+      tags: [Templates]
+      summary: 获取指定模板详情
+      description: |
+        根据template_id获取模板详细信息。
+        Phase 0: 返回404 (未实现)
+        Phase 1A: 返回模板数据
+      operationId: getControlTemplate
+      parameters:
+        - name: template_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "vss_moderate_001"
+      responses:
+        '200':
+          description: 成功返回模板详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlTemplate'
+        '404':
+          description: 模板不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==================== 控制策略 Strategies ====================
+  /control/strategies/:
+    get:
+      tags: [Strategies]
+      summary: 获取所有策略列表
+      description: |
+        返回用户创建的所有策略实例。
+        Phase 0: 返回空列表 []
+        Phase 1C: 支持分页、搜索、过滤
+      operationId: listStrategies
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: 每页数量
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: 偏移量
+        - name: strategy_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/StrategyType'
+          description: 按策略类型过滤
+      responses:
+        '200':
+          description: 成功返回策略列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: 总数量
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Strategy'
+              examples:
+                phase0_empty:
+                  summary: Phase 0 - Empty response
+                  value:
+                    total: 0
+                    items: []
+
+    post:
+      tags: [Strategies]
+      summary: 创建新策略
+      description: |
+        基于模板创建策略实例。
+        Phase 0: 返回501 Not Implemented
+        Phase 1C: 实现完整创建逻辑（参数验证、edge验证、持久化）
+      operationId: createStrategy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyCreateRequest'
+      responses:
+        '201':
+          description: 策略创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Strategy'
+        '400':
+          description: 请求参数无效（参数不匹配模板schema、edge_id无效等）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 模板不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '501':
+          description: Phase 0 - 功能未实现
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /control/strategies/{strategy_id}:
+    get:
+      tags: [Strategies]
+      summary: 获取策略详情
+      operationId: getStrategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回策略详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Strategy'
+        '404':
+          description: 策略不存在
+
+    put:
+      tags: [Strategies]
+      summary: 更新策略
+      description: Phase 0未实现，Phase 1C实现
+      operationId: updateStrategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Strategy'
+        '404':
+          description: 策略不存在
+        '501':
+          description: Phase 0 - 功能未实现
+
+    delete:
+      tags: [Strategies]
+      summary: 删除策略
+      description: Phase 0未实现，Phase 1C实现
+      operationId: deleteStrategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 删除成功
+        '404':
+          description: 策略不存在
+        '409':
+          description: 策略已被方案引用，无法删除
+        '501':
+          description: Phase 0 - 功能未实现
+
+  # ==================== 控制方案 Plans ====================
+  /control/plans/:
+    get:
+      tags: [Plans]
+      summary: 获取所有方案列表
+      description: Phase 0返回空列表，Phase 2实现
+      operationId: listPlans
+      responses:
+        '200':
+          description: 成功返回方案列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+              examples:
+                phase0_empty:
+                  value: []
+
+    post:
+      tags: [Plans]
+      summary: 创建新方案
+      description: Phase 0未实现，Phase 2实现
+      operationId: createPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanCreateRequest'
+      responses:
+        '201':
+          description: 方案创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '501':
+          description: Phase 0 - 功能未实现
+
+  /control/plans/{plan_id}:
+    get:
+      tags: [Plans]
+      summary: 获取方案详情
+      operationId: getPlan
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回方案详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '404':
+          description: 方案不存在
+
+  /control/plans/{plan_id}/generate:
+    post:
+      tags: [Plans]
+      summary: 生成Additional文件
+      description: |
+        根据方案中的策略列表生成SUMO Additional XML文件。
+        Phase 0未实现，Phase 2实现。
+      operationId: generatePlanAdditional
+      parameters:
+        - name: plan_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Additional文件生成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  additional_file_path:
+                    type: string
+                    example: "control_data/plans/plan_001/control.add.xml"
+                  generated_at:
+                    type: string
+                    format: date-time
+        '404':
+          description: 方案不存在
+        '501':
+          description: Phase 0 - 功能未实现
+
+  # ==================== 批量仿真 Batch Simulations ====================
+  /control/batch_simulations/:
+    get:
+      tags: [Batch Simulations]
+      summary: 获取批量仿真任务列表
+      description: Phase 0返回空列表，Phase 3实现
+      operationId: listBatchSimulations
+      responses:
+        '200':
+          description: 成功返回任务列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatchSimulation'
+              examples:
+                phase0_empty:
+                  value: []
+
+    post:
+      tags: [Batch Simulations]
+      summary: 创建批量仿真任务
+      description: Phase 0未实现，Phase 3实现
+      operationId: createBatchSimulation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchSimulationCreateRequest'
+      responses:
+        '201':
+          description: 任务创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSimulation'
+        '501':
+          description: Phase 0 - 功能未实现
+
+  /control/batch_simulations/{batch_id}:
+    get:
+      tags: [Batch Simulations]
+      summary: 获取批量仿真任务详情
+      operationId: getBatchSimulation
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回任务详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSimulation'
+        '404':
+          description: 任务不存在
+
+  /control/batch_simulations/{batch_id}/start:
+    post:
+      tags: [Batch Simulations]
+      summary: 启动批量仿真任务
+      description: Phase 0未实现，Phase 3B实现（调度器）
+      operationId: startBatchSimulation
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 任务已启动
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSimulation'
+        '409':
+          description: 任务状态不允许启动（非PENDING状态）
+        '501':
+          description: Phase 0 - 功能未实现
+
+# ==================== Components ====================
+components:
+  schemas:
+    # ---------- Enums ----------
+    StrategyType:
+      type: string
+      enum: [vss, dhs, tec]
+      description: |
+        策略类型枚举:
+        - vss: Variable Speed Sign (可变限速)
+        - dhs: Dynamic Hard Shoulder (动态硬路肩)
+        - tec: Toll Entrance Control (入口匝道控制)
+
+    BatchSimulationStatus:
+      type: string
+      enum: [pending, running, completed, failed]
+      description: |
+        批量仿真状态:
+        - pending: 待执行
+        - running: 运行中
+        - completed: 已完成
+        - failed: 失败
+
+    # ---------- Entity Models ----------
+    ControlTemplate:
+      type: object
+      required: [template_id, template_name, strategy_type, parameters_schema]
+      properties:
+        template_id:
+          type: string
+          example: "vss_moderate_001"
+        template_name:
+          type: string
+          example: "可变限速-中等强度"
+        strategy_type:
+          $ref: '#/components/schemas/StrategyType'
+        parameters_schema:
+          type: object
+          additionalProperties: true
+          description: JSON Schema格式的参数定义
+        description:
+          type: string
+          nullable: true
+
+    Strategy:
+      type: object
+      required: [strategy_id, strategy_name, template_id, parameters, target_edges, created_at, updated_at]
+      properties:
+        strategy_id:
+          type: string
+          example: "strategy_20251019_001"
+        strategy_name:
+          type: string
+          example: "G4202分流点限速80"
+        template_id:
+          type: string
+          example: "vss_moderate_001"
+        parameters:
+          type: object
+          additionalProperties: true
+          example:
+            speed_limit: 80
+            active_hours: [7, 8, 9, 17, 18, 19]
+        target_edges:
+          type: array
+          items:
+            type: string
+          example: ["edge_e789012", "edge_e789013"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Plan:
+      type: object
+      required: [plan_id, plan_name, strategy_ids, created_at, updated_at]
+      properties:
+        plan_id:
+          type: string
+          example: "plan_20251019_001"
+        plan_name:
+          type: string
+          example: "高峰时段综合管控方案A"
+        description:
+          type: string
+          nullable: true
+        strategy_ids:
+          type: array
+          items:
+            type: string
+          example: ["strategy_001", "strategy_002"]
+        additional_file_path:
+          type: string
+          nullable: true
+          example: "control_data/plans/plan_20251019_001/control.add.xml"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BatchSimulation:
+      type: object
+      required: [batch_id, batch_name, case_id, plan_ids, status, progress, created_at, updated_at]
+      properties:
+        batch_id:
+          type: string
+          example: "batch_20251019_001"
+        batch_name:
+          type: string
+          example: "高峰时段方案对比测试"
+        case_id:
+          type: string
+          example: "case_20251015_baseline"
+        plan_ids:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          example: ["plan_baseline", "plan_001", "plan_002"]
+        status:
+          $ref: '#/components/schemas/BatchSimulationStatus'
+        progress:
+          type: object
+          required: [total, completed, failed]
+          properties:
+            total:
+              type: integer
+            completed:
+              type: integer
+            failed:
+              type: integer
+          example:
+            total: 3
+            completed: 1
+            failed: 0
+        simulation_ids:
+          type: array
+          items:
+            type: string
+          example: ["sim_001_plan_baseline", "sim_002_plan_001"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ---------- Request Models ----------
+    StrategyCreateRequest:
+      type: object
+      required: [strategy_name, template_id, parameters, target_edges]
+      properties:
+        strategy_name:
+          type: string
+        template_id:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        target_edges:
+          type: array
+          items:
+            type: string
+          minItems: 1
+
+    StrategyUpdateRequest:
+      type: object
+      properties:
+        strategy_name:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        target_edges:
+          type: array
+          items:
+            type: string
+
+    PlanCreateRequest:
+      type: object
+      required: [plan_name]
+      properties:
+        plan_name:
+          type: string
+        description:
+          type: string
+        strategy_ids:
+          type: array
+          items:
+            type: string
+          default: []
+
+    BatchSimulationCreateRequest:
+      type: object
+      required: [batch_name, case_id, plan_ids]
+      properties:
+        batch_name:
+          type: string
+        case_id:
+          type: string
+        plan_ids:
+          type: array
+          items:
+            type: string
+          minItems: 1
+
+    # ---------- Error Model ----------
+    Error:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+          description: 错误详细信息
+          example: "Strategy not found: strategy_123"
+        error_code:
+          type: string
+          description: 错误代码（可选）
+          example: "STRATEGY_NOT_FOUND"
