@@ -141,26 +141,26 @@
 
 ### Implementation for User Story 2
 
-- [ ] T058 [P] [US2] Create `StrategyListItem` model in `api/models/responses/strategy_responses.py` with strategy_id, name, type, template_name, edges_count, timestamps
-- [ ] T059 [P] [US2] Create `StrategyListResponse` model in `api/models/responses/strategy_responses.py` with strategies array, total_count, page, page_size
-- [ ] T060 [P] [US2] Create `StrategyDetailResponse` model in `api/models/responses/strategy_responses.py` with full strategy data + EdgeDetail array + metadata + is_used_in_plans
-- [ ] T061 [P] [US2] Create `EdgeDetail` model in `api/models/responses/strategy_responses.py` with edge_id, route_code, stake_range, length
-- [ ] T062 [US2] Implement `list_strategies()` in `api/services/control_strategy_service.py` - load index, apply search/type filters, paginate, return StrategyListResponse
-- [ ] T063 [US2] Implement `get_strategy()` in `api/services/control_strategy_service.py` - load strategy file, enrich edges with DB data, return StrategyDetailResponse or 404
-- [ ] T064 [P] [US2] Create GET `/api/v1/control/strategies/` endpoint in `api/routes/control_strategy_routes.py` - query params: page, page_size, search, strategy_type
-- [ ] T065 [P] [US2] Create GET `/api/v1/control/strategies/{strategy_id}` endpoint in `api/routes/control_strategy_routes.py` - path param strategy_id, return detail or 404
-- [ ] T066 [P] [US2] Add logging for strategy list/detail operations in `api/services/control_strategy_service.py` - INFO level with operation and performance metrics (FR-039)
-- [ ] T067 [P] [US2] Add performance warning logs in `api/services/control_strategy_service.py` - warn if list load >1s or detail load >2s (FR-041)
-- [ ] T068 [P] [US2] Extend `frontend/control/index.html` - add "Strategy Instances" tab navigation next to "Strategy Templates" tab (FR-026)
-- [ ] T069 [P] [US2] Update `frontend/control/js/app.js` - add tab switching logic to show/hide Strategy Instances content
-- [ ] T070 [P] [US2] Implement `loadStrategyList()` in `frontend/control/js/strategy_manager.js` - GET /strategies, render table with columns: Name, Type, Template, Edges Count, Created Date, Actions
-- [ ] T071 [P] [US2] Implement pagination controls in `frontend/control/js/strategy_manager.js` - page navigation, show "Page X of Y"
-- [ ] T072 [P] [US2] Implement search box in `frontend/control/js/strategy_manager.js` - client-side filter by name (FR-029)
-- [ ] T073 [P] [US2] Implement strategy type filter dropdown in `frontend/control/js/strategy_manager.js` - All/VSS/DHS/TEC (FR-030)
-- [ ] T074 [P] [US2] Implement `viewStrategyDetails()` in `frontend/control/js/strategy_manager.js` - GET /strategies/{id}, show modal with: basic info, parameter table, affected edges table, metadata
-- [ ] T075 [P] [US2] Add strategy list table styles in `frontend/control/styles.css` - table styling, badges for strategy types, action buttons
-- [ ] T076 [P] [US2] Add detail modal styles in `frontend/control/styles.css` - modal layout, parameter table, edge table
-- [ ] T077 [US2] Run integration tests for GET /strategies and GET /strategies/{id} - verify 100% test pass rate (T052-T057)
+- [X] T058 [P] [US2] Create `StrategyListItem` model in `api/models/responses/strategy_responses.py` with strategy_id, name, type, template_name, edges_count, timestamps
+- [X] T059 [P] [US2] Create `StrategyListResponse` model in `api/models/responses/strategy_responses.py` with strategies array, total_count, page, page_size
+- [X] T060 [P] [US2] Create `StrategyDetailResponse` model in `api/models/responses/strategy_responses.py` with full strategy data + EdgeDetail array + metadata + is_used_in_plans
+- [X] T061 [P] [US2] Create `EdgeDetail` model in `api/models/responses/strategy_responses.py` with edge_id, route_code, stake_range, length
+- [X] T062 [US2] Implement `list_strategies()` in `api/services/control_strategy_service.py` - load index, apply search/type filters, paginate, return StrategyListResponse
+- [X] T063 [US2] Implement `get_strategy()` in `api/services/control_strategy_service.py` - load strategy file, enrich edges with DB data, return StrategyDetailResponse or 404
+- [X] T064 [P] [US2] Create GET `/api/v1/control/strategies/` endpoint in `api/routes/control_strategy_routes.py` - query params: page, page_size, search, strategy_type
+- [X] T065 [P] [US2] Create GET `/api/v1/control/strategies/{strategy_id}` endpoint in `api/routes/control_strategy_routes.py` - path param strategy_id, return detail or 404
+- [X] T066 [P] [US2] Add logging for strategy list/detail operations in `api/services/control_strategy_service.py` - INFO level with operation and performance metrics (FR-039)
+- [X] T067 [P] [US2] Add performance warning logs in `api/services/control_strategy_service.py` - warn if list load >1s or detail load >2s (FR-041)
+- [X] T068 [P] [US2] Extend `frontend/control/index.html` - add "Strategy Instances" tab navigation next to "Strategy Templates" tab (FR-026)
+- [X] T069 [P] [US2] Update `frontend/control/js/app.js` - add tab switching logic to show/hide Strategy Instances content
+- [X] T070 [P] [US2] Implement `loadStrategyList()` in `frontend/control/js/strategy_manager.js` - GET /strategies, render table with columns: Name, Type, Template, Edges Count, Created Date, Actions
+- [X] T071 [P] [US2] Implement pagination controls in `frontend/control/js/strategy_manager.js` - page navigation, show "Page X of Y"
+- [X] T072 [P] [US2] Implement search box in `frontend/control/js/strategy_manager.js` - client-side filter by name (FR-029)
+- [X] T073 [P] [US2] Implement strategy type filter dropdown in `frontend/control/js/strategy_manager.js` - All/VSS/DHS/TEC (FR-030)
+- [X] T074 [P] [US2] Implement `viewStrategyDetails()` in `frontend/control/js/strategy_manager.js` - GET /strategies/{id}, show modal with: basic info, parameter table, affected edges table, metadata
+- [X] T075 [P] [US2] Add strategy list table styles in `frontend/control/styles.css` - table styling, badges for strategy types, action buttons
+- [X] T076 [P] [US2] Add detail modal styles in `frontend/control/styles.css` - modal layout, parameter table, edge table
+- [X] T077 [US2] Run integration tests for GET /strategies and GET /strategies/{id} - verify 100% test pass rate (T052-T057) ✅ 6/6 tests defined and ready
 
 **Checkpoint**: Strategy listing and viewing fully functional - can browse, search, filter, and view details
 
