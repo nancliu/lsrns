@@ -1,0 +1,608 @@
+openapi: 3.0.3
+info:
+  title: Control Strategy Instance API
+  description: |
+    REST API for managing traffic control strategy instances in the OD_SIM system.
+    Enables CRUD operations for strategy instances created from templates (Phase 1A)
+    with edge selection (Phase 1B) and dynamic parameter configuration.
+  version: 1.0.0
+  contact:
+    name: OD_SIM Development Team
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+tags:
+  - name: Strategies
+    description: Strategy instance CRUD operations
+  - name: Maintenance
+    description: Administrative and maintenance operations
+
+paths:
+  /control/strategies:
+    get:
+      tags:
+        - Strategies
+      summary: List strategy instances
+      description: |
+        Retrieve paginated list of strategy instances with optional filtering.
+        Returns lightweight metadata from strategies_index.json for performance.
+      operationId: listStrategies
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: page_size
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          description: Filter by strategy name (case-insensitive substring match)
+          schema:
+            type: string
+        - name: strategy_type
+          in: query
+          description: Filter by strategy type
+          schema:
+            type: string
+            enum: [VSS, DHS, TEC]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyListResponse'
+        '500':
+          description: Internal server error (e.g., index file corrupted)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Strategies
+      summary: Create strategy instance
+      description: |
+        Create a new strategy instance from a template with configured parameters
+        and selected edges. Validates parameters against template schema and
+        verifies edge existence in database.
+      operationId: createStrategy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyCreateRequest'
+      responses:
+        '201':
+          description: Strategy created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyCreateResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /control/strategies/{strategy_id}:
+    get:
+      tags:
+        - Strategies
+      summary: Get strategy details
+      description: |
+        Retrieve complete strategy details including enriched edge information
+        from database (route_code, stake_range, length).
+      operationId: getStrategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          description: Strategy unique identifier
+          schema:
+            type: string
+            pattern: '^strat_\d{14}_[a-f0-9]{6}$'
+            example: strat_20251021143025_a3f7b9
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyDetailResponse'
+        '404':
+          description: Strategy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error (file corrupted, DB connection failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Strategies
+      summary: Update strategy instance
+      description: |
+        Update strategy name, parameters, or affected edges. Validates parameters
+        against template schema. Uses optimistic concurrency control via
+        original_updated_at timestamp check.
+      operationId: updateStrategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          description: Strategy unique identifier
+          schema:
+            type: string
+            pattern: '^strat_\d{14}_[a-f0-9]{6}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyUpdateRequest'
+      responses:
+        '200':
+          description: Strategy updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyDetailResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '404':
+          description: Strategy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Concurrency conflict (strategy modified by another user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail:
+                  message: "Strategy modified by another user since you loaded it. Refresh and retry."
+                  current_updated_at: "2025-10-21T16:00:00Z"
+                  your_updated_at: "2025-10-21T15:45:10Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Strategies
+      summary: Delete strategy instance
+      description: |
+        Delete strategy instance and update index. Prevents deletion if strategy
+        is referenced by any plans (Phase 2). Logs deletion for audit trail.
+      operationId: deleteStrategy
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          description: Strategy unique identifier
+          schema:
+            type: string
+            pattern: '^strat_\d{14}_[a-f0-9]{6}$'
+      responses:
+        '200':
+          description: Strategy deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Strategy strat_20251021143025_a3f7b9 deleted successfully"
+        '404':
+          description: Strategy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Strategy is used in plans (cannot delete)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail:
+                  message: "Cannot delete strategy - it is used by 2 plan(s). Remove it from plans first."
+                  plan_ids: ["plan_001", "plan_002"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /control/strategies/reindex:
+    post:
+      tags:
+        - Maintenance
+      summary: Regenerate strategy index
+      description: |
+        Administrative endpoint to regenerate strategies_index.json by scanning
+        all strategy files. Use when index is corrupted or out of sync.
+      operationId: reindexStrategies
+      responses:
+        '200':
+          description: Index regenerated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Regenerated index with 125 strategies"
+                  total_count:
+                    type: integer
+                    example: 125
+                  duration_ms:
+                    type: integer
+                    example: 1250
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    StrategyListResponse:
+      type: object
+      required:
+        - strategies
+        - total_count
+        - page
+        - page_size
+      properties:
+        strategies:
+          type: array
+          items:
+            $ref: '#/components/schemas/StrategyListItem'
+        total_count:
+          type: integer
+          description: Total number of strategies (before pagination)
+          example: 125
+        page:
+          type: integer
+          description: Current page number (1-indexed)
+          example: 1
+        page_size:
+          type: integer
+          description: Items per page
+          example: 20
+
+    StrategyListItem:
+      type: object
+      required:
+        - strategy_id
+        - strategy_name
+        - strategy_type
+        - template_name
+        - edges_count
+        - created_at
+        - updated_at
+      properties:
+        strategy_id:
+          type: string
+          pattern: '^strat_\d{14}_[a-f0-9]{6}$'
+          example: strat_20251021143025_a3f7b9
+        strategy_name:
+          type: string
+          maxLength: 100
+          example: "Morning Peak VSS Control - G4202"
+        strategy_type:
+          type: string
+          enum: [VSS, DHS, TEC]
+          example: VSS
+        template_name:
+          type: string
+          example: "VSS Moderate Speed Control"
+        edges_count:
+          type: integer
+          minimum: 1
+          example: 15
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-10-21T14:30:25Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-21T15:45:10Z"
+
+    StrategyCreateRequest:
+      type: object
+      required:
+        - strategy_name
+        - template_id
+        - parameters
+        - affected_edges
+      properties:
+        strategy_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: User-defined display name
+          example: "Morning Peak VSS Control - G4202"
+        template_id:
+          type: string
+          minLength: 1
+          description: Reference to strategy template (Phase 1A)
+          example: "vss_moderate"
+        parameters:
+          type: object
+          description: Key-value pairs of configured parameters (validated against template schema)
+          additionalProperties: true
+          example:
+            speed_limit: 80
+            time_intervals: ["07:00-09:00", "17:00-19:00"]
+            activation_threshold: 0.7
+        affected_edges:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: Array of edge_id strings (from Phase 1B edge selector)
+          example: ["1234567890", "1234567891", "1234567892"]
+
+    StrategyCreateResponse:
+      type: object
+      required:
+        - strategy_id
+        - message
+      properties:
+        strategy_id:
+          type: string
+          pattern: '^strat_\d{14}_[a-f0-9]{6}$'
+          example: strat_20251021143025_a3f7b9
+        message:
+          type: string
+          example: "Strategy created successfully"
+
+    StrategyUpdateRequest:
+      type: object
+      required:
+        - original_updated_at
+      properties:
+        strategy_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          nullable: true
+          description: Updated display name (optional)
+          example: "Updated Strategy Name"
+        parameters:
+          type: object
+          nullable: true
+          description: Updated parameters (partial or full, validated against template schema)
+          additionalProperties: true
+          example:
+            speed_limit: 85
+        affected_edges:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          nullable: true
+          description: Updated edge list (optional)
+          example: ["1234567890", "1234567893"]
+        original_updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when strategy was loaded for editing (optimistic concurrency control)
+          example: "2025-10-21T15:45:10Z"
+
+    StrategyDetailResponse:
+      type: object
+      required:
+        - strategy_id
+        - strategy_name
+        - template_id
+        - template_name
+        - strategy_type
+        - parameters
+        - affected_edges
+        - metadata
+        - is_used_in_plans
+      properties:
+        strategy_id:
+          type: string
+          pattern: '^strat_\d{14}_[a-f0-9]{6}$'
+          example: strat_20251021143025_a3f7b9
+        strategy_name:
+          type: string
+          maxLength: 100
+          example: "Morning Peak VSS Control - G4202"
+        template_id:
+          type: string
+          example: "vss_moderate"
+        template_name:
+          type: string
+          example: "VSS Moderate Speed Control"
+        strategy_type:
+          type: string
+          enum: [VSS, DHS, TEC]
+          example: VSS
+        parameters:
+          type: object
+          description: Configured parameter values
+          additionalProperties: true
+          example:
+            speed_limit: 80
+            time_intervals: ["07:00-09:00", "17:00-19:00"]
+            activation_threshold: 0.7
+        affected_edges:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/EdgeDetail'
+        metadata:
+          $ref: '#/components/schemas/StrategyMetadata'
+        is_used_in_plans:
+          type: boolean
+          description: Whether strategy is referenced by any plans (Phase 2 placeholder)
+          example: false
+
+    EdgeDetail:
+      type: object
+      required:
+        - edge_id
+        - route_code
+        - stake_range
+        - length
+      properties:
+        edge_id:
+          type: string
+          example: "1234567890"
+        route_code:
+          type: string
+          description: Route identifier (e.g., "G4202")
+          example: "G4202"
+        stake_range:
+          type: string
+          description: Kilometer range (e.g., "K10+000-K15+000")
+          example: "K10+000-K15+000"
+        length:
+          type: number
+          format: float
+          description: Edge length in meters
+          example: 5000.0
+
+    StrategyMetadata:
+      type: object
+      required:
+        - created_at
+        - updated_at
+        - created_by
+        - version
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: UTC timestamp of creation
+          example: "2025-10-21T14:30:25Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: UTC timestamp of last update
+          example: "2025-10-21T15:45:10Z"
+        created_by:
+          type: string
+          description: System identifier (hostname or "system")
+          example: "WIN-SERVER-01"
+        version:
+          type: integer
+          minimum: 1
+          description: Incremented on each update
+          example: 3
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: object
+          required:
+            - message
+            - errors
+          properties:
+            message:
+              type: string
+              example: "Validation failed"
+            errors:
+              type: array
+              items:
+                $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      required:
+        - parameter
+        - message
+      properties:
+        parameter:
+          type: string
+          description: Parameter name that failed validation
+          example: "speed_limit"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Speed limit must be between 40 and 120 km/h"
+        constraint:
+          type: object
+          description: Constraint details (optional)
+          nullable: true
+          example:
+            min: 40
+            max: 120
+        provided_value:
+          description: The invalid value provided (optional)
+          nullable: true
+          example: 150
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: string
+              example: "Strategy not found"
+            details:
+              type: string
+              nullable: true
+              description: Additional error context (optional)

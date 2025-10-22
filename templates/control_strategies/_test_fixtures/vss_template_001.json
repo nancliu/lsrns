@@ -1,0 +1,37 @@
+{
+  "template_id": "vss_template_001",
+  "template_name": "Test VSS Template",
+  "description": "Test template for integration testing - Variable Speed Sign with simple parameters",
+  "strategy_type": "VSS",
+  "parameters_schema": [
+    {
+      "parameter_name": "control_speed",
+      "parameter_type": "integer",
+      "description": "Speed limit in km/h",
+      "required": true,
+      "default_value": 80,
+      "min_value": 40,
+      "max_value": 120,
+      "unit": "km/h"
+    },
+    {
+      "parameter_name": "time_intervals",
+      "parameter_type": "array",
+      "description": "Time intervals in HH:MM-HH:MM format",
+      "required": true,
+      "default_value": ["07:00-09:00"],
+      "unit": null
+    },
+    {
+      "parameter_name": "enable_monitoring",
+      "parameter_type": "boolean",
+      "description": "Enable real-time monitoring",
+      "required": false,
+      "default_value": true,
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-22T00:00:00Z",
+  "updated_at": "2025-10-22T00:00:00Z"
+}

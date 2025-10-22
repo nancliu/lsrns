@@ -114,15 +114,24 @@ const EdgeSelector = {
 
     /**
      * Update route direction dropdown based on selected routes
+     *
+     * PERFORMANCE OPTIMIZATION (2025-10-22):
+     * Removed dynamic database query that was causing 2-4s delay.
+     * Now uses static route classification based on network topology:
+     * - SA2, G4202: Ring expressways (clockwise/counterclockwise)
+     * - Other routes: Linear highways (upstream/downstream)
+     *
+     * This instant response (0ms) vs slow query (2-4s) trade-off provides
+     * better UX while maintaining correct direction options per route type.
      */
-    async updateDirectionOptions(selectedRoutes) {
+    updateDirectionOptions(selectedRoutes) {
         const directionSelect = document.getElementById('route-direction');
         if (!directionSelect) return;
 
         const currentValue = directionSelect.value;
 
         if (selectedRoutes.length === 0) {
-            // Show all options when no route selected
+            // No route selected: show all options
             directionSelect.innerHTML = `
                 <option value="">全部</option>
                 <option value="upstream">上行</option>
@@ -134,45 +143,37 @@ const EdgeSelector = {
             return;
         }
 
-        try {
-            // Fetch available directions for selected routes
-            const availableDirections = new Set();
+        // Classify routes: ring expressways vs linear highways
+        const ringRoutes = new Set(['SA2', 'G4202']);  // Ring expressways (环形高速)
+        const hasRingRoute = selectedRoutes.some(r => ringRoutes.has(r));
+        const hasLinearRoute = selectedRoutes.some(r => !ringRoutes.has(r));
 
-            for (const routeCode of selectedRoutes) {
-                const response = await fetch(`/api/v1/control/edges/query?route_codes=${routeCode}&limit=50`);
-                if (!response.ok) continue;
-                const data = await response.json();
-                data.edges.forEach(edge => {
-                    if (edge.route_direction) {
-                        availableDirections.add(edge.route_direction);
-                    }
-                });
-            }
+        // Determine which direction options to show
+        let options = '<option value="">全部</option>';
 
-            // Build options based on available directions
-            const allDirections = [
-                { value: 'upstream', label: '上行' },
-                { value: 'downstream', label: '下行' },
-                { value: 'clockwise', label: '顺时针' },
-                { value: 'counterclockwise', label: '逆时针' }
-            ];
+        if (hasLinearRoute) {
+            // Linear highways: upstream/downstream
+            options += '<option value="upstream">上行</option>';
+            options += '<option value="downstream">下行</option>';
+        }
 
-            directionSelect.innerHTML = '<option value="">全部</option>';
-            allDirections.forEach(dir => {
-                if (availableDirections.has(dir.value)) {
-                    const option = document.createElement('option');
-                    option.value = dir.value;
-                    option.textContent = dir.label;
-                    directionSelect.appendChild(option);
-                }
-            });
+        if (hasRingRoute) {
+            // Ring expressways: clockwise/counterclockwise
+            options += '<option value="clockwise">顺时针</option>';
+            options += '<option value="counterclockwise">逆时针</option>';
+        }
 
-            // Restore previous selection if still valid
-            if (availableDirections.has(currentValue)) {
+        directionSelect.innerHTML = options;
+
+        // Restore previous selection if it's still valid
+        if (currentValue) {
+            // Check if the current value exists in the new options
+            const optionExists = Array.from(directionSelect.options).some(
+                opt => opt.value === currentValue
+            );
+            if (optionExists) {
                 directionSelect.value = currentValue;
             }
-        } catch (error) {
-            console.error('Error updating direction options:', error);
         }
     },
 

@@ -724,7 +724,10 @@
                             </div>
                         </div>
                         <div id="network-viz-container" style="position: relative; width: 100%; height: 500px; background: #ffffff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
-                            <canvas id="network-canvas" style="width: 100%; height: 100%; cursor: default;"></canvas>
+                            <!-- 底层Canvas: 静态路网渲染 -->
+                            <canvas id="network-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: default;"></canvas>
+                            <!-- 顶层Canvas: hover高亮渲染 -->
+                            <canvas id="network-canvas-hover" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: default; pointer-events: none;"></canvas>
                             <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; display: none;">正在加载网络几何数据...</div>
                             <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; display: none;"></div>
                             <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6;">点击"加载网络地图"按钮可视化路网结构</div>
@@ -741,6 +744,27 @@
             <!-- 步骤3: 配置参数 (默认隐藏) -->
             <div class="step-content" id="step3-content" style="display: none;">
                 <h3>步骤3：配置策略参数</h3>
+
+                <!-- 前两步配置摘要 -->
+                <div id="config-summary" class="config-summary" style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 25px; border: 2px solid #e9ecef;">
+                    <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">📋 配置摘要</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选模板</div>
+                            <div id="summary-template" style="color: #2c3e50; font-size: 1.05rem;"></div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选路段数量</div>
+                            <div id="summary-edges" style="color: #2c3e50; font-size: 1.05rem;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选路段列表</div>
+                        <div id="summary-edge-list" style="max-height: 120px; overflow-y: auto; background: white; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+
+                <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">⚙️ 参数配置</h4>
                 <form class="params-form" id="params-form">
                     <!-- 动态生成参数表单 -->
                 </form>
@@ -751,11 +775,60 @@
                 </div>
             </div>
 
-            <!-- 已创建的策略实例列表 -->
+            <!-- 已创建的策略实例列表 (US2) -->
             <div class="strategies-list" style="margin-top: 30px;">
                 <h3>已创建的策略实例</h3>
-                <div id="strategies-list-container">
-                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">暂无策略实例</p>
+
+                <!-- 搜索和筛选区 (T072, T073) -->
+                <div class="strategies-controls" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <!-- 搜索框 -->
+                    <div style="flex: 1; min-width: 250px;">
+                        <input
+                            type="text"
+                            id="strategy-search"
+                            placeholder="搜索策略名称..."
+                            style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;"
+                            onkeyup="filterStrategyList()"
+                        />
+                    </div>
+
+                    <!-- 类型筛选 -->
+                    <div>
+                        <label style="margin-right: 8px;">策略类型:</label>
+                        <select
+                            id="strategy-type-filter"
+                            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;"
+                            onchange="filterStrategyList()"
+                        >
+                            <option value="">全部</option>
+                            <option value="VSS">可变限速 (VSS)</option>
+                            <option value="DHS">动态硬路肩 (DHS)</option>
+                            <option value="TEC">收费站管控 (TEC)</option>
+                        </select>
+                    </div>
+
+                    <!-- 刷新按钮 -->
+                    <button onclick="fetchStrategyInstances()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新</button>
+                </div>
+
+                <!-- 列表容器 (T070) -->
+                <div id="strategies-list-container" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">加载中...</p>
+                </div>
+
+                <!-- 分页控制 (T071) -->
+                <div class="strategies-pagination" id="strategies-pagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <!-- 由 fetchStrategyInstances() 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 策略详情模态框 (T074, T076) -->
+            <div id="strategy-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+                <div class="strategy-detail-content" style="background: white; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="padding: 25px;">
+                        <!-- 详情内容由 viewStrategyDetail() 动态生成 -->
+                        <p style="text-align: center; color: #7f8c8d;">加载中...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -772,7 +845,14 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             fetchTemplates();
+            fetchStrategyInstances();
         });
+
+        // 当前分页状态 (US2)
+        let currentPage = 1;
+        let pageSize = 20;
+        let totalCount = 0;
+        let allStrategyInstances = [];
 
         // 获取模板列表
         async function fetchTemplates() {
@@ -949,13 +1029,16 @@
             const form = document.getElementById('params-form');
             form.innerHTML = '';
 
+            // 更新配置摘要
+            updateConfigSummary();
+
             // 策略名称（必填）
             const nameGroup = document.createElement('div');
             nameGroup.className = 'form-group';
             nameGroup.innerHTML = `
                 <label>策略名称 *</label>
-                <input type="text" id="param-strategy-name" required>
-                <span class="form-hint">为该策略实例命名</span>
+                <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略">
+                <span class="form-hint">为该策略实例命名（1-100个字符）</span>
             `;
             form.appendChild(nameGroup);
 
@@ -964,7 +1047,7 @@
             descGroup.className = 'form-group';
             descGroup.innerHTML = `
                 <label>策略描述</label>
-                <textarea id="param-strategy-description" rows="3"></textarea>
+                <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的"></textarea>
                 <span class="form-hint">可选</span>
             `;
             form.appendChild(descGroup);
@@ -989,7 +1072,7 @@
                 } else if (param.parameter_type === 'boolean') {
                     inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>
                                    <option value="true">是</option>
-                                   <option value="false">否</option>
+                                   <option value="false" selected>否</option>
                                  </select>`;
                 }
 
@@ -1000,6 +1083,38 @@
                 `;
                 form.appendChild(group);
             });
+        }
+
+        // 更新配置摘要（步骤3）
+        function updateConfigSummary() {
+            const strategyNames = {
+                'VSS': '可变限速',
+                'DHS': '动态硬路肩',
+                'TEC': '收费站管控'
+            };
+
+            // 更新模板信息
+            if (selectedTemplate) {
+                const summaryTemplate = document.getElementById('summary-template');
+                summaryTemplate.innerHTML = `
+                    <strong>${selectedTemplate.template_name}</strong>
+                    <span class="strategy-badge badge-${selectedTemplate.strategy_type}" style="margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;">${strategyNames[selectedTemplate.strategy_type]}</span>
+                `;
+            }
+
+            // 更新路段信息
+            const summaryEdges = document.getElementById('summary-edges');
+            summaryEdges.innerHTML = `<strong style="color: #3498db; font-size: 1.2rem;">${selectedEdges.length}</strong> 条路段`;
+
+            // 更新路段列表
+            const summaryEdgeList = document.getElementById('summary-edge-list');
+            if (selectedEdges.length === 0) {
+                summaryEdgeList.innerHTML = '<span style="color: #e74c3c;">⚠️ 警告：未选择任何路段！请返回步骤2选择路段。</span>';
+            } else {
+                summaryEdgeList.innerHTML = selectedEdges.map(edge =>
+                    `<div style="padding: 3px 0; border-bottom: 1px solid #f0f0f0;">${edge}</div>`
+                ).join('');
+            }
         }
 
         // 重置表单
@@ -1013,8 +1128,8 @@
             });
         }
 
-        // 创建策略实例
-        function createStrategy() {
+        // 创建策略实例 (集成 Phase 1C strategy_manager.js)
+        async function createStrategy() {
             if (!selectedTemplate) {
                 alert('请先选择策略模板');
                 return;
@@ -1022,7 +1137,6 @@
 
             // 收集参数
             const strategyName = document.getElementById('param-strategy-name').value;
-            const strategyDescription = document.getElementById('param-strategy-description').value;
 
             if (!strategyName) {
                 alert('请输入策略名称');
@@ -1033,23 +1147,395 @@
             selectedTemplate.parameters_schema.forEach(param => {
                 const input = document.getElementById(`param-${param.parameter_name}`);
                 if (input) {
-                    configuredParams[param.parameter_name] = input.value;
+                    // 类型转换
+                    let value = input.value;
+                    if (param.parameter_type === 'integer') {
+                        value = parseInt(value);
+                    } else if (param.parameter_type === 'float') {
+                        value = parseFloat(value);
+                    } else if (param.parameter_type === 'boolean') {
+                        value = value === 'true';
+                    }
+                    configuredParams[param.parameter_name] = value;
                 }
             });
 
-            // TODO: 调用API创建策略
-            console.log('Creating strategy:', {
-                template_id: selectedTemplate.template_id,
-                strategy_name: strategyName,
-                description: strategyDescription,
-                configured_params: configuredParams,
-                selected_edges: selectedEdges
+            // 使用 StrategyManager 调用API创建策略
+            if (window.strategyManager) {
+                // 更新 strategyManager 的状态
+                window.strategyManager.selectedTemplate = selectedTemplate;
+                window.strategyManager.selectedEdges = selectedEdges;
+
+                // 临时设置表单数据（模拟表单填写）
+                const tempFormData = {
+                    strategy_name: strategyName,
+                    parameters: configuredParams
+                };
+
+                // 构建 API 请求
+                const payload = {
+                    strategy_name: strategyName,
+                    template_id: selectedTemplate.template_id,
+                    parameters: configuredParams,
+                    affected_edges: selectedEdges
+                };
+
+                try {
+                    console.log('Creating strategy via API:', payload);
+
+                    const response = await fetch('/api/v1/control/strategy-instances/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Strategy created successfully:', result);
+
+                    alert(`策略创建成功！\n策略ID: ${result.strategy_id}`);
+
+                    // 刷新策略实例列表
+                    fetchStrategyInstances();
+
+                    // 重置表单
+                    resetForm();
+
+                } catch (error) {
+                    console.error('Error creating strategy:', error);
+                    alert(`创建失败: ${error.message}`);
+                }
+            } else {
+                // Fallback: 如果 strategy_manager.js 没有加载
+                console.log('Creating strategy (fallback mode):', {
+                    template_id: selectedTemplate.template_id,
+                    strategy_name: strategyName,
+                    configured_params: configuredParams,
+                    selected_edges: selectedEdges
+                });
+
+                alert('策略管理器模块未加载，请刷新页面重试');
+            }
+        }
+
+        // 获取已创建的策略实例列表
+        // T070 + T071: 获取策略实例列表（含分页支持）
+        async function fetchStrategyInstances(page = 1, pageSize = 20) {
+            const containerEl = document.getElementById('strategies-list-container');
+            const paginationEl = document.getElementById('strategies-pagination');
+
+            try {
+                containerEl.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">加载中...</p>';
+
+                // 构建查询参数 (T072, T073)
+                const searchQuery = document.getElementById('strategy-search')?.value || '';
+                const typeFilter = document.getElementById('strategy-type-filter')?.value || '';
+
+                const params = new URLSearchParams({
+                    page: page,
+                    page_size: pageSize
+                });
+
+                if (searchQuery) params.append('search', searchQuery);
+                if (typeFilter) params.append('strategy_type', typeFilter);
+
+                const response = await fetch(`/api/v1/control/strategy-instances/?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                strategyInstances = data.strategies || [];
+                currentPage = data.page || 1;
+                pageSize = data.page_size || 20;
+                totalCount = data.total_count || 0;
+                allStrategyInstances = strategyInstances;
+
+                renderStrategyInstances(strategyInstances);
+                renderPagination(currentPage, pageSize, totalCount);
+
+            } catch (error) {
+                console.error('Error fetching strategy instances:', error);
+                containerEl.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 40px 20px;">加载策略实例失败: ' + error.message + '</p>';
+                paginationEl.innerHTML = '';
+            }
+        }
+
+        // T072, T073: 筛选策略列表（客户端过滤）
+        function filterStrategyList() {
+            fetchStrategyInstances(1, pageSize);
+        }
+
+        // T070: 渲染策略实例列表（带表格样式）
+        function renderStrategyInstances(instances) {
+            const container = document.getElementById('strategies-list-container');
+
+            if (instances.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">暂无符合条件的策略实例</p>';
+                return;
+            }
+
+            // 构建表格 HTML (T075)
+            let html = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">策略名称</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">类型</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">模板</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">路段数</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">创建时间</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #2c3e50;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            instances.forEach((instance, index) => {
+                const strategyType = instance.strategy_type;
+                const strategyNames = {
+                    'VSS': '可变限速',
+                    'DHS': '动态硬路肩',
+                    'TEC': '收费站管控'
+                };
+
+                const badgeColors = {
+                    'VSS': '#3498db',
+                    'DHS': '#2ecc71',
+                    'TEC': '#e74c3c'
+                };
+
+                const createdDate = new Date(instance.created_at).toLocaleString('zh-CN');
+
+                html += `
+                    <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: #fafbfc;' : ''}">
+                        <td style="padding: 12px; color: #2c3e50; font-weight: 500;">${instance.strategy_name}</td>
+                        <td style="padding: 12px;">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${badgeColors[strategyType] || '#95a5a6'}; color: white;">
+                                ${strategyNames[strategyType]}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; color: #7f8c8d;">${instance.template_name}</td>
+                        <td style="padding: 12px; color: #7f8c8d; text-align: center;">${instance.edges_count}</td>
+                        <td style="padding: 12px; color: #7f8c8d; font-size: 0.9rem;">${createdDate}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button onclick="viewStrategyDetail('${instance.strategy_id}')" style="padding: 4px 10px; margin: 0 2px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">查看</button>
+                            <button onclick="editStrategy('${instance.strategy_id}')" style="padding: 4px 10px; margin: 0 2px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">编辑</button>
+                            <button onclick="deleteStrategy('${instance.strategy_id}', '${instance.strategy_name}')" style="padding: 4px 10px; margin: 0 2px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">删除</button>
+                        </td>
+                    </tr>
+                `;
             });
 
-            alert('策略实例创建功能将在后端API完成后实现');
+            html += `
+                    </tbody>
+                </table>
+            `;
 
-            // 重置表单
-            resetForm();
+            container.innerHTML = html;
+        }
+
+        // T071: 渲染分页控制
+        function renderPagination(page, pageSize, total) {
+            const paginationEl = document.getElementById('strategies-pagination');
+            const totalPages = Math.ceil(total / pageSize);
+
+            if (totalPages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+
+            let html = `<span style="color: #7f8c8d;">第 ${page} 页，共 ${totalPages} 页 (共 ${total} 个策略)</span>`;
+
+            // 上一页按钮
+            if (page > 1) {
+                html += `<button onclick="fetchStrategyInstances(${page - 1}, ${pageSize})" style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;">← 上一页</button>`;
+            } else {
+                html += `<button disabled style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;">← 上一页</button>`;
+            }
+
+            // 下一页按钮
+            if (page < totalPages) {
+                html += `<button onclick="fetchStrategyInstances(${page + 1}, ${pageSize})" style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;">下一页 →</button>`;
+            } else {
+                html += `<button disabled style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;">下一页 →</button>`;
+            }
+
+            paginationEl.innerHTML = html;
+        }
+
+        // T074: 查看策略详情（完整实现）
+        async function viewStrategyDetail(strategyId) {
+            const modal = document.getElementById('strategy-detail-modal');
+            const modalContent = modal.querySelector('.strategy-detail-content div');
+
+            try {
+                modalContent.innerHTML = '<p style="text-align: center; color: #7f8c8d;">加载中...</p>';
+                modal.style.display = 'flex';
+
+                const response = await fetch(`/api/v1/control/strategy-instances/${strategyId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const strategy = await response.json();
+
+                // 构建详情内容 HTML (T076)
+                let detailHtml = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+                        <h2 style="margin: 0; color: #2c3e50;">${strategy.strategy_name}</h2>
+                        <button onclick="closeStrategyModal()" style="padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 1rem;">✕</button>
+                    </div>
+
+                    <!-- 基本信息 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">基本信息</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">策略ID</p>
+                                <p style="margin: 5px 0; color: #2c3e50; font-family: monospace;">${strategy.strategy_id}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">策略类型</p>
+                                <p style="margin: 5px 0; color: #2c3e50; font-weight: 500;">
+                                    <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${{'VSS': '#3498db', 'DHS': '#2ecc71', 'TEC': '#e74c3c'}[strategy.strategy_type] || '#95a5a6'}; color: white;">
+                                        ${strategy.strategy_type}
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">所属模板</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${strategy.template_name}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">创建人</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${strategy.metadata.created_by}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 参数配置 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">参数配置</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #ecf0f1; border-bottom: 1px solid #bdc3c7;">
+                                    <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;">参数名</th>
+                                    <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;">参数值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                for (const [key, value] of Object.entries(strategy.parameters)) {
+                    const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+                    detailHtml += `
+                        <tr style="border-bottom: 1px solid #e9ecef;">
+                            <td style="padding: 8px; color: #2c3e50; font-weight: 500;">${key}</td>
+                            <td style="padding: 8px; color: #7f8c8d; font-family: monospace; word-break: break-all;">${displayValue}</td>
+                        </tr>
+                    `;
+                }
+
+                detailHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 影响路段 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">影响路段 (共 ${strategy.affected_edges.length} 条)</h3>
+                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #ecf0f1; border-bottom: 1px solid #bdc3c7; position: sticky; top: 0;">
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">路段ID</th>
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">路线</th>
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">里程范围</th>
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">长度(m)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                strategy.affected_edges.forEach((edge, index) => {
+                    detailHtml += `
+                        <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: white;' : 'background: #fbfcfd;'}">
+                            <td style="padding: 8px; color: #7f8c8d; font-family: monospace; font-size: 0.9rem;">${edge.edge_id}</td>
+                            <td style="padding: 8px; color: #2c3e50; font-size: 0.9rem;">${edge.route_code || '-'}</td>
+                            <td style="padding: 8px; color: #7f8c8d; font-size: 0.9rem;">${edge.stake_range || '-'}</td>
+                            <td style="padding: 8px; color: #7f8c8d; font-size: 0.9rem;">${edge.length ? edge.length.toFixed(2) : '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                detailHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 元数据 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">元数据</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">创建时间</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${new Date(strategy.metadata.created_at).toLocaleString('zh-CN')}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">更新时间</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${new Date(strategy.metadata.updated_at).toLocaleString('zh-CN')}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">版本号</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">v${strategy.metadata.version}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modalContent.innerHTML = detailHtml;
+
+            } catch (error) {
+                console.error('Error fetching strategy detail:', error);
+                modalContent.innerHTML = '<p style="text-align: center; color: #e74c3c;">加载失败: ' + error.message + '</p>';
+            }
+        }
+
+        // 关闭策略详情模态框
+        function closeStrategyModal() {
+            const modal = document.getElementById('strategy-detail-modal');
+            modal.style.display = 'none';
+        }
+
+        // 点击模态框背景关闭
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('strategy-detail-modal');
+            if (event.target === modal) {
+                closeStrategyModal();
+            }
+        });
+
+        // 编辑策略（占位符，Phase 6 - US3）
+        function editStrategy(strategyId) {
+            alert(`编辑策略功能将在 Phase 6 (US3) 实现\n策略ID: ${strategyId}`);
+        }
+
+        // 删除策略（占位符，Phase 7 - US4）
+        function deleteStrategy(strategyId, strategyName) {
+            if (confirm(`确定要删除该策略吗？\n策略名称: ${strategyName}\n\n此操作不可撤销！`)) {
+                alert(`删除策略功能将在 Phase 7 (US4) 实现\n策略ID: ${strategyId}`);
+                // TODO: Phase 7 - DELETE /api/v1/control/strategy-instances/{strategyId}
+            }
         }
     </script>
 
@@ -1057,6 +1543,8 @@
     <script src="js/edge_selector_embedded.js?v=20251021"></script>
     <!-- 网络可视化模块 (Phase 1B - US4) -->
     <script src="js/network_viz.js?v=20251021"></script>
+    <!-- 策略实例管理模块 (Phase 1C) -->
+    <script src="js/strategy_manager.js?v=20251021"></script>
 
     <!-- Debug: 模块加载检查 -->
     <script>
@@ -1064,15 +1552,198 @@
             console.log('=== 模块加载状态检查 ===');
             console.log('EdgeSelector:', typeof EdgeSelector);
             console.log('window.networkViz:', typeof window.networkViz);
+            console.log('window.StrategyManager:', typeof window.StrategyManager);
+            console.log('window.strategyManager:', typeof window.strategyManager);
             if (window.networkViz) {
                 console.log('  - init:', typeof window.networkViz.init);
                 console.log('  - loadGeometry:', typeof window.networkViz.loadGeometry);
                 console.log('  - highlightEdges:', typeof window.networkViz.highlightEdges);
+
+                // 初始化网络可视化Canvas
+                try {
+                    if (typeof window.networkViz.init === 'function') {
+                        // network_viz.js 会自动处理 Canvas 尺寸和设备像素比
+                        window.networkViz.init('network-canvas');
+                        console.log('✅ 网络可视化已初始化');
+                    }
+                } catch (error) {
+                    console.error('❌ 网络可视化初始化失败:', error);
+                }
             } else {
                 console.error('❌ window.networkViz 未定义！请检查 network_viz.js 是否正确加载');
             }
             console.log('=========================');
         }, 500);
+
+        // 可视化相关函数（与 network_viz.js 集成）
+        let isLoadingVisualization = false; // 加载状态锁
+
+        function loadVisualization() {
+            console.log('[loadVisualization] 开始加载网络地图...');
+
+            // 防止重复加载
+            if (isLoadingVisualization) {
+                console.warn('[loadVisualization] ⚠️ 正在加载中，请勿重复点击');
+                return;
+            }
+
+            if (!window.networkViz) {
+                alert('网络可视化模块未加载，请刷新页面重试');
+                return;
+            }
+
+            isLoadingVisualization = true; // 设置加载锁
+
+            // 获取当前选中的路线代码
+            const routeCodesSelect = document.getElementById('route-codes');
+            let selectedRoutes = [];
+
+            if (routeCodesSelect && routeCodesSelect.selectedOptions) {
+                selectedRoutes = Array.from(routeCodesSelect.selectedOptions)
+                    .map(opt => opt.value)
+                    .filter(v => v); // 过滤空值
+            }
+
+            console.log('[loadVisualization] 选中的路线:', selectedRoutes.length > 0 ? selectedRoutes : '全部路线');
+
+            // 显示加载中状态
+            const loadingEl = document.querySelector('.viz-loading');
+            const errorEl = document.querySelector('.viz-error');
+            const emptyEl = document.querySelector('.viz-empty');
+            const loadButton = event && event.target; // 获取触发按钮
+
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (errorEl) errorEl.style.display = 'none';
+            if (emptyEl) emptyEl.style.display = 'none';
+
+            // 禁用加载按钮并显示加载状态
+            if (loadButton && loadButton.tagName === 'BUTTON') {
+                loadButton.disabled = true;
+                loadButton.textContent = '加载中...';
+            }
+
+            // 智能查询：如果选择了路线/路段但没有查询结果，自动触发查询
+            const hasFilterConditions = selectedRoutes.length > 0;
+            const hasQueryResults = EdgeSelector.state.currentResults && EdgeSelector.state.currentResults.length > 0;
+
+            let loadGeometryPromise;
+
+            if (hasFilterConditions && !hasQueryResults && !EdgeSelector.state.isLoading) {
+                console.log('[loadVisualization] 📊 检测到过滤条件但无查询结果，自动触发查询...');
+                // 先查询，再加载地图
+                loadGeometryPromise = EdgeSelector.query()
+                    .then(() => {
+                        console.log(`[loadVisualization] ✅ 自动查询完成，找到 ${EdgeSelector.state.currentResults.length} 条路段`);
+                        // 查询完成后加载地图几何
+                        return window.networkViz.loadGeometry(selectedRoutes.length > 0 ? selectedRoutes : null);
+                    })
+                    .catch(err => {
+                        console.warn('[loadVisualization] ⚠️ 自动查询失败，仍然加载地图:', err);
+                        // 查询失败不影响地图加载，继续加载地图
+                        return window.networkViz.loadGeometry(selectedRoutes.length > 0 ? selectedRoutes : null);
+                    });
+            } else {
+                // 直接加载地图几何（无需查询）
+                console.log('[loadVisualization] 💡 直接加载地图几何数据');
+                loadGeometryPromise = window.networkViz.loadGeometry(selectedRoutes.length > 0 ? selectedRoutes : null);
+            }
+
+            // 处理地图加载结果
+            loadGeometryPromise
+                .then(() => {
+                    console.log('[loadVisualization] ✅ 网络地图加载成功');
+                    if (loadingEl) loadingEl.style.display = 'none';
+
+                    // 诊断信息：检查Canvas状态
+                    const canvas = document.getElementById('network-canvas');
+                    if (canvas) {
+                        console.log('[loadVisualization] 🔍 Canvas诊断信息:');
+                        console.log('  - Canvas尺寸:', canvas.width, 'x', canvas.height);
+                        console.log('  - CSS尺寸:', canvas.style.width, 'x', canvas.style.height);
+                        console.log('  - 父容器尺寸:', canvas.parentElement.clientWidth, 'x', canvas.parentElement.clientHeight);
+                        console.log('  - Canvas可见性:', window.getComputedStyle(canvas).display);
+                        console.log('  - z-index:', window.getComputedStyle(canvas).zIndex);
+                    }
+
+                    // 检查几何数据
+                    if (window.networkViz && window.networkViz.geometry) {
+                        console.log('[loadVisualization] 🔍 几何数据:');
+                        console.log('  - 节点数量:', window.networkViz.geometry.junctions?.length || 0);
+                        console.log('  - 边数量:', window.networkViz.geometry.edges?.length || 0);
+                    }
+
+                    // 优先显示查询结果（蓝色高亮），如果有查询结果
+                    if (EdgeSelector.state.currentResults && EdgeSelector.state.currentResults.length > 0) {
+                        window.networkViz.highlightEdges(EdgeSelector.state.currentResults);
+                        console.log(`[loadVisualization] 高亮显示 ${EdgeSelector.state.currentResults.length} 条查询结果路段`);
+                    }
+
+                    // 如果有用户已选中的边（绿色），在查询结果基础上叠加显示
+                    if (EdgeSelector.state.edgeSelectionSet && EdgeSelector.state.edgeSelectionSet.size > 0) {
+                        const selectedEdgeIds = Array.from(EdgeSelector.state.edgeSelectionSet);
+                        window.networkViz.setSelected(selectedEdgeIds);
+                        console.log(`[loadVisualization] 叠加显示 ${selectedEdgeIds.length} 条用户选中的路段`);
+                    }
+
+                    // 注意: loadGeometry 已经自动调用了 renderNetwork()，highlightEdges 和 setSelected 会触发重绘
+                })
+                .catch(error => {
+                    console.error('[loadVisualization] ❌ 加载失败:', error);
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (errorEl) {
+                        errorEl.textContent = `加载失败: ${error.message}`;
+                        errorEl.style.display = 'block';
+                    }
+
+                    // 额外的诊断信息
+                    console.error('[loadVisualization] 错误堆栈:', error.stack);
+
+                    // 测试API是否可达
+                    fetch('/api/v1/control/edges/network_geometry')
+                        .then(r => {
+                            console.log('[loadVisualization] API响应状态:', r.status);
+                            return r.json();
+                        })
+                        .then(data => {
+                            console.log('[loadVisualization] API返回数据:', data);
+                            if (data.junctions && data.edges) {
+                                console.log(`[loadVisualization] 数据包含 ${data.junctions.length} 个节点, ${data.edges.length} 条边`);
+                            }
+                        })
+                        .catch(apiError => {
+                            console.error('[loadVisualization] API测试失败:', apiError);
+                        });
+                })
+                .finally(() => {
+                    // 释放加载锁（无论成功还是失败）
+                    isLoadingVisualization = false;
+                    console.log('[loadVisualization] 加载状态锁已释放');
+
+                    // 恢复按钮状态
+                    if (loadButton && loadButton.tagName === 'BUTTON') {
+                        loadButton.disabled = false;
+                        loadButton.textContent = '加载网络地图';
+                    }
+                });
+        }
+
+        function resetView() {
+            if (window.networkViz && typeof window.networkViz.resetView === 'function') {
+                window.networkViz.resetView();
+                console.log('[resetView] 视图已重置');
+            }
+        }
+
+        function clearVizSelection() {
+            if (window.networkViz && typeof window.networkViz.clearSelection === 'function') {
+                window.networkViz.clearSelection();
+                console.log('[clearVizSelection] 可视化选择已清除');
+
+                // 更新选中计数
+                const vizCountEl = document.getElementById('viz-selected-count');
+                if (vizCountEl) vizCountEl.textContent = '0';
+            }
+        }
     </script>
 </body>
 </html>

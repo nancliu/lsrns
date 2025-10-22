@@ -1,0 +1,55 @@
+{
+  "template_id": "dhs_template_001",
+  "template_name": "Test DHS Template",
+  "description": "Test template for integration testing - Dynamic Hard Shoulder with array parameters",
+  "strategy_type": "DHS",
+  "parameters_schema": [
+    {
+      "parameter_name": "activation_threshold",
+      "parameter_type": "integer",
+      "description": "Traffic density threshold for activation (vehicles/km)",
+      "required": true,
+      "default_value": 35,
+      "min_value": 20,
+      "max_value": 50,
+      "unit": "vehicles/km"
+    },
+    {
+      "parameter_name": "time_intervals",
+      "parameter_type": "array",
+      "description": "Active time intervals",
+      "required": true,
+      "default_value": ["07:00-09:00", "17:00-19:00"],
+      "unit": null
+    },
+    {
+      "parameter_name": "shoulder_lanes",
+      "parameter_type": "array",
+      "description": "List of shoulder lane IDs to activate",
+      "required": true,
+      "default_value": ["lane_1", "lane_2"],
+      "unit": null
+    },
+    {
+      "parameter_name": "min_speed",
+      "parameter_type": "integer",
+      "description": "Minimum allowed speed on shoulder lane",
+      "required": true,
+      "default_value": 60,
+      "min_value": 40,
+      "max_value": 80,
+      "unit": "km/h"
+    },
+    {
+      "parameter_name": "auto_deactivate",
+      "parameter_type": "boolean",
+      "description": "Automatically deactivate when density drops",
+      "required": false,
+      "default_value": true,
+      "unit": null
+    }
+  ],
+  "version": "1.0",
+  "created_at": "2025-10-22T00:00:00Z",
+  "updated_at": "2025-10-22T00:00:00Z"
+}

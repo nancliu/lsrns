@@ -1,0 +1,22 @@
+{
+  "strategy_id": "strat_20251021093440_851823",
+  "strategy_name": "test",
+  "template_id": "vss_strict",
+  "template_name": "Mock Template vss_strict",
+  "strategy_type": "VSS",
+  "parameters": {
+    "speed_limit": 60
+  },
+  "affected_edges": [
+    "-10634",
+    "-6210",
+    "-12152",
+    "-6210.244"
+  ],
+  "metadata": {
+    "created_at": "2025-10-21T09:34:40.958241+00:00",
+    "updated_at": "2025-10-21T09:34:40.958241+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

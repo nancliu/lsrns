@@ -1,0 +1,25 @@
+{
+  "strategy_id": "strat_20251021090922_b3d7a6",
+  "strategy_name": "Test VSS Strategy",
+  "template_id": "vss_template_001",
+  "template_name": "Mock Template vss_template_001",
+  "strategy_type": "VSS",
+  "parameters": {
+    "control_speed": 80,
+    "time_intervals": [
+      "07:00-09:00",
+      "17:00-19:00"
+    ]
+  },
+  "affected_edges": [
+    "-5880",
+    "-5881",
+    "-5882"
+  ],
+  "metadata": {
+    "created_at": "2025-10-21T09:09:22.340631+00:00",
+    "updated_at": "2025-10-21T09:09:22.340631+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}
