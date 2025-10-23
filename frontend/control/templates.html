@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>策略管理 - 交通管控仿真优化系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         * {
             margin: 0;
@@ -208,6 +212,7 @@
             padding: 20px;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
 
         .template-card:hover {
@@ -231,6 +236,37 @@
             font-size: 1.1rem;
             color: #2c3e50;
             font-weight: 600;
+        }
+
+        .template-actions {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: none;
+            gap: 5px;
+        }
+
+        .template-card:hover .template-actions {
+            display: flex;
+        }
+
+        .template-action-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .template-action-btn:hover {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         }
 
         .strategy-badge {
@@ -716,6 +752,7 @@
                             <button class="btn btn-primary" onclick="loadVisualization()" style="padding: 8px 20px; font-size: 0.95rem;">加载网络地图</button>
                             <button class="btn btn-secondary" onclick="resetView()" style="padding: 8px 20px; font-size: 0.95rem;">重置视图</button>
                             <button class="btn btn-secondary" onclick="clearVizSelection()" style="padding: 8px 20px; font-size: 0.95rem;">清除可视化选择</button>
+
                             <div class="viz-info" style="margin-left: auto; font-size: 0.9rem; color: #7f8c8d;">
                                 <span>可视化选中: <strong id="viz-selected-count">0</strong> 条路段</span>
                                 <span style="margin-left: 15px; font-size: 0.85rem;">
@@ -723,8 +760,11 @@
                                 </span>
                             </div>
                         </div>
-                        <div id="network-viz-container" style="position: relative; width: 100%; height: 500px; background: #ffffff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
-                            <canvas id="network-canvas" style="width: 100%; height: 100%; cursor: default;"></canvas>
+                        <div id="network-viz-container" style="position: relative; width: 100%; height: 500px; background: #f5f7fa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                            <!-- 网络层 (底层，静态渲染) -->
+                            <canvas id="network-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; cursor: default;"></canvas>
+                            <!-- Hover层 (顶层，交互效果) -->
+                            <canvas id="network-canvas-hover" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: default; pointer-events: none;"></canvas>
                             <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; display: none;">正在加载网络几何数据...</div>
                             <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; display: none;"></div>
                             <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6;">点击"加载网络地图"按钮可视化路网结构</div>
@@ -741,6 +781,27 @@
             <!-- 步骤3: 配置参数 (默认隐藏) -->
             <div class="step-content" id="step3-content" style="display: none;">
                 <h3>步骤3：配置策略参数</h3>
+
+                <!-- 前两步配置摘要 -->
+                <div id="config-summary" class="config-summary" style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 25px; border: 2px solid #e9ecef;">
+                    <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">📋 配置摘要</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选模板</div>
+                            <div id="summary-template" style="color: #2c3e50; font-size: 1.05rem;"></div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选路段数量</div>
+                            <div id="summary-edges" style="color: #2c3e50; font-size: 1.05rem;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选路段列表</div>
+                        <div id="summary-edge-list" style="max-height: 120px; overflow-y: auto; background: white; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+
+                <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">⚙️ 参数配置</h4>
                 <form class="params-form" id="params-form">
                     <!-- 动态生成参数表单 -->
                 </form>
@@ -751,11 +812,70 @@
                 </div>
             </div>
 
-            <!-- 已创建的策略实例列表 -->
+            <!-- 已创建的策略实例列表 (US2) -->
             <div class="strategies-list" style="margin-top: 30px;">
                 <h3>已创建的策略实例</h3>
-                <div id="strategies-list-container">
-                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">暂无策略实例</p>
+
+                <!-- 搜索和筛选区 (T072, T073) -->
+                <div class="strategies-controls" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <!-- 搜索框 -->
+                    <div style="flex: 1; min-width: 250px;">
+                        <input
+                            type="text"
+                            id="strategy-search"
+                            placeholder="搜索策略名称..."
+                            style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;"
+                            onkeyup="filterStrategyList()"
+                        />
+                    </div>
+
+                    <!-- 类型筛选 -->
+                    <div>
+                        <label style="margin-right: 8px;">策略类型:</label>
+                        <select
+                            id="strategy-type-filter"
+                            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;"
+                            onchange="filterStrategyList()"
+                        >
+                            <option value="">全部</option>
+                            <option value="VSS">可变限速 (VSS)</option>
+                            <option value="DHS">动态硬路肩 (DHS)</option>
+                            <option value="TEC">收费站管控 (TEC)</option>
+                        </select>
+                    </div>
+
+                    <!-- 刷新按钮 -->
+                    <button onclick="fetchStrategyInstances()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新</button>
+                </div>
+
+                <!-- 列表容器 (T070) -->
+                <div id="strategies-list-container" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">加载中...</p>
+                </div>
+
+                <!-- 分页控制 (T071) -->
+                <div class="strategies-pagination" id="strategies-pagination" style="margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <!-- 由 fetchStrategyInstances() 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 策略详情模态框 (T074, T076) -->
+            <div id="strategy-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+                <div class="strategy-detail-content" style="background: white; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="padding: 25px;">
+                        <!-- 详情内容由 viewStrategyDetail() 动态生成 -->
+                        <p style="text-align: center; color: #7f8c8d;">加载中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模板详情模态框 (NEW) -->
+            <div id="template-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
+                <div class="template-detail-content" style="background: white; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="padding: 25px;">
+                        <!-- 详情内容由 viewTemplateDetail() 动态生成 -->
+                        <p style="text-align: center; color: #7f8c8d;">加载中...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -772,7 +892,14 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             fetchTemplates();
+            fetchStrategyInstances();
         });
+
+        // 当前分页状态 (US2)
+        let currentPage = 1;
+        let pageSize = 20;
+        let totalCount = 0;
+        let allStrategyInstances = [];
 
         // 获取模板列表
         async function fetchTemplates() {
@@ -824,7 +951,13 @@
         function createTemplateCard(template) {
             const card = document.createElement('div');
             card.className = 'template-card';
-            card.onclick = () => selectTemplate(template);
+            card.onclick = (e) => {
+                // 如果点击的是按钮，不触发选择
+                if (e.target.classList.contains('template-action-btn')) {
+                    return;
+                }
+                selectTemplate(template);
+            };
 
             const strategyType = template.strategy_type;
             const strategyNames = {
@@ -834,6 +967,11 @@
             };
 
             card.innerHTML = `
+                <div class="template-actions">
+                    <button class="template-action-btn" onclick="event.stopPropagation(); viewTemplateDetail('${template.template_id}')" title="查看详情">
+                        📋 详情
+                    </button>
+                </div>
                 <div class="template-header">
                     <div class="template-title">${template.template_name}</div>
                     <span class="strategy-badge badge-${strategyType}">${strategyNames[strategyType]}</span>
@@ -949,13 +1087,16 @@
             const form = document.getElementById('params-form');
             form.innerHTML = '';
 
+            // 更新配置摘要
+            updateConfigSummary();
+
             // 策略名称（必填）
             const nameGroup = document.createElement('div');
             nameGroup.className = 'form-group';
             nameGroup.innerHTML = `
                 <label>策略名称 *</label>
-                <input type="text" id="param-strategy-name" required>
-                <span class="form-hint">为该策略实例命名</span>
+                <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略">
+                <span class="form-hint">为该策略实例命名（1-100个字符）</span>
             `;
             form.appendChild(nameGroup);
 
@@ -964,17 +1105,24 @@
             descGroup.className = 'form-group';
             descGroup.innerHTML = `
                 <label>策略描述</label>
-                <textarea id="param-strategy-description" rows="3"></textarea>
+                <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的"></textarea>
                 <span class="form-hint">可选</span>
             `;
             form.appendChild(descGroup);
 
             // 动态生成模板参数
             template.parameters_schema.forEach(param => {
+                // 跳过 affected_edges 参数（在步骤2已处理）
+                if (param.parameter_name === 'affected_edges' || param.parameter_name === 'affected_segments' || param.parameter_name === 'entrance_ids') {
+                    return;
+                }
+
                 const group = document.createElement('div');
                 group.className = 'form-group';
 
                 let inputHtml = '';
+                let hintHtml = '';
+
                 if (param.parameter_type === 'integer' || param.parameter_type === 'float') {
                     inputHtml = `<input type="number" id="param-${param.parameter_name}"
                                    ${param.required ? 'required' : ''}
@@ -982,24 +1130,112 @@
                                    ${param.max_value !== null ? `max="${param.max_value}"` : ''}
                                    ${param.default_value !== null ? `value="${param.default_value}"` : ''}
                                    step="${param.parameter_type === 'float' ? '0.01' : '1'}">`;
+                    hintHtml = `${param.unit || ''} ${param.min_value !== null && param.max_value !== null ? `范围: ${param.min_value}-${param.max_value}` : ''}`;
                 } else if (param.parameter_type === 'string') {
-                    inputHtml = `<input type="text" id="param-${param.parameter_name}"
-                                   ${param.required ? 'required' : ''}
-                                   ${param.default_value !== null ? `value="${param.default_value}"` : ''}>`;
+                    // 如果有 allowed_values，使用下拉框
+                    if (param.allowed_values && param.allowed_values.length > 0) {
+                        const options = param.allowed_values.map(val => {
+                            const selected = param.default_value === val ? 'selected' : '';
+                            return `<option value="${val}" ${selected}>${val}</option>`;
+                        }).join('');
+                        inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>${options}</select>`;
+                        hintHtml = `可选值: ${param.allowed_values.join(', ')}`;
+                    } else {
+                        inputHtml = `<input type="text" id="param-${param.parameter_name}"
+                                       ${param.required ? 'required' : ''}
+                                       ${param.default_value !== null ? `value="${param.default_value}"` : ''}>`;
+                        hintHtml = param.unit || '';
+                    }
                 } else if (param.parameter_type === 'boolean') {
+                    const defaultVal = param.default_value === true || param.default_value === 'true';
                     inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>
-                                   <option value="true">是</option>
-                                   <option value="false">否</option>
+                                   <option value="true" ${defaultVal ? 'selected' : ''}>是</option>
+                                   <option value="false" ${!defaultVal ? 'selected' : ''}>否</option>
                                  </select>`;
+                    hintHtml = param.unit || '';
+                } else if (param.parameter_type === 'array') {
+                    // 特殊处理：车型选择参数使用多选框
+                    const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
+                    if (vehicleTypeParams.includes(param.parameter_name)) {
+                        const vehicleTypes = [
+                            { value: 'passenger_small', label: '小型客车 (k1, k2)' },
+                            { value: 'passenger_large', label: '大型客车 (k3, k4)' },
+                            { value: 'truck_small', label: '小型货车 (h1, h2)' },
+                            { value: 'truck_large', label: '大型货车 (h3-h6)' },
+                            { value: 'special_small', label: '小型特种车 (t1, t2)' },
+                            { value: 'special_large', label: '大型特种车 (t3-t6)' }
+                        ];
+
+                        const options = vehicleTypes.map(vt => {
+                            const selected = param.default_value && param.default_value.includes(vt.value) ? 'selected' : '';
+                            return `<option value="${vt.value}" ${selected}>${vt.label}</option>`;
+                        }).join('');
+
+                        // 根据参数类型定制提示文本
+                        let customHint = '';
+                        if (param.parameter_name === 'applicable_vehicle_types') {
+                            customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，留空表示适用所有车型';
+                        } else if (param.parameter_name === 'allowed_vehicle_types') {
+                            customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，默认全选表示所有车型可使用硬路肩';
+                        } else if (param.parameter_name === 'banned_vehicle_types') {
+                            customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，选中的车型将被禁止进入';
+                        }
+
+                        inputHtml = `<select id="param-${param.parameter_name}" multiple size="6"
+                                       style="width: 100%; padding: 8px;"
+                                       ${param.required ? 'required' : ''}>
+                                       ${options}
+                                     </select>`;
+                        hintHtml = customHint;
+                    } else {
+                        // 其他 Array 类型：使用 textarea，JSON格式输入
+                        const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value) : '[]';
+                        inputHtml = `<textarea id="param-${param.parameter_name}" rows="3"
+                                       ${param.required ? 'required' : ''}
+                                       placeholder='例如: [[7,9],[17,19]] 或 [60,80,100]'>${defaultValueStr}</textarea>`;
+                        hintHtml = `${param.unit || ''} JSON数组格式，例如: [[7,9],[17,19]] 表示时间段，或 [60,80,100] 表示数值列表`;
+                    }
                 }
 
                 group.innerHTML = `
                     <label>${param.description} ${param.required ? '*' : ''}</label>
                     ${inputHtml}
-                    <span class="form-hint">${param.unit || ''} ${param.min_value !== null && param.max_value !== null ? `范围: ${param.min_value}-${param.max_value}` : ''}</span>
+                    <span class="form-hint">${hintHtml}</span>
                 `;
                 form.appendChild(group);
             });
+        }
+
+        // 更新配置摘要（步骤3）
+        function updateConfigSummary() {
+            const strategyNames = {
+                'VSS': '可变限速',
+                'DHS': '动态硬路肩',
+                'TEC': '收费站管控'
+            };
+
+            // 更新模板信息
+            if (selectedTemplate) {
+                const summaryTemplate = document.getElementById('summary-template');
+                summaryTemplate.innerHTML = `
+                    <strong>${selectedTemplate.template_name}</strong>
+                    <span class="strategy-badge badge-${selectedTemplate.strategy_type}" style="margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;">${strategyNames[selectedTemplate.strategy_type]}</span>
+                `;
+            }
+
+            // 更新路段信息
+            const summaryEdges = document.getElementById('summary-edges');
+            summaryEdges.innerHTML = `<strong style="color: #3498db; font-size: 1.2rem;">${selectedEdges.length}</strong> 条路段`;
+
+            // 更新路段列表
+            const summaryEdgeList = document.getElementById('summary-edge-list');
+            if (selectedEdges.length === 0) {
+                summaryEdgeList.innerHTML = '<span style="color: #e74c3c;">⚠️ 警告：未选择任何路段！请返回步骤2选择路段。</span>';
+            } else {
+                summaryEdgeList.innerHTML = selectedEdges.map(edge =>
+                    `<div style="padding: 3px 0; border-bottom: 1px solid #f0f0f0;">${edge}</div>`
+                ).join('');
+            }
         }
 
         // 重置表单
@@ -1013,8 +1249,8 @@
             });
         }
 
-        // 创建策略实例
-        function createStrategy() {
+        // 创建策略实例 (集成 Phase 1C strategy_manager.js)
+        async function createStrategy() {
             if (!selectedTemplate) {
                 alert('请先选择策略模板');
                 return;
@@ -1022,7 +1258,6 @@
 
             // 收集参数
             const strategyName = document.getElementById('param-strategy-name').value;
-            const strategyDescription = document.getElementById('param-strategy-description').value;
 
             if (!strategyName) {
                 alert('请输入策略名称');
@@ -1032,31 +1267,643 @@
             const configuredParams = {};
             selectedTemplate.parameters_schema.forEach(param => {
                 const input = document.getElementById(`param-${param.parameter_name}`);
+
+                // 特殊处理：affected_edges 参数使用步骤2选择的路段
+                if (param.parameter_name === 'affected_edges' || param.parameter_name === 'affected_segments' || param.parameter_name === 'entrance_ids') {
+                    configuredParams[param.parameter_name] = selectedEdges;
+                    return;
+                }
+
                 if (input) {
-                    configuredParams[param.parameter_name] = input.value;
+                    // 类型转换
+                    let value = input.value;
+                    if (param.parameter_type === 'integer') {
+                        value = parseInt(value);
+                    } else if (param.parameter_type === 'float') {
+                        value = parseFloat(value);
+                    } else if (param.parameter_type === 'boolean') {
+                        value = value === 'true';
+                    } else if (param.parameter_type === 'array') {
+                        // 特殊处理：车型多选框参数
+                        const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
+                        if (vehicleTypeParams.includes(param.parameter_name)) {
+                            // 从多选框获取选中的值
+                            const selectedOptions = Array.from(input.selectedOptions);
+                            value = selectedOptions.map(opt => opt.value);
+                        } else {
+                            // 其他 array 参数：解析 JSON
+                            try {
+                                value = JSON.parse(value);
+                                if (!Array.isArray(value)) {
+                                    throw new Error('必须是数组格式');
+                                }
+                            } catch (error) {
+                                alert(`参数 "${param.description}" 格式错误：${error.message}\n请输入有效的JSON数组，例如: [[7,9],[17,19]] 或 [60,80,100]`);
+                                throw error;
+                            }
+                        }
+                    }
+                    configuredParams[param.parameter_name] = value;
                 }
             });
 
-            // TODO: 调用API创建策略
-            console.log('Creating strategy:', {
-                template_id: selectedTemplate.template_id,
-                strategy_name: strategyName,
-                description: strategyDescription,
-                configured_params: configuredParams,
-                selected_edges: selectedEdges
+            // 使用 StrategyManager 调用API创建策略
+            if (window.strategyManager) {
+                // 更新 strategyManager 的状态
+                window.strategyManager.selectedTemplate = selectedTemplate;
+                window.strategyManager.selectedEdges = selectedEdges;
+
+                // 临时设置表单数据（模拟表单填写）
+                const tempFormData = {
+                    strategy_name: strategyName,
+                    parameters: configuredParams
+                };
+
+                // 构建 API 请求
+                const payload = {
+                    strategy_name: strategyName,
+                    template_id: selectedTemplate.template_id,
+                    parameters: configuredParams,
+                    affected_edges: selectedEdges
+                };
+
+                try {
+                    console.log('Creating strategy via API:', payload);
+
+                    const response = await fetch('/api/v1/control/strategy-instances/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Strategy created successfully:', result);
+
+                    alert(`策略创建成功！\n策略ID: ${result.strategy_id}`);
+
+                    // 刷新策略实例列表
+                    fetchStrategyInstances();
+
+                    // 重置表单
+                    resetForm();
+
+                } catch (error) {
+                    console.error('Error creating strategy:', error);
+                    alert(`创建失败: ${error.message}`);
+                }
+            } else {
+                // Fallback: 如果 strategy_manager.js 没有加载
+                console.log('Creating strategy (fallback mode):', {
+                    template_id: selectedTemplate.template_id,
+                    strategy_name: strategyName,
+                    configured_params: configuredParams,
+                    selected_edges: selectedEdges
+                });
+
+                alert('策略管理器模块未加载，请刷新页面重试');
+            }
+        }
+
+        // 获取已创建的策略实例列表
+        // T070 + T071: 获取策略实例列表（含分页支持）
+        async function fetchStrategyInstances(page = 1, pageSize = 20) {
+            const containerEl = document.getElementById('strategies-list-container');
+            const paginationEl = document.getElementById('strategies-pagination');
+
+            try {
+                containerEl.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">加载中...</p>';
+
+                // 构建查询参数 (T072, T073)
+                const searchQuery = document.getElementById('strategy-search')?.value || '';
+                const typeFilter = document.getElementById('strategy-type-filter')?.value || '';
+
+                const params = new URLSearchParams({
+                    page: page,
+                    page_size: pageSize
+                });
+
+                if (searchQuery) params.append('search', searchQuery);
+                if (typeFilter) params.append('strategy_type', typeFilter);
+
+                const response = await fetch(`/api/v1/control/strategy-instances/?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                strategyInstances = data.strategies || [];
+                currentPage = data.page || 1;
+                pageSize = data.page_size || 20;
+                totalCount = data.total_count || 0;
+                allStrategyInstances = strategyInstances;
+
+                renderStrategyInstances(strategyInstances);
+                renderPagination(currentPage, pageSize, totalCount);
+
+            } catch (error) {
+                console.error('Error fetching strategy instances:', error);
+                containerEl.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 40px 20px;">加载策略实例失败: ' + error.message + '</p>';
+                paginationEl.innerHTML = '';
+            }
+        }
+
+        // T072, T073: 筛选策略列表（客户端过滤）
+        function filterStrategyList() {
+            fetchStrategyInstances(1, pageSize);
+        }
+
+        // T070: 渲染策略实例列表（带表格样式）
+        function renderStrategyInstances(instances) {
+            const container = document.getElementById('strategies-list-container');
+
+            if (instances.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">暂无符合条件的策略实例</p>';
+                return;
+            }
+
+            // 构建表格 HTML (T075)
+            let html = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">策略名称</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">类型</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">模板</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">路段数</th>
+                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #2c3e50;">创建时间</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #2c3e50;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            instances.forEach((instance, index) => {
+                const strategyType = instance.strategy_type;
+                const strategyNames = {
+                    'VSS': '可变限速',
+                    'DHS': '动态硬路肩',
+                    'TEC': '收费站管控'
+                };
+
+                const badgeColors = {
+                    'VSS': '#3498db',
+                    'DHS': '#2ecc71',
+                    'TEC': '#e74c3c'
+                };
+
+                const createdDate = new Date(instance.created_at).toLocaleString('zh-CN');
+
+                html += `
+                    <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: #fafbfc;' : ''}">
+                        <td style="padding: 12px; color: #2c3e50; font-weight: 500;">${instance.strategy_name}</td>
+                        <td style="padding: 12px;">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${badgeColors[strategyType] || '#95a5a6'}; color: white;">
+                                ${strategyNames[strategyType]}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; color: #7f8c8d;">${instance.template_name}</td>
+                        <td style="padding: 12px; color: #7f8c8d; text-align: center;">${instance.edges_count}</td>
+                        <td style="padding: 12px; color: #7f8c8d; font-size: 0.9rem;">${createdDate}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button onclick="viewStrategyDetail('${instance.strategy_id}')" style="padding: 4px 10px; margin: 0 2px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">查看</button>
+                            <button onclick="editStrategy('${instance.strategy_id}')" style="padding: 4px 10px; margin: 0 2px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">编辑</button>
+                            <button onclick="deleteStrategy('${instance.strategy_id}', '${instance.strategy_name}')" style="padding: 4px 10px; margin: 0 2px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">删除</button>
+                        </td>
+                    </tr>
+                `;
             });
 
-            alert('策略实例创建功能将在后端API完成后实现');
+            html += `
+                    </tbody>
+                </table>
+            `;
 
-            // 重置表单
-            resetForm();
+            container.innerHTML = html;
+        }
+
+        // T071: 渲染分页控制
+        function renderPagination(page, pageSize, total) {
+            const paginationEl = document.getElementById('strategies-pagination');
+            const totalPages = Math.ceil(total / pageSize);
+
+            if (totalPages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+
+            let html = `<span style="color: #7f8c8d;">第 ${page} 页，共 ${totalPages} 页 (共 ${total} 个策略)</span>`;
+
+            // 上一页按钮
+            if (page > 1) {
+                html += `<button onclick="fetchStrategyInstances(${page - 1}, ${pageSize})" style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;">← 上一页</button>`;
+            } else {
+                html += `<button disabled style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;">← 上一页</button>`;
+            }
+
+            // 下一页按钮
+            if (page < totalPages) {
+                html += `<button onclick="fetchStrategyInstances(${page + 1}, ${pageSize})" style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;">下一页 →</button>`;
+            } else {
+                html += `<button disabled style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;">下一页 →</button>`;
+            }
+
+            paginationEl.innerHTML = html;
+        }
+
+        // T074: 查看策略详情（完整实现）
+        async function viewStrategyDetail(strategyId) {
+            const modal = document.getElementById('strategy-detail-modal');
+            const modalContent = modal.querySelector('.strategy-detail-content div');
+
+            try {
+                modalContent.innerHTML = '<p style="text-align: center; color: #7f8c8d;">加载中...</p>';
+                modal.style.display = 'flex';
+
+                const response = await fetch(`/api/v1/control/strategy-instances/${strategyId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const strategy = await response.json();
+
+                // 构建详情内容 HTML (T076)
+                let detailHtml = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+                        <h2 style="margin: 0; color: #2c3e50;">${strategy.strategy_name}</h2>
+                        <button onclick="closeStrategyModal()" style="padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 1rem;">✕</button>
+                    </div>
+
+                    <!-- 基本信息 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">基本信息</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">策略ID</p>
+                                <p style="margin: 5px 0; color: #2c3e50; font-family: monospace;">${strategy.strategy_id}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">策略类型</p>
+                                <p style="margin: 5px 0; color: #2c3e50; font-weight: 500;">
+                                    <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${{'VSS': '#3498db', 'DHS': '#2ecc71', 'TEC': '#e74c3c'}[strategy.strategy_type] || '#95a5a6'}; color: white;">
+                                        ${strategy.strategy_type}
+                                    </span>
+                                </p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">所属模板</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${strategy.template_name}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">创建人</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${strategy.metadata.created_by}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 参数配置 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">参数配置</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #ecf0f1; border-bottom: 1px solid #bdc3c7;">
+                                    <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;">参数名</th>
+                                    <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;">参数值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                for (const [key, value] of Object.entries(strategy.parameters)) {
+                    const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+                    detailHtml += `
+                        <tr style="border-bottom: 1px solid #e9ecef;">
+                            <td style="padding: 8px; color: #2c3e50; font-weight: 500;">${key}</td>
+                            <td style="padding: 8px; color: #7f8c8d; font-family: monospace; word-break: break-all;">${displayValue}</td>
+                        </tr>
+                    `;
+                }
+
+                detailHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 影响路段 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">影响路段 (共 ${strategy.affected_edges.length} 条)</h3>
+                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #ecf0f1; border-bottom: 1px solid #bdc3c7; position: sticky; top: 0;">
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">路段ID</th>
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">路线</th>
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">里程范围</th>
+                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">长度(m)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                strategy.affected_edges.forEach((edge, index) => {
+                    detailHtml += `
+                        <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: white;' : 'background: #fbfcfd;'}">
+                            <td style="padding: 8px; color: #7f8c8d; font-family: monospace; font-size: 0.9rem;">${edge.edge_id}</td>
+                            <td style="padding: 8px; color: #2c3e50; font-size: 0.9rem;">${edge.route_code || '-'}</td>
+                            <td style="padding: 8px; color: #7f8c8d; font-size: 0.9rem;">${edge.stake_range || '-'}</td>
+                            <td style="padding: 8px; color: #7f8c8d; font-size: 0.9rem;">${edge.length ? edge.length.toFixed(2) : '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                detailHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 元数据 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">元数据</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">创建时间</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${new Date(strategy.metadata.created_at).toLocaleString('zh-CN')}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">更新时间</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${new Date(strategy.metadata.updated_at).toLocaleString('zh-CN')}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">版本号</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">v${strategy.metadata.version}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modalContent.innerHTML = detailHtml;
+
+            } catch (error) {
+                console.error('Error fetching strategy detail:', error);
+                modalContent.innerHTML = '<p style="text-align: center; color: #e74c3c;">加载失败: ' + error.message + '</p>';
+            }
+        }
+
+        // 关闭策略详情模态框
+        function closeStrategyModal() {
+            const modal = document.getElementById('strategy-detail-modal');
+            modal.style.display = 'none';
+        }
+
+        // 点击模态框背景关闭
+        document.addEventListener('click', function(event) {
+            const strategyModal = document.getElementById('strategy-detail-modal');
+            const templateModal = document.getElementById('template-detail-modal');
+
+            if (event.target === strategyModal) {
+                closeStrategyModal();
+            }
+            if (event.target === templateModal) {
+                closeTemplateModal();
+            }
+        });
+
+        // 查看模板详情
+        async function viewTemplateDetail(templateId) {
+            const modal = document.getElementById('template-detail-modal');
+            const modalContent = modal.querySelector('.template-detail-content div');
+
+            try {
+                modalContent.innerHTML = '<p style="text-align: center; color: #7f8c8d;">加载中...</p>';
+                modal.style.display = 'flex';
+
+                const response = await fetch(`/api/v1/control/templates/${templateId}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const template = data.template; // API返回的是 {template: {...}} 格式
+
+                // 策略类型映射
+                const strategyNames = {
+                    'VSS': '可变限速',
+                    'DHS': '动态硬路肩',
+                    'TEC': '收费站管控'
+                };
+
+                const badgeColors = {
+                    'VSS': '#3498db',
+                    'DHS': '#2ecc71',
+                    'TEC': '#e74c3c'
+                };
+
+                // 参数类型映射
+                const paramTypeNames = {
+                    'integer': '整数',
+                    'float': '浮点数',
+                    'string': '字符串',
+                    'boolean': '布尔值',
+                    'array': '数组'
+                };
+
+                // 构建详情内容 HTML
+                let detailHtml = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
+                        <h2 style="margin: 0; color: #2c3e50;">${template.template_name}</h2>
+                        <button onclick="closeTemplateModal()" style="padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 1rem;">✕</button>
+                    </div>
+
+                    <!-- 基本信息 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">基本信息</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">模板ID</p>
+                                <p style="margin: 5px 0; color: #2c3e50; font-family: monospace;">${template.template_id}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">策略类型</p>
+                                <p style="margin: 5px 0; color: #2c3e50; font-weight: 500;">
+                                    <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${badgeColors[template.strategy_type] || '#95a5a6'}; color: white;">
+                                        ${strategyNames[template.strategy_type]}
+                                    </span>
+                                </p>
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">描述</p>
+                                <p style="margin: 5px 0; color: #2c3e50; line-height: 1.6;">${template.description}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">版本号</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">v${template.version}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d; font-size: 0.9rem;">参数数量</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${template.parameters_schema.length} 个</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 参数定义 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">参数定义 (${template.parameters_schema.length})</h3>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                `;
+
+                template.parameters_schema.forEach((param, index) => {
+                    const requiredBadge = param.required
+                        ? '<span style="color: #e74c3c; font-weight: bold; margin-left: 5px;">*</span>'
+                        : '<span style="color: #95a5a6; font-size: 0.85rem; margin-left: 5px;">(可选)</span>';
+
+                    const defaultValueStr = param.default_value !== null
+                        ? (typeof param.default_value === 'object' ? JSON.stringify(param.default_value) : param.default_value)
+                        : '-';
+
+                    const constraintsHtml = [];
+                    if (param.min_value !== null) constraintsHtml.push(`最小值: ${param.min_value}`);
+                    if (param.max_value !== null) constraintsHtml.push(`最大值: ${param.max_value}`);
+                    if (param.allowed_values && param.allowed_values.length > 0) {
+                        constraintsHtml.push(`可选值: ${param.allowed_values.join(', ')}`);
+                    }
+                    const constraintsStr = constraintsHtml.length > 0 ? constraintsHtml.join(' | ') : '-';
+
+                    detailHtml += `
+                        <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 4px; border-left: 3px solid ${param.required ? '#e74c3c' : '#95a5a6'};">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div>
+                                    <strong style="color: #2c3e50; font-size: 1rem;">${param.description}</strong>
+                                    ${requiredBadge}
+                                </div>
+                                <span style="padding: 2px 8px; background: #ecf0f1; border-radius: 4px; font-size: 0.8rem; color: #7f8c8d; font-family: monospace;">
+                                    ${paramTypeNames[param.parameter_type]}
+                                </span>
+                            </div>
+                            <table style="width: 100%; font-size: 0.9rem; color: #7f8c8d;">
+                                <tr>
+                                    <td style="padding: 3px 0; width: 120px;">参数名:</td>
+                                    <td style="padding: 3px 0; font-family: monospace; color: #2c3e50;">${param.parameter_name}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 3px 0;">默认值:</td>
+                                    <td style="padding: 3px 0; font-family: monospace; color: #2c3e50; word-break: break-all;">${defaultValueStr}</td>
+                                </tr>
+                                ${param.unit ? `
+                                <tr>
+                                    <td style="padding: 3px 0;">单位:</td>
+                                    <td style="padding: 3px 0; color: #2c3e50;">${param.unit}</td>
+                                </tr>
+                                ` : ''}
+                                <tr>
+                                    <td style="padding: 3px 0;">约束条件:</td>
+                                    <td style="padding: 3px 0; color: #2c3e50;">${constraintsStr}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                });
+
+                detailHtml += `
+                        </div>
+                    </div>
+
+                    <!-- 时间戳 -->
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                        <h3 style="color: #2c3e50; margin-top: 0;">时间戳</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">创建时间</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${new Date(template.created_at).toLocaleString('zh-CN')}</p>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #7f8c8d;">更新时间</p>
+                                <p style="margin: 5px 0; color: #2c3e50;">${new Date(template.updated_at).toLocaleString('zh-CN')}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button onclick="selectTemplateFromDetail('${template.template_id}')" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; margin-right: 10px;">
+                            使用此模板创建策略
+                        </button>
+                        <button onclick="closeTemplateModal()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem;">
+                            关闭
+                        </button>
+                    </div>
+                `;
+
+                modalContent.innerHTML = detailHtml;
+
+            } catch (error) {
+                console.error('Error fetching template detail:', error);
+                modalContent.innerHTML = '<p style="text-align: center; color: #e74c3c;">加载失败: ' + error.message + '</p>';
+            }
+        }
+
+        // 从详情页面选择模板
+        function selectTemplateFromDetail(templateId) {
+            // 关闭模态框
+            closeTemplateModal();
+
+            // 找到对应的模板
+            const template = templates.find(t => t.template_id === templateId);
+            if (template) {
+                selectTemplate(template);
+
+                // 更新视觉状态
+                document.querySelectorAll('.template-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+
+                // 找到对应的卡片并标记为选中
+                const cards = document.querySelectorAll('.template-card');
+                const cardIndex = templates.findIndex(t => t.template_id === templateId);
+                if (cardIndex >= 0 && cards[cardIndex]) {
+                    cards[cardIndex].classList.add('selected');
+                    // 滚动到卡片位置
+                    cards[cardIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        // 关闭模板详情模态框
+        function closeTemplateModal() {
+            const modal = document.getElementById('template-detail-modal');
+            modal.style.display = 'none';
+        }
+
+        // 编辑策略（占位符，Phase 6 - US3）
+        function editStrategy(strategyId) {
+            alert(`编辑策略功能将在 Phase 6 (US3) 实现\n策略ID: ${strategyId}`);
+        }
+
+        // 删除策略（占位符，Phase 7 - US4）
+        function deleteStrategy(strategyId, strategyName) {
+            if (confirm(`确定要删除该策略吗？\n策略名称: ${strategyName}\n\n此操作不可撤销！`)) {
+                alert(`删除策略功能将在 Phase 7 (US4) 实现\n策略ID: ${strategyId}`);
+                // TODO: Phase 7 - DELETE /api/v1/control/strategy-instances/{strategyId}
+            }
         }
     </script>
 
     <!-- 路段选择器功能模块 -->
     <script src="js/edge_selector_embedded.js?v=20251021"></script>
     <!-- 网络可视化模块 (Phase 1B - US4) -->
-    <script src="js/network_viz.js?v=20251021"></script>
+    <script src="js/network_viz.js?v=20251022k"></script>
+    <!-- 策略实例管理模块 (Phase 1C) -->
+    <script src="js/strategy_manager.js?v=20251021"></script>
 
     <!-- Debug: 模块加载检查 -->
     <script>
@@ -1064,15 +1911,198 @@
             console.log('=== 模块加载状态检查 ===');
             console.log('EdgeSelector:', typeof EdgeSelector);
             console.log('window.networkViz:', typeof window.networkViz);
+            console.log('window.StrategyManager:', typeof window.StrategyManager);
+            console.log('window.strategyManager:', typeof window.strategyManager);
             if (window.networkViz) {
                 console.log('  - init:', typeof window.networkViz.init);
                 console.log('  - loadGeometry:', typeof window.networkViz.loadGeometry);
                 console.log('  - highlightEdges:', typeof window.networkViz.highlightEdges);
+
+                // 初始化网络可视化Canvas
+                try {
+                    if (typeof window.networkViz.init === 'function') {
+                        // network_viz.js 会自动处理 Canvas 尺寸和设备像素比
+                        window.networkViz.init('network-canvas');
+                        console.log('✅ 网络可视化已初始化');
+                    }
+                } catch (error) {
+                    console.error('❌ 网络可视化初始化失败:', error);
+                }
             } else {
                 console.error('❌ window.networkViz 未定义！请检查 network_viz.js 是否正确加载');
             }
             console.log('=========================');
         }, 500);
+
+        // 可视化相关函数（与 network_viz.js 集成）
+        let isLoadingVisualization = false; // 加载状态锁
+
+        function loadVisualization() {
+            console.log('[loadVisualization] 开始加载网络地图...');
+
+            // 防止重复加载
+            if (isLoadingVisualization) {
+                console.warn('[loadVisualization] ⚠️ 正在加载中，请勿重复点击');
+                return;
+            }
+
+            if (!window.networkViz) {
+                alert('网络可视化模块未加载，请刷新页面重试');
+                return;
+            }
+
+            isLoadingVisualization = true; // 设置加载锁
+
+            // 获取当前选中的路线代码
+            const routeCodesSelect = document.getElementById('route-codes');
+            let selectedRoutes = [];
+
+            if (routeCodesSelect && routeCodesSelect.selectedOptions) {
+                selectedRoutes = Array.from(routeCodesSelect.selectedOptions)
+                    .map(opt => opt.value)
+                    .filter(v => v); // 过滤空值
+            }
+
+            console.log('[loadVisualization] 选中的路线:', selectedRoutes.length > 0 ? selectedRoutes : '全部路线');
+
+            // 显示加载中状态
+            const loadingEl = document.querySelector('.viz-loading');
+            const errorEl = document.querySelector('.viz-error');
+            const emptyEl = document.querySelector('.viz-empty');
+            const loadButton = event && event.target; // 获取触发按钮
+
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (errorEl) errorEl.style.display = 'none';
+            if (emptyEl) emptyEl.style.display = 'none';
+
+            // 禁用加载按钮并显示加载状态
+            if (loadButton && loadButton.tagName === 'BUTTON') {
+                loadButton.disabled = true;
+                loadButton.textContent = '加载中...';
+            }
+
+            // 智能查询：如果选择了路线/路段但没有查询结果，自动触发查询
+            const hasFilterConditions = selectedRoutes.length > 0;
+            const hasQueryResults = EdgeSelector.state.currentResults && EdgeSelector.state.currentResults.length > 0;
+
+            let loadGeometryPromise;
+
+            if (hasFilterConditions && !hasQueryResults && !EdgeSelector.state.isLoading) {
+                console.log('[loadVisualization] 📊 检测到过滤条件但无查询结果，自动触发查询...');
+                // 先查询，再加载地图
+                loadGeometryPromise = EdgeSelector.query()
+                    .then(() => {
+                        console.log(`[loadVisualization] ✅ 自动查询完成，找到 ${EdgeSelector.state.currentResults.length} 条路段`);
+                        // 查询完成后加载地图几何
+                        return window.networkViz.loadGeometry(selectedRoutes.length > 0 ? selectedRoutes : null);
+                    })
+                    .catch(err => {
+                        console.warn('[loadVisualization] ⚠️ 自动查询失败，仍然加载地图:', err);
+                        // 查询失败不影响地图加载，继续加载地图
+                        return window.networkViz.loadGeometry(selectedRoutes.length > 0 ? selectedRoutes : null);
+                    });
+            } else {
+                // 直接加载地图几何（无需查询）
+                console.log('[loadVisualization] 💡 直接加载地图几何数据');
+                loadGeometryPromise = window.networkViz.loadGeometry(selectedRoutes.length > 0 ? selectedRoutes : null);
+            }
+
+            // 处理地图加载结果
+            loadGeometryPromise
+                .then(() => {
+                    console.log('[loadVisualization] ✅ 网络地图加载成功');
+                    if (loadingEl) loadingEl.style.display = 'none';
+
+                    // 诊断信息：检查Canvas状态
+                    const canvas = document.getElementById('network-canvas');
+                    if (canvas) {
+                        console.log('[loadVisualization] 🔍 Canvas诊断信息:');
+                        console.log('  - Canvas尺寸:', canvas.width, 'x', canvas.height);
+                        console.log('  - CSS尺寸:', canvas.style.width, 'x', canvas.style.height);
+                        console.log('  - 父容器尺寸:', canvas.parentElement.clientWidth, 'x', canvas.parentElement.clientHeight);
+                        console.log('  - Canvas可见性:', window.getComputedStyle(canvas).display);
+                        console.log('  - z-index:', window.getComputedStyle(canvas).zIndex);
+                    }
+
+                    // 检查几何数据
+                    if (window.networkViz && window.networkViz.geometry) {
+                        console.log('[loadVisualization] 🔍 几何数据:');
+                        console.log('  - 节点数量:', window.networkViz.geometry.junctions?.length || 0);
+                        console.log('  - 边数量:', window.networkViz.geometry.edges?.length || 0);
+                    }
+
+                    // 优先显示查询结果（蓝色高亮），如果有查询结果
+                    if (EdgeSelector.state.currentResults && EdgeSelector.state.currentResults.length > 0) {
+                        window.networkViz.highlightEdges(EdgeSelector.state.currentResults);
+                        console.log(`[loadVisualization] 高亮显示 ${EdgeSelector.state.currentResults.length} 条查询结果路段`);
+                    }
+
+                    // 如果有用户已选中的边（绿色），在查询结果基础上叠加显示
+                    if (EdgeSelector.state.edgeSelectionSet && EdgeSelector.state.edgeSelectionSet.size > 0) {
+                        const selectedEdgeIds = Array.from(EdgeSelector.state.edgeSelectionSet);
+                        window.networkViz.setSelected(selectedEdgeIds);
+                        console.log(`[loadVisualization] 叠加显示 ${selectedEdgeIds.length} 条用户选中的路段`);
+                    }
+
+                    // 注意: loadGeometry 已经自动调用了 renderNetwork()，highlightEdges 和 setSelected 会触发重绘
+                })
+                .catch(error => {
+                    console.error('[loadVisualization] ❌ 加载失败:', error);
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (errorEl) {
+                        errorEl.textContent = `加载失败: ${error.message}`;
+                        errorEl.style.display = 'block';
+                    }
+
+                    // 额外的诊断信息
+                    console.error('[loadVisualization] 错误堆栈:', error.stack);
+
+                    // 测试API是否可达
+                    fetch('/api/v1/control/edges/network_geometry')
+                        .then(r => {
+                            console.log('[loadVisualization] API响应状态:', r.status);
+                            return r.json();
+                        })
+                        .then(data => {
+                            console.log('[loadVisualization] API返回数据:', data);
+                            if (data.junctions && data.edges) {
+                                console.log(`[loadVisualization] 数据包含 ${data.junctions.length} 个节点, ${data.edges.length} 条边`);
+                            }
+                        })
+                        .catch(apiError => {
+                            console.error('[loadVisualization] API测试失败:', apiError);
+                        });
+                })
+                .finally(() => {
+                    // 释放加载锁（无论成功还是失败）
+                    isLoadingVisualization = false;
+                    console.log('[loadVisualization] 加载状态锁已释放');
+
+                    // 恢复按钮状态
+                    if (loadButton && loadButton.tagName === 'BUTTON') {
+                        loadButton.disabled = false;
+                        loadButton.textContent = '加载网络地图';
+                    }
+                });
+        }
+
+        function resetView() {
+            if (window.networkViz && typeof window.networkViz.resetView === 'function') {
+                window.networkViz.resetView();
+                console.log('[resetView] 视图已重置');
+            }
+        }
+
+        function clearVizSelection() {
+            if (window.networkViz && typeof window.networkViz.clearSelection === 'function') {
+                window.networkViz.clearSelection();
+                console.log('[clearVizSelection] 可视化选择已清除');
+
+                // 更新选中计数
+                const vizCountEl = document.getElementById('viz-selected-count');
+                if (vizCountEl) vizCountEl.textContent = '0';
+            }
+        }
     </script>
 </body>
 </html>

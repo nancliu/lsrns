@@ -1,0 +1,13 @@
+{
+  "name": "od-sim-frontend-tests",
+  "version": "1.0.0",
+  "description": "Frontend E2E tests for OD_SIM",
+  "scripts": {
+    "test:viz": "playwright test tests/frontend/test_visualization_performance.spec.js",
+    "test:viz:headed": "playwright test tests/frontend/test_visualization_performance.spec.js --headed",
+    "test:viz:debug": "playwright test tests/frontend/test_visualization_performance.spec.js --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1"
+  }
+}

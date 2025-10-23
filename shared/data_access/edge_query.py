@@ -377,3 +377,82 @@ def get_demonstration_info() -> List[Dict]:
             cur.close()
         if conn:
             conn.close()
+
+
+def get_edges_by_ids(edge_ids: List[str]) -> List[EdgeInfo]:
+    """
+    根据边ID列表获取边的详细信息
+
+    Args:
+        edge_ids: 边ID列表
+
+    Returns:
+        List[EdgeInfo]: 边信息列表，按照输入顺序返回
+    """
+    if not edge_ids:
+        return []
+
+    conn = None
+    cur = None
+
+    try:
+        conn = open_db_connection()
+        cur = conn.cursor()
+
+        sql = """
+            SELECT
+                e.edge_id,
+                e.route_code,
+                e.section_code,
+                e.start_stake,
+                e.end_stake,
+                e.length,
+                e.num_lanes,
+                e.route_direction,
+                n.node_type,
+                COUNT(g.gantry_id) as gantry_count,
+                STRING_AGG(g.gantry_id, ',') as gantry_ids
+            FROM dim.sim_network_edges e
+            LEFT JOIN dim.multiscale_node_units n
+              ON e.from_junction::varchar = n.junction_id
+            LEFT JOIN dim.point_gantry g
+              ON e.route_code = g.route_code
+              AND g.gantry_stake BETWEEN e.start_stake AND e.end_stake
+            WHERE e.edge_id = ANY(%s)
+            GROUP BY e.edge_id, e.route_code, e.section_code,
+                     e.start_stake, e.end_stake, e.length,
+                     e.num_lanes, e.route_direction, n.node_type
+        """
+
+        cur.execute(sql, (edge_ids,))
+        rows = cur.fetchall()
+
+        # 转换为EdgeInfo对象
+        edges = []
+        for row in rows:
+            edge = EdgeInfo(
+                edge_id=str(row[0]),
+                route_code=row[1],
+                section_code=row[2],
+                start_stake=float(row[3]) if row[3] is not None else None,
+                end_stake=float(row[4]) if row[4] is not None else None,
+                length=float(row[5]) if row[5] is not None else None,
+                num_lanes=row[6],
+                route_direction=row[7],
+                node_type=row[8],
+                gantry_count=row[9] or 0,
+                gantry_ids=row[10].split(',') if row[10] else []
+            )
+            edges.append(edge)
+
+        logger.info(f"Found {len(edges)} edges out of {len(edge_ids)} requested IDs")
+        return edges
+
+    except Exception as e:
+        logger.error(f"Error getting edges by IDs: {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()

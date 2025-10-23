@@ -22,11 +22,11 @@
       "unit": null
     },
     {
-      "parameter_name": "vehicle_type_restrictions",
+      "parameter_name": "banned_vehicle_types",
       "parameter_type": "array",
       "description": "禁入车型列表",
       "required": true,
-      "default_value": ["truck", "trailer"],
+      "default_value": ["truck_small", "truck_large"],
       "unit": null
     },
     {

@@ -19,11 +19,11 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pydantic import ValidationError
 
-from api.models.control.entities.template import (
+from shared.control_tools.entities import (
     ControlTemplate,
     TemplatesIndex,
     TemplateIndexEntry,
-    StrategyType
+    StrategyType,
 )
 
 # Configure logging
@@ -41,7 +41,7 @@ def _load_json_file(file_path: Path) -> Optional[Dict[str, Any]]:
         Parsed JSON as dictionary, or None if error
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, FileNotFoundError, IOError) as e:
         logger.error(f"Failed to load JSON from {file_path}: {e}")
@@ -113,9 +113,14 @@ def validate_template(data: Dict[str, Any]) -> bool:
     """
     # Check required fields
     required_fields = [
-        "template_id", "template_name", "description",
-        "strategy_type", "parameters_schema", "version",
-        "created_at", "updated_at"
+        "template_id",
+        "template_name",
+        "description",
+        "strategy_type",
+        "parameters_schema",
+        "version",
+        "created_at",
+        "updated_at",
     ]
 
     for field in required_fields:
@@ -219,14 +224,16 @@ def generate_templates_index(templates_dir: Path) -> TemplatesIndex:
 
         # Create index entry
         relative_path = file_path.relative_to(templates_dir).as_posix()
-        description_preview = template.description[:100] if len(template.description) > 100 else template.description
+        description_preview = (
+            template.description[:100] if len(template.description) > 100 else template.description
+        )
 
         entry = TemplateIndexEntry(
             template_id=template.template_id,
             template_name=template.template_name,
             strategy_type=template.strategy_type.value,
             description_preview=description_preview,
-            file_path=relative_path
+            file_path=relative_path,
         )
 
         valid_templates.append(entry)
@@ -237,7 +244,7 @@ def generate_templates_index(templates_dir: Path) -> TemplatesIndex:
         templates=valid_templates,
         generated_at=datetime.utcnow(),
         total_count=len(valid_templates),
-        by_type=by_type
+        by_type=by_type,
     )
 
     logger.info(f"Generated index with {index.total_count} templates")

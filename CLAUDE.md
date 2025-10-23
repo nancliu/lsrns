@@ -1,4 +1,4 @@
-﻿# CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -33,8 +33,13 @@ python api\main.py
 
 ### Testing
 
+**IMPORTANT**: Always activate the `od_project` conda environment before running tests:
+
 ```bash
-# Run tests (from project root)
+# Activate the correct conda environment first
+conda activate od_project
+
+# Run Python unit tests (from project root)
 pytest
 
 # Run specific test
@@ -42,7 +47,21 @@ pytest tests/unit/test_specific.py
 
 # Run with coverage
 pytest --cov=api --cov=shared
+
+# Run Playwright E2E tests (requires od_project environment)
+npx playwright test
+
+# Run specific E2E test
+npx playwright test tests/e2e/test_dual_layer_canvas.spec.js
+
+# Run E2E tests in headed mode (visible browser)
+npx playwright test --headed
 ```
+
+**Environment Requirements**:
+- Python tests: Requires `od_project` conda environment (Python 3.10+)
+- Playwright tests: Requires Node.js and Playwright installed (already configured in `od_project` environment)
+- **Never run tests in conda base environment**
 
 ### Dependencies
 
@@ -50,6 +69,16 @@ pytest --cov=api --cov=shared
 # Install dependencies (use mamba first, then pip)
 mamba install -y -c conda-forge --file requirements.txt
 pip install -r requirements.txt
+```
+
+### Database Migrations
+
+```powershell
+# Apply database migration (from project root)
+.\database\apply_migration.ps1 -MigrationFile "004_add_edge_query_indexes.sql"
+
+# Verify indexes exist
+psql -h $env:DB_HOST -U $env:DB_USER -d $env:DB_NAME -c "SELECT indexname FROM pg_indexes WHERE tablename = 'sim_network_edges'"
 ```
 
 ### Code Quality
@@ -275,9 +304,49 @@ DB_PORT=5432
 
 - **Gantry data loading**: `shared/data_access/gantry_loader.py`
 - **OD table resolution**: `shared/data_access/od_table_resolver.py`
+- **Edge queries**: `shared/data_access/edge_query.py`
 - **Connection management**: `shared/data_access/connection.py`
 - Always use connection pooling (SQLAlchemy)
 - Never log sensitive data (credentials)
+
+### Database Performance
+
+**Performance Issue (Fixed 2025-10-22)**: Route selection causing 5+ second delay
+
+**Root Causes Identified**:
+1. **Frontend**: Unnecessary `updateDirectionOptions()` API call on every route selection
+   - Called `GET /api/v1/control/edges/query` with complex 3-table JOIN
+   - Added 2-4 seconds delay just to populate direction dropdown
+2. **Database**: Missing indexes on `dim.sim_network_edges` table (`route_code`, `section_code`)
+3. **Database**: Missing indexes on JOIN tables (`multiscale_node_units`, `point_gantry`)
+4. **Connection**: Using `open_db_connection()` (new connection each time) instead of pooling
+
+**Solutions Applied**:
+
+1. **Frontend Optimization** (`frontend/control/js/edge_selector_embedded.js`):
+   - Removed dynamic direction query from `updateDirectionOptions()`
+   - Implemented static route classification based on network topology:
+     - **Ring expressways** (SA2, G4202): Show clockwise/counterclockwise
+     - **Linear highways** (other routes): Show upstream/downstream
+   - Instant response (0ms) with correct direction options per route type
+
+2. **Database Indexes** (`database/migrations/004_add_edge_query_indexes.sql`):
+   - `idx_sim_network_edges_route_code` - For route filtering
+   - `idx_sim_network_edges_section_code` - For section grouping
+   - `idx_sim_network_edges_route_section` - Composite index for common query pattern
+   - `idx_sim_network_edges_demonstration_id` - Partial index for demonstration queries
+   - `idx_multiscale_node_units_junction_id` - For JOIN optimization
+   - `idx_point_gantry_route_stake` - For gantry range queries
+
+**Performance Improvement**:
+- **Before**: 5-10 seconds total (2-4s frontend delay + 3-6s database query)
+- **After**: <500ms total (<100ms frontend + <400ms database with indexes)
+- **User Experience**: Near-instant section dropdown population
+
+**Future Optimizations** (if needed):
+1. Migrate `edge_query.py` functions to use `get_pooled_connection()` from `connection.py`
+2. Add query result caching (Redis or in-memory LRU cache)
+3. Add database query monitoring/logging for slow queries (>2s threshold)
 
 ## Code Standards from Cursor Rules
 
@@ -357,6 +426,9 @@ DB_PORT=5432
 6. **Don't** use `print()` - use logging module
 7. **Don't** create files in `sim_scripts/` or `accuracy_analysis/` directories (legacy code, kept for reference only)
 8. **Don't** mix old and new simulation API endpoints inconsistently
+9. **Don't** run tests or scripts without activating `od_project` conda environment first
+10. **Don't** run Playwright tests in conda base environment - always use `od_project`
+11. **Don't** use `open_db_connection()` in new code - use connection pooling from `shared/data_access/connection.py` instead
 
 ### Best Practices
 
@@ -409,10 +481,18 @@ The system requires SUMO (Simulation of Urban MObility) to be installed:
 
 ### Python Environment
 
+**CRITICAL**: This project uses the `od_project` conda environment (NOT `od-sim`):
+
+- **Environment name**: `od_project` (already configured with Python 3.10+, Playwright, and all dependencies)
+- **ALWAYS activate before any operations**: `conda activate od_project`
 - **Never** install in conda base environment
-- Create dedicated environment: `mamba create -n od-sim python=3.10`
 - Use mamba for installation (conda-forge channel), pip as fallback
-- Activate environment before running: `mamba activate od-sim`
+- If environment doesn't exist, create it: `mamba create -n od_project python=3.10`
+
+**Testing Environment**:
+- Playwright is already configured in `od_project` environment
+- All E2E tests require `od_project` to be active
+- Python unit tests also require `od_project` environment
 
 ## Documentation Resources
 

@@ -35,6 +35,14 @@
       "required": false,
       "default_value": "仅限小型车辆，限速80km/h",
       "unit": null
+    },
+    {
+      "parameter_name": "allowed_vehicle_types",
+      "parameter_type": "array",
+      "description": "硬路肩使用车型",
+      "required": false,
+      "default_value": ["passenger_small", "passenger_large", "truck_small", "truck_large", "special_small", "special_large"],
+      "unit": null
     }
   ],
   "version": "1.0",

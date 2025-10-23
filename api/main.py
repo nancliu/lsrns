@@ -34,6 +34,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Application startup event handler."""
+    import logging
+    from pathlib import Path
+    from shared.control_tools import load_index, regenerate_index
+
+    logger = logging.getLogger(__name__)
+
+    # Initialize strategy instance index (Phase 1C - T045)
+    strategies_dir = "control_data/strategies"
+    try:
+        Path(strategies_dir).mkdir(parents=True, exist_ok=True)
+        index = load_index(strategies_dir)
+
+        # If index is empty but files exist, regenerate
+        if index["total_count"] == 0:
+            json_files = list(Path(strategies_dir).glob("strat_*.json"))
+            if json_files:
+                logger.info(f"Found {len(json_files)} strategy files, regenerating index...")
+                regenerate_index(strategies_dir)
+
+        logger.info(f"Strategy instance system initialized with {index['total_count']} strategies")
+    except Exception as e:
+        logger.error(f"Error initializing strategy instance system: {e}", exc_info=True)
+
+
 @app.get("/", include_in_schema=False)
 async def root():
     # 改为跳转到前端首页

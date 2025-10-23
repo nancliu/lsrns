@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon 设计迭代 V1→V2→V3</title>
+    <link rel="icon" type="image/x-icon" href="favicon_v3.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .evolution-path {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 24px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .evolution-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .version-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 28px;
+            border: 2px solid #334155;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .version-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .version-card.recommended {
+            border-color: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .recommended-badge {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            letter-spacing: 0.5px;
+        }
+
+        .version-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .version-number {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .v1-badge {
+            background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
+        }
+
+        .v2-badge {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+        }
+
+        .v3-badge {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        }
+
+        .version-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .version-subtitle {
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .favicon-preview-container {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .favicon-size-group {
+            text-align: center;
+        }
+
+        .favicon-wrapper {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: inline-flex;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .size-label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .features-list {
+            margin-top: 20px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 8px;
+        }
+
+        .feature-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .feature-text {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .score-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+        }
+
+        .score-title {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .score-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: #94a3b8;
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .score-bar {
+            flex: 1;
+            height: 8px;
+            background: #0f172a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        .final-recommendation {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 48px;
+            margin-bottom: 32px;
+        }
+
+        .final-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .final-desc {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #10b981;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .design-principles {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 32px;
+            border: 2px solid #334155;
+        }
+
+        .principles-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .principles-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .principle-item {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .principle-icon {
+            font-size: 42px;
+            margin-bottom: 12px;
+        }
+
+        .principle-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #e2e8f0;
+            font-size: 15px;
+        }
+
+        .principle-desc {
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1200px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .principles-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .principles-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Favicon 设计迭代全过程</h1>
+        <p class="subtitle">高速路网仿真系统 · 从概念到完善</p>
+
+        <div class="evolution-path">
+            <div class="evolution-text">V1 路口概念 → V2 路网密集 → V3 分散协调 ✨</div>
+        </div>
+
+        <!-- 三版本对比 -->
+        <div class="comparison-grid">
+            <!-- V1 -->
+            <div class="version-card">
+                <div class="version-header">
+                    <div class="version-number v1-badge">V1</div>
+                    <div>
+                        <div class="version-title">初版设计</div>
+                        <div class="version-subtitle" style="color: #64748b;">十字路口</div>
+                    </div>
+                </div>
+
+                <div class="favicon-preview-container">
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon.ico" width="48" height="48" alt="V1">
+                        </div>
+                        <div class="size-label">48×48</div>
+                    </div>
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon.ico" width="32" height="32" alt="V1">
+                        </div>
+                        <div class="size-label">32×32</div>
+                    </div>
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon.ico" width="16" height="16" alt="V1">
+                        </div>
+                        <div class="size-label">16×16</div>
+                    </div>
+                </div>
+
+                <div class="features-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">管控中心醒目</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">配色科技感强</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">❌</div>
+                        <div class="feature-text">更像路口非路网</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">❌</div>
+                        <div class="feature-text">缺少信息节点</div>
+                    </div>
+                </div>
+
+                <div class="score-section">
+                    <div class="score-title">各维度评分</div>
+                    <div class="score-bars">
+                        <div class="score-item">
+                            <div class="score-label">路网感</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 30%"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">信息点</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">管控中心</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 85%"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">清晰度</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 75%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- V2 -->
+            <div class="version-card">
+                <div class="version-header">
+                    <div class="version-number v2-badge">V2</div>
+                    <div>
+                        <div class="version-title">路网强化</div>
+                        <div class="version-subtitle" style="color: #3b82f6;">网络+节点</div>
+                    </div>
+                </div>
+
+                <div class="favicon-preview-container">
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon_v2.ico" width="48" height="48" alt="V2">
+                        </div>
+                        <div class="size-label">48×48</div>
+                    </div>
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon_v2.ico" width="32" height="32" alt="V2">
+                        </div>
+                        <div class="size-label">32×32</div>
+                    </div>
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon_v2.ico" width="16" height="16" alt="V2">
+                        </div>
+                        <div class="size-label">16×16</div>
+                    </div>
+                </div>
+
+                <div class="features-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">路网结构清晰</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">信息节点丰富</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⚠️</div>
+                        <div class="feature-text">路网太集中中心</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⚠️</div>
+                        <div class="feature-text">管控点过大突兀</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⚠️</div>
+                        <div class="feature-text">信息过多难辨识</div>
+                    </div>
+                </div>
+
+                <div class="score-section">
+                    <div class="score-title">各维度评分</div>
+                    <div class="score-bars">
+                        <div class="score-item">
+                            <div class="score-label">路网感</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 75%"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">信息点</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">管控中心</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">清晰度</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 45%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- V3 -->
+            <div class="version-card recommended">
+                <div class="recommended-badge">✨ 推荐使用</div>
+                <div class="version-header">
+                    <div class="version-number v3-badge">V3</div>
+                    <div>
+                        <div class="version-title">优化完善</div>
+                        <div class="version-subtitle" style="color: #10b981;">分散+分布式</div>
+                    </div>
+                </div>
+
+                <div class="favicon-preview-container">
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon_v3.ico" width="48" height="48" alt="V3">
+                        </div>
+                        <div class="size-label">48×48</div>
+                    </div>
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon_v3.ico" width="32" height="32" alt="V3">
+                        </div>
+                        <div class="size-label">32×32</div>
+                    </div>
+                    <div class="favicon-size-group">
+                        <div class="favicon-wrapper">
+                            <img src="favicon_v3.ico" width="16" height="16" alt="V3">
+                        </div>
+                        <div class="size-label">16×16</div>
+                    </div>
+                </div>
+
+                <div class="features-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">路网分散到边缘</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">管控点尺寸协调</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">分布式管控架构</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">信息精简清晰</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">✅</div>
+                        <div class="feature-text">小尺寸辨识度高</div>
+                    </div>
+                </div>
+
+                <div class="score-section">
+                    <div class="score-title">各维度评分</div>
+                    <div class="score-bars">
+                        <div class="score-item">
+                            <div class="score-label">路网感</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 95%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%);"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">信息点</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 80%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%);"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">管控中心</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 90%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%);"></div></div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">清晰度</div>
+                            <div class="score-bar"><div class="score-fill" style="width: 95%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%);"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- V3 设计原则 -->
+        <div class="design-principles">
+            <div class="principles-title">
+                <span>💡</span>
+                <span>V3 核心设计原则</span>
+            </div>
+            <div class="principles-grid">
+                <div class="principle-item">
+                    <div class="principle-icon">🌐</div>
+                    <div class="principle-title">路网分散</div>
+                    <p class="principle-desc">延伸到边缘区域，覆盖全域范围</p>
+                </div>
+                <div class="principle-item">
+                    <div class="principle-icon">🎯</div>
+                    <div class="principle-title">比例协调</div>
+                    <p class="principle-desc">管控点缩小至合适尺寸，不喧宾夺主</p>
+                </div>
+                <div class="principle-item">
+                    <div class="principle-icon">🔗</div>
+                    <div class="principle-title">分布式架构</div>
+                    <p class="principle-desc">3个协同管控中心，符合现代系统</p>
+                </div>
+                <div class="principle-item">
+                    <div class="principle-icon">✨</div>
+                    <div class="principle-title">信息精简</div>
+                    <p class="principle-desc">只保留关键元素，小尺寸清晰可辨</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最终推荐 -->
+        <div class="final-recommendation">
+            <div class="final-title">🎉 推荐使用 V3 优化完善版</div>
+            <div class="final-desc">
+                综合路网覆盖、管控协调、分布式架构、清晰度等多维度考量，<br>
+                V3 版本完美平衡了视觉表达与实用性，是最佳选择。
+            </div>
+            <div class="download-buttons">
+                <a href="favicon_v3.ico" download class="btn btn-primary">
+                    <span>💾</span>
+                    <span>下载 V3 ICO 格式</span>
+                </a>
+                <a href="favicon_v3.svg" download class="btn btn-secondary">
+                    <span>🎨</span>
+                    <span>下载 V3 SVG 矢量</span>
+                </a>
+                <a href="preview.html" class="btn btn-secondary">
+                    <span>🖥️</span>
+                    <span>查看系统原型</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

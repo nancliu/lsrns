@@ -18,6 +18,7 @@ from .analysis_routes import router as analysis_router
 from .template_routes import router as template_router
 from .file_routes import router as file_router
 from .control_strategy_routes import router as control_router
+from .control_strategy_instance_routes import router as control_instance_router
 
 # 创建主路由器
 router = APIRouter()
@@ -30,6 +31,7 @@ router.include_router(analysis_router, prefix="/analysis", tags=["结果分析"]
 router.include_router(template_router, prefix="/template", tags=["模板管理"])
 router.include_router(file_router, prefix="/file", tags=["文件管理"])
 router.include_router(control_router, prefix="/control", tags=["交通管控"])
+router.include_router(control_instance_router, tags=["策略实例管理"])
 
 # 为了保持向后兼容，同时注册到根路径
 # 数据处理API

@@ -16,11 +16,11 @@ $port = 8000
 $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
 if ($listener) {
   Write-Warning "[WARN] 检测到服务已在端口 $port 上运行"
-  $pid = $listener.OwningProcess | Select-Object -First 1
-  Write-Host "[INFO] 正在停止现有进程 (PID: $pid)..."
+  $processId = $listener.OwningProcess | Select-Object -First 1
+  Write-Host "[INFO] 正在停止现有进程 (PID: $processId)..."
 
   try {
-    Stop-Process -Id $pid -Force -ErrorAction Stop
+    Stop-Process -Id $processId -Force -ErrorAction Stop
     Start-Sleep -Seconds 2
     Write-Host "[INFO] 现有服务已停止"
   } catch {
