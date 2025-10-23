@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_strategy_parameters(
-    schema: Dict[str, Dict[str, Any]],
-    parameters: Dict[str, Any]
+    schema: Dict[str, Dict[str, Any]], parameters: Dict[str, Any]
 ) -> List[Dict[str, Any]]:
     """
     Validate strategy parameters against template schema.
@@ -49,12 +48,14 @@ def validate_strategy_parameters(
 
         # Check required fields
         if required and param_value is None:
-            errors.append({
-                "parameter": param_name,
-                "message": f"Parameter '{param_name}' is required",
-                "constraint": {"required": True},
-                "provided_value": None
-            })
+            errors.append(
+                {
+                    "parameter": param_name,
+                    "message": f"Parameter '{param_name}' is required",
+                    "constraint": {"required": True},
+                    "provided_value": None,
+                }
+            )
             continue
 
         # Skip validation if parameter is optional and not provided
@@ -76,119 +77,122 @@ def validate_strategy_parameters(
     # Log validation errors
     if errors:
         logger.warning(
-            f"Parameter validation failed with {len(errors)} error(s)",
-            extra={"errors": errors}
+            f"Parameter validation failed with {len(errors)} error(s)", extra={"errors": errors}
         )
 
     return errors
 
 
-def _validate_integer(
-    param_name: str,
-    value: Any,
-    schema: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def _validate_integer(param_name: str, value: Any, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Validate integer parameter with min/max/required constraints."""
     errors = []
 
     # Type check
     if not isinstance(value, int) or isinstance(value, bool):
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be an integer",
-            "constraint": {"type": "integer"},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be an integer",
+                "constraint": {"type": "integer"},
+                "provided_value": value,
+            }
+        )
         return errors
 
     # Min constraint
     if "min" in schema and value < schema["min"]:
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be at least {schema['min']} (minimum)",
-            "constraint": {"min": schema["min"]},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be at least {schema['min']} (minimum)",
+                "constraint": {"min": schema["min"]},
+                "provided_value": value,
+            }
+        )
 
     # Max constraint
     if "max" in schema and value > schema["max"]:
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be at most {schema['max']} (maximum)",
-            "constraint": {"max": schema["max"]},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be at most {schema['max']} (maximum)",
+                "constraint": {"max": schema["max"]},
+                "provided_value": value,
+            }
+        )
 
     return errors
 
 
-def _validate_string(
-    param_name: str,
-    value: Any,
-    schema: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def _validate_string(param_name: str, value: Any, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Validate string parameter with maxLength, pattern, required constraints."""
     errors = []
 
     # Type check
     if not isinstance(value, str):
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be a string",
-            "constraint": {"type": "string"},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be a string",
+                "constraint": {"type": "string"},
+                "provided_value": value,
+            }
+        )
         return errors
 
     # MaxLength constraint
     if "maxLength" in schema and len(value) > schema["maxLength"]:
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' exceeds maximum length of {schema['maxLength']}",
-            "constraint": {"maxLength": schema["maxLength"]},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' exceeds maximum length of {schema['maxLength']}",
+                "constraint": {"maxLength": schema["maxLength"]},
+                "provided_value": value,
+            }
+        )
 
     # Pattern constraint
     if "pattern" in schema:
         pattern = schema["pattern"]
         if not re.match(pattern, value):
-            errors.append({
-                "parameter": param_name,
-                "message": f"Parameter '{param_name}' does not match required format pattern",
-                "constraint": {"pattern": pattern},
-                "provided_value": value
-            })
+            errors.append(
+                {
+                    "parameter": param_name,
+                    "message": f"Parameter '{param_name}' does not match required format pattern",
+                    "constraint": {"pattern": pattern},
+                    "provided_value": value,
+                }
+            )
 
     return errors
 
 
-def _validate_array(
-    param_name: str,
-    value: Any,
-    schema: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def _validate_array(param_name: str, value: Any, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Validate array parameter with minItems, itemType, required constraints."""
     errors = []
 
     # Type check
     if not isinstance(value, list):
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be an array",
-            "constraint": {"type": "array"},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be an array",
+                "constraint": {"type": "array"},
+                "provided_value": value,
+            }
+        )
         return errors
 
     # MinItems constraint
     if "minItems" in schema and len(value) < schema["minItems"]:
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must have at least {schema['minItems']} item(s) (minimum)",
-            "constraint": {"minItems": schema["minItems"]},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must have at least {schema['minItems']} item(s) (minimum)",
+                "constraint": {"minItems": schema["minItems"]},
+                "provided_value": value,
+            }
+        )
 
     # ItemType validation (optional, for future enhancement)
     # if "itemType" in schema:
@@ -198,43 +202,39 @@ def _validate_array(
     return errors
 
 
-def _validate_boolean(
-    param_name: str,
-    value: Any,
-    schema: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def _validate_boolean(param_name: str, value: Any, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Validate boolean parameter."""
     errors = []
 
     # Type check
     if not isinstance(value, bool):
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be a boolean (true or false)",
-            "constraint": {"type": "boolean"},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be a boolean (true or false)",
+                "constraint": {"type": "boolean"},
+                "provided_value": value,
+            }
+        )
 
     return errors
 
 
-def _validate_enum(
-    param_name: str,
-    value: Any,
-    schema: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+def _validate_enum(param_name: str, value: Any, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Validate enum parameter with allowed_values constraint."""
     errors = []
 
     allowed_values = schema.get("allowed_values", [])
 
     if value not in allowed_values:
-        errors.append({
-            "parameter": param_name,
-            "message": f"Parameter '{param_name}' must be one of: {', '.join(map(str, allowed_values))}",
-            "constraint": {"allowed_values": allowed_values},
-            "provided_value": value
-        })
+        errors.append(
+            {
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' must be one of: {', '.join(map(str, allowed_values))}",
+                "constraint": {"allowed_values": allowed_values},
+                "provided_value": value,
+            }
+        )
 
     return errors
 
@@ -296,8 +296,4 @@ def validate_edges_exist(edge_ids: List[str]) -> Dict[str, Any]:
     # ...
 
     # Stub implementation for now
-    return {
-        "valid": True,
-        "invalid_edges": [],
-        "message": "Edge validation not yet implemented"
-    }
+    return {"valid": True, "invalid_edges": [], "message": "Edge validation not yet implemented"}

@@ -102,11 +102,19 @@ class StrategyInstanceService:
             template_dict = {
                 "template_id": template_obj.template_id,
                 "template_name": template_obj.template_name,
-                "strategy_type": template_obj.strategy_type.value if hasattr(template_obj.strategy_type, 'value') else template_obj.strategy_type,
+                "strategy_type": (
+                    template_obj.strategy_type.value
+                    if hasattr(template_obj.strategy_type, "value")
+                    else template_obj.strategy_type
+                ),
                 "parameters_schema": [
                     {
                         "parameter_name": param.parameter_name,
-                        "parameter_type": param.parameter_type if isinstance(param.parameter_type, str) else param.parameter_type.value,
+                        "parameter_type": (
+                            param.parameter_type
+                            if isinstance(param.parameter_type, str)
+                            else param.parameter_type.value
+                        ),
                         "description": param.description,
                         "unit": param.unit,
                         "default_value": param.default_value,
@@ -114,11 +122,11 @@ class StrategyInstanceService:
                         "min_value": param.min_value,
                         "max_value": param.max_value,
                         "allowed_values": param.allowed_values,
-                        "pattern": getattr(param, 'pattern', None),
-                        "min_items": getattr(param, 'min_items', None),
+                        "pattern": getattr(param, "pattern", None),
+                        "min_items": getattr(param, "min_items", None),
                     }
                     for param in template_obj.parameters_schema
-                ]
+                ],
             }
 
             logger.info(f"Loaded template: {template_id} ({template_obj.template_name})")
@@ -156,12 +164,14 @@ class StrategyInstanceService:
                 if edge_info.start_stake is not None and edge_info.end_stake is not None:
                     stake_range = f"K{edge_info.start_stake:.2f}-K{edge_info.end_stake:.2f}"
 
-                enriched_edges.append({
-                    "edge_id": edge_info.edge_id,
-                    "route_code": edge_info.route_code,
-                    "stake_range": stake_range,
-                    "length": edge_info.length
-                })
+                enriched_edges.append(
+                    {
+                        "edge_id": edge_info.edge_id,
+                        "route_code": edge_info.route_code,
+                        "stake_range": stake_range,
+                        "length": edge_info.length,
+                    }
+                )
 
             logger.info(f"Enriched {len(enriched_edges)} edges from database")
             return enriched_edges
@@ -170,19 +180,11 @@ class StrategyInstanceService:
             logger.error(f"Error enriching edges: {e}. Returning minimal edge data.")
             # Fallback to minimal edge data if database query fails
             return [
-                {
-                    "edge_id": edge_id,
-                    "route_code": None,
-                    "stake_range": None,
-                    "length": None
-                }
+                {"edge_id": edge_id, "route_code": None, "stake_range": None, "length": None}
                 for edge_id in edge_ids
             ]
 
-    def create_strategy(
-        self,
-        request: StrategyCreateRequest
-    ) -> StrategyCreateResponse:
+    def create_strategy(self, request: StrategyCreateRequest) -> StrategyCreateResponse:
         """
         Create a new strategy instance.
 
@@ -226,15 +228,10 @@ class StrategyInstanceService:
                         "allowed_values": param.get("allowed_values"),
                     }
 
-            validation_errors = validate_strategy_parameters(
-                schema_dict,
-                request.parameters
-            )
+            validation_errors = validate_strategy_parameters(schema_dict, request.parameters)
             if validation_errors:
                 error_messages = [e["message"] for e in validation_errors]
-                raise ValueError(
-                    f"Parameter validation failed: {'; '.join(error_messages)}"
-                )
+                raise ValueError(f"Parameter validation failed: {'; '.join(error_messages)}")
 
         # Generate unique strategy ID
         strategy_id = generate_strategy_id()
@@ -256,8 +253,8 @@ class StrategyInstanceService:
                 "created_at": current_time,
                 "updated_at": current_time,
                 "created_by": created_by,
-                "version": 1
-            }
+                "version": 1,
+            },
         }
 
         # Save strategy to file
@@ -274,13 +271,12 @@ class StrategyInstanceService:
                 "strategy_name": request.strategy_name,
                 "created_by": created_by,
                 "template_id": request.template_id,
-                "edges_count": len(request.affected_edges)
-            }
+                "edges_count": len(request.affected_edges),
+            },
         )
 
         return StrategyCreateResponse(
-            strategy_id=strategy_id,
-            message="Strategy created successfully"
+            strategy_id=strategy_id, message="Strategy created successfully"
         )
 
     def get_strategy(self, strategy_id: str) -> Optional[StrategyDetailResponse]:
@@ -294,6 +290,7 @@ class StrategyInstanceService:
             StrategyDetailResponse if found, None otherwise
         """
         import time
+
         start_time = time.time()
 
         # Load strategy from file
@@ -313,7 +310,7 @@ class StrategyInstanceService:
                 edge_id=edge["edge_id"],
                 route_code=edge.get("route_code"),
                 stake_range=edge.get("stake_range"),
-                length=edge.get("length")
+                length=edge.get("length"),
             )
             for edge in enriched_edges
         ]
@@ -324,7 +321,7 @@ class StrategyInstanceService:
             created_at=metadata_dict.get("created_at", ""),
             updated_at=metadata_dict.get("updated_at", ""),
             created_by=metadata_dict.get("created_by", ""),
-            version=metadata_dict.get("version", 1)
+            version=metadata_dict.get("version", 1),
         )
 
         # Performance monitoring (FR-041)
@@ -337,8 +334,8 @@ class StrategyInstanceService:
                     "strategy_id": strategy_id,
                     "duration_seconds": duration,
                     "edges_count": len(edge_ids),
-                    "threshold_seconds": 2.0
-                }
+                    "threshold_seconds": 2.0,
+                },
             )
 
         logger.info(
@@ -346,8 +343,8 @@ class StrategyInstanceService:
             extra={
                 "strategy_id": strategy_id,
                 "edges_count": len(edge_ids),
-                "duration_seconds": round(duration, 3)
-            }
+                "duration_seconds": round(duration, 3),
+            },
         )
 
         # Build response
@@ -360,7 +357,7 @@ class StrategyInstanceService:
             parameters=strategy.get("parameters", {}),
             affected_edges=edge_details,
             metadata=metadata,
-            is_used_in_plans=False  # Phase 2 integration point (FR-044)
+            is_used_in_plans=False,  # Phase 2 integration point (FR-044)
         )
 
     def list_strategies(
@@ -368,7 +365,7 @@ class StrategyInstanceService:
         page: int = 1,
         page_size: int = 20,
         search: Optional[str] = None,
-        strategy_type: Optional[str] = None
+        strategy_type: Optional[str] = None,
     ) -> StrategyListResponse:
         """
         List strategies with pagination and filtering.
@@ -383,6 +380,7 @@ class StrategyInstanceService:
             StrategyListResponse with paginated results
         """
         import time
+
         start_time = time.time()
 
         # Load index
@@ -394,16 +392,10 @@ class StrategyInstanceService:
 
         if search:
             search_lower = search.lower()
-            filtered = [
-                s for s in filtered
-                if search_lower in s["strategy_name"].lower()
-            ]
+            filtered = [s for s in filtered if search_lower in s["strategy_name"].lower()]
 
         if strategy_type:
-            filtered = [
-                s for s in filtered
-                if s["strategy_type"] == strategy_type
-            ]
+            filtered = [s for s in filtered if s["strategy_type"] == strategy_type]
 
         total_count = len(filtered)
 
@@ -413,10 +405,7 @@ class StrategyInstanceService:
         paginated = filtered[start_idx:end_idx]
 
         # Convert to StrategyListItem models
-        items = [
-            StrategyListItem(**item)
-            for item in paginated
-        ]
+        items = [StrategyListItem(**item) for item in paginated]
 
         # Performance monitoring (FR-041)
         duration = time.time() - start_time
@@ -427,8 +416,8 @@ class StrategyInstanceService:
                     "operation": "list_strategies",
                     "duration_seconds": duration,
                     "total_count": total_count,
-                    "threshold_seconds": 1.0
-                }
+                    "threshold_seconds": 1.0,
+                },
             )
 
         logger.info(
@@ -440,21 +429,16 @@ class StrategyInstanceService:
                 "page_size": page_size,
                 "search": search,
                 "strategy_type": strategy_type,
-                "duration_seconds": round(duration, 3)
-            }
+                "duration_seconds": round(duration, 3),
+            },
         )
 
         return StrategyListResponse(
-            strategies=items,
-            total_count=total_count,
-            page=page,
-            page_size=page_size
+            strategies=items, total_count=total_count, page=page, page_size=page_size
         )
 
     def update_strategy(
-        self,
-        strategy_id: str,
-        request: StrategyUpdateRequest
+        self, strategy_id: str, request: StrategyUpdateRequest
     ) -> Optional[StrategyDetailResponse]:
         """
         Update an existing strategy.
@@ -511,8 +495,8 @@ class StrategyInstanceService:
             f"Strategy updated successfully",
             extra={
                 "strategy_id": strategy_id,
-                "version_change": f"v{old_version}→v{strategy['metadata']['version']}"
-            }
+                "version_change": f"v{old_version}→v{strategy['metadata']['version']}",
+            },
         )
 
         # Return updated strategy details
@@ -552,8 +536,8 @@ class StrategyInstanceService:
                     "strategy_id": strategy_id,
                     "strategy_name": strategy.get("strategy_name", ""),
                     "deleted_by": self._get_system_identifier(),
-                    "deleted_at": datetime.now(timezone.utc).isoformat()
-                }
+                    "deleted_at": datetime.now(timezone.utc).isoformat(),
+                },
             )
 
         return success
@@ -577,12 +561,12 @@ class StrategyInstanceService:
             extra={
                 "event": "index_regeneration",
                 "file_count": count,
-                "duration_seconds": round(duration, 2)
-            }
+                "duration_seconds": round(duration, 2),
+            },
         )
 
         return {
             "count": count,
             "duration_seconds": round(duration, 2),
-            "message": f"Index regenerated with {count} strategies"
+            "message": f"Index regenerated with {count} strategies",
         }

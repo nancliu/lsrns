@@ -65,10 +65,7 @@ def save_strategy(strategy: Dict[str, Any], strategies_dir: str) -> bool:
         temp_path = strategies_path / f"{strategy_id}.tmp"
 
         # Write to temp file first
-        temp_path.write_text(
-            json.dumps(strategy, ensure_ascii=False, indent=2),
-            encoding="utf-8"
-        )
+        temp_path.write_text(json.dumps(strategy, ensure_ascii=False, indent=2), encoding="utf-8")
 
         # Atomic rename
         temp_path.replace(final_path)
@@ -194,7 +191,7 @@ def load_index(strategies_dir: str) -> Dict[str, Any]:
             empty_index = {
                 "strategies": [],
                 "total_count": 0,
-                "last_updated": datetime.now(timezone.utc).isoformat()
+                "last_updated": datetime.now(timezone.utc).isoformat(),
             }
             save_index(empty_index, strategies_dir)
             return empty_index
@@ -208,7 +205,7 @@ def load_index(strategies_dir: str) -> Dict[str, Any]:
         return {
             "strategies": [],
             "total_count": 0,
-            "last_updated": datetime.now(timezone.utc).isoformat()
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -235,8 +232,7 @@ def save_index(index_data: Dict[str, Any], strategies_dir: str) -> bool:
         index_path = strategies_path / "strategies_index.json"
 
         index_path.write_text(
-            json.dumps(index_data, ensure_ascii=False, indent=2),
-            encoding="utf-8"
+            json.dumps(index_data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
         return True
@@ -274,17 +270,19 @@ def regenerate_index(strategies_dir: str) -> int:
             try:
                 strategy = json.loads(file_path.read_text(encoding="utf-8"))
 
-                strategies.append({
-                    "strategy_id": strategy["strategy_id"],
-                    "strategy_name": strategy["strategy_name"],
-                    "strategy_type": strategy["strategy_type"],
-                    "template_id": strategy["template_id"],
-                    "template_name": strategy["template_name"],
-                    "edges_count": len(strategy.get("affected_edges", [])),
-                    "created_at": strategy["metadata"]["created_at"],
-                    "updated_at": strategy["metadata"]["updated_at"],
-                    "file_path": str(file_path.relative_to(strategies_path.parent.parent))
-                })
+                strategies.append(
+                    {
+                        "strategy_id": strategy["strategy_id"],
+                        "strategy_name": strategy["strategy_name"],
+                        "strategy_type": strategy["strategy_type"],
+                        "template_id": strategy["template_id"],
+                        "template_name": strategy["template_name"],
+                        "edges_count": len(strategy.get("affected_edges", [])),
+                        "created_at": strategy["metadata"]["created_at"],
+                        "updated_at": strategy["metadata"]["updated_at"],
+                        "file_path": str(file_path.relative_to(strategies_path.parent.parent)),
+                    }
+                )
 
             except Exception as e:
                 logger.warning(f"Skipping corrupted strategy file {file_path.name}: {e}")
@@ -297,7 +295,7 @@ def regenerate_index(strategies_dir: str) -> int:
         index = {
             "strategies": strategies,
             "total_count": len(strategies),
-            "last_updated": datetime.now(timezone.utc).isoformat()
+            "last_updated": datetime.now(timezone.utc).isoformat(),
         }
 
         save_index(index, strategies_dir)
@@ -323,8 +321,7 @@ def _update_index_after_save(strategy: Dict[str, Any], strategies_dir: str) -> N
 
         # Check if strategy already exists in index (update scenario)
         existing_idx = next(
-            (i for i, s in enumerate(index["strategies"]) if s["strategy_id"] == strategy_id),
-            None
+            (i for i, s in enumerate(index["strategies"]) if s["strategy_id"] == strategy_id), None
         )
 
         entry = {
@@ -336,7 +333,7 @@ def _update_index_after_save(strategy: Dict[str, Any], strategies_dir: str) -> N
             "edges_count": len(strategy.get("affected_edges", [])),
             "created_at": strategy["metadata"]["created_at"],
             "updated_at": strategy["metadata"]["updated_at"],
-            "file_path": f"control_data/strategies/{strategy_id}.json"
+            "file_path": f"control_data/strategies/{strategy_id}.json",
         }
 
         if existing_idx is not None:
@@ -368,10 +365,7 @@ def _update_index_after_delete(strategy_id: str, strategies_dir: str) -> None:
         index = load_index(strategies_dir)
 
         # Remove strategy from index
-        index["strategies"] = [
-            s for s in index["strategies"]
-            if s["strategy_id"] != strategy_id
-        ]
+        index["strategies"] = [s for s in index["strategies"] if s["strategy_id"] != strategy_id]
 
         index["total_count"] = len(index["strategies"])
         index["last_updated"] = datetime.now(timezone.utc).isoformat()

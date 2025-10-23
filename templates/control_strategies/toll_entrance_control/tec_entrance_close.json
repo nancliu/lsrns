@@ -28,6 +28,14 @@
       "required": true,
       "default_value": [[7, 9], [17, 19]],
       "unit": null
+    },
+    {
+      "parameter_name": "banned_vehicle_types",
+      "parameter_type": "array",
+      "description": "禁入车型列表",
+      "required": false,
+      "default_value": [],
+      "unit": null
     }
   ],
   "version": "1.0",

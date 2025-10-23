@@ -420,13 +420,19 @@ class ControlStrategyService(BaseService):
                 for row in cur.fetchall()
             ]
 
-            # Query edge connections
+            # Query edge connections with additional metadata for tooltip
+            # Note: edge_name field may not exist in database, using section_code as fallback
             edge_query = f"""
                 SELECT
                     e.edge_id,
                     e.from_junction,
                     e.to_junction,
-                    e.route_code
+                    e.route_code,
+                    e.num_lanes,
+                    e.start_stake,
+                    e.end_stake,
+                    e.length,
+                    e.section_code
                 FROM dim.sim_network_edges e
                 {where_clause}
                 ORDER BY e.edge_id
@@ -437,7 +443,12 @@ class ControlStrategyService(BaseService):
                     "edge_id": row[0],
                     "from_junction": row[1],
                     "to_junction": row[2],
-                    "route_code": row[3]
+                    "route_code": row[3],
+                    "num_lanes": row[4],
+                    "start_stake": float(row[5]) if row[5] is not None else None,
+                    "end_stake": float(row[6]) if row[6] is not None else None,
+                    "length": float(row[7]) if row[7] is not None else None,
+                    "section_code": row[8]
                 }
                 for row in cur.fetchall()
             ]

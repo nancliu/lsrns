@@ -227,14 +227,14 @@
 
 ### Tests for Maintenance Features (TDD Required)
 
-- [ ] T101 [P] Write integration test for POST /strategies/reindex in `tests/integration/test_control_strategy_api.py` - returns 200 with regenerated count, index rebuilt correctly
+- [X] T101 [P] Write integration test for POST /strategies/reindex in `tests/integration/test_control_strategy_api.py` - returns 200 with regenerated count, index rebuilt correctly
 
 ### Implementation for Maintenance Features
 
-- [ ] T102 Implement `reindex_strategies()` in `api/services/control_strategy_service.py` - call regenerate_index() from file_manager, return count and duration
-- [ ] T103 Create POST `/api/v1/control/strategies/reindex` endpoint in `api/routes/control_strategy_routes.py` - admin endpoint for manual index regeneration
-- [ ] T104 Add logging for index regeneration in `api/services/control_strategy_service.py` - WARNING level with event, file count, duration (FR-039)
-- [ ] T105 Run integration test for POST /strategies/reindex - verify test passes (T101)
+- [X] T102 Implement `reindex_strategies()` in `api/services/control_strategy_service.py` - call regenerate_index() from file_manager, return count and duration
+- [X] T103 Create POST `/api/v1/control/strategies/reindex` endpoint in `api/routes/control_strategy_routes.py` - admin endpoint for manual index regeneration
+- [X] T104 Add logging for index regeneration in `api/services/control_strategy_service.py` - WARNING level with event, file count, duration (FR-039)
+- [X] T105 Run integration test for POST /strategies/reindex - verify test passes (T101) ✅ 2/2 PASSED
 
 **Checkpoint**: Maintenance features complete
 
@@ -244,19 +244,19 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T106 [P] Add API documentation comments in `api/routes/control_strategy_routes.py` - OpenAPI docstrings for all 7 endpoints matching contracts/strategy_api.yaml
-- [ ] T107 [P] Add function docstrings in `shared/control_tools/parameter_validator.py` - Google-style docstrings with Args, Returns, Raises
-- [ ] T108 [P] Add function docstrings in `shared/control_tools/strategy_file_manager.py` - Google-style docstrings
-- [ ] T109 [P] Add function docstrings in `api/services/control_strategy_service.py` - Google-style docstrings
-- [ ] T110 [P] Run `black` formatter on all Python files - api/, shared/, tests/
-- [ ] T111 [P] Run `flake8` linter on all Python files - fix any violations (max line length 100)
-- [ ] T112 [P] Verify test coverage - run `pytest --cov=shared/control_tools --cov=api/services` and confirm ≥80% unit, 100% integration
-- [ ] T113 Add performance monitoring in `api/routes/control_strategy_routes.py` - middleware to log slow requests >2s (FR-041)
-- [ ] T114 [P] Validate frontend accessibility - check keyboard navigation, ARIA labels, screen reader compatibility
-- [ ] T115 [P] Test frontend cross-browser compatibility - Chrome, Firefox, Edge
-- [ ] T116 Manual E2E test following quickstart.md validation scenarios - complete all 5 user stories end-to-end
-- [ ] T117 Update CLAUDE.md if needed - document any new patterns or conventions introduced
-- [ ] T118 Run final constitution compliance check - verify Module Isolation (no existing files modified), Test-First (100% API + ≥80% unit), File-Based Storage
+- [X] T106 [P] Add API documentation comments in `api/routes/control_strategy_routes.py` - OpenAPI docstrings for all 7 endpoints matching contracts/strategy_api.yaml
+- [X] T107 [P] Add function docstrings in `shared/control_tools/parameter_validator.py` - Google-style docstrings with Args, Returns, Raises
+- [X] T108 [P] Add function docstrings in `shared/control_tools/strategy_file_manager.py` - Google-style docstrings
+- [X] T109 [P] Add function docstrings in `api/services/control_strategy_service.py` - Google-style docstrings
+- [X] T110 [P] Run `black` formatter on all Python files - api/, shared/, tests/ ✅ 6 files reformatted
+- [X] T111 [P] Run `flake8` linter on all Python files - fix any violations (max line length 100)
+- [X] T112 [P] Verify test coverage - run `pytest --cov=shared/control_tools --cov=api/services` and confirm ≥80% unit, 100% integration ✅ 60/60 PASSED
+- [X] T113 Add performance monitoring in `api/routes/control_strategy_routes.py` - middleware to log slow requests >2s (FR-041)
+- [X] T114 [P] Validate frontend accessibility - check keyboard navigation, ARIA labels, screen reader compatibility
+- [X] T115 [P] Test frontend cross-browser compatibility - Chrome, Firefox, Edge
+- [X] T116 Manual E2E test following quickstart.md validation scenarios - complete all 5 user stories end-to-end
+- [X] T117 Update CLAUDE.md if needed - document any new patterns or conventions introduced
+- [X] T118 Run final constitution compliance check - verify Module Isolation (no existing files modified), Test-First (100% API + ≥80% unit), File-Based Storage
 
 ---
 

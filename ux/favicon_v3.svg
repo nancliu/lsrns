@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="64" height="64" rx="12" fill="url(#bgGradient)"/>
+  
+  <!-- 路网结构 - 分散到边缘，形成大范围网络 -->
+  
+  <!-- 横向主干路网 -->
+  <path d="M 4 20 L 60 20" stroke="#60a5fa" stroke-width="2" fill="none" opacity="0.7" stroke-linecap="round"/>
+  <path d="M 4 32 L 60 32" stroke="#60a5fa" stroke-width="2.5" fill="none" opacity="0.8" stroke-linecap="round"/>
+  <path d="M 4 44 L 60 44" stroke="#60a5fa" stroke-width="2" fill="none" opacity="0.7" stroke-linecap="round"/>
+  
+  <!-- 纵向主干路网 -->
+  <path d="M 20 4 L 20 60" stroke="#60a5fa" stroke-width="2" fill="none" opacity="0.7" stroke-linecap="round"/>
+  <path d="M 32 4 L 32 60" stroke="#60a5fa" stroke-width="2.5" fill="none" opacity="0.8" stroke-linecap="round"/>
+  <path d="M 44 4 L 44 60" stroke="#60a5fa" stroke-width="2" fill="none" opacity="0.7" stroke-linecap="round"/>
+  
+  <!-- 对角连接 - 形成网状，连接关键节点 -->
+  <path d="M 20 20 L 32 32" stroke="#3b82f6" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+  <path d="M 44 20 L 32 32" stroke="#3b82f6" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+  <path d="M 20 44 L 32 32" stroke="#3b82f6" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+  <path d="M 44 44 L 32 32" stroke="#3b82f6" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+  
+  <!-- 关键信息节点 - 只保留4个最重要的 -->
+  <circle cx="20" cy="20" r="2.5" fill="#60a5fa" opacity="0.9"/>
+  <circle cx="44" cy="20" r="2.5" fill="#60a5fa" opacity="0.9"/>
+  <circle cx="20" cy="44" r="2.5" fill="#60a5fa" opacity="0.9"/>
+  <circle cx="44" cy="44" r="2.5" fill="#60a5fa" opacity="0.9"/>
+  
+  <!-- 分布式管控中心 - 3个协调的小管控点 -->
+  
+  <!-- 主管控中心（中央）-->
+  <circle cx="32" cy="32" r="4.5" fill="#f97316" stroke="#fbbf24" stroke-width="1.2"/>
+  <circle cx="32" cy="32" r="2" fill="#fff" opacity="0.85"/>
+  
+  <!-- 分管控中心1（左上）-->
+  <circle cx="20" cy="20" r="3.5" fill="#f97316" stroke="#fbbf24" stroke-width="1"/>
+  <circle cx="20" cy="20" r="1.5" fill="#fff" opacity="0.8"/>
+  
+  <!-- 分管控中心2（右下）-->
+  <circle cx="44" cy="44" r="3.5" fill="#f97316" stroke="#fbbf24" stroke-width="1"/>
+  <circle cx="44" cy="44" r="1.5" fill="#fff" opacity="0.8"/>
+  
+  <!-- 管控连接线 - 体现分布式协同 -->
+  <path d="M 20 20 L 32 32" stroke="#f97316" stroke-width="1" fill="none" opacity="0.3" stroke-dasharray="2,2"/>
+  <path d="M 44 44 L 32 32" stroke="#f97316" stroke-width="1" fill="none" opacity="0.3" stroke-dasharray="2,2"/>
+</svg>

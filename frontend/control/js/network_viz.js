@@ -34,7 +34,7 @@ const networkViz = {
         offsetY: 0,
         scale: 1.0,
         minScale: 0.1,
-        maxScale: 10.0
+        maxScale: 40.0  // Increased from 10.0 to allow more zoom levels
     },
 
     // Bounding box for coordinate transformation
@@ -55,8 +55,17 @@ const networkViz = {
         pendingHoverRender: null  // Debounced hover layer render
     },
 
+    // Resize state (prevent infinite loop)
+    resizing: {
+        inProgress: false,
+        debounceTimeout: null
+    },
+
     // Interaction state
     isDragging: false,
+    mousePressed: false,  // Track if mouse button is pressed
+    mouseDownX: 0,        // Mouse position when button was pressed
+    mouseDownY: 0,
     dragStartX: 0,
     dragStartY: 0,
     hoveredEdge: null,
@@ -109,6 +118,9 @@ function initNetworkViz(canvasId = 'network-canvas', hoverCanvasId = 'network-ca
 
     // Set canvas size to container
     resizeCanvas();
+
+    // Remove any existing resize listener before adding new one (prevent duplicates)
+    window.removeEventListener('resize', resizeCanvas);
     window.addEventListener('resize', resizeCanvas);
 
     // Set up event listeners (on main canvas only)
@@ -126,12 +138,30 @@ function initNetworkViz(canvasId = 'network-canvas', hoverCanvasId = 'network-ca
 function resizeCanvas() {
     if (!networkViz.canvas) return;
 
+    // Prevent resize loop: Check if already resizing
+    if (networkViz.resizing.inProgress) {
+        console.warn('[resizeCanvas] ⚠️ Resize already in progress, skipping');
+        return;
+    }
+
     const container = networkViz.canvas.parentElement;
     const dpr = window.devicePixelRatio || 1;
 
     // Store logical dimensions for coordinate calculations
-    networkViz.logicalWidth = container.clientWidth;
-    networkViz.logicalHeight = container.clientHeight;
+    const newWidth = container.clientWidth;
+    const newHeight = container.clientHeight;
+
+    // Prevent resize loop: Only resize if dimensions actually changed
+    if (networkViz.logicalWidth === newWidth && networkViz.logicalHeight === newHeight) {
+        // Dimensions unchanged, skip resize
+        return;
+    }
+
+    // Set resize flag
+    networkViz.resizing.inProgress = true;
+
+    networkViz.logicalWidth = newWidth;
+    networkViz.logicalHeight = newHeight;
 
     // Resize bottom layer (static network)
     networkViz.canvas.width = networkViz.logicalWidth * dpr;
@@ -159,6 +189,11 @@ function resizeCanvas() {
     if (networkViz.geometry) {
         renderNetwork(true);
     }
+
+    // Clear resize flag after a short delay (allow render to complete)
+    setTimeout(() => {
+        networkViz.resizing.inProgress = false;
+    }, 100);
 }
 
 
@@ -209,14 +244,21 @@ async function loadNetworkGeometry(routeCodes = null) {
 
         networkViz.geometry = await response.json();
 
+        // Ensure canvas is properly sized before rendering
+        // Fix: Canvas might be 0x0 if not yet resized
+        if (networkViz.logicalWidth === 0 || networkViz.logicalHeight === 0) {
+            console.warn('[loadNetworkGeometry] Canvas not yet sized, forcing resize...');
+            resizeCanvas();
+        }
+
         // Calculate bounding box
         calculateBounds();
 
         // Initialize transform to fit all geometry
         fitToView();
 
-        // Render network immediately (initial load)
-        renderNetwork(true);
+        // Render network immediately (initial load with progress indicator)
+        renderNetwork(true, true);  // immediate=true, showProgress=true
 
         hideLoading();
 
@@ -293,31 +335,14 @@ function fitToView() {
 
     if (!networkViz.logicalWidth || !bounds.minLon) return;
 
-    // Reset transform
+    // The coordinate system in lonLatToCanvas() is designed so that:
+    // - At scale=1, the full geographic bounds map to [padding, canvas-padding]
+    // - So identity transform (scale=1, offset=0) gives the perfect fit
     networkViz.transform.scale = 1.0;
     networkViz.transform.offsetX = 0;
     networkViz.transform.offsetY = 0;
 
-    // Calculate scale to fit both width and height (use logical dimensions)
-    const padding = 100;
-    const availableWidth = networkViz.logicalWidth - 2 * padding;
-    const availableHeight = networkViz.logicalHeight - 2 * padding;
-
-    const lonRange = bounds.maxLon - bounds.minLon;
-    const latRange = bounds.maxLat - bounds.minLat;
-
-    // Use smaller scale to ensure everything fits
-    const scaleX = availableWidth / lonRange;
-    const scaleY = availableHeight / latRange;
-    networkViz.transform.scale = Math.min(scaleX, scaleY) * 0.9;  // 90% to add margin
-
-    // Center the network (use logical dimensions)
-    const centerX = networkViz.logicalWidth / 2;
-    const centerY = networkViz.logicalHeight / 2;
-    networkViz.transform.offsetX = centerX - (bounds.minLon + lonRange / 2) * networkViz.transform.scale;
-    networkViz.transform.offsetY = centerY - (bounds.minLat + latRange / 2) * networkViz.transform.scale;
-
-    console.log(`[fitToView] Fitted network to view: scale=${networkViz.transform.scale.toFixed(2)}, center=(${centerX}, ${centerY})`);
+    console.log(`[fitToView] Reset to identity transform (scale=1.0, offset=0, 0)`);
 }
 
 
@@ -327,8 +352,9 @@ function fitToView() {
  * Render entire network on canvas
  * Uses progressive rendering for large datasets to maintain UI responsiveness
  * @param {boolean} immediate - If true, render immediately without debouncing
+ * @param {boolean} showProgress - If true, show progress indicator during rendering
  */
-function renderNetwork(immediate = false) {
+function renderNetwork(immediate = false, showProgress = false) {
     if (!networkViz.ctx || !networkViz.geometry) return;
 
     // For immediate renders (data load, zoom, pan), cancel debounce and render now
@@ -337,7 +363,7 @@ function renderNetwork(immediate = false) {
             clearTimeout(networkViz.rendering.pendingRender);
             networkViz.rendering.pendingRender = null;
         }
-        executeRender();
+        executeRender(showProgress);
         return;
     }
 
@@ -348,15 +374,16 @@ function renderNetwork(immediate = false) {
 
     networkViz.rendering.pendingRender = setTimeout(() => {
         networkViz.rendering.pendingRender = null;
-        executeRender();
+        executeRender(showProgress);
     }, 16); // ~60 FPS debounce for hover
 }
 
 
 /**
  * Execute the actual rendering (called by renderNetwork after debouncing)
+ * @param {boolean} showProgress - Whether to show progress indicator (default: false)
  */
-function executeRender() {
+function executeRender(showProgress = false) {
     if (!networkViz.ctx || !networkViz.geometry) return;
 
     // Cancel any in-progress rendering
@@ -370,7 +397,7 @@ function executeRender() {
 
     if (useProgressiveRendering) {
         console.log(`[executeRender] Using progressive rendering for ${totalEdges} edges`);
-        renderNetworkProgressive();
+        renderNetworkProgressive(showProgress);
     } else {
         console.log(`[executeRender] Using synchronous rendering for ${totalEdges} edges`);
         renderNetworkSync();
@@ -398,8 +425,9 @@ function renderNetworkSync() {
 /**
  * Progressive rendering for large datasets
  * Renders edges in chunks using requestAnimationFrame to avoid UI blocking
+ * @param {boolean} showProgress - Whether to show progress indicator (default: false)
  */
-async function renderNetworkProgressive() {
+async function renderNetworkProgressive(showProgress = false) {
     networkViz.rendering.inProgress = true;
     networkViz.rendering.cancelRequested = false;
     networkViz.rendering.currentChunk = 0;
@@ -412,8 +440,10 @@ async function renderNetworkProgressive() {
     ctx.fillStyle = networkViz.colors.background;
     ctx.fillRect(0, 0, networkViz.logicalWidth, networkViz.logicalHeight);
 
-    // Show progress
-    updateProgress(0, '正在渲染路网...');
+    // Show progress (only if requested)
+    if (showProgress) {
+        updateProgress(0, '正在渲染路网...');
+    }
 
     // Render edges in chunks
     const allEdges = [
@@ -429,7 +459,9 @@ async function renderNetworkProgressive() {
         // Check for cancellation
         if (networkViz.rendering.cancelRequested) {
             console.log('[renderNetworkProgressive] Rendering cancelled');
-            hideProgress();
+            if (showProgress) {
+                hideProgress();
+            }
             networkViz.rendering.inProgress = false;
             return;
         }
@@ -453,9 +485,11 @@ async function renderNetworkProgressive() {
             drawEdge(edge, junctionMap);
         });
 
-        // Update progress
-        const progress = Math.min(100, Math.round((i + chunkSize) / totalEdges * 100));
-        updateProgress(progress, `正在渲染路网... ${i + chunk.length}/${totalEdges} 条路段`);
+        // Update progress (only if requested)
+        if (showProgress) {
+            const progress = Math.min(100, Math.round((i + chunkSize) / totalEdges * 100));
+            updateProgress(progress, `正在渲染路网... ${i + chunk.length}/${totalEdges} 条路段`);
+        }
 
         // Yield to browser (allow UI updates, user interactions)
         await new Promise(resolve => requestAnimationFrame(resolve));
@@ -468,7 +502,9 @@ async function renderNetworkProgressive() {
     renderLegend();
 
     // Hide progress and mark complete
-    hideProgress();
+    if (showProgress) {
+        hideProgress();
+    }
     networkViz.rendering.inProgress = false;
 
     console.log(`[renderNetworkProgressive] Completed rendering ${totalEdges} edges`);
@@ -669,13 +705,16 @@ function clearFilteredEdges() {
 // ==================== Pan/Zoom Controls ====================
 
 /**
- * Handle mouse down event (start dragging)
+ * Handle mouse down event (prepare for potential dragging)
  */
 function handleMouseDown(event) {
-    networkViz.isDragging = true;
+    // Don't set isDragging immediately - wait for actual mouse movement
+    // Store the initial position for drag detection
     networkViz.dragStartX = event.clientX - networkViz.transform.offsetX;
     networkViz.dragStartY = event.clientY - networkViz.transform.offsetY;
-    networkViz.canvas.style.cursor = 'grabbing';
+    networkViz.mouseDownX = event.clientX;
+    networkViz.mouseDownY = event.clientY;
+    networkViz.mousePressed = true;
 }
 
 
@@ -683,6 +722,20 @@ function handleMouseDown(event) {
  * Handle mouse move event (drag or hover)
  */
 function handleMouseMove(event) {
+    // Check if we should start dragging (mouse pressed and moved beyond threshold)
+    if (networkViz.mousePressed && !networkViz.isDragging) {
+        const dragThreshold = 3; // pixels
+        const dx = event.clientX - networkViz.mouseDownX;
+        const dy = event.clientY - networkViz.mouseDownY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > dragThreshold) {
+            networkViz.isDragging = true;
+            networkViz.canvas.style.cursor = 'grabbing';
+            console.log('[handleMouseMove] Started dragging');
+        }
+    }
+
     if (networkViz.isDragging) {
         // Pan the network - render immediately for smooth dragging
         networkViz.transform.offsetX = event.clientX - networkViz.dragStartX;
@@ -715,11 +768,16 @@ function handleMouseMove(event) {
  */
 function handleMouseUp(event) {
     if (networkViz.isDragging) {
+        // Was dragging, stop dragging
         networkViz.isDragging = false;
+        networkViz.mousePressed = false;
         networkViz.canvas.style.cursor = 'default';
-    } else {
-        // Handle click to toggle selection (T045)
+        console.log('[handleMouseUp] Stopped dragging');
+    } else if (networkViz.mousePressed) {
+        // Mouse was pressed but didn't drag - this is a click
+        networkViz.mousePressed = false;
         handleEdgeClick(event.offsetX, event.offsetY);
+        console.log('[handleMouseUp] Handled as click');
     }
 }
 
@@ -729,6 +787,7 @@ function handleMouseUp(event) {
  */
 function handleMouseLeave() {
     networkViz.isDragging = false;
+    networkViz.mousePressed = false;
     networkViz.hoveredEdge = null;
     networkViz.canvas.style.cursor = 'default';
     hideTooltip();
@@ -889,16 +948,25 @@ function distanceToSegment(px, py, x1, y1, x2, y2) {
 function handleEdgeClick(x, y) {
     const clickedEdge = getEdgeAtPosition(x, y);
 
-    if (!clickedEdge) return;
+    console.log('[handleEdgeClick] Clicked position:', x, y);
+    console.log('[handleEdgeClick] Found edge:', clickedEdge);
+
+    if (!clickedEdge) {
+        console.log('[handleEdgeClick] No edge found at click position');
+        return;
+    }
 
     // Toggle selection
-    if (networkViz.selectedEdges.has(clickedEdge.edge_id)) {
+    const wasSelected = networkViz.selectedEdges.has(clickedEdge.edge_id);
+    if (wasSelected) {
         networkViz.selectedEdges.delete(clickedEdge.edge_id);
-        console.log(`Deselected edge: ${clickedEdge.edge_id}`);
+        console.log(`[handleEdgeClick] ❌ Deselected edge: ${clickedEdge.edge_id}`);
     } else {
         networkViz.selectedEdges.add(clickedEdge.edge_id);
-        console.log(`Selected edge: ${clickedEdge.edge_id}`);
+        console.log(`[handleEdgeClick] ✅ Selected edge: ${clickedEdge.edge_id}`);
     }
+
+    console.log('[handleEdgeClick] Total selected edges:', networkViz.selectedEdges.size);
 
     // Update selected edges list in main UI
     updateSelectedEdgesList();
@@ -933,6 +1001,7 @@ function clearSelectedEdges() {
  */
 function setSelectedEdges(edgeIds) {
     networkViz.selectedEdges = new Set(edgeIds);
+    updateSelectedEdgesList();  // Update count display
     renderNetwork(true);  // Immediate render
 }
 
@@ -946,6 +1015,9 @@ function setSelectedEdges(edgeIds) {
  * @param {Object} edge - Edge object
  */
 function showTooltip(x, y, edge) {
+    // Debug: Log edge data to see what fields are available
+    console.log('[showTooltip] Edge data:', edge);
+
     let tooltip = document.getElementById('network-tooltip');
     if (!tooltip) {
         tooltip = document.createElement('div');
@@ -962,13 +1034,39 @@ function showTooltip(x, y, edge) {
         document.body.appendChild(tooltip);
     }
 
-    // Build tooltip content
-    tooltip.innerHTML = `
-        <strong>路段ID:</strong> ${edge.edge_id}<br>
-        <strong>路线:</strong> ${edge.route_code || 'N/A'}<br>
-        <strong>起点:</strong> ${edge.from_junction}<br>
-        <strong>终点:</strong> ${edge.to_junction}
-    `;
+    // Build tooltip content with enhanced information
+    const parts = [];
+
+    // Route code and section (primary identification)
+    if (edge.route_code) {
+        let routeInfo = `<strong>路线:</strong> ${edge.route_code}`;
+        if (edge.section_code) {
+            routeInfo += ` (${edge.section_code})`;
+        }
+        parts.push(routeInfo);
+    }
+
+    // Edge ID
+    parts.push(`<strong>路段ID:</strong> ${edge.edge_id}`);
+
+    // Number of lanes
+    if (edge.num_lanes !== null && edge.num_lanes !== undefined) {
+        parts.push(`<strong>车道数:</strong> ${edge.num_lanes} 车道`);
+    }
+
+    // Stake range (start and end)
+    if (edge.start_stake !== null && edge.start_stake !== undefined &&
+        edge.end_stake !== null && edge.end_stake !== undefined) {
+        parts.push(`<strong>起点桩号:</strong> K${edge.start_stake.toFixed(3)}`);
+        parts.push(`<strong>终点桩号:</strong> K${edge.end_stake.toFixed(3)}`);
+    }
+
+    // Length
+    if (edge.length !== null && edge.length !== undefined) {
+        parts.push(`<strong>长度:</strong> ${edge.length.toFixed(1)}m`);
+    }
+
+    tooltip.innerHTML = parts.join('<br>');
 
     // Position tooltip
     tooltip.style.left = (x + 15) + 'px';
@@ -1118,8 +1216,9 @@ function updateSelectedEdgesList() {
 
 // ==================== Export API ====================
 
-// Export functions for external use
+// Export functions and state for external use
 window.networkViz = {
+    // Public API methods
     init: initNetworkViz,
     loadGeometry: loadNetworkGeometry,
     highlightEdges: highlightFilteredEdges,
@@ -1128,5 +1227,19 @@ window.networkViz = {
     setSelected: setSelectedEdges,
     clearSelected: clearSelectedEdges,
     resetView: resetView,
-    render: renderNetwork
+    render: renderNetwork,
+
+    // Expose internal state for external use
+    get transform() {
+        return networkViz.transform;
+    },
+    get bounds() {
+        return networkViz.bounds;
+    },
+    get canvas() {
+        return networkViz.canvas;
+    },
+    get geometry() {
+        return networkViz.geometry;
+    }
 };

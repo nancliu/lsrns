@@ -30,10 +30,7 @@ from api.models.responses.strategy_responses import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    prefix="/control/strategy-instances",
-    tags=["Strategy Instances"]
-)
+router = APIRouter(prefix="/control/strategy-instances", tags=["Strategy Instances"])
 
 # Service instance (singleton pattern)
 _service_instance = None
@@ -52,11 +49,9 @@ def get_strategy_service() -> StrategyInstanceService:
     response_model=StrategyCreateResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create Strategy Instance",
-    description="Create a new traffic control strategy instance from a template"
+    description="Create a new traffic control strategy instance from a template",
 )
-async def create_strategy(
-    request: StrategyCreateRequest
-) -> StrategyCreateResponse:
+async def create_strategy(request: StrategyCreateRequest) -> StrategyCreateResponse:
     """
     Create a new strategy instance.
 
@@ -84,23 +79,16 @@ async def create_strategy(
         # Check if error is due to missing template (should be 404)
         if "Template not found" in error_msg:
             logger.warning(f"Template not found: {error_msg}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=error_msg
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error_msg)
 
         # All other ValueError are validation errors (400)
         logger.error(f"Validation error creating strategy: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error_msg
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     except Exception as e:
         # Internal errors
         logger.error(f"Error creating strategy: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create strategy"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create strategy"
         )
 
 
@@ -108,13 +96,13 @@ async def create_strategy(
     "/",
     response_model=StrategyListResponse,
     summary="List Strategy Instances",
-    description="Get paginated list of strategy instances with optional filtering"
+    description="Get paginated list of strategy instances with optional filtering",
 )
 async def list_strategies(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search by strategy name"),
-    strategy_type: Optional[str] = Query(None, description="Filter by type (VSS/DHS/TEC)")
+    strategy_type: Optional[str] = Query(None, description="Filter by type (VSS/DHS/TEC)"),
 ) -> StrategyListResponse:
     """
     List strategies with pagination and filtering.
@@ -130,18 +118,14 @@ async def list_strategies(
     try:
         service = get_strategy_service()
         response = service.list_strategies(
-            page=page,
-            page_size=page_size,
-            search=search,
-            strategy_type=strategy_type
+            page=page, page_size=page_size, search=search, strategy_type=strategy_type
         )
         return response
 
     except Exception as e:
         logger.error(f"Error listing strategies: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list strategies"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list strategies"
         )
 
 
@@ -149,11 +133,9 @@ async def list_strategies(
     "/{strategy_id}",
     response_model=StrategyDetailResponse,
     summary="Get Strategy Details",
-    description="Get complete details of a strategy instance including enriched edge data"
+    description="Get complete details of a strategy instance including enriched edge data",
 )
-async def get_strategy(
-    strategy_id: str
-) -> StrategyDetailResponse:
+async def get_strategy(strategy_id: str) -> StrategyDetailResponse:
     """
     Get strategy details by ID.
 
@@ -175,8 +157,7 @@ async def get_strategy(
 
         if response is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Strategy not found: {strategy_id}"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Strategy not found: {strategy_id}"
             )
 
         return response
@@ -186,8 +167,7 @@ async def get_strategy(
     except Exception as e:
         logger.error(f"Error getting strategy {strategy_id}: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get strategy"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get strategy"
         )
 
 
@@ -195,11 +175,10 @@ async def get_strategy(
     "/{strategy_id}",
     response_model=StrategyDetailResponse,
     summary="Update Strategy Instance",
-    description="Update an existing strategy instance with optimistic concurrency control"
+    description="Update an existing strategy instance with optimistic concurrency control",
 )
 async def update_strategy(
-    strategy_id: str,
-    request: StrategyUpdateRequest
+    strategy_id: str, request: StrategyUpdateRequest
 ) -> StrategyDetailResponse:
     """
     Update an existing strategy.
@@ -226,8 +205,7 @@ async def update_strategy(
 
         if response is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Strategy not found: {strategy_id}"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Strategy not found: {strategy_id}"
             )
 
         return response
@@ -235,22 +213,15 @@ async def update_strategy(
     except ValueError as e:
         # Check if concurrency conflict
         if "Concurrency conflict" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
         # Validation error
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error updating strategy {strategy_id}: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update strategy"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update strategy"
         )
 
 
@@ -258,11 +229,9 @@ async def update_strategy(
     "/{strategy_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete Strategy Instance",
-    description="Delete a strategy instance (fails if used in plans)"
+    description="Delete a strategy instance (fails if used in plans)",
 )
-async def delete_strategy(
-    strategy_id: str
-) -> dict:
+async def delete_strategy(strategy_id: str) -> dict:
     """
     Delete a strategy instance.
 
@@ -281,34 +250,27 @@ async def delete_strategy(
 
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Strategy not found: {strategy_id}"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Strategy not found: {strategy_id}"
             )
 
-        return {
-            "message": f"Strategy {strategy_id} deleted successfully"
-        }
+        return {"message": f"Strategy {strategy_id} deleted successfully"}
 
     except ValueError as e:
         # Used in plans
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting strategy {strategy_id}: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete strategy"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete strategy"
         )
 
 
 @router.post(
     "/reindex",
     summary="Regenerate Strategy Index",
-    description="Admin endpoint to regenerate the strategy index from all files"
+    description="Admin endpoint to regenerate the strategy index from all files",
 )
 async def reindex_strategies() -> dict:
     """
@@ -329,6 +291,5 @@ async def reindex_strategies() -> dict:
     except Exception as e:
         logger.error(f"Error reindexing strategies: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reindex strategies"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to reindex strategies"
         )

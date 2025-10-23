@@ -264,19 +264,52 @@ class StrategyManager {
                 input.rows = 4;
                 input.className = 'array-input';
 
-                // Provide better placeholder based on default value format
+                // Enhanced styling for better visibility
+                input.style.width = '100%';
+                input.style.padding = '10px';
+                input.style.border = '1px solid #ddd';
+                input.style.borderRadius = '4px';
+                input.style.fontSize = '14px';
+                input.style.fontFamily = 'monospace';
+                input.style.resize = 'vertical';
+                input.style.minHeight = '100px';
+
+                // Smart placeholder based on field name and default value
+                let placeholder = '';
+                let value = '';
+
                 if (field.defaultValue && Array.isArray(field.defaultValue) && field.defaultValue.length > 0) {
-                    // Check if it's nested array (like time_intervals [[7,9], [17,19]])
+                    // Has default value - use it as example
                     if (Array.isArray(field.defaultValue[0])) {
-                        input.placeholder = '输入嵌套数组，格式如: [[7,9], [17,19]]，每行一个，或输入JSON格式';
-                        input.value = JSON.stringify(field.defaultValue, null, 2);
+                        // Nested array (like time_intervals [[7,9], [17,19]])
+                        placeholder = `示例格式：\n${JSON.stringify(field.defaultValue, null, 2)}\n\n可直接编辑上述JSON格式，或每行输入一个子数组`;
+                        value = JSON.stringify(field.defaultValue, null, 2);
                     } else {
-                        input.placeholder = '输入多个值，每行一个，或用逗号分隔';
-                        input.value = field.defaultValue.join('\n');
+                        // Simple array (like [80, 60, 40] or ["truck", "bus"])
+                        placeholder = `示例：每行一个值\n${field.defaultValue.join('\n')}\n\n或用逗号分隔：${field.defaultValue.join(', ')}`;
+                        value = field.defaultValue.join('\n');
                     }
                 } else {
-                    input.placeholder = '输入多个值，每行一个，或用逗号分隔';
+                    // No default value - provide smart hints based on field name
+                    const fieldName = field.name || '';
+
+                    if (fieldName.includes('time') || fieldName.includes('interval') || fieldName.includes('时段')) {
+                        placeholder = `时段格式示例：\n[\n  [7, 9],\n  [17, 19]\n]\n\n每行一个时间段 [开始小时, 结束小时]`;
+                    } else if (fieldName.includes('speed') || fieldName.includes('限速')) {
+                        placeholder = `限速值示例（每行一个）：\n80\n60\n40\n\n或JSON格式：[80, 60, 40]`;
+                    } else if (fieldName.includes('vehicle') || fieldName.includes('车型')) {
+                        placeholder = `车型列表示例：\npassenger\ntruck\nbus\n\n或用逗号分隔：passenger, truck, bus`;
+                    } else if (fieldName.includes('edge') || fieldName.includes('路段')) {
+                        placeholder = `路段ID列表示例：\n-5880\n-5881\n-5882\n\n或用逗号分隔：-5880, -5881, -5882`;
+                    } else if (fieldName.includes('entrance') || fieldName.includes('入口')) {
+                        placeholder = `入口列表示例：\nentrance_1\nentrance_2\n\n或用逗号分隔：entrance_1, entrance_2`;
+                    } else {
+                        placeholder = `多个值，每行一个：\nvalue1\nvalue2\nvalue3\n\n或JSON格式：["value1", "value2", "value3"]`;
+                    }
                 }
+
+                input.placeholder = placeholder;
+                input.value = value;
                 break;
 
             case 'enum':
@@ -313,10 +346,26 @@ class StrategyManager {
         const parts = [];
 
         if (field.type === 'array') {
-            if (field.defaultValue && Array.isArray(field.defaultValue[0])) {
-                parts.push('支持JSON格式的嵌套数组');
+            const fieldName = field.name || '';
+
+            // Provide smart hints based on field type
+            if (fieldName.includes('time') || fieldName.includes('interval') || fieldName.includes('时段')) {
+                parts.push('💡 时段格式：[[开始小时, 结束小时], ...] 或 JSON数组');
+            } else if (fieldName.includes('speed') || fieldName.includes('限速')) {
+                parts.push('💡 每行一个限速值，或JSON数组 [80, 60, 40]');
+            } else if (fieldName.includes('vehicle') || fieldName.includes('车型')) {
+                parts.push('💡 每行一个车型，或用逗号分隔');
+            } else if (fieldName.includes('entrance') || fieldName.includes('入口')) {
+                parts.push('💡 每行一个入口ID，或用逗号分隔');
+            } else if (fieldName.includes('edge') || fieldName.includes('路段')) {
+                parts.push('💡 每行一个路段ID，或用逗号分隔');
             } else {
-                parts.push('每行一个值，或用逗号分隔');
+                // Generic array hint
+                if (field.defaultValue && Array.isArray(field.defaultValue[0])) {
+                    parts.push('💡 支持JSON格式的嵌套数组');
+                } else {
+                    parts.push('💡 每行一个值，或用逗号分隔，或JSON数组');
+                }
             }
         }
 
@@ -326,6 +375,9 @@ class StrategyManager {
         }
         if (field.minItems) {
             parts.push(`至少需要 ${field.minItems} 个项目`);
+        }
+        if (field.required) {
+            parts.push('⚠️ 必填');
         }
 
         return parts.join(' | ');

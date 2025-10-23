@@ -13,7 +13,11 @@ const EdgeSelector = {
         currentResults: [],
         isLoading: false,
         availableRoutes: [],
-        availableSections: []
+        availableSections: [],
+        // Pagination state
+        currentPage: 1,
+        pageSize: 50,
+        totalCount: 0
     },
 
     /**
@@ -327,7 +331,7 @@ const EdgeSelector = {
     },
 
     /**
-     * Display query results
+     * Display query results with pagination
      */
     displayResults(data) {
         const resultsContainer = document.getElementById('results-container');
@@ -337,6 +341,11 @@ const EdgeSelector = {
         const warningMessage = document.getElementById('warning-message');
         const resultCount = document.getElementById('result-count');
         const selectedCount = document.getElementById('selected-count');
+
+        // Store results and pagination info
+        this.state.currentResults = data.edges || [];
+        this.state.totalCount = data.total_count;
+        this.state.currentPage = 1; // Reset to first page
 
         if (resultsTbody) resultsTbody.innerHTML = '';
         if (resultCount) resultCount.textContent = data.total_count;
@@ -358,19 +367,118 @@ const EdgeSelector = {
             return;
         }
 
-        data.edges.forEach(edge => {
-            const row = this.createResultRow(edge);
-            if (resultsTbody) resultsTbody.appendChild(row);
-        });
+        // Render current page
+        this.renderCurrentPage();
 
         if (resultsContainer) resultsContainer.innerHTML = '';
         if (resultsTable) resultsTable.style.display = 'table';
         if (resultsInfo) resultsInfo.style.display = 'flex';
 
-        // Update visualization if loaded
+        // Update visualization if loaded (highlight all results, not just current page)
         if (window.networkViz && window.networkViz.highlightEdges) {
             window.networkViz.highlightEdges(data.edges || []);
         }
+    },
+
+    /**
+     * Render current page of results
+     */
+    renderCurrentPage() {
+        const resultsTbody = document.getElementById('results-tbody');
+        if (!resultsTbody) return;
+
+        // Clear existing rows
+        resultsTbody.innerHTML = '';
+
+        // Calculate pagination
+        const totalPages = Math.ceil(this.state.totalCount / this.state.pageSize);
+        const startIndex = (this.state.currentPage - 1) * this.state.pageSize;
+        const endIndex = Math.min(startIndex + this.state.pageSize, this.state.totalCount);
+
+        // Render rows for current page
+        const pageEdges = this.state.currentResults.slice(startIndex, endIndex);
+        pageEdges.forEach(edge => {
+            const row = this.createResultRow(edge);
+            resultsTbody.appendChild(row);
+
+            // Restore checkbox state if edge was previously selected
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            if (checkbox && this.state.edgeSelectionSet.has(edge.edge_id)) {
+                checkbox.checked = true;
+            }
+        });
+
+        // Render pagination controls
+        this.renderPaginationControls(totalPages, startIndex, endIndex);
+    },
+
+    /**
+     * Render pagination controls
+     */
+    renderPaginationControls(totalPages, startIndex, endIndex) {
+        // Remove existing pagination if present
+        let paginationDiv = document.getElementById('pagination-controls');
+        if (paginationDiv) {
+            paginationDiv.remove();
+        }
+
+        // Create pagination controls
+        paginationDiv = document.createElement('div');
+        paginationDiv.id = 'pagination-controls';
+        paginationDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-top: 1px solid #dee2e6;';
+
+        // Page info
+        const pageInfo = document.createElement('span');
+        pageInfo.style.cssText = 'color: #6c757d; font-size: 14px;';
+        pageInfo.textContent = `显示 ${startIndex + 1}-${endIndex} / 共 ${this.state.totalCount} 条`;
+        paginationDiv.appendChild(pageInfo);
+
+        // Navigation buttons
+        const navButtons = document.createElement('div');
+        navButtons.style.cssText = 'display: flex; gap: 10px;';
+
+        // Previous button
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '上一页';
+        prevBtn.className = 'btn btn-secondary';
+        prevBtn.style.cssText = 'padding: 6px 12px; font-size: 14px;';
+        prevBtn.disabled = this.state.currentPage === 1;
+        prevBtn.onclick = () => this.goToPage(this.state.currentPage - 1);
+        navButtons.appendChild(prevBtn);
+
+        // Page number display
+        const pageDisplay = document.createElement('span');
+        pageDisplay.style.cssText = 'padding: 6px 12px; font-size: 14px; color: #495057;';
+        pageDisplay.textContent = `第 ${this.state.currentPage} / ${totalPages} 页`;
+        navButtons.appendChild(pageDisplay);
+
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = '下一页';
+        nextBtn.className = 'btn btn-secondary';
+        nextBtn.style.cssText = 'padding: 6px 12px; font-size: 14px;';
+        nextBtn.disabled = this.state.currentPage >= totalPages;
+        nextBtn.onclick = () => this.goToPage(this.state.currentPage + 1);
+        navButtons.appendChild(nextBtn);
+
+        paginationDiv.appendChild(navButtons);
+
+        // Insert pagination after results table
+        const resultsTable = document.getElementById('results-table');
+        if (resultsTable && resultsTable.parentNode) {
+            resultsTable.parentNode.insertBefore(paginationDiv, resultsTable.nextSibling);
+        }
+    },
+
+    /**
+     * Go to specific page
+     */
+    goToPage(pageNumber) {
+        const totalPages = Math.ceil(this.state.totalCount / this.state.pageSize);
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+
+        this.state.currentPage = pageNumber;
+        this.renderCurrentPage();
     },
 
     /**
@@ -672,7 +780,14 @@ function onVisualizationSelectionChanged(edgeIds) {
     });
 
     EdgeSelector.updateSelectedCount();
-    EdgeSelector.syncVisualizationSelection();
+    // Don't call syncVisualizationSelection() here to avoid infinite loop!
+    // This callback is already triggered FROM the visualization layer.
+
+    // Update viz selected count manually
+    const vizCountEl = document.getElementById('viz-selected-count');
+    if (vizCountEl) {
+        vizCountEl.textContent = edgeIds.length;
+    }
 
     // Sync to parent page's selectedEdges array
     if (typeof selectedEdges !== 'undefined') {
