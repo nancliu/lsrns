@@ -128,7 +128,7 @@
   "strategy_type": "DHS",
   "control_object": {
     "edges": ["edge_1000", "edge_1001", "edge_1002", "edge_1003", "edge_1004"],
-    "hard_shoulder_lanes": ["edge_1000_3", "edge_1001_3", "edge_1002_3", "edge_1003_3", "edge_1004_3"]
+    "hard_shoulder_lanes": ["edge_1000_0", "edge_1001_0", "edge_1002_0", "edge_1003_0", "edge_1004_0"]
   },
   "parameters": {
     "intervals": [
@@ -137,6 +137,8 @@
   }
 }
 ```
+
+**注意**: 硬路肩/应急车道是最右侧车道，索引为0
 
 **示例3: TEC策略**
 
@@ -320,7 +322,7 @@ control_data/plans/plan_001/
 
 ```xml
 <additional>
-    <variableSpeedSign id="{strategy_id}" edges="{edge_id_list}">
+    <variableSpeedSign id="{strategy_id}" lanes="{lane_id_list}">
         <step time="{time_seconds}" speed="{speed_ms}"/>
         <step time="{time_seconds}" speed="{speed_ms}"/>
         ...
@@ -335,14 +337,15 @@ control_data/plans/plan_001/
 | 属性      | 类型        | 必填 | 说明                                                                      |
 | --------- | ----------- | ---- | ------------------------------------------------------------------------- |
 | `id`    | string      | ✅   | 策略唯一标识符(建议使用strategy_id)                                       |
-| `edges` | string list | 🟢   | **推荐**: 空格分隔的edge ID列表,自动应用到edge的所有车道 (SUMO v1.18+)   |
-| `lanes` | string list | ⚠️   | 备选: 空格分隔的车道ID列表(格式:`edge_id_lane_index`),仅用于差异化控制 |
+| `lanes` | string list | ✅   | **必需**: 空格分隔的车道ID列表(格式:`edge_id_lane_index`) - 必须显式列出所有车道 |
 | `file`  | string      | ❌   | 外部文件引用(可选,用于复杂配置)                                           |
 
-**属性选择建议**:
+**⚠️ 重要修正（基于实际测试 2025-10-24）**:
 
-- **使用`edges`**: 路段所有车道统一限速(高速公路VSS的典型场景)
-- **使用`lanes`**: 仅在需要差异化控制时使用(如快慢车道不同限速)
+- **`edges`属性不可用**: 文档初稿提到的`edges`属性在当前SUMO版本中不可用
+- **必须使用`lanes`属性**: 必须显式列出每条edge的所有车道ID
+- **车道ID格式**: `edge_id_lane_index`，例如 `edge_800_0`, `edge_800_1`, `edge_800_2`
+- **车道索引规则**: 从0开始，0是最右侧车道（SUMO标准）
 
 **`<step>`子元素**:
 
@@ -351,22 +354,28 @@ control_data/plans/plan_001/
 | `time`  | float | ✅   | 时间点(秒),从仿真开始计时      |
 | `speed` | float | ✅   | 限速值(m/s),-1表示恢复默认限速 |
 
-#### 3.2.3 Edge控制示例
+#### 3.2.3 配置示例
 
-**使用edges属性** (推荐,简洁高效):
+**标准配置** (必须使用lanes属性):
 
 ```xml
-<variableSpeedSign id="vss_001" edges="edge_800 edge_801 edge_802">
-    <step time="0" speed="33.33"/>      <!-- 120km/h -->
-    <step time="25200" speed="22.22"/>  <!-- 80km/h -->
+<!-- 假设edge_800有3车道, edge_801有3车道, edge_802有4车道 -->
+<variableSpeedSign id="vss_001" lanes="edge_800_0 edge_800_1 edge_800_2 edge_801_0 edge_801_1 edge_801_2 edge_802_0 edge_802_1 edge_802_2 edge_802_3">
+    <step time="0" speed="33.33"/>      <!-- 初始: 120km/h -->
+    <step time="25200" speed="22.22"/>  <!-- 降速: 80km/h -->
+    <step time="32400" speed="33.33"/>  <!-- 恢复: 120km/h -->
 </variableSpeedSign>
 ```
 
-该配置将自动应用到指定edges的**所有车道**(不包括应急车道,SUMO自动排除)。
+**重要**: 必须显式列出每条edge的所有车道ID。
 
-**使用lanes属性** (仅用于特殊场景):
+**车道ID生成规则**:
+- 车道ID格式: `{edge_id}_{lane_index}`
+- 车道索引从0开始，**0是最右侧车道（应急车道/硬路肩）**
+- 索引越大越靠左：0（最右/应急车道） → 1（慢车道） → 2 → ... → n-1（最左/快车道）
+- VSS通常控制所有常规车道，可以选择性包含或排除应急车道
 
-如需对不同车道实施差异化限速,可使用lanes属性:
+**差异化限速示例** (不同车道不同速度):
 
 ```xml
 <!-- 示例: 仅限制货车道速度 -->
@@ -447,7 +456,8 @@ SUMO车道ID格式: `{edge_id}_{lane_index}` (索引0为最右侧车道)
 **生成的SUMO配置**:
 
 ```xml
-<variableSpeedSign id="vss_fog_k10_k20" edges="edge_200 edge_201">
+<!-- 假设edge_200和edge_201各有3车道 -->
+<variableSpeedSign id="vss_fog_k10_k20" lanes="edge_200_0 edge_200_1 edge_200_2 edge_201_0 edge_201_1 edge_201_2">
     <step time="0" speed="33.33"/>      <!-- 120km/h -->
     <step time="21600" speed="27.78"/>  <!-- 100km/h -->
     <step time="28800" speed="22.22"/>  <!-- 80km/h -->
@@ -485,7 +495,8 @@ SUMO车道ID格式: `{edge_id}_{lane_index}` (索引0为最右侧车道)
 **生成的SUMO配置**:
 
 ```xml
-<variableSpeedSign id="vss_upstream_k8_k10" edges="edge_800 edge_801">
+<!-- 假设edge_800和edge_801各有3车道 -->
+<variableSpeedSign id="vss_upstream_k8_k10" lanes="edge_800_0 edge_800_1 edge_800_2 edge_801_0 edge_801_1 edge_801_2">
     <step time="0" speed="33.33"/>      <!-- 初始120km/h -->
     <step time="24900" speed="22.22"/>  <!-- 6:55降至80km/h -->
     <step time="32400" speed="33.33"/>  <!-- 9:00恢复 -->
@@ -756,7 +767,7 @@ lanes = generate_lane_ids(edges, exclude_hard_shoulder=True)
   "description": "7:00-9:00和17:00-19:00开放应急车道给所有车辆",
   "control_object": {
     "edges": ["edge_1000", "edge_1001", "edge_1002", "edge_1003", "edge_1004"],
-    "hard_shoulder_lanes": ["edge_1000_3", "edge_1001_3", "edge_1002_3", "edge_1003_3", "edge_1004_3"]
+    "hard_shoulder_lanes": ["edge_1000_0", "edge_1001_0", "edge_1002_0", "edge_1003_0", "edge_1004_0"]
   },
   "parameters": {
     "intervals": [
@@ -865,7 +876,7 @@ lanes = generate_lane_ids(edges, exclude_hard_shoulder=True)
   "description": "早高峰开放应急车道,仅允许小客车和公交车,禁止货车",
   "control_object": {
     "edges": ["edge_1000"],
-    "hard_shoulder_lanes": ["edge_1000_3"]
+    "hard_shoulder_lanes": ["edge_1000_0"]
   },
   "parameters": {
     "intervals": [
