@@ -70,6 +70,8 @@ def _validate_parameter_schema(params: List[Dict[str, Any]]) -> bool:
     """
     Validate parameter schema structure and types.
 
+    Supports both v1.0 and v2.0 parameter type definitions.
+
     Args:
         params: List of parameter schema dictionaries
 
@@ -84,7 +86,22 @@ def _validate_parameter_schema(params: List[Dict[str, Any]]) -> bool:
         logger.error("Template cannot have more than 20 parameters")
         return False
 
-    allowed_types = {"integer", "float", "string", "boolean", "array"}
+    # v1.0 types + v2.0 types
+    allowed_types = {
+        # v1.0 types (legacy)
+        "integer",
+        "float",
+        "string",
+        "boolean",
+        "array",
+        # v2.0 types (new)
+        "edge_array",
+        "step_array",
+        "flow_interval_array",
+        "enum_array",
+        "number",
+        "enum",
+    }
 
     for param in params:
         param_type = param.get("parameter_type")
@@ -305,3 +322,155 @@ def get_template_by_id(template_id: str, templates_dir: Path) -> Optional[Contro
 
     logger.warning(f"Template not found: {template_id}")
     return None
+
+
+def load_template_with_schema(
+    template_id: str, templates_dir: Path
+) -> Optional[Dict[str, Any]]:
+    """
+    Load template with full parameter schema including SUMO mappings.
+
+    This function loads a template and returns it as a dictionary with all
+    parameter schema details intact, suitable for parameter validation.
+
+    Args:
+        template_id: Unique template identifier
+        templates_dir: Root directory containing templates
+
+    Returns:
+        Complete template dictionary including parameter schemas,
+        or None if template not found or invalid
+    """
+    # Try to find the template file
+    template_files = scan_template_directory(templates_dir)
+
+    for file_path in template_files:
+        data = _load_json_file(file_path)
+        if data is None:
+            continue
+
+        if data.get("template_id") == template_id:
+            # Validate the template structure
+            if not validate_template(data):
+                logger.warning(f"Template {template_id} failed validation")
+                return None
+
+            return data
+
+    logger.warning(f"Template not found: {template_id}")
+    return None
+
+
+def validate_template_schema(template: Dict[str, Any]) -> bool:
+    """
+    Validate that template schema is well-formed and complete.
+
+    Checks for:
+    - Required fields (template_id, template_name, strategy_type, etc.)
+    - Parameter schema validity (no duplicate names, valid types)
+    - v2.0 specific requirements (SUMO mappings, conversion factors)
+    - SUMO element consistency with strategy type
+
+    Args:
+        template: Template dictionary to validate
+
+    Returns:
+        True if template schema is valid, False otherwise
+    """
+    if not isinstance(template, dict):
+        logger.error("Template must be a dictionary")
+        return False
+
+    # Check required fields
+    required_fields = [
+        "template_id",
+        "template_name",
+        "strategy_type",
+        "parameters_schema",
+    ]
+
+    for field in required_fields:
+        if field not in template:
+            logger.error(f"Template missing required field: {field}")
+            return False
+
+    # Validate strategy type
+    strategy_type = template.get("strategy_type")
+    if strategy_type not in ["VSS", "DHS", "TEC"]:
+        logger.error(f"Invalid strategy_type: {strategy_type}")
+        return False
+
+    # Validate parameter schema
+    params = template.get("parameters_schema", [])
+    if not isinstance(params, list) or len(params) == 0:
+        logger.error("parameters_schema must be a non-empty list")
+        return False
+
+    # Check for duplicate parameter names
+    param_names = set()
+    for param in params:
+        if not isinstance(param, dict):
+            logger.error("Each parameter in schema must be a dictionary")
+            return False
+
+        param_name = param.get("parameter_name")
+        if not param_name:
+            logger.error("Each parameter must have parameter_name field")
+            return False
+
+        if param_name in param_names:
+            logger.error(f"Duplicate parameter name: {param_name}")
+            return False
+
+        param_names.add(param_name)
+
+    # Validate parameter types
+    if not _validate_parameter_schema(params):
+        return False
+
+    # v2.0 specific validation
+    if template.get("version", "").startswith("2"):
+        sumo_element = template.get("sumo_element")
+
+        # VSS should use variableSpeedSign
+        if strategy_type == "VSS" and sumo_element != "variableSpeedSign":
+            logger.warning(
+                f"VSS template should use sumo_element='variableSpeedSign', "
+                f"got '{sumo_element}'"
+            )
+
+        # DHS should use rerouter or closingReroute
+        if strategy_type == "DHS" and sumo_element not in ["rerouter", "closingReroute"]:
+            logger.warning(
+                f"DHS template should use sumo_element='rerouter' or "
+                f"'closingReroute', got '{sumo_element}'"
+            )
+
+        # TEC should use calibrator or rerouter
+        if strategy_type == "TEC" and sumo_element not in ["calibrator", "rerouter"]:
+            logger.warning(
+                f"TEC template should use sumo_element='calibrator' or "
+                f"'rerouter', got '{sumo_element}'"
+            )
+
+        # Check for conversion factors in interval_structure/step_structure for array types
+        for param in params:
+            param_type = param.get("parameter_type")
+            if param_type == "step_array":
+                # step_array uses step_structure
+                step_structure = param.get("step_structure", {})
+                if not step_structure:
+                    logger.warning(
+                        f"Parameter '{param.get('parameter_name')}' of type "
+                        f"'step_array' should have step_structure metadata"
+                    )
+            elif param_type == "flow_interval_array":
+                # flow_interval_array uses interval_structure
+                interval_structure = param.get("interval_structure", {})
+                if not interval_structure:
+                    logger.warning(
+                        f"Parameter '{param.get('parameter_name')}' of type "
+                        f"'flow_interval_array' should have interval_structure metadata"
+                    )
+
+    return True

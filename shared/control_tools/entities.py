@@ -53,7 +53,9 @@ class ParameterSchema(BaseModel):
     """
     Defines a single configurable parameter within a strategy template.
 
-    Attributes:
+    Supports both v1.0 and v2.0 schema formats.
+
+    v1.0 Attributes (legacy):
         parameter_name: Parameter identifier (lowercase, alphanumeric, underscores)
         parameter_type: Data type (integer, float, string, boolean, array)
         description: Parameter explanation (Chinese)
@@ -63,17 +65,48 @@ class ParameterSchema(BaseModel):
         max_value: Maximum value for numeric types
         allowed_values: Enum values for restricted choices
         unit: Display unit (e.g., "km/h", "seconds") for numeric types
+
+    v2.0 Attributes (new):
+        parameter_type: Enhanced types (edge_array, step_array, flow_interval_array,
+                       enum_array, integer, number, enum, array, string)
+        unit: Display unit with conversion metadata
+        constraints: Dict with min_value, max_value, min_length, max_length, etc.
+        sumo_mapping: SUMO element/attribute where this maps
+        enum_values: List of {value, label} dicts for enums
+        interval_structure: Metadata for array-based types (conversion factors, units)
     """
 
     parameter_name: str = Field(..., min_length=1, max_length=50, pattern="^[a-z0-9_]+$")
-    parameter_type: str = Field(..., pattern="^(integer|float|string|boolean|array)$")
-    description: str = Field(..., min_length=1, max_length=200)
+    parameter_type: str = Field(
+        ...,
+        pattern=(
+            "^(integer|float|string|boolean|array|"
+            "edge_array|step_array|flow_interval_array|"
+            "enum_array|number|enum)$"
+        ),
+    )
+    description: str = Field(..., min_length=1, max_length=500)
     required: bool
     default_value: Optional[Any] = None
+
+    # v1.0 attributes
     min_value: Optional[float] = None
     max_value: Optional[float] = None
     allowed_values: Optional[List[Any]] = None
-    unit: Optional[str] = Field(None, max_length=20)
+
+    # v2.0 attributes
+    unit: Optional[str] = Field(None, max_length=50)
+    constraints: Optional[Dict[str, Any]] = None
+    sumo_mapping: Optional[str] = None
+    enum_values: Optional[List[Dict[str, str]]] = None
+    interval_structure: Optional[Dict[str, Any]] = None
+    note: Optional[str] = None
+    supplementary: Optional[bool] = False
+
+    class Config:
+        """Allow extra fields for forward compatibility."""
+
+        extra = "allow"
 
     @validator("max_value")
     def max_greater_than_min(cls, v, values):
@@ -97,8 +130,7 @@ class ControlTemplate(BaseModel):
     Root entity representing a traffic control strategy template.
 
     Templates are stored as JSON files and serve as blueprints for creating
-    strategy instances. Each template defines the strategy type, parameters,
-    and validation rules.
+    strategy instances. Supports both v1.0 and v2.0 schema formats.
 
     Attributes:
         template_id: Unique identifier (lowercase, alphanumeric, underscores)
@@ -109,16 +141,32 @@ class ControlTemplate(BaseModel):
         version: Template version (semantic versioning: "X.Y" or "X.Y.Z")
         created_at: Creation timestamp
         updated_at: Last modification timestamp
+
+    v2.0 Additional Attributes:
+        sumo_element: SUMO XML element type (variableSpeedSign, rerouter, calibrator)
+        critical_warnings: List of critical warnings for users
+        best_practices: Dict with usage guidelines
+        visualization_guidance: UI rendering hints
+        flow_reference_table: Reference data (for TEC templates)
+        implementation_note: Implementation guidance
     """
 
     template_id: str = Field(..., min_length=1, max_length=50, pattern="^[a-z0-9_]+$")
     template_name: str = Field(..., min_length=1, max_length=100)
-    description: str = Field(..., min_length=1, max_length=500)
+    description: str = Field(..., min_length=1, max_length=1000)
     strategy_type: StrategyType
     parameters_schema: List[ParameterSchema] = Field(..., min_items=1, max_items=20)
     version: str = Field(..., pattern=r"^\d+\.\d+(\.\d+)?$")
     created_at: datetime
     updated_at: datetime
+
+    # v2.0 attributes
+    sumo_element: Optional[str] = None
+    critical_warnings: Optional[List[str]] = None
+    best_practices: Optional[Dict[str, str]] = None
+    visualization_guidance: Optional[Dict[str, Any]] = None
+    flow_reference_table: Optional[Dict[str, Any]] = None
+    implementation_note: Optional[Dict[str, str]] = None
 
     @validator("updated_at")
     def updated_after_created(cls, v, values):
@@ -131,6 +179,7 @@ class ControlTemplate(BaseModel):
         """Pydantic configuration."""
 
         json_encoders = {datetime: lambda v: v.isoformat()}
+        extra = "allow"  # Allow extra fields for forward compatibility
 
 
 class TemplateIndexEntry(BaseModel):
