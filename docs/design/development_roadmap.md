@@ -2,6 +2,87 @@
 
 **目的**：将开发工作分解为小而可管理的阶段，每个阶段独立可测试、可交付。
 
+**最后更新**：2025-10-23
+
+---
+
+## 📊 当前进度总览
+
+### ✅ 已完成阶段
+
+- **Phase 0**: 基础设施准备 ✅ (2025-10-18)
+- **Phase 1A**: 策略模板系统 ✅ (2025-10-20) - 5个策略模板
+- **Phase 1B**: 数据库驱动边选择器 ✅ (2025-10-22) - 性能优化至<500ms
+- **Phase 1C**: 策略配置与CRUD ✅ (2025-10-23) - 19/19 测试通过
+
+### 🎯 第一个里程碑达成！
+
+**成果**: 用户现在可以完整地创建和管理交通管控策略实例
+- ✅ 浏览和选择策略模板
+- ✅ 使用高性能边选择器选择管控路段
+- ✅ 动态生成参数表单并验证
+- ✅ 创建、查看、删除策略实例
+
+---
+
+## 🚀 下一步推荐工作
+
+### 推荐选项1: Phase 2 - 方案管理（2周）⭐ **强烈推荐**
+
+**理由**：
+1. **自然延续**：Phase 1完成了单个策略管理，Phase 2将多个策略组合成方案
+2. **核心功能**：方案是进行批量仿真对比的基础
+3. **技术风险可控**：Additional文件生成是关键技术，需要尽早验证
+4. **用户价值高**：完成后用户可以设计完整的管控方案
+5. **技术方案已验证**：基于最新研究，VSS/DHS/TEC三类策略的SUMO实现方案已明确
+
+**关键交付物**：
+- 方案CRUD API（组合多个策略）
+- SUMO Additional文件生成器（VSS/DHS/TEC）
+  - VSS: 使用`<variableSpeedSign edges="...">`（SUMO v1.18+，推荐）
+  - DHS: 使用`<rerouter>` + `<closingLaneReroute>`
+  - TEC: 优先使用`<calibrator>`（流量控制），备选`<closingReroute>`（完全关闭）
+- 方案管理页面（策略选择、XML预览）
+
+**技术要点**：
+- **策略-方案两层架构**：策略（可复用单元） + 方案（策略组合）
+- **XML元素排序**：VSS → DHS → TEC（按管控链条顺序）
+- **支持基准方案**：无管控方案，用于对比分析
+
+**工作流**：
+```bash
+cd docs/design
+/speckit.specify
+# 描述：方案数据模型、策略组合逻辑、Additional生成器设计
+# 参考：sumo_control_strategies_research.md
+```
+
+### 推荐选项2: Phase 1D - 边选择器增强（1周）
+
+**理由**：
+1. **优化用户体验**：当前边选择器功能完整但可以更易用
+2. **工作量小**：1周即可完成，风险低
+3. **可选功能**：不影响核心流程，可作为快速迭代
+
+**关键交付物**：
+- 批量导入边列表（CSV/剪贴板）
+- 选择历史记录
+- 路网可视化增强（颜色编码、框选）
+
+**建议**：可以延后到Phase 2-3之后作为用户体验优化项
+
+### 技术预研建议
+
+在开始Phase 2之前，建议进行以下技术验证：
+
+1. **SUMO Additional文件格式验证**
+   - 研究SUMO官方文档中的variableSpeedSign、rerouter、closingLaneRerouter格式
+   - 创建测试用例验证生成的XML能被SUMO正确加载
+
+2. **策略组合逻辑设计**
+   - 多个策略作用于同一路段时的冲突检测
+   - 策略生效时间段的重叠处理
+
 ---
 
 ## 开发原则
@@ -110,7 +191,7 @@ Phase 4: 方案优化（2周）
 
 ---
 
-### **Phase 1A: 策略模板系统**（1周）✅ 已完成
+### **Phase 1A: 策略模板系统**（1周）✅ 已完成（2025-10-20）
 
 #### 目标
 实现策略模板的定义、存储和读取，用户可以浏览模板
@@ -120,6 +201,14 @@ Phase 4: 方案优化（2周）
 - [x] 模板解析器
 - [x] 模板列表API
 - [x] 前端模板展示页面
+
+#### 实际完成情况
+- ✅ Branch: `002-strategy-template-system`
+- ✅ 5个模板文件（VSS x2, DHS x1, TEC x2）
+- ✅ API: `control_template_routes.py`
+- ✅ 服务: `control_template_service.py`
+- ✅ 工具: `template_loader.py`
+- ✅ 前端: `frontend/control/templates.html`
 
 #### spec-kit工作流
 ```bash
@@ -169,7 +258,7 @@ Phase 4: 方案优化（2周）
 
 ---
 
-### **Phase 1B: 数据库驱动的边选择器**（2周）
+### **Phase 1B: 数据库驱动的边选择器**（2周）✅ 已完成（2025-10-22）
 
 #### 目标
 实现基于数据库的高级边选择功能，支持多维度筛选和可视化展示
@@ -179,6 +268,14 @@ Phase 4: 方案优化（2周）
 - [x] 高级筛选API（支持多条件组合）
 - [x] 前端多维度筛选界面
 - [x] 路网简图可视化（基于数据库坐标）
+
+#### 实际完成情况
+- ✅ Branch: `004-database-edge-selector`
+- ✅ 数据库查询: `shared/data_access/edge_query.py`（9个查询函数）
+- ✅ API路由: `control_strategy_routes.py`（边查询端点）
+- ✅ 数据库索引: `004_add_edge_query_indexes.sql`（7个性能索引）
+- ✅ 前端界面: `frontend/control/edge_selector.html`
+- ✅ 性能优化: 从5-10秒降至<500ms（静态方向分类+数据库索引）
 
 #### spec-kit工作流
 ```bash
@@ -355,7 +452,7 @@ GET /api/v1/control/edges/query
 
 ---
 
-### **Phase 1C: 策略配置与CRUD**（2周）
+### **Phase 1C: 策略配置与CRUD**（2周）✅ 已完成（2025-10-23）
 
 #### 目标
 实现策略的创建、编辑、删除功能，完成策略管理闭环
@@ -364,6 +461,16 @@ GET /api/v1/control/edges/query
 - [x] 动态参数表单生成器
 - [x] 策略CRUD API
 - [x] 策略管理完整页面
+
+#### 实际完成情况
+- ✅ Branch: `005-control-instance-creator`
+- ✅ 策略实例管理: `control_strategy_instance_routes.py`
+- ✅ 服务层: `control_strategy_service.py`
+- ✅ 文件管理: `shared/control_tools/strategy_file_manager.py`
+- ✅ 参数验证: `shared/control_tools/parameter_validator.py`
+- ✅ 实体定义: `shared/control_tools/entities.py`
+- ✅ 前端集成: `frontend/control/templates.html`（三步工作流）
+- ✅ 测试通过: US2 集成测试 19/19 通过，US4 删除工作流完整实现
 
 #### spec-kit工作流
 ```bash
@@ -628,25 +735,38 @@ GET /api/v1/control/edges/query
 
 ## 推荐执行顺序
 
-### **第一轮迭代**（完成基础功能）
+### ✅ **第一轮迭代**（完成基础功能）- 已完成
+
 ```
-Phase 0 → Phase 1A → Phase 1B → Phase 1C
+Phase 0 → Phase 1A → Phase 1B → Phase 1C ✅
         (基础)  (模板)  (边选择)  (策略管理)
                                     ↓
-                            【第一个里程碑】
+                            【第一个里程碑】✅
                       ✓ 用户可以创建和管理策略
 ```
 
-### **第二轮迭代**（完成方案和仿真）
+**完成时间**: 2025-10-18 至 2025-10-23（5天）
+**成果**: 策略模板系统、高性能边选择器、完整CRUD功能
+
+---
+
+### ⏭️ **第二轮迭代**（完成方案和仿真）- 当前推荐
+
 ```
 Phase 2 → Phase 3A → Phase 3B → Phase 3C
-(方案管理) (单仿真)  (批量调度)  (监控界面)
-                                    ↓
-                            【第二个里程碑】
-                   ✓ 用户可以运行批量仿真对比方案
+(方案管理) (单仿真)  (批量调度)  (监控界面) 👈 下一步
+    ↓
+【第二个里程碑】
+✓ 用户可以运行批量仿真对比方案
 ```
 
+**预计工作量**: 6周
+**关键产出**: Additional文件生成、批量仿真调度、进度监控
+
+---
+
 ### **第三轮迭代**（完成优化分析）
+
 ```
 Phase 4 → Phase 1D (可选)
 (优化分析) (可视化选择器)
@@ -654,6 +774,9 @@ Phase 4 → Phase 1D (可选)
 【第三个里程碑】
 ✓ 完整的管控优化闭环
 ```
+
+**预计工作量**: 3周
+**关键产出**: 评估指标计算、多目标排序、可视化对比
 
 ---
 
