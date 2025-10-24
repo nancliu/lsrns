@@ -1,0 +1,120 @@
+{
+  "template_id": "dhs_peak_multi_interval",
+  "template_name": "应急车道 - 多时段管理",
+  "description": "复杂的多时段应急车道管理方案，通过5+个时间段在24小时内精确控制应急车道的开放与关闭，实现最优的流量管理。模式：夜间关闭→早高峰开放→平峰关闭→晚高峰开放→夜间关闭。",
+  "strategy_type": "DHS",
+  "sumo_element": "rerouter",
+  "version": "2.0",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_edges",
+      "parameter_type": "edge_array",
+      "description": "受应急车道控制影响的路段edge ID列表",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "edges (直接使用)"
+    },
+    {
+      "parameter_name": "hard_shoulder_lane_index",
+      "parameter_type": "integer",
+      "description": "应急车道索引",
+      "required": false,
+      "default_value": 3,
+      "min_value": 0,
+      "max_value": 7,
+      "unit": null
+    },
+    {
+      "parameter_name": "intervals",
+      "parameter_type": "array",
+      "description": "5+个精确的时间段定义，确保完整覆盖24小时（0-24）",
+      "required": true,
+      "default_value": [
+        {
+          "label": "夜间段1 (00:00-07:00)",
+          "begin_hours": 0,
+          "end_hours": 7,
+          "status": "CLOSED",
+          "allowed_vehicle_types": ["emergency", "authority"],
+          "description": "凌晨和清晨，应急车道关闭"
+        },
+        {
+          "label": "早高峰 (07:00-09:00)",
+          "begin_hours": 7,
+          "end_hours": 9,
+          "status": "OPEN",
+          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"],
+          "description": "早上工作高峰，完全开放"
+        },
+        {
+          "label": "平峰段 (09:00-17:00)",
+          "begin_hours": 9,
+          "end_hours": 17,
+          "status": "CLOSED",
+          "allowed_vehicle_types": ["emergency", "authority"],
+          "description": "白天平峰，应急车道关闭"
+        },
+        {
+          "label": "晚高峰 (17:00-19:00)",
+          "begin_hours": 17,
+          "end_hours": 19,
+          "status": "OPEN",
+          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"],
+          "description": "下班时段，完全开放"
+        },
+        {
+          "label": "夜间段2 (19:00-24:00)",
+          "begin_hours": 19,
+          "end_hours": 24,
+          "status": "CLOSED",
+          "allowed_vehicle_types": ["emergency", "authority"],
+          "description": "晚间和夜间，应急车道关闭"
+        }
+      ],
+      "unit": null,
+      "constraints": {
+        "min_intervals": 5,
+        "max_intervals": 10,
+        "coverage": "必须覆盖完整24小时(0-24),无缝隙或重叠"
+      },
+      "validation_rules": [
+        "相邻区间的end_hours必须等于下一个区间的begin_hours",
+        "第一个区间必须以0开始,最后一个区间必须以24结束",
+        "所有时间值必须在0-24范围内"
+      ],
+      "interval_structure": {
+        "begin_display_unit": "hours",
+        "begin_sumo_unit": "seconds",
+        "begin_conversion_factor": 3600,
+        "end_display_unit": "hours",
+        "end_sumo_unit": "seconds",
+        "end_conversion_factor": 3600
+      },
+      "sumo_element": "interval",
+      "sumo_child_element": "closingLaneReroute"
+    },
+    {
+      "parameter_name": "allowed_vehicle_types",
+      "parameter_type": "enum_array",
+      "description": "开放时允许的车辆类型（可根据特定interval调整）",
+      "required": false,
+      "default_value": ["passenger", "bus", "truck", "emergency"],
+      "unit": null,
+      "enum_values": [
+        {"value": "passenger", "label": "乘用车 (客车)"},
+        {"value": "bus", "label": "公交车"},
+        {"value": "truck", "label": "货车"},
+        {"value": "emergency", "label": "应急车"}
+      ],
+      "sumo_mapping": "allow 属性"
+    }
+  ],
+  "creation_guidance": {
+    "preset_pattern": "默认标准模式：早(07-09) + 晚(17-19)高峰各2小时开放",
+    "customization": "用户可在每个interval中调整开放/关闭和允许的车型",
+    "timeline_visualization": "UI应显示24小时时间线，标记开放(绿色)和关闭(灰色)区间"
+  },
+  "created_at": "2025-10-24T12:00:00Z",
+  "updated_at": "2025-10-24T12:00:00Z"
+}

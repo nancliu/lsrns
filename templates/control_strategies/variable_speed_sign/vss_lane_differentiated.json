@@ -1,0 +1,79 @@
+{
+  "template_id": "vss_lane_differentiated",
+  "template_name": "可变限速 - 分车道控制",
+  "description": "对不同车道应用不同的限速，例如货车道80 km/h,小车道100 km/h。系统自动生成多个VSS元素分别控制不同车道组，实现精细的车型分离管理。",
+  "strategy_type": "VSS",
+  "sumo_element": "variableSpeedSign",
+  "version": "2.0",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_edges",
+      "parameter_type": "edge_array",
+      "description": "受限速影响的路段edge ID列表",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "lanes (按车道配置分组)"
+    },
+    {
+      "parameter_name": "lane_configurations",
+      "parameter_type": "array",
+      "description": "车道配置列表，定义每个车道的限速值（注：系统将为每个配置生成单独的VSS元素）",
+      "required": true,
+      "default_value": [
+        {
+          "lane_name": "货车道",
+          "lane_indices": [0],
+          "speed_kmh": 80,
+          "description": "最右侧车道（应急车道右侧）"
+        },
+        {
+          "lane_name": "小车道",
+          "lane_indices": [1, 2],
+          "speed_kmh": 100,
+          "description": "中间和左侧车道"
+        }
+      ],
+      "unit": null,
+      "constraints": {
+        "min_lanes": 2,
+        "max_lanes": 4
+      }
+    },
+    {
+      "parameter_name": "speed_steps",
+      "parameter_type": "step_array",
+      "description": "时间-限速值序列，所有车道组共用相同的时间步骤",
+      "required": true,
+      "default_value": [
+        {"time_hours": 7, "speed_offset_kmh": -20},
+        {"time_hours": 10, "speed_offset_kmh": 0},
+        {"time_hours": 17, "speed_offset_kmh": -20},
+        {"time_hours": 20, "speed_offset_kmh": 0}
+      ],
+      "unit": null,
+      "constraints": {
+        "min_steps": 1,
+        "max_steps": 10
+      },
+      "step_structure": {
+        "time_display_unit": "hours",
+        "time_sumo_unit": "seconds",
+        "time_conversion_factor": 3600,
+        "speed_display_unit": "km/h",
+        "speed_sumo_unit": "m/s",
+        "speed_conversion_factor": 0.277778,
+        "note": "speed_offset 为相对于lane_configurations中speed_kmh的偏移"
+      },
+      "sumo_element": "step",
+      "sumo_attributes": ["time", "speed"]
+    }
+  ],
+  "generation_strategy": {
+    "description": "系统为每个lane_configuration生成一个单独的variableSpeedSign元素",
+    "example": "2个lane_configuration → 2个variableSpeedSign元素（分别控制货车道和小车道）",
+    "xml_output": "每个lane组的XML id: vss_{strategy_id}_{lane_name}"
+  },
+  "created_at": "2025-10-24T12:00:00Z",
+  "updated_at": "2025-10-24T12:00:00Z"
+}

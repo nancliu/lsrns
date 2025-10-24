@@ -1,0 +1,111 @@
+{
+  "template_id": "vss_weather_based",
+  "template_name": "可变限速 - 天气应急",
+  "description": "适用于恶劣天气条件的渐进式限速控制，支持6个速度步骤反映天气发展和消散过程。例如雾天：120→100→80→60→100→120 km/h，从正常→浓雾→晴朗的渐进式变化。",
+  "strategy_type": "VSS",
+  "sumo_element": "variableSpeedSign",
+  "version": "2.0",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_edges",
+      "parameter_type": "edge_array",
+      "description": "受限速影响的路段edge ID列表",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "lanes (自动生成)"
+    },
+    {
+      "parameter_name": "weather_condition",
+      "parameter_type": "enum",
+      "description": "天气条件类型（仅用于文档和预设模板选择）",
+      "required": false,
+      "default_value": "fog",
+      "enum_values": [
+        {"value": "fog", "label": "大雾"},
+        {"value": "rain", "label": "暴雨"},
+        {"value": "snow", "label": "冰雪"},
+        {"value": "incident", "label": "事故"}
+      ]
+    },
+    {
+      "parameter_name": "speed_steps",
+      "parameter_type": "step_array",
+      "description": "时间-限速值序列，支持6+个步骤实现天气渐进式变化",
+      "required": true,
+      "default_value": [
+        {"time_hours": 0, "speed_kmh": 120},
+        {"time_hours": 6, "speed_kmh": 100},
+        {"time_hours": 8, "speed_kmh": 80},
+        {"time_hours": 10, "speed_kmh": 60},
+        {"time_hours": 14, "speed_kmh": 100},
+        {"time_hours": 16, "speed_kmh": 120}
+      ],
+      "unit": null,
+      "constraints": {
+        "min_steps": 2,
+        "max_steps": 10
+      },
+      "step_structure": {
+        "time_display_unit": "hours",
+        "time_sumo_unit": "seconds",
+        "time_conversion_factor": 3600,
+        "speed_display_unit": "km/h",
+        "speed_sumo_unit": "m/s",
+        "speed_conversion_factor": 0.277778,
+        "speed_min": 30,
+        "speed_max": 130
+      },
+      "sumo_element": "step",
+      "sumo_attributes": ["time", "speed"]
+    },
+    {
+      "parameter_name": "applicable_vehicle_types",
+      "parameter_type": "enum_array",
+      "description": "适用的车辆类型（留空表示所有车型）",
+      "required": false,
+      "default_value": [],
+      "unit": null,
+      "enum_values": [
+        {"value": "passenger", "label": "乘用车 (客车)"},
+        {"value": "bus", "label": "公交车"},
+        {"value": "truck", "label": "货车"},
+        {"value": "emergency", "label": "应急车"}
+      ]
+    }
+  ],
+  "presets": {
+    "fog": {
+      "description": "大雾天气-6步递进",
+      "speed_steps": [
+        {"time_hours": 0, "speed_kmh": 120},
+        {"time_hours": 6, "speed_kmh": 100},
+        {"time_hours": 8, "speed_kmh": 80},
+        {"time_hours": 10, "speed_kmh": 60},
+        {"time_hours": 14, "speed_kmh": 100},
+        {"time_hours": 16, "speed_kmh": 120}
+      ]
+    },
+    "rain": {
+      "description": "暴雨天气-4步递进",
+      "speed_steps": [
+        {"time_hours": 0, "speed_kmh": 120},
+        {"time_hours": 8, "speed_kmh": 80},
+        {"time_hours": 16, "speed_kmh": 100},
+        {"time_hours": 24, "speed_kmh": 120}
+      ]
+    },
+    "snow": {
+      "description": "冰雪天气-5步递进",
+      "speed_steps": [
+        {"time_hours": 0, "speed_kmh": 100},
+        {"time_hours": 7, "speed_kmh": 60},
+        {"time_hours": 12, "speed_kmh": 50},
+        {"time_hours": 17, "speed_kmh": 60},
+        {"time_hours": 24, "speed_kmh": 100}
+      ]
+    }
+  },
+  "created_at": "2025-10-24T12:00:00Z",
+  "updated_at": "2025-10-24T12:00:00Z"
+}

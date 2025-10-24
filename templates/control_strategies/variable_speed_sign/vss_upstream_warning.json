@@ -1,0 +1,85 @@
+{
+  "template_id": "vss_upstream_warning",
+  "template_name": "可变限速 - 上游预警",
+  "description": "在下游事件前的上游路段提前降速，通常提前3-15分钟。例如在DHS开放前5分钟，从120 km/h降至80 km/h，防止车辆因突然变化而紧急制动。",
+  "strategy_type": "VSS",
+  "sumo_element": "variableSpeedSign",
+  "version": "2.0",
+  "parameters_schema": [
+    {
+      "parameter_name": "affected_edges",
+      "parameter_type": "edge_array",
+      "description": "受限速影响的路段edge ID列表（通常在下游事件上游2-3km）",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "lanes (自动生成)"
+    },
+    {
+      "parameter_name": "warning_advance_minutes",
+      "parameter_type": "integer",
+      "description": "提前多少分钟开始降速（3-15分钟）",
+      "required": true,
+      "default_value": 5,
+      "min_value": 3,
+      "max_value": 15,
+      "unit": "分钟"
+    },
+    {
+      "parameter_name": "bottleneck_location",
+      "parameter_type": "string",
+      "description": "下游瓶颈或事件位置（可选，用于协调和文档）",
+      "required": false,
+      "default_value": "",
+      "unit": null
+    },
+    {
+      "parameter_name": "speed_steps",
+      "parameter_type": "step_array",
+      "description": "时间-限速值序列（通常3个步骤：正常→降低→恢复）",
+      "required": true,
+      "default_value": [
+        {"time_hours": 0, "speed_kmh": 120},
+        {"time_hours": 6.917, "speed_kmh": 80},
+        {"time_hours": 7, "speed_kmh": 120}
+      ],
+      "unit": null,
+      "constraints": {
+        "min_steps": 3,
+        "max_steps": 5
+      },
+      "step_structure": {
+        "time_display_unit": "hours",
+        "time_sumo_unit": "seconds",
+        "time_conversion_factor": 3600,
+        "speed_display_unit": "km/h",
+        "speed_sumo_unit": "m/s",
+        "speed_conversion_factor": 0.277778,
+        "speed_min": 30,
+        "speed_max": 130
+      },
+      "sumo_element": "step",
+      "sumo_attributes": ["time", "speed"]
+    },
+    {
+      "parameter_name": "applicable_vehicle_types",
+      "parameter_type": "enum_array",
+      "description": "适用的车辆类型（留空表示所有车型）",
+      "required": false,
+      "default_value": [],
+      "unit": null,
+      "enum_values": [
+        {"value": "passenger", "label": "乘用车 (客车)"},
+        {"value": "bus", "label": "公交车"},
+        {"value": "truck", "label": "货车"},
+        {"value": "emergency", "label": "应急车"}
+      ]
+    }
+  ],
+  "validation_rules": {
+    "time_step_before_event": "降速时间必须早于关联事件（如DHS开放）的时间",
+    "gradual_transition": "建议速度降低不超过40 km/h,避免过度制动"
+  },
+  "created_at": "2025-10-24T12:00:00Z",
+  "updated_at": "2025-10-24T12:00:00Z"
+}

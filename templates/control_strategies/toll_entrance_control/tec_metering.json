@@ -1,0 +1,106 @@
+{
+  "template_id": "tec_metering",
+  "template_name": "收费入口 - 限流",
+  "description": "使用匝道信号（metering）控制进入主线的流量。通过限制每小时进入的车辆数来控制入口流量，适用于需要精细流量控制的场景。",
+  "strategy_type": "TEC",
+  "sumo_element": "calibrator",
+  "version": "2.0",
+  "parameters_schema": [
+    {
+      "parameter_name": "entrance_edge",
+      "parameter_type": "string",
+      "description": "入口匝道edge ID（单一entrance）",
+      "required": true,
+      "default_value": "",
+      "unit": null,
+      "sumo_mapping": "edge 属性"
+    },
+    {
+      "parameter_name": "position",
+      "parameter_type": "number",
+      "description": "Calibrator位置（通常为0=入口起点）",
+      "required": false,
+      "default_value": 0,
+      "min_value": 0,
+      "max_value": 1000,
+      "unit": "米"
+    },
+    {
+      "parameter_name": "flow_intervals",
+      "parameter_type": "array",
+      "description": "流量控制的时间段和限流速率",
+      "required": true,
+      "default_value": [
+        {
+          "begin_hours": 0,
+          "end_hours": 7,
+          "vehsPerHour": 480,
+          "target_speed": 15,
+          "description": "夜间/平峰：正常流量"
+        },
+        {
+          "begin_hours": 7,
+          "end_hours": 9,
+          "vehsPerHour": 180,
+          "target_speed": 8,
+          "description": "早高峰：严格限流"
+        },
+        {
+          "begin_hours": 9,
+          "end_hours": 17,
+          "vehsPerHour": 480,
+          "target_speed": 15,
+          "description": "平峰：正常流量"
+        },
+        {
+          "begin_hours": 17,
+          "end_hours": 19,
+          "vehsPerHour": 300,
+          "target_speed": 10,
+          "description": "晚高峰：中度限流"
+        },
+        {
+          "begin_hours": 19,
+          "end_hours": 24,
+          "vehsPerHour": 480,
+          "target_speed": 15,
+          "description": "夜间：正常流量"
+        }
+      ],
+      "unit": null,
+      "constraints": {
+        "min_intervals": 1,
+        "max_intervals": 10,
+        "vehsPerHour_range": [0, 2000],
+        "target_speed_range": [5, 20]
+      },
+      "interval_structure": {
+        "begin_display_unit": "hours",
+        "begin_sumo_unit": "seconds",
+        "begin_conversion_factor": 3600,
+        "end_display_unit": "hours",
+        "end_sumo_unit": "seconds",
+        "end_conversion_factor": 3600,
+        "vehsPerHour_unit": "vehicles/hour",
+        "vehsPerHour_sumo_format": "直接使用",
+        "target_speed_display_unit": "m/s",
+        "target_speed_sumo_unit": "m/s",
+        "target_speed_note": "插入速度（为新进入车辆设置初始速度）"
+      },
+      "sumo_element": "flow",
+      "sumo_attributes": ["begin", "end", "vehsPerHour", "speed"]
+    }
+  ],
+  "flow_reference_table": {
+    "description": "常用流量值参考（vehicles/hour ↔ 间隔秒数）",
+    "table": [
+      {"vehsPerHour": 600, "interval_seconds": 6, "level": "正常通行"},
+      {"vehsPerHour": 480, "interval_seconds": 7.5, "level": "轻度限流"},
+      {"vehsPerHour": 360, "interval_seconds": 10, "level": "中度限流"},
+      {"vehsPerHour": 240, "interval_seconds": 15, "level": "严格限流"},
+      {"vehsPerHour": 180, "interval_seconds": 20, "level": "极严格限流"}
+    ]
+  },
+  "created_at": "2025-10-24T12:00:00Z",
+  "updated_at": "2025-10-24T12:00:00Z"
+}

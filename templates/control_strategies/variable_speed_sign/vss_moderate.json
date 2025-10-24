@@ -3,51 +3,62 @@
   "template_name": "可变限速 - 中等控制",
   "description": "适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段。通过动态调整限速值来平衡交通流量，减少拥堵风险。",
   "strategy_type": "VSS",
+  "sumo_element": "variableSpeedSign",
+  "version": "2.0",
   "parameters_schema": [
     {
       "parameter_name": "affected_edges",
-      "parameter_type": "array",
-      "description": "受限速影响的路段列表，输入SUMO网络中的edge ID",
+      "parameter_type": "edge_array",
+      "description": "受限速影响的路段edge ID列表",
       "required": true,
       "default_value": [],
-      "unit": null
+      "unit": null,
+      "sumo_mapping": "lanes (自动生成)"
     },
     {
-      "parameter_name": "speed_limit",
-      "parameter_type": "integer",
-      "description": "限速值（公里/小时）",
+      "parameter_name": "speed_steps",
+      "parameter_type": "step_array",
+      "description": "时间-限速值序列，支持多个步骤实现时变控制",
       "required": true,
-      "default_value": 80,
-      "min_value": 40,
-      "max_value": 100,
-      "unit": "km/h"
-    },
-    {
-      "parameter_name": "time_intervals",
-      "parameter_type": "array",
-      "description": "限速生效的时段列表，格式：[[开始小时, 结束小时]]",
-      "required": true,
-      "default_value": [[7, 9], [17, 19]],
-      "unit": null
-    },
-    {
-      "parameter_name": "speed_levels",
-      "parameter_type": "array",
-      "description": "分级限速值列表，支持根据流量动态调整",
-      "required": false,
-      "default_value": [100, 80, 60],
-      "unit": "km/h"
+      "default_value": [
+        {"time_hours": 7, "speed_kmh": 100},
+        {"time_hours": 9, "speed_kmh": 80},
+        {"time_hours": 17, "speed_kmh": 100},
+        {"time_hours": 19, "speed_kmh": 80}
+      ],
+      "unit": null,
+      "constraints": {
+        "min_steps": 1,
+        "max_steps": 10
+      },
+      "step_structure": {
+        "time_display_unit": "hours",
+        "time_sumo_unit": "seconds",
+        "time_conversion_factor": 3600,
+        "speed_display_unit": "km/h",
+        "speed_sumo_unit": "m/s",
+        "speed_conversion_factor": 0.277778,
+        "speed_min": 30,
+        "speed_max": 130
+      },
+      "sumo_element": "step",
+      "sumo_attributes": ["time", "speed"]
     },
     {
       "parameter_name": "applicable_vehicle_types",
-      "parameter_type": "array",
-      "description": "适用的车辆类型列表，留空表示所有车型",
+      "parameter_type": "enum_array",
+      "description": "适用的车辆类型（留空表示所有车型）",
       "required": false,
       "default_value": [],
-      "unit": null
+      "unit": null,
+      "enum_values": [
+        {"value": "passenger", "label": "乘用车 (客车)"},
+        {"value": "bus", "label": "公交车"},
+        {"value": "truck", "label": "货车"},
+        {"value": "emergency", "label": "应急车"}
+      ]
     }
   ],
-  "version": "1.0",
   "created_at": "2025-10-19T00:00:00Z",
-  "updated_at": "2025-10-19T00:00:00Z"
+  "updated_at": "2025-10-24T12:00:00Z"
 }

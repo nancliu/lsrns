@@ -1,7 +1,7 @@
 {
-  "template_id": "dhs_peak_hours",
-  "template_name": "应急车道开放",
-  "description": "高峰期开放应急车道（硬路肩）作为临时车道，增加道路通行能力。适用于拥堵严重的高速公路路段，通过临时车道缓解交通压力。",
+  "template_id": "dhs_passenger_only",
+  "template_name": "应急车道 - 仅客车",
+  "description": "应急车道仅允许乘用车和公交车通行，禁止货车和特种车辆。适用于需要优先保障客运流量的路段，同时限制货车造成的拥堵。",
   "strategy_type": "DHS",
   "sumo_element": "rerouter",
   "version": "2.0",
@@ -9,7 +9,7 @@
     {
       "parameter_name": "affected_edges",
       "parameter_type": "edge_array",
-      "description": "受应急车道控制影响的路段edge ID列表（应形成连续区间）",
+      "description": "受应急车道控制影响的路段edge ID列表",
       "required": true,
       "default_value": [],
       "unit": null,
@@ -18,18 +18,17 @@
     {
       "parameter_name": "hard_shoulder_lane_index",
       "parameter_type": "integer",
-      "description": "应急车道索引（通常为最大索引=最右侧车道）",
+      "description": "应急车道索引",
       "required": false,
       "default_value": 3,
       "min_value": 0,
       "max_value": 7,
-      "unit": null,
-      "note": "4车道公路：索引3为硬路肩；3车道：索引2为硬路肩"
+      "unit": null
     },
     {
       "parameter_name": "intervals",
       "parameter_type": "array",
-      "description": "应急车道开放/关闭的时间区间列表",
+      "description": "应急车道开放/关闭的时间区间",
       "required": true,
       "default_value": [
         {
@@ -42,7 +41,7 @@
           "begin_hours": 7,
           "end_hours": 9,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+          "allowed_vehicle_types": ["passenger", "bus", "emergency"]
         },
         {
           "begin_hours": 9,
@@ -54,7 +53,7 @@
           "begin_hours": 17,
           "end_hours": 19,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+          "allowed_vehicle_types": ["passenger", "bus", "emergency"]
         },
         {
           "begin_hours": 19,
@@ -66,8 +65,7 @@
       "unit": null,
       "constraints": {
         "min_intervals": 1,
-        "max_intervals": 10,
-        "coverage": "应覆盖完整的24小时"
+        "max_intervals": 10
       },
       "interval_structure": {
         "begin_display_unit": "hours",
@@ -83,19 +81,24 @@
     {
       "parameter_name": "allowed_vehicle_types",
       "parameter_type": "enum_array",
-      "description": "应急车道开放时允许通行的车辆类型",
+      "description": "允许通行的车辆类型（预设为仅客车和公交）",
       "required": false,
-      "default_value": ["passenger", "bus", "truck", "emergency"],
+      "default_value": ["passenger", "bus"],
       "unit": null,
       "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)"},
-        {"value": "bus", "label": "公交车"},
-        {"value": "truck", "label": "货车"},
-        {"value": "emergency", "label": "应急车"}
+        {"value": "passenger", "label": "乘用车 (客车)", "disabled": false},
+        {"value": "bus", "label": "公交车", "disabled": false},
+        {"value": "truck", "label": "货车", "disabled": true},
+        {"value": "emergency", "label": "应急车", "disabled": false}
       ],
-      "sumo_mapping": "allow 属性"
+      "sumo_mapping": "allow 属性",
+      "note": "货车和配送车自动禁止（show_prohibited_types: ['truck', 'delivery']）"
     }
   ],
-  "created_at": "2025-10-19T00:00:00Z",
+  "warnings": [
+    "货车限制可能导致货车经由其他路线拥堵 - 请监控总体网络影响",
+    "可能需要配合上游VSS预警限速以平滑车流"
+  ],
+  "created_at": "2025-10-24T12:00:00Z",
   "updated_at": "2025-10-24T12:00:00Z"
 }

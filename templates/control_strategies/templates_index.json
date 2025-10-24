@@ -1,0 +1,166 @@
+{
+  "templates": [
+    {
+      "template_id": "vss_moderate",
+      "template_name": "可变限速 - 中等控制",
+      "strategy_type": "VSS",
+      "version": "2.0",
+      "file_path": "variable_speed_sign/vss_moderate.json",
+      "sumo_element": "variableSpeedSign",
+      "use_case": "高峰期中等强度限速，80-100 km/h范围",
+      "difficulty": "简单"
+    },
+    {
+      "template_id": "vss_strict",
+      "template_name": "可变限速 - 严格控制",
+      "strategy_type": "VSS",
+      "version": "2.0",
+      "file_path": "variable_speed_sign/vss_strict.json",
+      "sumo_element": "variableSpeedSign",
+      "use_case": "拥堵路段严格限速，60-80 km/h范围",
+      "difficulty": "简单"
+    },
+    {
+      "template_id": "vss_weather_based",
+      "template_name": "可变限速 - 天气应急",
+      "strategy_type": "VSS",
+      "version": "2.0",
+      "file_path": "variable_speed_sign/vss_weather_based.json",
+      "sumo_element": "variableSpeedSign",
+      "use_case": "恶劣天气的渐进式限速，6步递进",
+      "difficulty": "中等",
+      "supplementary": true
+    },
+    {
+      "template_id": "vss_upstream_warning",
+      "template_name": "可变限速 - 上游预警",
+      "strategy_type": "VSS",
+      "version": "2.0",
+      "file_path": "variable_speed_sign/vss_upstream_warning.json",
+      "sumo_element": "variableSpeedSign",
+      "use_case": "下游事件前的上游预警限速，3步固定",
+      "difficulty": "中等",
+      "supplementary": true
+    },
+    {
+      "template_id": "vss_lane_differentiated",
+      "template_name": "可变限速 - 分车道控制",
+      "strategy_type": "VSS",
+      "version": "2.0",
+      "file_path": "variable_speed_sign/vss_lane_differentiated.json",
+      "sumo_element": "variableSpeedSign",
+      "use_case": "不同车道应用不同限速，实现车型分离",
+      "difficulty": "中等",
+      "supplementary": true
+    },
+    {
+      "template_id": "dhs_peak_hours",
+      "template_name": "应急车道开放",
+      "strategy_type": "DHS",
+      "version": "2.0",
+      "file_path": "dynamic_hard_shoulder/dhs_peak_hours.json",
+      "sumo_element": "rerouter",
+      "use_case": "高峰期开放应急车道增加通行能力，5时段管理",
+      "difficulty": "简单"
+    },
+    {
+      "template_id": "dhs_passenger_only",
+      "template_name": "应急车道 - 仅客车",
+      "strategy_type": "DHS",
+      "version": "2.0",
+      "file_path": "dynamic_hard_shoulder/dhs_passenger_only.json",
+      "sumo_element": "rerouter",
+      "use_case": "应急车道仅允许客车，禁止货车",
+      "difficulty": "中等",
+      "supplementary": true
+    },
+    {
+      "template_id": "dhs_peak_multi_interval",
+      "template_name": "应急车道 - 多时段管理",
+      "strategy_type": "DHS",
+      "version": "2.0",
+      "file_path": "dynamic_hard_shoulder/dhs_peak_multi_interval.json",
+      "sumo_element": "rerouter",
+      "use_case": "复杂的5+时段应急车道精确管理，覆盖24小时",
+      "difficulty": "高",
+      "supplementary": true
+    },
+    {
+      "template_id": "tec_metering",
+      "template_name": "收费入口 - 限流",
+      "strategy_type": "TEC",
+      "version": "2.0",
+      "file_path": "toll_entrance_control/tec_metering.json",
+      "sumo_element": "calibrator",
+      "use_case": "匝道信号流量控制，5时段流量设置",
+      "difficulty": "简单"
+    },
+    {
+      "template_id": "tec_metering_advanced",
+      "template_name": "收费入口 - 时变限流",
+      "strategy_type": "TEC",
+      "version": "2.0",
+      "file_path": "toll_entrance_control/tec_metering_advanced.json",
+      "sumo_element": "calibrator",
+      "use_case": "高级匝道控制，精细的4+时段流量管理",
+      "difficulty": "中等",
+      "supplementary": true
+    },
+    {
+      "template_id": "tec_entrance_close",
+      "template_name": "收费入口 - 关闭",
+      "strategy_type": "TEC",
+      "version": "2.0",
+      "file_path": "toll_entrance_control/tec_entrance_close.json",
+      "sumo_element": "rerouter",
+      "use_case": "临时关闭收费站入口，支持多时段",
+      "difficulty": "简单"
+    },
+    {
+      "template_id": "tec_truck_ban",
+      "template_name": "收费入口 - 货车限行",
+      "strategy_type": "TEC",
+      "version": "2.0",
+      "file_path": "toll_entrance_control/tec_truck_ban.json",
+      "sumo_element": "rerouter",
+      "use_case": "禁止货车进入特定入口，支持多时段",
+      "difficulty": "简单"
+    },
+    {
+      "template_id": "tec_closure_complete",
+      "template_name": "收费入口 - 完全关闭",
+      "strategy_type": "TEC",
+      "version": "2.0",
+      "file_path": "toll_entrance_control/tec_closure_complete.json",
+      "sumo_element": "rerouter",
+      "use_case": "完全阻挡所有车辆进入（仅紧急情况）",
+      "difficulty": "高",
+      "supplementary": true
+    }
+  ],
+  "summary": {
+    "total_templates": 13,
+    "base_templates": 5,
+    "supplementary_templates": 8,
+    "by_type": {
+      "VSS": 5,
+      "DHS": 3,
+      "TEC": 5
+    },
+    "by_difficulty": {
+      "简单": 6,
+      "中等": 5,
+      "高": 2
+    },
+    "version": "2.0",
+    "release_date": "2025-10-24",
+    "description": "完整的SUMO v1.19验证的策略模板库，包括5个基础模板和8个真实场景的补充模板"
+  },
+  "notes": {
+    "base_templates": "这5个模板提供基本的控制策略功能，适合标准应用场景",
+    "supplementary_templates": "这8个模板源自SUMO研究文档的真实示例，实现更复杂的流量管理需求",
+    "sumo_compatibility": "所有模板都经过SUMO v1.19验证，使用正确的XML元素和属性",
+    "backward_compatibility": "v1.0策略保持不变；新策略默认使用v2.0模板",
+    "usage_guidance": "用户可从简单模板开始，根据需求逐步使用更复杂的补充模板"
+  }
+}
