@@ -216,3 +216,248 @@ header h1 {
 .param-optional {
     color: #95a5a6;
 }
+
+/* ==================== Enhanced Parameter Form Styles ==================== */
+
+/* Number input with range hints (Task 1.2) */
+.number-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.number-input-wrapper .form-control {
+    flex: 1;
+    min-width: 150px;
+}
+
+.unit-label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.parameter-hint {
+    display: block;
+    width: 100%;
+    color: #3498db;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+/* Array input with smart placeholders (Task 1.1) */
+.array-input {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    min-height: 120px;
+    white-space: pre;
+}
+
+.array-input::placeholder {
+    color: #95a5a6;
+    font-size: 0.85rem;
+}
+
+/* Parameter feedback (validation messages) */
+.parameter-feedback {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.parameter-feedback.error {
+    background: #fee;
+    color: #e74c3c;
+    border-left: 3px solid #e74c3c;
+}
+
+.parameter-feedback.warning {
+    background: #fffbea;
+    color: #f39c12;
+    border-left: 3px solid #f39c12;
+}
+
+.parameter-feedback.success {
+    background: #eafaf1;
+    color: #27ae60;
+    border-left: 3px solid #27ae60;
+}
+
+/* ==================== Edge Display Table Styles (Task 2.1) ==================== */
+
+.edge-summary {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Validation issues (Task 2.3, 2.4) */
+.validation-issues {
+    margin-bottom: 20px;
+}
+
+.validation-error,
+.validation-warning {
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.validation-error {
+    background: #fee;
+    border-left: 4px solid #e74c3c;
+}
+
+.validation-warning {
+    background: #fffbea;
+    border-left: 4px solid #f39c12;
+}
+
+.validation-header {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 1rem;
+}
+
+.validation-details {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.validation-note {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+/* Edge table */
+.edge-table-wrapper {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.edge-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.edge-table thead {
+    background: #3498db;
+    color: white;
+}
+
+.edge-table th {
+    padding: 14px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.edge-table tbody tr {
+    border-bottom: 1px solid #ecf0f1;
+    transition: all 0.2s ease;
+}
+
+.edge-table tbody tr:hover {
+    background: #f0f8ff;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.1);
+}
+
+.edge-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.edge-table td {
+    padding: 12px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+/* 序号列 */
+.edge-table td:first-child {
+    color: #95a5a6;
+    font-weight: 500;
+    text-align: center;
+    width: 50px;
+}
+
+/* 桩号列样式 */
+.edge-table td:nth-child(5),
+.edge-table td:nth-child(6) {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: #2c3e50;
+    font-size: 0.85rem;
+}
+
+.edge-table .edge-id {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: #3498db;
+    font-weight: 500;
+}
+
+.edge-table-note {
+    text-align: center;
+    padding: 10px;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.edge-table-empty,
+.edge-table-error {
+    background: white;
+    padding: 40px 20px;
+    border-radius: 8px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.edge-table-error {
+    color: #e74c3c;
+}
+
+/* Pagination (placeholder) */
+.edge-table-pagination {
+    padding: 15px;
+    text-align: center;
+    background: #f8f9fa;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}

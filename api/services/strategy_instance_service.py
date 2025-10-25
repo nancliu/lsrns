@@ -272,6 +272,10 @@ class StrategyInstanceService:
         """
         Get strategy details by ID.
 
+        Supports both schema types:
+        - API-created: affected_edges, parameters, metadata at top level
+        - Demo files: configured_params, created_at/updated_at at top level
+
         Args:
             strategy_id: Strategy identifier
 
@@ -289,8 +293,26 @@ class StrategyInstanceService:
             logger.warning(f"Strategy not found: {strategy_id}")
             return None
 
+        strategy_type = strategy.get("strategy_type", "")
+
+        # Extract edge IDs based on schema type
+        if "affected_edges" in strategy:
+            # API-created schema
+            edge_ids = strategy.get("affected_edges", [])
+        elif "configured_params" in strategy:
+            # Demo schema
+            configured_params = strategy.get("configured_params", {})
+            if strategy_type == "TEC":
+                # TEC uses entrance_edge (single edge)
+                entrance_edge = configured_params.get("entrance_edge", "")
+                edge_ids = [entrance_edge] if entrance_edge else []
+            else:
+                # VSS/DHS use affected_edges array
+                edge_ids = configured_params.get("affected_edges", [])
+        else:
+            edge_ids = []
+
         # Enrich edge data
-        edge_ids = strategy.get("affected_edges", [])
         enriched_edges = self._enrich_edges(edge_ids)
 
         # Convert to EdgeDetail models
@@ -304,14 +326,44 @@ class StrategyInstanceService:
             for edge in enriched_edges
         ]
 
-        # Build metadata
-        metadata_dict = strategy.get("metadata", {})
-        metadata = StrategyMetadata(
-            created_at=metadata_dict.get("created_at", ""),
-            updated_at=metadata_dict.get("updated_at", ""),
-            created_by=metadata_dict.get("created_by", ""),
-            version=metadata_dict.get("version", 1),
-        )
+        # Extract parameters based on schema type
+        if "parameters" in strategy:
+            # API-created schema
+            parameters = strategy.get("parameters", {})
+        elif "configured_params" in strategy:
+            # Demo schema - use configured_params as parameters
+            parameters = strategy.get("configured_params", {})
+        else:
+            parameters = {}
+
+        # Extract template_name
+        template_name = strategy.get("template_name", "")
+        if not template_name:
+            # Try to load from template
+            template = self._load_template(strategy.get("template_id", ""))
+            if template:
+                template_name = template.get("template_name", strategy.get("template_id", ""))
+            else:
+                template_name = strategy.get("template_id", "")
+
+        # Build metadata based on schema type
+        if "metadata" in strategy:
+            # API-created schema
+            metadata_dict = strategy.get("metadata", {})
+            metadata = StrategyMetadata(
+                created_at=metadata_dict.get("created_at", ""),
+                updated_at=metadata_dict.get("updated_at", ""),
+                created_by=metadata_dict.get("created_by", ""),
+                version=metadata_dict.get("version", 1),
+            )
+        else:
+            # Demo schema
+            metadata = StrategyMetadata(
+                created_at=strategy.get("created_at", ""),
+                updated_at=strategy.get("updated_at", ""),
+                created_by=strategy.get("created_by", "system"),
+                version=1,
+            )
 
         # Performance monitoring (FR-041)
         duration = time.time() - start_time
@@ -341,9 +393,9 @@ class StrategyInstanceService:
             strategy_id=strategy["strategy_id"],
             strategy_name=strategy["strategy_name"],
             template_id=strategy["template_id"],
-            template_name=strategy["template_name"],
-            strategy_type=strategy["strategy_type"],
-            parameters=strategy.get("parameters", {}),
+            template_name=template_name,
+            strategy_type=strategy_type,
+            parameters=parameters,
             affected_edges=edge_details,
             metadata=metadata,
             is_used_in_plans=False,  # Phase 2 integration point (FR-044)
@@ -432,6 +484,10 @@ class StrategyInstanceService:
         """
         Update an existing strategy.
 
+        Supports both schema types:
+        - API-created: affected_edges, parameters, metadata at top level
+        - Demo files: configured_params, created_at/updated_at at top level
+
         Args:
             strategy_id: Strategy identifier
             request: Update request with optional fields
@@ -448,8 +504,16 @@ class StrategyInstanceService:
         if strategy is None:
             return None
 
+        # Determine schema type
+        is_demo_schema = "configured_params" in strategy
+        strategy_type = strategy.get("strategy_type", "")
+
         # Check optimistic concurrency control
-        current_updated_at = strategy["metadata"]["updated_at"]
+        if "metadata" in strategy:
+            current_updated_at = strategy["metadata"]["updated_at"]
+        else:
+            current_updated_at = strategy.get("updated_at", "")
+
         if current_updated_at != request.original_updated_at:
             raise ValueError(
                 f"Concurrency conflict: strategy was modified. "
@@ -463,15 +527,41 @@ class StrategyInstanceService:
 
         if request.parameters is not None:
             # TODO: Validate updated parameters against template schema
-            strategy["parameters"] = request.parameters
+            if is_demo_schema:
+                # Update configured_params for demo schema
+                strategy["configured_params"] = request.parameters
+            else:
+                # Update parameters for API schema
+                strategy["parameters"] = request.parameters
 
         if request.affected_edges is not None:
-            strategy["affected_edges"] = request.affected_edges
+            if is_demo_schema:
+                # For demo schema, update the appropriate field
+                if strategy_type == "TEC":
+                    # TEC uses entrance_edge (single edge)
+                    if request.affected_edges:
+                        strategy["configured_params"]["entrance_edge"] = request.affected_edges[0]
+                    else:
+                        strategy["configured_params"]["entrance_edge"] = ""
+                else:
+                    # VSS/DHS use affected_edges array
+                    strategy["configured_params"]["affected_edges"] = request.affected_edges
+            else:
+                # API schema uses affected_edges directly
+                strategy["affected_edges"] = request.affected_edges
 
-        # Update metadata
-        strategy["metadata"]["updated_at"] = datetime.now(timezone.utc).isoformat()
-        old_version = strategy["metadata"]["version"]
-        strategy["metadata"]["version"] = old_version + 1
+        # Update metadata/timestamps
+        current_time = datetime.now(timezone.utc).isoformat()
+
+        if "metadata" in strategy:
+            # API schema
+            strategy["metadata"]["updated_at"] = current_time
+            old_version = strategy["metadata"]["version"]
+            strategy["metadata"]["version"] = old_version + 1
+        else:
+            # Demo schema
+            strategy["updated_at"] = current_time
+            old_version = 1  # Demo files don't have versions
 
         # Save updated strategy
         success = save_strategy(strategy, self.strategies_dir)
@@ -484,7 +574,7 @@ class StrategyInstanceService:
             f"Strategy updated successfully",
             extra={
                 "strategy_id": strategy_id,
-                "version_change": f"v{old_version}→v{strategy['metadata']['version']}",
+                "version_change": f"v{old_version}→v{old_version + 1}",
             },
         )
 
@@ -530,6 +620,99 @@ class StrategyInstanceService:
             )
 
         return success
+
+    def copy_strategy(self, strategy_id: str, new_name: Optional[str] = None) -> StrategyCreateResponse:
+        """
+        Copy an existing strategy with a new ID and name.
+
+        Args:
+            strategy_id: Strategy identifier to copy
+            new_name: Optional new name (defaults to "[Copy] Original Name")
+
+        Returns:
+            StrategyCreateResponse with new strategy_id
+
+        Raises:
+            ValueError: If source strategy not found
+        """
+        # Load source strategy
+        source_strategy = load_strategy(strategy_id, self.strategies_dir)
+
+        if source_strategy is None:
+            raise ValueError(f"Source strategy not found: {strategy_id}")
+
+        # Determine schema type
+        is_demo_schema = "configured_params" in source_strategy
+        strategy_type = source_strategy.get("strategy_type", "")
+
+        # Generate new strategy ID
+        new_strategy_id = generate_strategy_id()
+
+        # Determine new name
+        if new_name is None:
+            original_name = source_strategy.get("strategy_name", "Unnamed Strategy")
+            new_name = f"[复制] {original_name}"
+
+        # Get system identifier and current time
+        created_by = self._get_system_identifier()
+        current_time = datetime.now(timezone.utc).isoformat()
+
+        # Build copied strategy
+        if is_demo_schema:
+            # Demo schema
+            copied_strategy = {
+                "strategy_id": new_strategy_id,
+                "strategy_name": new_name,
+                "description": source_strategy.get("description", ""),
+                "template_id": source_strategy.get("template_id", ""),
+                "strategy_type": strategy_type,
+                "configured_params": source_strategy.get("configured_params", {}).copy(),
+                "tags": source_strategy.get("tags", []).copy(),
+                "created_at": current_time,
+                "updated_at": current_time,
+                "created_by": created_by,
+                "status": "active",
+            }
+        else:
+            # API schema
+            template_name = source_strategy.get("template_name", "")
+            copied_strategy = {
+                "strategy_id": new_strategy_id,
+                "strategy_name": new_name,
+                "template_id": source_strategy.get("template_id", ""),
+                "template_name": template_name,
+                "strategy_type": strategy_type,
+                "parameters": source_strategy.get("parameters", {}).copy(),
+                "affected_edges": source_strategy.get("affected_edges", []).copy(),
+                "metadata": {
+                    "created_at": current_time,
+                    "updated_at": current_time,
+                    "created_by": created_by,
+                    "version": 1,
+                },
+            }
+
+        # Save copied strategy
+        success = save_strategy(copied_strategy, self.strategies_dir)
+
+        if not success:
+            raise RuntimeError(f"Failed to save copied strategy")
+
+        # Log copy operation
+        logger.info(
+            f"Strategy copied successfully",
+            extra={
+                "source_strategy_id": strategy_id,
+                "new_strategy_id": new_strategy_id,
+                "new_name": new_name,
+                "created_by": created_by,
+            },
+        )
+
+        return StrategyCreateResponse(
+            strategy_id=new_strategy_id,
+            message=f"Strategy copied successfully from {strategy_id}"
+        )
 
     def reindex_strategies(self) -> Dict[str, Any]:
         """

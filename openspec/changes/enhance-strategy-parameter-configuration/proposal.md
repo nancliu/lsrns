@@ -1,176 +1,178 @@
-# Proposal: Enhance Strategy Parameter Configuration
+# 提案：优化策略参数配置功能
 
-**Change ID**: enhance-strategy-parameter-configuration
-**Status**: Draft
-**Created**: 2025-10-25
-**Author**: System
+**变更ID**: enhance-strategy-parameter-configuration
+**状态**: 草稿
+**创建日期**: 2025-10-25
+**作者**: System
 
-## Problem Statement
+## 问题陈述
 
-The current strategy parameter configuration page (Step 3 in the strategy creation workflow) has several critical usability and functionality issues that prevent users from successfully creating strategy instances:
+当前策略参数配置页面（策略创建工作流的第3步）存在多个关键的可用性和功能性问题，导致用户无法成功创建策略实例：
 
-### Current Issues
+### 当前问题
 
-1. **Missing Parameter Input Functionality**
-   - Some parameter types (especially complex arrays like `time_intervals`, `speed_steps`) cannot be properly filled in
-   - Array inputs lack clear guidance on format (JSON vs newline-separated vs comma-separated)
-   - No visual editors for complex structured data (time-speed pairs, flow intervals)
+1. **参数输入功能缺失**
+   - 某些参数类型（特别是复杂数组如 `time_intervals`、`speed_steps`）无法正确填写
+   - 数组输入缺乏明确的格式指引（JSON vs 换行分隔 vs 逗号分隔）
+   - 缺少针对复杂结构化数据的可视化编辑器（时间-速度对、流量时段等）
 
-2. **Insufficient Edge Selection Display**
-   - Selected edge list only shows `edge_id`
-   - Missing critical context: route code, section code, stake range, lane count, direction
-   - Users cannot verify they selected correct edges without returning to Step 2
+2. **路段选择展示不足**
+   - 已选路段列表仅显示 `edge_id`
+   - 缺少关键上下文信息：路线代码、路段代码、桩号范围、车道数、方向
+   - 用户无法验证是否选择了正确的路段，需要返回第2步才能确认
 
-3. **Manual Strategy Naming**
-   - Users must manually create strategy names, leading to:
-     - Inconsistent naming conventions
-     - Difficulty in identifying strategies later
-     - Missing key context (location, parameters, time periods)
+3. **策略命名需手动填写**
+   - 用户必须手动创建策略名称，导致：
+     - 命名规范不一致
+     - 后续难以识别策略
+     - 缺少关键上下文（位置、参数、时段）
 
-4. **Manual Strategy Description**
-   - Strategy descriptions must be manually written
-   - Templates provide description templates but users must adapt them
-   - Descriptions often omit critical parameter details
+4. **策略描述需手动编写**
+   - 策略描述必须手动撰写
+   - 模板提供了描述模板但用户需要手动适配
+   - 描述经常遗漏关键参数细节
 
-5. **Personnel Information in Configuration**
-   - Current design may include personnel/OA fields
-   - Project does not integrate with business OA system
-   - Personnel fields should be removed from configuration
+5. **配置中包含人员信息字段**
+   - 当前设计可能包含人员/OA字段
+   - 本项目不对接业务OA系统
+   - 应从配置中移除人员字段
 
-## Proposed Solution
+## 解决方案
 
-Enhance the parameter configuration page (Step 3) with:
+增强参数配置页面（第3步）的功能：
 
-1. **Smart Parameter Input Components**
-   - Visual editors for complex parameter types (time-speed pairs, intervals, flow rates)
-   - Clear format hints and examples based on parameter type
-   - Real-time validation with SUMO constraint checking
-   - Support for all template parameter types (including new v2.0 types)
+1. **智能参数输入组件**
+   - 为复杂参数类型提供可视化编辑器（时间-速度对、时段、流量速率）
+   - 根据参数类型提供清晰的格式提示和示例
+   - 实时验证并进行SUMO约束检查
+   - 支持所有模板参数类型（包括v2.0新类型）
 
-2. **Enhanced Edge Selection Display**
-   - Show comprehensive edge information table with:
-     - Edge ID, route code, section code
-     - Stake range (start/end km markers)
-     - Lane count, direction, node type
-     - Length, demonstration segment status
-   - Allow inline editing/removal of selected edges
-   - Show edge continuity warnings for DHS strategies
+2. **增强的路段选择展示**
+   - 显示完整的路段信息表格，包含：
+     - Edge ID、路线代码、路段代码（如G4202001）
+     - 桩号范围（起止公里标）
+     - 车道数、方向、节点类型
+     - 长度、示范段状态
+   - 为DHS策略显示路段连续性警告
+   - 无路段选择时显示筛选条件摘要（路线、桩号范围等）
 
-3. **Automatic Strategy Name Generation**
-   - Generate names based on template rules:
-     - **VSS**: `{Route}-{Section} 限速{Speed}km/h ({Time})`
-     - **DHS**: `{Route}-{Section} 应急车道开放 ({Time})`
-     - **TEC**: `{Entrance} 入口管控 ({Type})`
-   - Allow user override with suggested name pre-filled
-   - Ensure name uniqueness with automatic suffix
+3. **自动生成策略名称**
+   - 根据模板规则生成名称：
+     - **VSS**: `{路线}-{路段} 限速{速度}km/h ({时段})`
+     - **DHS**: `{路线}-{路段} 应急车道开放 ({时段})`
+     - **TEC**: `{入口} 入口管控 ({类型})`
+   - 允许用户修改建议的名称
+   - 通过自动后缀确保名称唯一性
 
-4. **Automatic Strategy Description Generation**
-   - Generate descriptions from template + parameters:
-     - Strategy type and purpose
-     - Affected locations (routes, sections, stakes)
-     - Key parameters (speeds, times, vehicle types)
-     - Generated SUMO elements count
-   - Allow user to edit generated description
-   - Save description to strategy metadata
+4. **自动生成策略描述**
+   - 从模板+参数生成描述：
+     - 策略类型和目的
+     - 受影响位置（路线、路段、桩号）
+     - 关键参数（速度、时段、车型）
+     - 生成的SUMO元素数量
+   - 允许用户编辑生成的描述
+   - 将描述保存到策略元数据
 
-5. **Remove Personnel Fields**
-   - No personnel/OA integration fields in configuration form
-   - Strategy metadata tracks creation/modification timestamps only
-   - Future: If OA integration needed, add separate module
+5. **移除人员字段**
+   - 配置表单中不包含人员/OA集成字段
+   - 策略元数据仅跟踪创建/修改时间戳
+   - 未来：如需OA集成，添加独立模块
 
-## Benefits
+## 收益
 
-1. **Improved Success Rate**: Users can successfully fill all parameter types
-2. **Better Verification**: Users can verify edge selection before saving
-3. **Consistent Naming**: Automatic naming ensures findability
-4. **Self-Documenting**: Auto-generated descriptions capture intent
-5. **Simplified UX**: Remove unnecessary personnel fields
+1. **提高成功率**：用户能够成功填写所有参数类型
+2. **更好的验证**：用户在保存前可以验证路段选择
+3. **命名一致**：自动命名确保策略易于查找
+4. **自文档化**：自动生成的描述记录了意图
+5. **简化用户体验**：移除不必要的人员字段
 
-## Scope
+## 范围
 
-### In Scope
+### 包含范围
 
-- Enhanced parameter input components for all v2.0 template parameter types
-- Comprehensive edge selection display table with all relevant attributes
-- Automatic strategy name generation with configurable rules
-- Automatic description generation from template + parameters
-- Removal of personnel/OA fields from configuration form
-- Frontend validation improvements
-- UX refinements to Step 3 (Configuration Parameters)
+- 为所有v2.0模板参数类型增强参数输入组件
+- 包含所有相关属性的完整路段选择展示表格（路段代码显示为G4202001格式）
+- 使用可配置规则自动生成策略名称
+- 从模板+参数自动生成描述
+- 从配置表单中移除人员/OA字段
+- 前端验证改进
+- 第3步（配置参数）的用户体验优化
+- 确保用户能够成功创建和保存策略实例
 
-### Out of Scope
+### 不包含范围
 
-- Changes to Step 1 (Template Selection) or Step 2 (Edge Selection) workflows
-- Backend API changes (existing `/api/v1/control/strategy-instances` endpoints sufficient)
-- Template schema modifications (use existing v2.0 templates)
-- OA system integration (future enhancement)
-- Multi-language support (Chinese only for now)
+- 对第1步（模板选择）或第2步（路段选择）工作流的更改
+- 后端API更改（现有 `/api/v1/control/strategy-instances` 端点已足够）
+- 模板Schema修改（使用现有v2.0模板）
+- OA系统集成（未来增强）
+- 多语言支持（目前仅中文）
 
-## Dependencies
+## 依赖项
 
-- Existing strategy template v2.0 schemas (`openspec/specs/strategy-templates/spec.md`)
-- Edge selector database schema (`dim.sim_network_edges` table)
-- Strategy workflow UX design (`docs/design/strategy_workflow_ux.md`)
-- Strategy manager module (`frontend/control/js/strategy_manager.js`)
+- 现有策略模板v2.0 Schema（`openspec/specs/strategy-templates/spec.md`）
+- 路段选择器数据库Schema（`dim.sim_network_edges` 表）
+- 策略工作流UX设计（`docs/design/strategy_workflow_ux.md`）
+- 策略管理器模块（`frontend/control/js/strategy_manager.js`）
 
-## Success Criteria
+## 成功标准
 
-1. **All parameter types are fillable**: Users can successfully input values for every template parameter type
-2. **Edge information is comprehensive**: Selected edges display shows all 8+ attributes (ID, route, section, stakes, lanes, direction, type, length)
-3. **Names are auto-generated**: 90%+ of strategies use auto-generated names without modification
-4. **Descriptions are helpful**: Generated descriptions contain sufficient detail for strategy identification
-5. **No personnel fields**: Configuration form contains zero personnel/OA-related inputs
-6. **Validation is clear**: Users receive actionable error messages for invalid inputs
-7. **Preview works**: XML preview reflects all configured parameters accurately
+1. **所有参数类型可填写**：用户能够成功输入每种模板参数类型的值
+2. **路段信息完整**：已选路段展示显示所有关键属性（ID、路线、路段代码如G4202001、桩号、车道、方向、类型、长度）
+3. **名称自动生成**：90%+的策略使用自动生成的名称，无需修改
+4. **描述有用**：生成的描述包含足够的细节以识别策略
+5. **无人员字段**：配置表单不包含任何人员/OA相关输入
+6. **验证清晰**：用户收到针对无效输入的可操作错误消息
+7. **预览有效**：XML预览准确反映所有配置的参数
+8. **策略创建成功**：用户能够成功创建并保存有效的策略实例
 
-## Implementation Phases
+## 实施阶段
 
-### Phase 1: Parameter Input Enhancement (Priority: P0)
-- Implement visual editors for complex types (time-speed pairs, intervals)
-- Add format hints and examples to array inputs
-- Enhance validation feedback with SUMO constraints
+### 阶段1：参数输入增强（优先级：P0）
+- 为复杂类型实现可视化编辑器（时间-速度对、时段）
+- 为数组输入添加格式提示和示例
+- 使用SUMO约束增强验证反馈
 
-### Phase 2: Edge Display Enhancement (Priority: P0)
-- Create comprehensive edge information table
-- Add inline edit/remove functionality
-- Implement continuity checking for DHS
+### 阶段2：路段展示增强（优先级：P0）
+- 创建完整的路段信息表格
+- 为DHS实现连续性检查
+- 简化用户体验（通过返回第2步修改路段选择）
 
-### Phase 3: Auto-Generation Features (Priority: P1)
-- Implement name generation rules per strategy type
-- Implement description generation from template
-- Add user override capability
+### 阶段3：自动生成功能（优先级：P1）
+- 为每种策略类型实现名称生成规则
+- 从模板实现描述生成
+- 添加用户覆盖功能
 
-### Phase 4: Cleanup & Polish (Priority: P1)
-- Remove personnel fields
-- Refine UX based on testing
-- Update documentation
+### 阶段4：清理与完善（优先级：P1）
+- 移除人员字段
+- 根据测试优化用户体验
+- 更新文档
 
-## Risks & Mitigation
+## 风险与缓解
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Complex parameter editors are difficult to implement | High | Start with simple array inputs, progressively enhance |
-| Auto-generated names don't meet user needs | Medium | Allow full user override, gather feedback |
-| Edge table performance with many selected edges | Low | Use virtual scrolling for >50 edges |
-| Breaking changes to existing strategies | High | Ensure backward compatibility with v1.0 strategies |
+| 风险 | 影响 | 缓解措施 |
+|------|------|---------|
+| 复杂参数编辑器难以实现 | 高 | 从简单的数组输入开始，逐步增强 |
+| 自动生成的名称不符合用户需求 | 中 | 允许完全用户覆盖，收集反馈 |
+| 选择大量路段时表格性能问题 | 低 | 对>50条路段使用虚拟滚动 |
+| 对现有策略的破坏性更改 | 高 | 确保与v1.0策略的向后兼容性 |
 
-## Open Questions
+## 待解决问题
 
-1. **Parameter Editor Complexity**: Should we implement full visual editors (drag timelines, graphical speed curves) or start with enhanced text inputs?
-   - **Recommendation**: Start with enhanced text inputs with clear examples, add visual editors in Phase 2
+1. **参数编辑器复杂度**：应实现完整的可视化编辑器（拖拽时间轴、图形化速度曲线）还是从增强文本输入开始？
+   - **建议**：从带有清晰示例的增强文本输入开始，在第2阶段添加可视化编辑器
 
-2. **Edge Table Interaction**: Should users be able to reorder selected edges in the table (important for DHS continuity)?
-   - **Recommendation**: Yes, add drag-to-reorder capability for DHS strategies
+2. **路段表格交互**：用户应能在表格中重新排序已选路段吗（对DHS连续性很重要）？
+   - **建议**：是的，为DHS策略添加拖拽重排功能
 
-3. **Name Generation Rules**: Should name generation be configurable per organization or use fixed rules?
-   - **Recommendation**: Use fixed rules initially, make configurable if demand arises
+3. **名称生成规则**：名称生成应按组织可配置还是使用固定规则？
+   - **建议**：初期使用固定规则，如有需求再改为可配置
 
-4. **Description Templates**: Should templates provide description generation rules or use generic format?
-   - **Recommendation**: Templates provide description templates with parameter placeholders
+4. **描述模板**：模板应提供描述生成规则还是使用通用格式？
+   - **建议**：模板提供带有参数占位符的描述模板
 
-## References
+## 参考资料
 
-- [Strategy Workflow UX Design](../../docs/design/strategy_workflow_ux.md)
-- [Strategy Template Analysis](../../docs/design/strategy_template_analysis_and_recommendations.md)
-- [Strategy Templates Spec](../../specs/strategy-templates/spec.md)
-- [Edge Selector Design](../../docs/design/edge_selector_database_design.md)
+- [策略工作流UX设计](../../docs/design/strategy_workflow_ux.md)
+- [策略模板分析与建议](../../docs/design/strategy_template_analysis_and_recommendations.md)
+- [策略模板规范](../../specs/strategy-templates/spec.md)
+- [路段选择器设计](../../docs/design/edge_selector_database_design.md)

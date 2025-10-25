@@ -5,12 +5,13 @@ REST API endpoints for strategy instance CRUD operations.
 Separate from control_strategy_routes.py (Phase 1B - edge selector).
 
 Endpoints:
-- POST   /api/v1/control/strategy-instances          - Create strategy
-- GET    /api/v1/control/strategy-instances          - List strategies (paginated)
-- GET    /api/v1/control/strategy-instances/{id}     - Get strategy details
-- PUT    /api/v1/control/strategy-instances/{id}     - Update strategy
-- DELETE /api/v1/control/strategy-instances/{id}     - Delete strategy
-- POST   /api/v1/control/strategy-instances/reindex  - Regenerate index (admin)
+- POST   /api/v1/control/strategy-instances              - Create strategy
+- GET    /api/v1/control/strategy-instances              - List strategies (paginated)
+- GET    /api/v1/control/strategy-instances/{id}         - Get strategy details
+- PUT    /api/v1/control/strategy-instances/{id}         - Update strategy
+- POST   /api/v1/control/strategy-instances/{id}/copy    - Copy strategy
+- DELETE /api/v1/control/strategy-instances/{id}         - Delete strategy
+- POST   /api/v1/control/strategy-instances/reindex      - Regenerate index (admin)
 """
 
 import logging
@@ -222,6 +223,59 @@ async def update_strategy(
         logger.error(f"Error updating strategy {strategy_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update strategy"
+        )
+
+
+@router.post(
+    "/{strategy_id}/copy",
+    response_model=StrategyCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Copy Strategy Instance",
+    description="Create a copy of an existing strategy with a new ID and optional new name",
+)
+async def copy_strategy(
+    strategy_id: str,
+    new_name: Optional[str] = Query(None, description="Optional new name for the copy")
+) -> StrategyCreateResponse:
+    """
+    Copy a strategy instance.
+
+    Creates a duplicate of the specified strategy with:
+    - New unique strategy_id
+    - New creation timestamp
+    - Same template, parameters, and edges
+    - Optional custom name (defaults to "[复制] Original Name")
+
+    **Path Parameters**:
+    - `strategy_id`: Unique identifier of strategy to copy
+
+    **Query Parameters**:
+    - `new_name`: Optional new name (if not provided, adds "[复制]" prefix)
+
+    **Response**: 201 Created with new strategy_id
+
+    **Errors**:
+    - 404 Not Found: Source strategy does not exist
+    - 500 Internal Server Error: File save failed
+    """
+    try:
+        service = get_strategy_service()
+        response = service.copy_strategy(strategy_id, new_name)
+        return response
+
+    except ValueError as e:
+        # Check if error is due to missing source strategy
+        if "not found" in str(e).lower():
+            logger.warning(f"Source strategy not found for copy: {e}")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+        # Other validation errors
+        logger.error(f"Validation error copying strategy: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error copying strategy {strategy_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to copy strategy"
         )
 
 

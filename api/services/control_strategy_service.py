@@ -8,7 +8,7 @@ multi-dimensional criteria and managing control strategy configurations.
 import logging
 import time
 from functools import wraps
-from typing import List, Optional, Callable, Any
+from typing import List, Optional, Callable, Any, Dict
 from sqlalchemy.exc import OperationalError, DBAPIError
 
 from .base_service import BaseService
@@ -477,6 +477,69 @@ class ControlStrategyService(BaseService):
                     "error_type": type(e).__name__,
                     "error_message": str(e),
                     "route_codes": route_codes
+                },
+                exc_info=True
+            )
+            raise
+
+    def get_batch_edge_info(self, edge_ids: List[str]) -> List[Dict[str, Any]]:
+        """
+        批量获取路段详细信息 (Phase 2: Task 2.1)
+
+        Args:
+            edge_ids: Edge ID列表
+
+        Returns:
+            List of edge information dictionaries with full details:
+            - edge_id: Edge ID
+            - route_code: 路线代码
+            - section_code: 路段代码
+            - start_stake: 起始桩号(米)
+            - end_stake: 结束桩号(米)
+            - length_m: 长度(米)
+            - lane_count: 车道数
+            - direction: 方向
+            - node_type: 节点类型
+
+        Raises:
+            Exception: If database query fails
+        """
+        try:
+            from shared.data_access.edge_query import get_edges_by_ids
+
+            logger.info(f"[get_batch_edge_info] Fetching info for {len(edge_ids)} edges")
+
+            # 调用数据访问层获取路段详细信息
+            edges_info_objs = get_edges_by_ids(edge_ids)
+
+            # 转换EdgeInfo对象为字典，并调整字段名以匹配前端期望
+            edges_info = []
+            for edge in edges_info_objs:
+                edge_dict = {
+                    "edge_id": edge.edge_id,
+                    "route_code": edge.route_code,
+                    "section_code": edge.section_code,
+                    "start_stake": edge.start_stake,
+                    "end_stake": edge.end_stake,
+                    "length_m": edge.length,  # 映射 length -> length_m
+                    "lane_count": edge.num_lanes,  # 映射 num_lanes -> lane_count
+                    "direction": edge.route_direction,  # 映射 route_direction -> direction
+                    "node_type": edge.node_type,
+                    "gantry_count": edge.gantry_count
+                }
+                edges_info.append(edge_dict)
+
+            logger.info(f"[get_batch_edge_info] Successfully fetched {len(edges_info)} edges")
+
+            return edges_info
+
+        except Exception as e:
+            logger.error(
+                "Failed to fetch batch edge info",
+                extra={
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                    "edge_count": len(edge_ids)
                 },
                 exc_info=True
             )

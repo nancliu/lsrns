@@ -1,0 +1,37 @@
+{
+  "strategy_id": "strategy_dhs_004",
+  "strategy_name": "G4202客车专用应急车道B",
+  "description": "G4202成都绕城高速应急车道仅对客车开放，2.2-3.0公里路段晚高峰时段",
+  "template_id": "dhs_passenger_only",
+  "strategy_type": "DHS",
+  "configured_params": {
+    "affected_edges": ["-10702", "-16216", "-13544"],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 17,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency", "authority"]
+      },
+      {
+        "begin_hours": 17,
+        "end_hours": 19,
+        "status": "OPEN",
+        "allowed_vehicle_types": ["passenger", "bus", "emergency"]
+      },
+      {
+        "begin_hours": 19,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency", "authority"]
+      }
+    ],
+    "allowed_vehicle_types": ["passenger", "bus", "emergency"]
+  },
+  "tags": ["G4202", "应急车道", "客车专用", "晚高峰"],
+  "created_at": "2025-10-25T11:05:00Z",
+  "updated_at": "2025-10-25T11:05:00Z",
+  "created_by": "system",
+  "status": "active"
+}

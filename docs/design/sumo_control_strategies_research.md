@@ -37,9 +37,9 @@
 ┌─────────────────────────────────────────────────────────┐
 │                   策略模板层 (Template)                  │
 │  预定义的管控措施配置模板 (全局,高复用性)                 │
-│  - VSS模板: vss_moderate.json, vss_strict.json         │
-│  - DHS模板: dhs_peak_hours.json                        │
-│  - TEC模板: tec_ramp_metering.json                     │
+│  - VSS模板: vss_moderate.json, vss_strict.json, vss_weather_based.json, vss_upstream_warning.json, vss_lane_differentiated.json
+│  - DHS模板: dhs_peak_hours.json, dhs_passenger_only.json, dhs_peak_multi_interval.json
+│  - TEC模板: tec_flow_metering.json, tec_vehicle_restriction.json, tec_emergency_closure.json
 └────────────────────┬────────────────────────────────────┘
                      ↓ 实例化 (选择路段 + 配置参数)
 ┌─────────────────────────────────────────────────────────┐
@@ -1985,12 +1985,22 @@ def generate_control_additional(plan: dict, strategies: list) -> str:
 ```
 D:\projects\OD_SIM\
 ├── templates/
-│   └── control_strategies/          # 策略模板库(全局)
-│       ├── vss_moderate.json
-│       ├── vss_strict.json
-│       ├── dhs_peak_hours.json
-│       ├── tec_ramp_metering.json
-│       └── templates_index.json
+│   └── control_strategies/          # 策略模板库(全局) - 11个模板
+│       ├── variable_speed_sign/     # VSS模板 (5个)
+│       │   ├── vss_moderate.json
+│       │   ├── vss_strict.json
+│       │   ├── vss_weather_based.json
+│       │   ├── vss_upstream_warning.json
+│       │   └── vss_lane_differentiated.json
+│       ├── dynamic_hard_shoulder/   # DHS模板 (3个)
+│       │   ├── dhs_peak_hours.json
+│       │   ├── dhs_passenger_only.json
+│       │   └── dhs_peak_multi_interval.json
+│       ├── toll_entrance_control/  # TEC模板 (3个) - 3层优化设计
+│       │   ├── tec_flow_metering.json      # 基础层：流量控制
+│       │   ├── tec_vehicle_restriction.json # 限制层：车型限制
+│       │   └── tec_emergency_closure.json   # 应急层：紧急关闭
+│       └── templates_index.json     # 模板索引和元数据
 │
 ├── control_data/                    # 全局管控数据
 │   ├── strategies/                  # 策略实例库

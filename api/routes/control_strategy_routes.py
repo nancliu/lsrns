@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter, Response
 from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
 
 # 创建控制策略路由器
 router = APIRouter()
@@ -353,9 +354,60 @@ async def get_network_geometry(
         )
 
 
+class BatchEdgeInfoRequest(BaseModel):
+    edge_ids: List[str]
+
+
+@router.post("/edges/batch-info", response_model=List[Dict[str, Any]])
+async def get_batch_edge_info(request: BatchEdgeInfoRequest):
+    """
+    批量获取路段详细信息 (Phase 2: Task 2.1)
+
+    用于第3步参数配置页面展示完整的路段信息表格。
+
+    Args:
+        edge_ids: Edge ID列表
+
+    Returns:
+        List of edge information dictionaries with full details:
+        - edge_id: Edge标识符
+        - route_code: 路线代码 (如 G4202, SA2)
+        - section_code: 路段代码 (如 G4202001)
+        - start_stake: 起始桩号(米)
+        - end_stake: 结束桩号(米)
+        - length_m: 长度(米)
+        - lane_count: 车道数
+        - direction: 方向 (upstream/downstream/clockwise/counterclockwise)
+        - node_type: 节点类型
+        - from_junction_id: 起点路口ID
+        - to_junction_id: 终点路口ID
+        - demonstration_segment: 示范段名称(如有)
+    """
+    try:
+        edge_ids = request.edge_ids
+        logger.info(f"POST /api/v1/control/edges/batch-info - Fetching {len(edge_ids)} edges")
+
+        # 调用服务获取路段详细信息
+        edges_info = control_service.get_batch_edge_info(edge_ids)
+
+        logger.info(f"Successfully returned {len(edges_info)} edge details")
+
+        return edges_info
+
+    except Exception as e:
+        logger.error(f"Error fetching batch edge info: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "BATCH_EDGE_INFO_ERROR",
+                "message": "Failed to fetch batch edge information",
+                "details": {"error_type": type(e).__name__, "edge_count": len(request.edge_ids) if request else 0}
+            }
+        )
+
+
 # ==================== 策略参数验证和XML预览 Validation & Preview ====================
 
-from pydantic import BaseModel
 from shared.control_tools.parameter_validator import validate_strategy_parameters
 from shared.control_tools.template_loader import load_template_with_schema
 
@@ -573,10 +625,76 @@ async def generate_xml_preview_endpoint(request: GenerateXMLPreviewRequest):
 
 
 # ==================== 控制策略 Strategies ====================
+from pathlib import Path
+from shared.control_tools.strategy_loader import list_all_strategies, get_strategies_summary
+
+
 @router.get("/strategies/", response_model=Dict[str, Any])
-async def list_strategies():
-    """获取所有策略列表 (Phase 0 stub)"""
-    return {"total": 0, "items": []}
+async def list_strategies(
+    strategy_type: str = Query(None, description="Filter by strategy type (VSS/DHS/TEC)"),
+    tags: str = Query(None, description="Filter by tags (comma-separated)"),
+    status: str = Query(None, description="Filter by status (active/inactive)")
+):
+    """
+    获取所有策略实例列表
+
+    支持按策略类型、标签、状态筛选。
+
+    Args:
+        strategy_type: 策略类型筛选 (VSS/DHS/TEC)
+        tags: 标签筛选（逗号分隔，匹配任一标签即可）
+        status: 状态筛选 (active/inactive)
+
+    Returns:
+        {
+            "total": 总数,
+            "items": 策略列表,
+            "summary": 统计摘要
+        }
+    """
+    try:
+        logger.info(
+            f"GET /api/v1/control/strategies/ - Listing strategies "
+            f"(type={strategy_type}, status={status}, tags={tags})"
+        )
+
+        # 解析标签
+        tags_list = None
+        if tags:
+            tags_list = [tag.strip() for tag in tags.split(',')]
+
+        # 获取策略目录
+        strategies_dir = Path(__file__).parent.parent.parent / "control_data" / "strategies"
+
+        # 加载策略列表
+        strategies = list_all_strategies(
+            strategies_dir=strategies_dir,
+            strategy_type=strategy_type,
+            tags=tags_list,
+            status=status
+        )
+
+        # 获取统计摘要
+        summary = get_strategies_summary(strategies_dir)
+
+        logger.info(f"Successfully returned {len(strategies)} strategies")
+
+        return {
+            "total": len(strategies),
+            "items": strategies,
+            "summary": summary
+        }
+
+    except Exception as e:
+        logger.error(f"Error listing strategies: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "STRATEGY_LIST_ERROR",
+                "message": "Failed to list strategies",
+                "details": {"error_type": type(e).__name__}
+            }
+        )
 
 
 @router.post("/strategies/", status_code=501)

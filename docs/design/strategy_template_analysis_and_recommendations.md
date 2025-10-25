@@ -238,15 +238,28 @@ def get_entrance_edges_from_db() -> list:
 
 ### 2.1 已实现的模板
 
+#### 基础模板 (5个)
+
 | 模板文件 | 模板ID | 策略类型 | 状态 |
 |---------|--------|---------|------|
 | `vss_moderate.json` | vss_moderate | VSS | ✅ 已实现 |
 | `vss_strict.json` | vss_strict | VSS | ✅ 已实现 |
 | `dhs_peak_hours.json` | dhs_peak_hours | DHS | ✅ 已实现 |
-| `tec_truck_ban.json` | tec_truck_ban | TEC | ✅ 已实现 |
-| `tec_entrance_close.json` | tec_entrance_close | TEC | ✅ 已实现 |
+| `tec_flow_metering.json` | tec_flow_metering | TEC | ✅ 已实现 |
+| `tec_vehicle_restriction.json` | tec_vehicle_restriction | TEC | ✅ 已实现 |
 
-**总结**: 已实现5个模板,覆盖3种策略类型。
+#### 补充模板 (6个)
+
+| 模板文件 | 模板ID | 策略类型 | 状态 | 说明 |
+|---------|--------|---------|------|------|
+| `vss_weather_based.json` | vss_weather_based | VSS | ✅ 已实现 | 天气应急-渐进式限速 |
+| `vss_upstream_warning.json` | vss_upstream_warning | VSS | ✅ 已实现 | 上游预警-早期减速 |
+| `vss_lane_differentiated.json` | vss_lane_differentiated | VSS | ✅ 已实现 | 分车道-差异化控制 |
+| `dhs_passenger_only.json` | dhs_passenger_only | DHS | ✅ 已实现 | 仅客车-应急车道 |
+| `dhs_peak_multi_interval.json` | dhs_peak_multi_interval | DHS | ✅ 已实现 | 多时段-复杂管理 |
+| `tec_emergency_closure.json` | tec_emergency_closure | TEC | ✅ 已实现 | 紧急关闭-入口封闭 |
+
+**总结**: 已实现11个模板,覆盖3种策略类型。包括5个基础模板和6个补充模板，其中TEC策略已优化为3层设计架构。
 
 ### 2.2 模板与文档要求的对比
 

@@ -1,0 +1,19 @@
+{
+  "strategy_id": "strategy_vss_007",
+  "strategy_name": "G4202分车道限速A段",
+  "description": "G4202成都绕城高速分车道限速，货车与客车分别限速",
+  "template_id": "vss_lane_differentiated",
+  "strategy_type": "VSS",
+  "configured_params": {
+    "affected_edges": ["-9292", "-8014", "-10702"],
+    "speed_steps": [
+      {"time_hours": 0, "speed_kmh": 80}
+    ],
+    "applicable_vehicle_types": ["truck"]
+  },
+  "tags": ["G4202", "分车道限速", "货车管控"],
+  "created_at": "2025-10-25T10:30:00Z",
+  "updated_at": "2025-10-25T10:30:00Z",
+  "created_by": "system",
+  "status": "active"
+}

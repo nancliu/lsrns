@@ -242,7 +242,7 @@ def save_index(index_data: Dict[str, Any], strategies_dir: str) -> bool:
         return False
 
 
-def regenerate_index(strategies_dir: str) -> int:
+def regenerate_index(strategies_dir: str, templates_dir: Optional[str] = None) -> int:
     """
     Regenerate strategies index by scanning all strategy files.
 
@@ -250,6 +250,7 @@ def regenerate_index(strategies_dir: str) -> int:
 
     Args:
         strategies_dir: Path to strategies directory
+        templates_dir: Optional path to templates directory for template name lookup
 
     Returns:
         Number of strategies indexed
@@ -260,26 +261,64 @@ def regenerate_index(strategies_dir: str) -> int:
         True
     """
     try:
+        from shared.control_tools.template_loader import get_template_by_id
+
         strategies_path = Path(strategies_dir)
         strategies_path.mkdir(parents=True, exist_ok=True)
 
+        # Determine templates directory
+        if templates_dir is None:
+            # Default to control_data/templates relative to strategies_dir
+            templates_path = strategies_path.parent / "templates"
+        else:
+            templates_path = Path(templates_dir)
+
         strategies = []
 
-        # Scan all strategy JSON files
-        for file_path in strategies_path.glob("strat_*.json"):
+        # Scan all strategy JSON files (both strat_* and strategy_* patterns)
+        pattern_files = list(strategies_path.glob("strat_*.json")) + list(
+            strategies_path.glob("strategy_*.json")
+        )
+
+        for file_path in pattern_files:
             try:
                 strategy = json.loads(file_path.read_text(encoding="utf-8"))
+
+                # Look up template name
+                template_id = strategy.get("template_id", "")
+                template_name = ""
+                if template_id and templates_path.exists():
+                    try:
+                        template = get_template_by_id(template_id, templates_path)
+                        template_name = template.template_name if template else template_id
+                    except Exception:
+                        template_name = template_id
+                else:
+                    template_name = template_id
+
+                # Calculate edges count based on strategy type
+                configured_params = strategy.get("configured_params", {})
+                strategy_type = strategy.get("strategy_type", "")
+
+                if strategy_type == "TEC":
+                    # TEC uses entrance_edge (single edge)
+                    entrance_edge = configured_params.get("entrance_edge", "")
+                    edges_count = 1 if entrance_edge else 0
+                else:
+                    # VSS and DHS use affected_edges (array)
+                    affected_edges = configured_params.get("affected_edges", [])
+                    edges_count = len(affected_edges) if isinstance(affected_edges, list) else 0
 
                 strategies.append(
                     {
                         "strategy_id": strategy["strategy_id"],
                         "strategy_name": strategy["strategy_name"],
                         "strategy_type": strategy["strategy_type"],
-                        "template_id": strategy["template_id"],
-                        "template_name": strategy["template_name"],
-                        "edges_count": len(strategy.get("affected_edges", [])),
-                        "created_at": strategy["metadata"]["created_at"],
-                        "updated_at": strategy["metadata"]["updated_at"],
+                        "template_id": template_id,
+                        "template_name": template_name,
+                        "edges_count": edges_count,
+                        "created_at": strategy.get("created_at", ""),
+                        "updated_at": strategy.get("updated_at", ""),
                         "file_path": str(file_path.relative_to(strategies_path.parent.parent)),
                     }
                 )
@@ -315,24 +354,70 @@ def _update_index_after_save(strategy: Dict[str, Any], strategies_dir: str) -> N
     Internal helper function.
     """
     try:
+        from shared.control_tools.template_loader import get_template_by_id
+        from pathlib import Path
+
         index = load_index(strategies_dir)
 
         strategy_id = strategy["strategy_id"]
+        strategy_type = strategy.get("strategy_type", "")
 
         # Check if strategy already exists in index (update scenario)
         existing_idx = next(
             (i for i, s in enumerate(index["strategies"]) if s["strategy_id"] == strategy_id), None
         )
 
+        # Look up template name
+        template_id = strategy.get("template_id", "")
+        template_name = strategy.get("template_name", "")
+        if not template_name and template_id:
+            # Try to load from template files
+            strategies_path = Path(strategies_dir)
+            templates_path = strategies_path.parent / "templates"
+            if not templates_path.exists():
+                templates_path = Path(__file__).parent.parent.parent / "templates" / "control_strategies"
+            try:
+                template = get_template_by_id(template_id, templates_path)
+                template_name = template.template_name if template else template_id
+            except Exception:
+                template_name = template_id
+
+        # Calculate edges count based on strategy structure
+        # Support both schemas: API-created (affected_edges) and demo (configured_params)
+        edges_count = 0
+        if "affected_edges" in strategy:
+            # API-created strategy schema
+            affected_edges = strategy.get("affected_edges", [])
+            edges_count = len(affected_edges) if isinstance(affected_edges, list) else 0
+        elif "configured_params" in strategy:
+            # Demo strategy schema
+            configured_params = strategy.get("configured_params", {})
+            if strategy_type == "TEC":
+                entrance_edge = configured_params.get("entrance_edge", "")
+                edges_count = 1 if entrance_edge else 0
+            else:
+                affected_edges = configured_params.get("affected_edges", [])
+                edges_count = len(affected_edges) if isinstance(affected_edges, list) else 0
+
+        # Handle both metadata schemas
+        if "metadata" in strategy:
+            # API-created strategy schema
+            created_at = strategy["metadata"]["created_at"]
+            updated_at = strategy["metadata"]["updated_at"]
+        else:
+            # Demo strategy schema
+            created_at = strategy.get("created_at", "")
+            updated_at = strategy.get("updated_at", "")
+
         entry = {
             "strategy_id": strategy["strategy_id"],
             "strategy_name": strategy["strategy_name"],
-            "strategy_type": strategy["strategy_type"],
-            "template_id": strategy["template_id"],
-            "template_name": strategy["template_name"],
-            "edges_count": len(strategy.get("affected_edges", [])),
-            "created_at": strategy["metadata"]["created_at"],
-            "updated_at": strategy["metadata"]["updated_at"],
+            "strategy_type": strategy_type,
+            "template_id": template_id,
+            "template_name": template_name,
+            "edges_count": edges_count,
+            "created_at": created_at,
+            "updated_at": updated_at,
             "file_path": f"control_data/strategies/{strategy_id}.json",
         }
 

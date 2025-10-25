@@ -287,6 +287,30 @@ const EdgeSelector = {
         const warningMessage = document.getElementById('warning-message');
 
         try {
+            // 验证查询参数（修复：刚加载页面时点击查询的问题）
+            const params = this.buildQueryParams();
+
+            // 检查是否有任何有效的查询条件
+            const hasValidParams = Object.keys(params).length > 0 &&
+                                   Object.values(params).some(value => value && value.trim() !== '');
+
+            if (!hasValidParams) {
+                // 没有有效查询条件，显示友好提示
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = `
+                        <div style="text-align: center; padding: 30px; color: #e67e22;">
+                            <p style="margin-bottom: 10px;">⚠️ 请先选择查询条件</p>
+                            <p style="font-size: 0.9em; color: #7f8c8d;">
+                                请至少选择一个路线或设置其他筛选条件
+                            </p>
+                        </div>
+                    `;
+                }
+                if (resultsTable) resultsTable.style.display = 'none';
+                if (resultsInfo) resultsInfo.style.display = 'none';
+                return;
+            }
+
             this.state.isLoading = true;
             if (queryBtn) {
                 queryBtn.disabled = true;
@@ -299,9 +323,10 @@ const EdgeSelector = {
             if (resultsInfo) resultsInfo.style.display = 'none';
             if (warningMessage) warningMessage.style.display = 'none';
 
-            const params = this.buildQueryParams();
             const queryString = new URLSearchParams(params).toString();
             const url = `/api/v1/control/edges/query${queryString ? '?' + queryString : ''}`;
+
+            console.log('[EdgeSelector] 查询路段:', url);
 
             const response = await fetch(url);
             if (!response.ok) {

@@ -187,43 +187,171 @@ function renderParameterControl(paramSchema, templateId) {
 // ==================== Parameter Control Renderers ====================
 
 /**
- * Render integer input control.
+ * Render integer input control with range hints.
+ * Task 1.2: Enhanced number input with range validation
  */
 function renderIntegerControl(paramName, schema) {
+  const container = document.createElement("div");
+  container.className = "number-input-wrapper";
+
   const control = document.createElement("input");
   control.type = "number";
   control.id = `param-${paramName}`;
   control.name = paramName;
   control.className = "form-control";
+  control.step = "1";
 
   if (schema.min_value !== undefined) control.min = schema.min_value;
   if (schema.max_value !== undefined) control.max = schema.max_value;
-  if (schema.step) control.step = schema.step;
   if (schema.default_value !== undefined) control.value = schema.default_value;
 
-  control.addEventListener("change", () => validateParameterOnChange(control, schema));
+  container.appendChild(control);
 
-  return control;
+  // Add unit label if available
+  if (schema.unit) {
+    const unitLabel = document.createElement("span");
+    unitLabel.className = "unit-label";
+    unitLabel.textContent = schema.unit;
+    container.appendChild(unitLabel);
+  }
+
+  // Add range hint
+  if (schema.min_value !== undefined || schema.max_value !== undefined) {
+    const hint = document.createElement("small");
+    hint.className = "parameter-hint";
+    let hintText = "范围: ";
+    if (schema.min_value !== undefined && schema.max_value !== undefined) {
+      hintText += `${schema.min_value}-${schema.max_value}`;
+    } else if (schema.min_value !== undefined) {
+      hintText += `≥${schema.min_value}`;
+    } else {
+      hintText += `≤${schema.max_value}`;
+    }
+    if (schema.unit) {
+      hintText += ` | 单位: ${schema.unit}`;
+    }
+    hint.textContent = hintText;
+    container.appendChild(hint);
+  }
+
+  control.addEventListener("blur", () => validateNumberRange(control, schema));
+
+  return container;
 }
 
 /**
- * Render number (float) input control.
+ * Render number (float) input control with range hints.
+ * Task 1.2: Enhanced number input with range validation
  */
 function renderNumberControl(paramName, schema) {
+  const container = document.createElement("div");
+  container.className = "number-input-wrapper";
+
   const control = document.createElement("input");
   control.type = "number";
   control.id = `param-${paramName}`;
   control.name = paramName;
   control.className = "form-control";
+  control.step = schema.step || "0.01";
 
-  control.step = "0.01";
   if (schema.min_value !== undefined) control.min = schema.min_value;
   if (schema.max_value !== undefined) control.max = schema.max_value;
   if (schema.default_value !== undefined) control.value = schema.default_value;
 
-  control.addEventListener("change", () => validateParameterOnChange(control, schema));
+  container.appendChild(control);
 
-  return control;
+  // Add unit label if available
+  if (schema.unit) {
+    const unitLabel = document.createElement("span");
+    unitLabel.className = "unit-label";
+    unitLabel.textContent = schema.unit;
+    container.appendChild(unitLabel);
+  }
+
+  // Add range hint
+  if (schema.min_value !== undefined || schema.max_value !== undefined) {
+    const hint = document.createElement("small");
+    hint.className = "parameter-hint";
+    let hintText = "范围: ";
+    if (schema.min_value !== undefined && schema.max_value !== undefined) {
+      hintText += `${schema.min_value}-${schema.max_value}`;
+    } else if (schema.min_value !== undefined) {
+      hintText += `≥${schema.min_value}`;
+    } else {
+      hintText += `≤${schema.max_value}`;
+    }
+    if (schema.unit) {
+      hintText += ` | 单位: ${schema.unit}`;
+    }
+    hint.textContent = hintText;
+    container.appendChild(hint);
+  }
+
+  control.addEventListener("blur", () => validateNumberRange(control, schema));
+
+  return container;
+}
+
+/**
+ * Validate number input range on blur.
+ * Task 1.2: Number range validation
+ *
+ * @param {HTMLInputElement} input - Number input element
+ * @param {Object} schema - Parameter schema
+ * @returns {boolean} Validation result
+ */
+function validateNumberRange(input, schema) {
+  const value = parseFloat(input.value);
+  const feedbackDiv = input.closest('.form-group')?.querySelector('.parameter-feedback');
+
+  if (!feedbackDiv) return true;
+
+  // Clear previous feedback
+  feedbackDiv.textContent = '';
+  feedbackDiv.className = 'parameter-feedback';
+  feedbackDiv.dataset.feedback = '';
+
+  // Check if required
+  if (input.value === '' && schema.required) {
+    feedbackDiv.className = 'parameter-feedback error';
+    feedbackDiv.textContent = '此字段为必填项';
+    feedbackDiv.dataset.feedback = 'error';
+    return false;
+  }
+
+  if (input.value === '') {
+    return true; // Empty optional field is valid
+  }
+
+  if (isNaN(value)) {
+    feedbackDiv.className = 'parameter-feedback error';
+    feedbackDiv.textContent = '请输入有效的数字';
+    feedbackDiv.dataset.feedback = 'error';
+    return false;
+  }
+
+  const minVal = schema.min_value;
+  const maxVal = schema.max_value;
+
+  if (minVal !== undefined && value < minVal) {
+    feedbackDiv.className = 'parameter-feedback error';
+    feedbackDiv.textContent = `值不能小于 ${minVal}`;
+    feedbackDiv.dataset.feedback = 'error';
+    return false;
+  }
+
+  if (maxVal !== undefined && value > maxVal) {
+    feedbackDiv.className = 'parameter-feedback error';
+    feedbackDiv.textContent = `值不能大于 ${maxVal}`;
+    feedbackDiv.dataset.feedback = 'error';
+    return false;
+  }
+
+  // Success
+  feedbackDiv.className = 'parameter-feedback success';
+  feedbackDiv.textContent = '✓ 有效';
+  feedbackDiv.dataset.feedback = 'success';
+  return true;
 }
 
 /**
@@ -643,20 +771,233 @@ function renderStringControl(paramName, schema) {
 }
 
 /**
- * Render generic array control.
+ * Render generic array control with smart placeholders.
  */
 function renderGenericArrayControl(paramName, schema) {
   const control = document.createElement("textarea");
   control.id = `param-${paramName}`;
   control.name = paramName;
-  control.className = "form-control";
-  control.placeholder = "Enter array as JSON";
+  control.className = "form-control array-input";
+  control.rows = 6;
+
+  // Generate smart placeholder based on parameter name and type
+  control.placeholder = generateSmartPlaceholder(paramName, schema);
 
   if (schema.default_value !== undefined) {
-    control.value = JSON.stringify(schema.default_value, null, 2);
+    // Decide format based on value structure
+    if (Array.isArray(schema.default_value) && schema.default_value.length > 0) {
+      if (Array.isArray(schema.default_value[0])) {
+        // Nested array - use JSON format
+        control.value = JSON.stringify(schema.default_value, null, 2);
+      } else {
+        // Simple array - use newline-separated format
+        control.value = schema.default_value.join('\n');
+      }
+    } else {
+      control.value = JSON.stringify(schema.default_value, null, 2);
+    }
   }
 
+  // Add blur validation
+  control.addEventListener('blur', () => validateArrayField(control, schema));
+
   return control;
+}
+
+/**
+ * Generate smart placeholder for array parameters based on naming patterns.
+ * Task 1.1: Smart placeholder generation
+ *
+ * @param {string} paramName - Parameter name
+ * @param {Object} schema - Parameter schema
+ * @returns {string} Placeholder text with examples
+ */
+function generateSmartPlaceholder(paramName, schema) {
+  const name = paramName.toLowerCase();
+
+  // Extract default value as example if available
+  const defaultExample = schema.default_value ?
+    JSON.stringify(schema.default_value, null, 2) : null;
+
+  // Time/interval parameters
+  if (name.includes('time') || name.includes('interval')) {
+    return `时段格式示例:
+[
+  [7, 9],
+  [17, 19]
+]
+
+每行一个时间段 [开始小时, 结束小时]
+或换行分隔: 7,9 然后 17,19`;
+  }
+
+  // Speed parameters
+  if (name.includes('speed')) {
+    return `限速值示例(每行一个):
+80
+60
+40
+
+或JSON格式: [80, 60, 40]`;
+  }
+
+  // Vehicle type parameters
+  if (name.includes('vehicle') || name.includes('type')) {
+    return `车型列表示例:
+passenger
+truck
+bus
+
+或用逗号分隔: passenger, truck, bus`;
+  }
+
+  // Edge/segment parameters
+  if (name.includes('edge') || name.includes('segment')) {
+    return `路段ID列表示例:
+-5880
+-5881
+-5882
+
+或用逗号分隔: -5880, -5881, -5882`;
+  }
+
+  // Entrance parameters
+  if (name.includes('entrance')) {
+    return `入口列表示例:
+entrance_1
+entrance_2
+
+或用逗号分隔: entrance_1, entrance_2`;
+  }
+
+  // Generic fallback with default value hint
+  if (defaultExample) {
+    return `示例格式:\n${defaultExample}\n\n或每行一个值`;
+  }
+
+  return `多个值, 每行一个:
+value1
+value2
+value3
+
+或JSON格式: ["value1", "value2", "value3"]`;
+}
+
+/**
+ * Validate array field on blur.
+ * Task 1.3: Array parameter format validation
+ *
+ * @param {HTMLTextAreaElement} textarea - Textarea element
+ * @param {Object} schema - Parameter schema
+ * @returns {boolean} Validation result
+ */
+function validateArrayField(textarea, schema) {
+  const value = textarea.value.trim();
+  const feedbackDiv = textarea.closest('.form-group')?.querySelector('.parameter-feedback');
+
+  if (!feedbackDiv) return true;
+
+  // Clear previous feedback
+  feedbackDiv.textContent = '';
+  feedbackDiv.className = 'parameter-feedback';
+  feedbackDiv.dataset.feedback = '';
+
+  // Check if required
+  if (!value && schema.required) {
+    feedbackDiv.className = 'parameter-feedback error';
+    feedbackDiv.textContent = '此字段为必填项';
+    feedbackDiv.dataset.feedback = 'error';
+    return false;
+  }
+
+  if (!value) {
+    return true; // Empty optional field is valid
+  }
+
+  try {
+    let parsed;
+
+    // Try JSON parsing first
+    if (value.startsWith('[')) {
+      parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) {
+        feedbackDiv.className = 'parameter-feedback error';
+        feedbackDiv.textContent = 'JSON格式需要是数组';
+        feedbackDiv.dataset.feedback = 'error';
+        return false;
+      }
+    } else {
+      // Parse as newline or comma-separated
+      parsed = value.split(/[,\n]/).map(s => s.trim()).filter(s => s);
+    }
+
+    // Validate array constraints
+    const minItems = schema.min_items || schema.minItems;
+    const maxItems = schema.max_items || schema.maxItems;
+
+    if (minItems !== undefined && parsed.length < minItems) {
+      feedbackDiv.className = 'parameter-feedback error';
+      feedbackDiv.textContent = `至少需要 ${minItems} 个项目, 当前: ${parsed.length}`;
+      feedbackDiv.dataset.feedback = 'error';
+      return false;
+    }
+
+    if (maxItems !== undefined && parsed.length > maxItems) {
+      feedbackDiv.className = 'parameter-feedback error';
+      feedbackDiv.textContent = `最多允许 ${maxItems} 个项目, 当前: ${parsed.length}`;
+      feedbackDiv.dataset.feedback = 'error';
+      return false;
+    }
+
+    // Validate nested arrays (time intervals)
+    if (Array.isArray(parsed[0])) {
+      for (let i = 0; i < parsed.length; i++) {
+        const interval = parsed[i];
+        if (!Array.isArray(interval) || interval.length !== 2) {
+          feedbackDiv.className = 'parameter-feedback error';
+          feedbackDiv.textContent = `时段${i + 1}格式错误: 需要恰好2个值 [开始, 结束]`;
+          feedbackDiv.dataset.feedback = 'error';
+          return false;
+        }
+
+        const [start, end] = interval;
+
+        // Validate hour range (0-24)
+        if (start < 0 || start > 24) {
+          feedbackDiv.className = 'parameter-feedback error';
+          feedbackDiv.textContent = `时段${i + 1}无效: 开始小时${start}超出范围(0-24)`;
+          feedbackDiv.dataset.feedback = 'error';
+          return false;
+        }
+
+        if (end < 0 || end > 24) {
+          feedbackDiv.className = 'parameter-feedback error';
+          feedbackDiv.textContent = `时段${i + 1}无效: 结束小时${end}超出范围(0-24)`;
+          feedbackDiv.dataset.feedback = 'error';
+          return false;
+        }
+
+        // Validate start < end (unless cross-midnight)
+        if (start >= end) {
+          feedbackDiv.className = 'parameter-feedback warning';
+          feedbackDiv.textContent = `时段${i + 1}警告: 开始时间≥结束时间 (跨午夜时段?)`;
+          feedbackDiv.dataset.feedback = 'warning';
+        }
+      }
+    }
+
+    // Success
+    feedbackDiv.className = 'parameter-feedback success';
+    feedbackDiv.textContent = `✓ 已识别 ${parsed.length} 个项目`;
+    feedbackDiv.dataset.feedback = 'success';
+    return true;
+
+  } catch (e) {
+    feedbackDiv.className = 'parameter-feedback error';
+    feedbackDiv.textContent = `JSON格式不正确: ${e.message}`;
+    feedbackDiv.dataset.feedback = 'error';
+    return false;
+  }
 }
 
 /**

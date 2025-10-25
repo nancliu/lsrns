@@ -109,6 +109,7 @@ def query_edges_with_filters(
               ON e.route_code = g.route_code
               AND g.gantry_stake BETWEEN e.start_stake AND e.end_stake
             WHERE 1=1
+              AND e.route_code IS NOT NULL
         """
 
         params = []

@@ -782,23 +782,9 @@
             <div class="step-content" id="step3-content" style="display: none;">
                 <h3>步骤3：配置策略参数</h3>
 
-                <!-- 前两步配置摘要 -->
-                <div id="config-summary" class="config-summary" style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 25px; border: 2px solid #e9ecef;">
-                    <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">📋 配置摘要</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div>
-                            <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选模板</div>
-                            <div id="summary-template" style="color: #2c3e50; font-size: 1.05rem;"></div>
-                        </div>
-                        <div>
-                            <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选路段数量</div>
-                            <div id="summary-edges" style="color: #2c3e50; font-size: 1.05rem;"></div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <div style="font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">已选路段列表</div>
-                        <div id="summary-edge-list" style="max-height: 120px; overflow-y: auto; background: white; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 0.9rem;"></div>
-                    </div>
+                <!-- 已选路段详细信息展示 (Phase 2: Task 2.1-2.4) -->
+                <div id="edge-display-container" style="margin-bottom: 25px;">
+                    <!-- EdgeDisplayTable 组件将渲染在这里 -->
                 </div>
 
                 <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">⚙️ 参数配置</h4>
@@ -808,7 +794,7 @@
                 <div class="action-buttons">
                     <button class="btn btn-secondary" onclick="previousStep()">上一步</button>
                     <button class="btn btn-secondary" onclick="resetForm()">重置</button>
-                    <button class="btn btn-primary" onclick="createStrategy()">生成策略实例</button>
+                    <button class="btn btn-primary" id="save-strategy-btn" onclick="createStrategy()">生成策略实例</button>
                 </div>
             </div>
 
@@ -999,12 +985,19 @@
         // 选择模板
         function selectTemplate(template) {
             selectedTemplate = template;
+            console.log('[selectTemplate] Selected:', template.template_name, template.strategy_type);
 
             // 更新视觉选中状态
             document.querySelectorAll('.template-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            event.currentTarget.classList.add('selected');
+
+            // 找到对应的卡片并标记为选中
+            document.querySelectorAll('.template-card').forEach(card => {
+                if (card.onclick && card.onclick.toString().includes(template.template_id)) {
+                    card.classList.add('selected');
+                }
+            });
 
             // 自动进入步骤2
             setTimeout(() => {
@@ -1039,9 +1032,20 @@
                 showTemplateInfo(selectedTemplate);
             }
 
-            // 如果进入步骤3，生成参数表单
-            if (currentStep === 3 && selectedTemplate) {
-                generateParamsForm(selectedTemplate);
+            // 如果进入步骤3，生成参数表单并显示路段信息
+            if (currentStep === 3) {
+                console.log('[updateStepDisplay] Entering Step 3');
+                console.log('[updateStepDisplay] selectedTemplate:', selectedTemplate ? selectedTemplate.template_name : 'NULL');
+                console.log('[updateStepDisplay] selectedEdges:', selectedEdges ? selectedEdges.length : 'NULL');
+
+                if (selectedTemplate) {
+                    console.log('[updateStepDisplay] Calling generateParamsForm...');
+                    generateParamsForm(selectedTemplate);
+                    console.log('[updateStepDisplay] Calling initializeEdgeDisplay...');
+                    initializeEdgeDisplay();
+                } else {
+                    console.error('[updateStepDisplay] selectedTemplate is NULL! Cannot generate form.');
+                }
             }
         }
 
@@ -1154,28 +1158,48 @@
 
         // 生成参数表单
         function generateParamsForm(template) {
+            console.log('[generateParamsForm] Called with template:', template ? template.template_name : 'NULL');
+            console.log('[generateParamsForm] Template has parameters_schema:', template ? !!template.parameters_schema : 'N/A');
+
             const form = document.getElementById('params-form');
+            if (!form) {
+                console.error('[generateParamsForm] params-form element not found!');
+                return;
+            }
+
             form.innerHTML = '';
+            console.log('[generateParamsForm] Cleared form');
 
             // 更新配置摘要
             updateConfigSummary();
+            console.log('[generateParamsForm] Updated config summary');
 
-            // 策略名称（必填）
+            // 策略名称（必填）- Task 3.3: 添加"建议名称"按钮
             const nameGroup = document.createElement('div');
             nameGroup.className = 'form-group';
             nameGroup.innerHTML = `
                 <label>策略名称 *</label>
-                <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略">
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略" style="flex: 1;">
+                    <button type="button" id="suggest-name-btn" class="btn btn-secondary" style="white-space: nowrap;">
+                        建议名称
+                    </button>
+                </div>
                 <span class="form-hint">为该策略实例命名（1-100个字符）</span>
             `;
             form.appendChild(nameGroup);
 
-            // 策略描述
+            // 策略描述（可选）- Task 3.5: 添加"重新生成描述"按钮
             const descGroup = document.createElement('div');
             descGroup.className = 'form-group';
             descGroup.innerHTML = `
                 <label>策略描述</label>
-                <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的"></textarea>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的" style="flex: 1;"></textarea>
+                    <button type="button" id="regenerate-description-btn" class="btn btn-secondary" style="white-space: nowrap; align-self: flex-start;">
+                        重新生成描述
+                    </button>
+                </div>
                 <span class="form-hint">可选</span>
             `;
             form.appendChild(descGroup);
@@ -1278,33 +1302,1233 @@
 
         // 更新配置摘要（步骤3）
         function updateConfigSummary() {
+            console.log('[updateConfigSummary] Called');
+
             const strategyNames = {
                 'VSS': '可变限速',
                 'DHS': '动态硬路肩',
                 'TEC': '收费站管控'
             };
 
-            // 更新模板信息
+            // 更新模板信息（如果元素存在）
             if (selectedTemplate) {
                 const summaryTemplate = document.getElementById('summary-template');
-                summaryTemplate.innerHTML = `
-                    <strong>${selectedTemplate.template_name}</strong>
-                    <span class="strategy-badge badge-${selectedTemplate.strategy_type}" style="margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;">${strategyNames[selectedTemplate.strategy_type]}</span>
+                if (summaryTemplate) {
+                    summaryTemplate.innerHTML = `
+                        <strong>${selectedTemplate.template_name}</strong>
+                        <span class="strategy-badge badge-${selectedTemplate.strategy_type}" style="margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;">${strategyNames[selectedTemplate.strategy_type]}</span>
+                    `;
+                } else {
+                    console.warn('[updateConfigSummary] summary-template element not found (this is OK if using EdgeDisplayTable)');
+                }
+            }
+
+            // 更新路段信息（如果元素存在）
+            const summaryEdges = document.getElementById('summary-edges');
+            if (summaryEdges) {
+                summaryEdges.innerHTML = `<strong style="color: #3498db; font-size: 1.2rem;">${selectedEdges.length}</strong> 条路段`;
+            }
+
+            // 更新路段列表（如果元素存在）
+            const summaryEdgeList = document.getElementById('summary-edge-list');
+            if (summaryEdgeList) {
+                if (selectedEdges.length === 0) {
+                    summaryEdgeList.innerHTML = '<span style="color: #e74c3c;">⚠️ 警告：未选择任何路段！请返回步骤2选择路段。</span>';
+                } else {
+                    summaryEdgeList.innerHTML = selectedEdges.map(edge =>
+                        `<div style="padding: 3px 0; border-bottom: 1px solid #f0f0f0;">${edge}</div>`
+                    ).join('');
+                }
+            }
+
+            console.log('[updateConfigSummary] Completed');
+        }
+
+        // ==================== Edge Display Table Component (Phase 2) ====================
+        // Task 2.1-2.4: Full edge display with DHS validation
+
+        class EdgeDisplayTable {
+            constructor(containerEl, strategyType) {
+                this.container = containerEl;
+                this.strategyType = strategyType;
+                this.edges = [];
+                this.validationIssues = [];
+            }
+
+            async loadEdges(edgeIds, edgeDataCache = null) {
+                if (!edgeIds || edgeIds.length === 0) {
+                    this.renderNoEdgesMessage();
+                    return;
+                }
+
+                try {
+                    console.log(`[EdgeDisplayTable] Loading ${edgeIds.length} edges...`);
+
+                    // 优化：先尝试从缓存中获取路段数据（复用 Step 2 查询结果）
+                    if (edgeDataCache && Array.isArray(edgeDataCache) && edgeDataCache.length > 0) {
+                        console.log(`[EdgeDisplayTable] Using cached edge data (${edgeDataCache.length} edges)`);
+
+                        // 从缓存中筛选出所选路段
+                        const edgeIdSet = new Set(edgeIds);
+                        const cachedEdges = edgeDataCache.filter(edge => edgeIdSet.has(edge.edge_id));
+
+                        if (cachedEdges.length === edgeIds.length) {
+                            // 缓存完全命中，进行字段映射（Step 2 字段 → Step 3 期望字段）
+                            this.edges = cachedEdges.map(edge => ({
+                                edge_id: edge.edge_id,
+                                route_code: edge.route_code,
+                                section_code: edge.section_code,
+                                start_stake: edge.start_stake,
+                                end_stake: edge.end_stake,
+                                length_m: edge.length,          // 映射: length → length_m
+                                lane_count: edge.num_lanes,     // 映射: num_lanes → lane_count
+                                direction: edge.route_direction, // 映射: route_direction → direction
+                                node_type: edge.node_type,
+                                gantry_count: edge.gantry_count
+                            }));
+
+                            console.log(`[EdgeDisplayTable] ✅ All ${this.edges.length} edges found in cache, API call avoided`);
+                            this.render();
+                            this.checkValidation();
+                            return;
+                        } else {
+                            console.log(`[EdgeDisplayTable] ⚠️  Cache miss: found ${cachedEdges.length}/${edgeIds.length}, falling back to API`);
+                        }
+                    }
+
+                    // 回退：缓存未命中或不可用，调用 API 获取
+                    console.log(`[EdgeDisplayTable] Fetching edge data from API...`);
+                    const response = await fetch('/api/v1/control/edges/batch-info', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({edge_ids: edgeIds})
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch edge info: ${response.statusText}`);
+                    }
+
+                    this.edges = await response.json();
+                    console.log(`[EdgeDisplayTable] Loaded ${this.edges.length} edges from API`);
+
+                    this.render();
+                    this.checkValidation();
+
+                } catch (error) {
+                    console.error('[EdgeDisplayTable] Error loading edges:', error);
+                    this.renderError(error.message);
+                }
+            }
+
+            render() {
+                this.container.innerHTML = '';
+
+                // 路段汇总
+                const summaryEl = this.renderSummary();
+                this.container.appendChild(summaryEl);
+
+                // 验证信息（如果有）
+                if (this.validationIssues.length > 0) {
+                    const validationEl = this.renderValidationIssues();
+                    this.container.appendChild(validationEl);
+                }
+
+                // 分隔线
+                const divider = document.createElement('hr');
+                divider.style.cssText = 'margin: 20px 0; border: none; border-top: 2px solid #e9ecef;';
+                this.container.appendChild(divider);
+
+                // 路段表格
+                const tableEl = this.renderTable();
+                this.container.appendChild(tableEl);
+
+                // 提示信息
+                const noteEl = document.createElement('div');
+                noteEl.className = 'edge-table-note';
+                noteEl.innerHTML = '<em>如需修改路段选择，请返回第2步</em>';
+                this.container.appendChild(noteEl);
+            }
+
+            renderSummary() {
+                const summary = document.createElement('div');
+                summary.className = 'edge-summary';
+                summary.style.cssText = 'background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 0;';
+
+                const totalLength = this.edges.reduce((sum, e) => sum + (e.length_m || 0), 0) / 1000;
+                const routes = [...new Set(this.edges.map(e => e.route_code))].filter(r => r);
+                const laneCounts = this.edges.map(e => e.lane_count || 0).filter(l => l > 0);
+                const laneRange = laneCounts.length > 0 ? {
+                    min: Math.min(...laneCounts),
+                    max: Math.max(...laneCounts)
+                } : {min: 0, max: 0};
+
+                const summaryGrid = document.createElement('div');
+                summaryGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;';
+
+                const items = [
+                    { label: '已选择', value: `${this.edges.length} 个路段` },
+                    { label: '总长度', value: `${totalLength.toFixed(2)} km` },
+                    { label: '覆盖路线', value: routes.length > 0 ? routes.join(', ') : 'N/A' },
+                    { label: '车道数范围', value: `${laneRange.min}-${laneRange.max} 车道` }
+                ];
+
+                items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.cssText = 'display: flex; flex-direction: column; gap: 5px;';
+
+                    const label = document.createElement('span');
+                    label.textContent = item.label;
+                    label.style.cssText = 'font-size: 0.85rem; color: #7f8c8d; font-weight: 500;';
+
+                    const value = document.createElement('span');
+                    value.textContent = item.value;
+                    value.style.cssText = 'font-size: 1.3rem; color: #2c3e50; font-weight: 600;';
+
+                    itemDiv.appendChild(label);
+                    itemDiv.appendChild(value);
+                    summaryGrid.appendChild(itemDiv);
+                });
+
+                summary.appendChild(summaryGrid);
+                return summary;
+            }
+
+            renderValidationIssues() {
+                const container = document.createElement('div');
+                container.className = 'validation-issues';
+
+                for (const issue of this.validationIssues) {
+                    const issueEl = document.createElement('div');
+                    issueEl.className = `validation-${issue.type}`;
+
+                    const icon = issue.type === 'error' ? '❌' : '⚠️';
+                    issueEl.innerHTML = `
+                        <div class="validation-header">
+                            ${icon} ${issue.message}
+                        </div>
+                        ${issue.details ? `<div class="validation-details">${issue.details.join('<br>')}</div>` : ''}
+                        ${issue.note ? `<div class="validation-note"><em>${issue.note}</em></div>` : ''}
+                    `;
+
+                    container.appendChild(issueEl);
+                }
+
+                return container;
+            }
+
+            renderTable() {
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = 'edge-table-wrapper';
+                tableWrapper.style.cssText = 'background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 15px;';
+
+                const table = document.createElement('table');
+                table.className = 'edge-table';
+                table.style.cssText = 'width: 100%; border-collapse: collapse;';
+
+                const thead = document.createElement('thead');
+                thead.style.cssText = 'background: #3498db; color: white;';
+                thead.innerHTML = `
+                    <tr>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">序号</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">路段ID</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">路线</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">路段代码</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">桩号范围</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">长度(m)</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">车道</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">方向</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">节点类型</th>
+                        <th style="padding: 14px 12px; text-align: left; font-weight: 600; font-size: 0.85rem; white-space: nowrap;">门架数</th>
+                    </tr>
+                `;
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+
+                const sortedEdges = [...this.edges].sort((a, b) => {
+                    return (a.start_stake || 0) - (b.start_stake || 0);
+                });
+
+                sortedEdges.forEach((edge, index) => {
+                    const row = this.renderEdgeRow(edge, index + 1);
+                    tbody.appendChild(row);
+                });
+
+                table.appendChild(tbody);
+                tableWrapper.appendChild(table);
+
+                if (this.edges.length > 20) {
+                    const pagination = document.createElement('div');
+                    pagination.className = 'edge-table-pagination';
+                    pagination.innerHTML = '<em>显示所有路段（分页功能待实现）</em>';
+                    tableWrapper.appendChild(pagination);
+                }
+
+                return tableWrapper;
+            }
+
+            renderEdgeRow(edge, index) {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #e9ecef';
+                row.dataset.edgeId = edge.edge_id;
+
+                const formatStake = (stake) => {
+                    if (!stake && stake !== 0) return '-';
+                    // stake 是公里数（浮点数），如 57.545
+                    const km = Math.floor(stake); // 公里部分: 57
+                    const m = Math.round((stake - km) * 1000); // 米部分: 545
+                    return `K${km}+${m.toString().padStart(3, '0')}`;
+                };
+
+                const translateDirection = (dir) => {
+                    const translations = {
+                        'upstream': '上行',
+                        'downstream': '下行',
+                        'clockwise': '顺时针',
+                        'counterclockwise': '逆时针'
+                    };
+                    return translations[dir] || dir || '-';
+                };
+
+                const translateNodeType = (type) => {
+                    const translations = {
+                        'normal': '普通',
+                        'diverging': '分流',
+                        'merging': '汇流',
+                        'lane_increase': '车道增加',
+                        'lane_decrease': '车道减少',
+                        'entrance': '入口',
+                        'exit': '出口',
+                        'gantry': '门架'
+                    };
+                    return translations[type] || type || '-';
+                };
+
+                // 使用与 Step 2 相同的数据格式
+                const cells = [
+                    index,
+                    edge.edge_id || '-',
+                    edge.route_code || '-',
+                    edge.section_code || '-',
+                    edge.start_stake !== null && edge.end_stake !== null ?
+                        `${formatStake(edge.start_stake)} - ${formatStake(edge.end_stake)}` : '-',
+                    edge.length_m !== null ? edge.length_m.toFixed(1) : '-',
+                    edge.lane_count !== null ? edge.lane_count : '-',
+                    translateDirection(edge.direction),
+                    translateNodeType(edge.node_type),
+                    edge.gantry_count !== null ? edge.gantry_count : '-'
+                ];
+
+                cells.forEach(content => {
+                    const cell = document.createElement('td');
+                    cell.style.padding = '10px';
+                    cell.textContent = content;
+                    row.appendChild(cell);
+                });
+
+                return row;
+            }
+
+            renderNoEdgesMessage() {
+                this.container.innerHTML = `
+                    <div class="edge-table-empty">
+                        <p>未选择路段</p>
+                        <p><em>请返回第2步选择路段</em></p>
+                    </div>
                 `;
             }
 
-            // 更新路段信息
-            const summaryEdges = document.getElementById('summary-edges');
-            summaryEdges.innerHTML = `<strong style="color: #3498db; font-size: 1.2rem;">${selectedEdges.length}</strong> 条路段`;
+            renderError(message) {
+                this.container.innerHTML = `
+                    <div class="edge-table-error">
+                        <p>❌ 加载路段信息失败</p>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
 
-            // 更新路段列表
-            const summaryEdgeList = document.getElementById('summary-edge-list');
-            if (selectedEdges.length === 0) {
-                summaryEdgeList.innerHTML = '<span style="color: #e74c3c;">⚠️ 警告：未选择任何路段！请返回步骤2选择路段。</span>';
+            checkValidation() {
+                this.validationIssues = [];
+
+                if (this.strategyType !== 'DHS') {
+                    return;
+                }
+
+                const invalidLaneEdges = this.edges.filter(e => (e.lane_count || 0) < 4);
+                if (invalidLaneEdges.length > 0) {
+                    this.validationIssues.push({
+                        type: 'error',
+                        message: 'DHS策略要求车道数≥4，以下路段不符合:',
+                        details: invalidLaneEdges.map(e => `${e.edge_id} (${e.lane_count}车道)`),
+                        note: '请返回第2步重新选择符合要求的路段'
+                    });
+                }
+
+                const discontinuities = this.checkEdgeContinuity();
+                if (discontinuities.length > 0) {
+                    this.validationIssues.push({
+                        type: 'warning',
+                        message: '警告：所选路段不连续，DHS策略可能效果降低',
+                        details: discontinuities,
+                        note: '如需调整路段选择，请返回第2步'
+                    });
+                }
+            }
+
+            checkEdgeContinuity() {
+                const gaps = [];
+                const sorted = [...this.edges].sort((a, b) =>
+                    (a.start_stake || 0) - (b.start_stake || 0)
+                );
+
+                const tolerance = 0.05; // 50米 = 0.05公里
+
+                for (let i = 0; i < sorted.length - 1; i++) {
+                    const current = sorted[i];
+                    const next = sorted[i + 1];
+
+                    const currentEnd = current.end_stake || 0;
+                    const nextStart = next.start_stake || 0;
+
+                    if (currentEnd + tolerance < nextStart) {
+                        const gapSize = (nextStart - currentEnd) * 1000; // 转换为米
+                        // 格式化桩号：公里数 -> K公里+米
+                        const formatKm = (km) => {
+                            const k = Math.floor(km);
+                            const m = Math.round((km - k) * 1000);
+                            return `K${k}+${m.toString().padStart(3, '0')}`;
+                        };
+                        gaps.push(`${formatKm(currentEnd)} 到 ${formatKm(nextStart)} 之间存在 ${Math.round(gapSize)}m 间隙`);
+                    }
+                }
+
+                return gaps;
+            }
+
+            getValidationStatus() {
+                const errors = this.validationIssues.filter(i => i.type === 'error').length;
+                const warnings = this.validationIssues.filter(i => i.type === 'warning').length;
+
+                return {
+                    valid: errors === 0,
+                    errors: errors,
+                    warnings: warnings,
+                    issues: this.validationIssues
+                };
+            }
+        }
+
+        // ==================== 策略名称生成器 (Phase 3: Task 3.1) ====================
+        class StrategyNameGenerator {
+            /**
+             * 生成策略名称
+             * @param {Object} template - 策略模板对象
+             * @param {Array} edges - 已选路段数组
+             * @param {Object} parameters - 参数对象
+             * @returns {string} 生成的策略名称
+             */
+            static generate(template, edges, parameters) {
+                if (!template || !edges || edges.length === 0) {
+                    return '';
+                }
+
+                const strategyType = template.strategy_type;
+
+                switch (strategyType) {
+                    case 'VSS':
+                        return this.generateVSSName(template, edges, parameters);
+                    case 'DHS':
+                        return this.generateDHSName(template, edges, parameters);
+                    case 'TEC':
+                        return this.generateTECName(template, edges, parameters);
+                    default:
+                        return `${strategyType}策略`;
+                }
+            }
+
+            /**
+             * 生成 VSS 策略名称
+             * 格式: {Route} {Section} 限速{Speed}km/h ({Time})
+             */
+            static generateVSSName(template, edges, parameters) {
+                const routeSection = this.extractRouteSection(edges);
+                const speed = parameters.speed_limit || parameters.target_speed || '?';
+                const timePeriod = this.detectTimePeriod(parameters);
+
+                return `${routeSection} 限速${speed}km/h (${timePeriod})`;
+            }
+
+            /**
+             * 生成 DHS 策略名称
+             * 格式: {Route} {Section} 应急车道开放 ({Time})
+             */
+            static generateDHSName(template, edges, parameters) {
+                const routeSection = this.extractRouteSection(edges);
+                const timePeriod = this.detectTimePeriod(parameters);
+
+                return `${routeSection} 应急车道开放 (${timePeriod})`;
+            }
+
+            /**
+             * 生成 TEC 策略名称
+             * 格式: {Entrance} 计量控制 ({Time}) 或 {Entrance} {VehicleType}限行 ({Time})
+             */
+            static generateTECName(template, edges, parameters) {
+                const entrance = this.extractEntranceName(edges);
+                const timePeriod = this.detectTimePeriod(parameters);
+
+                // 判断是计量控制还是限行
+                if (template.template_name.includes('计量') || template.template_name.includes('Metering')) {
+                    return `${entrance} 计量控制 (${timePeriod})`;
+                } else {
+                    const vehicleType = parameters.vehicle_type || '车辆';
+                    return `${entrance} ${vehicleType}限行 (${timePeriod})`;
+                }
+            }
+
+            /**
+             * 从路段数据中提取路线和路段信息
+             * 格式: "G4202 K10-K15" 或 "SA2 K20-K25"
+             */
+            static extractRouteSection(edges) {
+                if (!edges || edges.length === 0) return '未知路段';
+
+                // 获取路线代码（使用第一个路段的路线，或者检测是否多路线）
+                const routes = [...new Set(edges.map(e => e.route_code))].filter(r => r);
+                const routeCode = routes.length === 1 ? routes[0] : (routes.length > 1 ? '多路线' : '未知路线');
+
+                // 获取桩号范围（排序后的第一个和最后一个）
+                const sorted = [...edges].sort((a, b) => (a.start_stake || 0) - (b.start_stake || 0));
+                const firstEdge = sorted[0];
+                const lastEdge = sorted[sorted.length - 1];
+
+                const startStake = this.formatStake(firstEdge.start_stake);
+                const endStake = this.formatStake(lastEdge.end_stake);
+
+                return `${routeCode} ${startStake}-${endStake}`;
+            }
+
+            /**
+             * 从路段数据中提取收费站名称
+             */
+            static extractEntranceName(edges) {
+                // TODO: 从 edge metadata 中提取收费站名称
+                // 目前返回路段代码作为占位符
+                if (!edges || edges.length === 0) return '未知收费站';
+
+                const firstEdge = edges[0];
+                return firstEdge.section_code || '未知收费站';
+            }
+
+            /**
+             * 检测时间段并转换为中文描述
+             * @param {Object} parameters - 参数对象（可能包含 time_intervals, active_hours 等字段）
+             * @returns {string} 时间段描述
+             */
+            static detectTimePeriod(parameters) {
+                // 尝试从不同的参数名中获取时间段
+                const intervals = parameters.time_intervals ||
+                                parameters.active_hours ||
+                                parameters.control_periods ||
+                                parameters.dhs_interval_array ||
+                                parameters.tec_interval_array;
+
+                if (!intervals) {
+                    return '定时管控';
+                }
+
+                // 如果是数组，检测常见模式
+                if (Array.isArray(intervals)) {
+                    // 转换为字符串进行模式匹配
+                    const intervalsStr = JSON.stringify(intervals);
+
+                    // [[7,9]] → 早高峰
+                    if (intervalsStr.includes('[7,9]') && intervalsStr.split('[').length <= 3) {
+                        return '早高峰';
+                    }
+
+                    // [[17,19]] → 晚高峰
+                    if (intervalsStr.includes('[17,19]') && intervalsStr.split('[').length <= 3) {
+                        return '晚高峰';
+                    }
+
+                    // [[7,9],[17,19]] → 早晚高峰
+                    if (intervalsStr.includes('[7,9]') && intervalsStr.includes('[17,19]')) {
+                        return '早晚高峰';
+                    }
+
+                    // [[0,24]] → 全天
+                    if (intervalsStr.includes('[0,24]')) {
+                        return '全天';
+                    }
+
+                    // 其他情况
+                    return '定时管控';
+                }
+
+                return '定时管控';
+            }
+
+            /**
+             * 格式化桩号为 K公里 格式（简化版，不含+米）
+             * @param {number} stake - 桩号（公里）
+             * @returns {string} 格式化的桩号（如 K10）
+             */
+            static formatStake(stake) {
+                if (!stake && stake !== 0) return 'K?';
+                const km = Math.floor(stake);
+                return `K${km}`;
+            }
+        }
+
+        // 初始化路段展示表 (Phase 2: Task 2.1-2.4)
+        let edgeDisplayTable = null;
+
+        function initializeEdgeDisplay() {
+            const container = document.getElementById('edge-display-container');
+            if (!container) {
+                console.error('[initializeEdgeDisplay] 容器元素未找到');
+                return;
+            }
+
+            // 获取策略类型
+            const strategyType = selectedTemplate ? selectedTemplate.strategy_type : null;
+
+            // 创建EdgeDisplayTable实例
+            if (typeof EdgeDisplayTable === 'undefined') {
+                console.error('[initializeEdgeDisplay] EdgeDisplayTable 类未加载');
+                container.innerHTML = '<div class="edge-table-error">路段展示组件加载失败</div>';
+                return;
+            }
+
+            edgeDisplayTable = new EdgeDisplayTable(container, strategyType);
+
+            // 加载已选路段（优化：传入 Step 2 查询结果缓存）
+            if (selectedEdges && selectedEdges.length > 0) {
+                // 尝试从 EdgeSelector 获取查询结果缓存
+                const edgeDataCache = (typeof EdgeSelector !== 'undefined' && EdgeSelector.state)
+                    ? EdgeSelector.state.currentResults
+                    : null;
+
+                edgeDisplayTable.loadEdges(selectedEdges, edgeDataCache);
+
+                // 检查验证状态并更新保存按钮 + 自动生成策略名称 (Phase 3: Task 3.1)
+                setTimeout(() => {
+                    const validationStatus = edgeDisplayTable.getValidationStatus();
+                    const saveBtn = document.getElementById('save-strategy-btn');
+                    if (saveBtn) {
+                        if (!validationStatus.valid) {
+                            saveBtn.disabled = true;
+                            saveBtn.title = '存在验证错误，请返回第2步修正路段选择';
+                        } else {
+                            saveBtn.disabled = false;
+                            saveBtn.title = '';
+                        }
+                    }
+
+                    // 自动生成并填充策略名称 + 设置用户覆盖跟踪 (Task 3.3)
+                    autoPopulateStrategyName();
+                    setupNameChangeTracking();
+                    setupSuggestNameButton();
+
+                    // 自动生成并填充策略描述 + 设置用户覆盖跟踪 (Task 3.4 & 3.5)
+                    autoPopulateStrategyDescription();
+                    setupDescriptionChangeTracking();
+                    setupRegenerateDescriptionButton();
+                }, 500);
             } else {
-                summaryEdgeList.innerHTML = selectedEdges.map(edge =>
-                    `<div style="padding: 3px 0; border-bottom: 1px solid #f0f0f0;">${edge}</div>`
-                ).join('');
+                // 没有选择路段
+                container.innerHTML = `
+                    <div class="edge-table-empty">
+                        <p>❌ 未选择路段</p>
+                        <p><em>请返回第2步选择路段</em></p>
+                    </div>
+                `;
+
+                // 禁用保存按钮
+                const saveBtn = document.getElementById('save-strategy-btn');
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.title = '请先返回第2步选择路段';
+                }
+            }
+        }
+
+        // 自动填充策略名称 (Phase 3: Task 3.1)
+        async function autoPopulateStrategyName() {
+            console.log('[autoPopulateStrategyName] 开始生成策略名称');
+
+            // 检查是否有模板和路段数据
+            if (!selectedTemplate) {
+                console.warn('[autoPopulateStrategyName] 缺少模板信息，跳过名称生成');
+                return;
+            }
+
+            if (!edgeDisplayTable || !edgeDisplayTable.edges || edgeDisplayTable.edges.length === 0) {
+                console.warn('[autoPopulateStrategyName] 缺少路段数据，跳过名称生成');
+                return;
+            }
+
+            // 收集当前参数值（用于时间段检测等）
+            const currentParams = {};
+            if (selectedTemplate.parameters_schema) {
+                selectedTemplate.parameters_schema.forEach(param => {
+                    const input = document.getElementById(`param-${param.parameter_name}`);
+                    if (input) {
+                        let value = input.value;
+                        if (param.parameter_type === 'integer') {
+                            value = parseInt(value, 10);
+                        } else if (param.parameter_type === 'float') {
+                            value = parseFloat(value);
+                        } else if (param.parameter_type === 'boolean') {
+                            value = value === 'true';
+                        }
+                        currentParams[param.parameter_name] = value;
+                    }
+                });
+            }
+
+            // 调用策略名称生成器
+            const generatedName = StrategyNameGenerator.generate(
+                selectedTemplate,
+                edgeDisplayTable.edges,
+                currentParams
+            );
+
+            console.log('[autoPopulateStrategyName] 生成的策略名称:', generatedName);
+
+            // Task 3.2: 检查名称唯一性并自动递增
+            const uniqueName = await ensureUniqueName(generatedName);
+            console.log('[autoPopulateStrategyName] 唯一名称:', uniqueName);
+
+            // 填充到输入框
+            const nameInput = document.getElementById('param-strategy-name');
+            if (nameInput) {
+                nameInput.value = uniqueName;
+                console.log('[autoPopulateStrategyName] 策略名称已自动填充');
+            } else {
+                console.error('[autoPopulateStrategyName] 未找到策略名称输入框 (#param-strategy-name)');
+            }
+        }
+
+        // 获取所有现有策略名称 (Phase 3: Task 3.2)
+        async function fetchExistingStrategyNames() {
+            try {
+                console.log('[fetchExistingStrategyNames] 获取现有策略名称列表');
+
+                // 获取所有策略实例（不分页，或使用大的page_size）
+                const response = await fetch('/api/v1/control/strategy-instances/?page=1&page_size=1000');
+
+                if (!response.ok) {
+                    console.warn('[fetchExistingStrategyNames] API 调用失败:', response.status);
+                    return [];
+                }
+
+                const data = await response.json();
+                const strategies = data.strategies || [];
+
+                // 提取所有策略名称
+                const names = strategies.map(s => s.strategy_name).filter(name => name);
+
+                console.log(`[fetchExistingStrategyNames] 找到 ${names.length} 个现有策略名称`);
+                return names;
+
+            } catch (error) {
+                console.error('[fetchExistingStrategyNames] 获取策略名称失败:', error);
+                return [];
+            }
+        }
+
+        // 确保名称唯一，如果重复则自动递增 (Phase 3: Task 3.2)
+        async function ensureUniqueName(baseName) {
+            console.log('[ensureUniqueName] 检查名称唯一性:', baseName);
+
+            const existingNames = await fetchExistingStrategyNames();
+
+            // 检查基础名称是否已存在
+            if (!existingNames.includes(baseName)) {
+                console.log('[ensureUniqueName] 名称唯一，无需修改');
+                return baseName;
+            }
+
+            // 名称重复，查找合适的递增编号
+            let counter = 2;
+            let uniqueName = `${baseName} (${counter})`;
+
+            while (existingNames.includes(uniqueName)) {
+                counter++;
+                uniqueName = `${baseName} (${counter})`;
+
+                // 安全保护：避免无限循环
+                if (counter > 100) {
+                    console.warn('[ensureUniqueName] 递增次数超过100，停止检查');
+                    uniqueName = `${baseName} (${Date.now()})`;
+                    break;
+                }
+            }
+
+            console.log(`[ensureUniqueName] 名称重复，自动递增为: ${uniqueName}`);
+            return uniqueName;
+        }
+
+        // 名称变更跟踪标志 (Phase 3: Task 3.3)
+        let nameCustomizedByUser = false;
+        let autoGeneratedName = '';
+
+        // 设置名称变更跟踪 (Phase 3: Task 3.3)
+        function setupNameChangeTracking() {
+            console.log('[setupNameChangeTracking] 设置名称变更跟踪');
+
+            const nameInput = document.getElementById('param-strategy-name');
+            if (!nameInput) {
+                console.warn('[setupNameChangeTracking] 未找到策略名称输入框');
+                return;
+            }
+
+            // 记录自动生成的名称
+            autoGeneratedName = nameInput.value;
+            nameCustomizedByUser = false;
+
+            // 监听用户输入
+            nameInput.addEventListener('input', function(event) {
+                // 检查当前值是否与自动生成的值不同
+                if (event.target.value !== autoGeneratedName) {
+                    nameCustomizedByUser = true;
+                    console.log('[setupNameChangeTracking] 用户已自定义名称');
+                } else {
+                    nameCustomizedByUser = false;
+                    console.log('[setupNameChangeTracking] 名称恢复为自动生成值');
+                }
+            });
+
+            console.log('[setupNameChangeTracking] 跟踪已设置，初始名称:', autoGeneratedName);
+        }
+
+        // 设置"建议名称"按钮 (Phase 3: Task 3.3)
+        function setupSuggestNameButton() {
+            console.log('[setupSuggestNameButton] 设置建议名称按钮');
+
+            const suggestBtn = document.getElementById('suggest-name-btn');
+            if (!suggestBtn) {
+                console.warn('[setupSuggestNameButton] 未找到建议名称按钮');
+                return;
+            }
+
+            suggestBtn.addEventListener('click', async function() {
+                console.log('[suggestNameButton] 点击建议名称按钮');
+
+                // 如果用户已自定义名称，需要确认
+                if (nameCustomizedByUser) {
+                    const confirmed = confirm(
+                        '您已手动修改了策略名称。\n\n' +
+                        '点击"确定"将使用系统建议的名称覆盖您的修改。\n' +
+                        '点击"取消"保留您的自定义名称。'
+                    );
+
+                    if (!confirmed) {
+                        console.log('[suggestNameButton] 用户取消了重新生成');
+                        return;
+                    }
+                }
+
+                // 重新生成名称
+                await regenerateStrategyName();
+            });
+
+            console.log('[setupSuggestNameButton] 按钮已设置');
+        }
+
+        // 重新生成策略名称 (Phase 3: Task 3.3)
+        async function regenerateStrategyName() {
+            console.log('[regenerateStrategyName] 开始重新生成策略名称');
+
+            // 检查是否有模板和路段数据
+            if (!selectedTemplate) {
+                alert('无法生成名称：缺少模板信息');
+                return;
+            }
+
+            if (!edgeDisplayTable || !edgeDisplayTable.edges || edgeDisplayTable.edges.length === 0) {
+                alert('无法生成名称：缺少路段数据');
+                return;
+            }
+
+            // 收集当前参数值
+            const currentParams = {};
+            if (selectedTemplate.parameters_schema) {
+                selectedTemplate.parameters_schema.forEach(param => {
+                    const input = document.getElementById(`param-${param.parameter_name}`);
+                    if (input) {
+                        let value = input.value;
+                        if (param.parameter_type === 'integer') {
+                            value = parseInt(value, 10);
+                        } else if (param.parameter_type === 'float') {
+                            value = parseFloat(value);
+                        } else if (param.parameter_type === 'boolean') {
+                            value = value === 'true';
+                        }
+                        currentParams[param.parameter_name] = value;
+                    }
+                });
+            }
+
+            // 生成新名称
+            const generatedName = StrategyNameGenerator.generate(
+                selectedTemplate,
+                edgeDisplayTable.edges,
+                currentParams
+            );
+
+            console.log('[regenerateStrategyName] 重新生成的名称:', generatedName);
+
+            // 检查唯一性
+            const uniqueName = await ensureUniqueName(generatedName);
+            console.log('[regenerateStrategyName] 唯一名称:', uniqueName);
+
+            // 更新输入框
+            const nameInput = document.getElementById('param-strategy-name');
+            if (nameInput) {
+                nameInput.value = uniqueName;
+
+                // 更新跟踪状态
+                autoGeneratedName = uniqueName;
+                nameCustomizedByUser = false;
+
+                console.log('[regenerateStrategyName] 策略名称已更新');
+            } else {
+                console.error('[regenerateStrategyName] 未找到策略名称输入框');
+            }
+        }
+
+        // ========================================
+        // Phase 3: Task 3.4 - 策略描述生成引擎
+        // ========================================
+
+        /**
+         * 策略描述生成器类
+         * 根据策略类型、路段信息和参数配置自动生成详细描述
+         */
+        class StrategyDescriptionGenerator {
+            /**
+             * 生成策略描述（主入口）
+             * @param {Object} template - 策略模板
+             * @param {Array} edges - 选中的路段列表
+             * @param {Object} parameters - 当前参数值
+             * @returns {string} 生成的策略描述
+             */
+            static generate(template, edges, parameters) {
+                const strategyType = template.strategy_type;
+
+                switch (strategyType) {
+                    case 'VSS':
+                        return this.generateVSSDescription(template, edges, parameters);
+                    case 'DHS':
+                        return this.generateDHSDescription(template, edges, parameters);
+                    case 'TEC':
+                        return this.generateTECDescription(template, edges, parameters);
+                    default:
+                        return `${strategyType}策略的详细描述`;
+                }
+            }
+
+            /**
+             * 生成 VSS (可变限速) 策略描述
+             */
+            static generateVSSDescription(template, edges, parameters) {
+                const routeSection = StrategyNameGenerator.extractRouteSection(edges);
+                const speed = parameters.speed_limit || parameters.target_speed || '?';
+                const timePeriod = StrategyNameGenerator.detectTimePeriod(parameters);
+
+                let description = `本策略针对${routeSection}路段实施可变限速管控。`;
+
+                // 添加时间段信息
+                if (timePeriod === '早高峰' || timePeriod === '晚高峰' || timePeriod === '早晚高峰') {
+                    description += `在${timePeriod}时段，`;
+                } else if (timePeriod === '全天') {
+                    description += `全天范围内，`;
+                } else {
+                    description += `在指定时段内，`;
+                }
+
+                // 添加限速值
+                description += `对该路段实施限速${speed}km/h的速度管控。`;
+
+                // 添加目的说明
+                description += `\n\n策略目标：通过动态调整限速值，优化交通流量，提高道路通行效率，降低事故风险。`;
+
+                // 添加适用场景
+                if (timePeriod === '早高峰' || timePeriod === '晚高峰' || timePeriod === '早晚高峰') {
+                    description += `\n\n适用场景：高峰时段交通流量大、车速不均匀的快速路或高速公路路段。`;
+                } else {
+                    description += `\n\n适用场景：需要根据实时交通状况灵活调整车速的路段。`;
+                }
+
+                return description;
+            }
+
+            /**
+             * 生成 DHS (动态硬路肩) 策略描述
+             */
+            static generateDHSDescription(template, edges, parameters) {
+                const routeSection = StrategyNameGenerator.extractRouteSection(edges);
+                const timePeriod = StrategyNameGenerator.detectTimePeriod(parameters);
+
+                let description = `本策略针对${routeSection}路段实施动态硬路肩开放管控。`;
+
+                // 添加时间段信息
+                if (timePeriod === '早高峰' || timePeriod === '晚高峰' || timePeriod === '早晚高峰') {
+                    description += `在${timePeriod}时段，`;
+                } else if (timePeriod === '全天') {
+                    description += `全天范围内，`;
+                } else {
+                    description += `在指定时段内，`;
+                }
+
+                // 添加开放说明
+                description += `根据交通流量情况，动态开放应急车道供正常车辆通行，以增加道路通行能力。`;
+
+                // 添加目的说明
+                description += `\n\n策略目标：在高峰时段或交通拥堵情况下，临时开放应急车道，增加车道容量，缓解交通压力。`;
+
+                // 添加安全说明
+                description += `\n\n安全保障：系统将实时监控路段状态，确保在非紧急情况下合理利用应急车道资源。`;
+
+                // 添加适用场景
+                if (timePeriod === '早高峰' || timePeriod === '晚高峰' || timePeriod === '早晚高峰') {
+                    description += `\n\n适用场景：高峰时段交通流量大、主线车道接近饱和的高速公路路段。`;
+                } else {
+                    description += `\n\n适用场景：交通流量波动较大、需要弹性增加通行能力的路段。`;
+                }
+
+                return description;
+            }
+
+            /**
+             * 生成 TEC (收费站管控) 策略描述
+             */
+            static generateTECDescription(template, edges, parameters) {
+                const timePeriod = StrategyNameGenerator.detectTimePeriod(parameters);
+
+                // 获取入口名称
+                let location = '';
+                if (parameters.entrance_name) {
+                    location = parameters.entrance_name;
+                } else if (edges && edges.length > 0) {
+                    location = StrategyNameGenerator.extractRouteSection(edges);
+                } else {
+                    location = '指定收费站入口';
+                }
+
+                let description = `本策略针对${location}实施计量控制管控。`;
+
+                // 添加时间段信息
+                if (timePeriod === '早高峰' || timePeriod === '晚高峰' || timePeriod === '早晚高峰') {
+                    description += `在${timePeriod}时段，`;
+                } else if (timePeriod === '全天') {
+                    description += `全天范围内，`;
+                } else {
+                    description += `在指定时段内，`;
+                }
+
+                // 添加管控说明
+                description += `通过调节入口匝道信号灯控制车辆进入主线的频率，平衡主线交通流量。`;
+
+                // 添加控制参数（如果有）
+                if (parameters.green_time || parameters.cycle_time) {
+                    const greenTime = parameters.green_time || '?';
+                    const cycleTime = parameters.cycle_time || '?';
+                    description += `信号周期设置为${cycleTime}秒，绿灯时长${greenTime}秒。`;
+                }
+
+                // 添加目的说明
+                description += `\n\n策略目标：通过入口匝道计量控制，防止主线过度拥堵，维持主线交通流的稳定性和高效性。`;
+
+                // 添加适用场景
+                if (timePeriod === '早高峰' || timePeriod === '晚高峰' || timePeriod === '早晚高峰') {
+                    description += `\n\n适用场景：高峰时段主线交通流量接近饱和、入口匝道汇入导致拥堵的快速路或高速公路。`;
+                } else {
+                    description += `\n\n适用场景：主线交通流量波动较大、需要控制入口流量的路段。`;
+                }
+
+                return description;
+            }
+        }
+
+        /**
+         * 自动填充策略描述 (Phase 3: Task 3.4)
+         * 在进入 Step 3 时自动生成并填充描述
+         */
+        async function autoPopulateStrategyDescription() {
+            console.log('[autoPopulateStrategyDescription] 开始生成策略描述');
+
+            if (!selectedTemplate) {
+                console.warn('[autoPopulateStrategyDescription] 缺少模板信息，跳过描述生成');
+                return;
+            }
+
+            if (!edgeDisplayTable || !edgeDisplayTable.edges || edgeDisplayTable.edges.length === 0) {
+                console.warn('[autoPopulateStrategyDescription] 缺少路段数据，跳过描述生成');
+                return;
+            }
+
+            // 收集当前参数值
+            const currentParams = {};
+            if (selectedTemplate.parameters_schema) {
+                selectedTemplate.parameters_schema.forEach(param => {
+                    const input = document.getElementById(`param-${param.parameter_name}`);
+                    if (input) {
+                        let value = input.value;
+                        if (param.parameter_type === 'integer') {
+                            value = parseInt(value, 10);
+                        } else if (param.parameter_type === 'float') {
+                            value = parseFloat(value);
+                        } else if (param.parameter_type === 'boolean') {
+                            value = value === 'true';
+                        }
+                        currentParams[param.parameter_name] = value;
+                    }
+                });
+            }
+
+            const generatedDescription = StrategyDescriptionGenerator.generate(
+                selectedTemplate,
+                edgeDisplayTable.edges,
+                currentParams
+            );
+
+            console.log('[autoPopulateStrategyDescription] 生成的策略描述:', generatedDescription);
+
+            const descTextarea = document.getElementById('param-strategy-description');
+            if (descTextarea) {
+                descTextarea.value = generatedDescription;
+                console.log('[autoPopulateStrategyDescription] 策略描述已自动填充');
+            }
+        }
+
+        // ========================================
+        // Phase 3: Task 3.5 - 描述用户覆盖跟踪和重新生成按钮
+        // ========================================
+
+        // 描述变更跟踪标志 (Phase 3: Task 3.5)
+        let descriptionCustomizedByUser = false;
+        let autoGeneratedDescription = '';
+
+        /**
+         * 设置描述变更跟踪 (Phase 3: Task 3.5)
+         * 监听用户对描述的修改
+         */
+        function setupDescriptionChangeTracking() {
+            console.log('[setupDescriptionChangeTracking] 设置描述变更跟踪');
+
+            const descTextarea = document.getElementById('param-strategy-description');
+            if (!descTextarea) {
+                console.warn('[setupDescriptionChangeTracking] 未找到策略描述输入框');
+                return;
+            }
+
+            // 记录自动生成的描述
+            autoGeneratedDescription = descTextarea.value;
+            descriptionCustomizedByUser = false;
+
+            // 监听用户输入
+            descTextarea.addEventListener('input', function(event) {
+                if (event.target.value !== autoGeneratedDescription) {
+                    descriptionCustomizedByUser = true;
+                    console.log('[setupDescriptionChangeTracking] 用户已自定义描述');
+                } else {
+                    descriptionCustomizedByUser = false;
+                    console.log('[setupDescriptionChangeTracking] 描述恢复为自动生成值');
+                }
+            });
+
+            console.log('[setupDescriptionChangeTracking] 跟踪已设置');
+        }
+
+        /**
+         * 设置"重新生成描述"按钮 (Phase 3: Task 3.5)
+         */
+        function setupRegenerateDescriptionButton() {
+            console.log('[setupRegenerateDescriptionButton] 设置重新生成描述按钮');
+
+            const regenerateBtn = document.getElementById('regenerate-description-btn');
+            if (!regenerateBtn) {
+                console.warn('[setupRegenerateDescriptionButton] 未找到重新生成描述按钮');
+                return;
+            }
+
+            regenerateBtn.addEventListener('click', async function() {
+                console.log('[regenerateDescriptionButton] 点击重新生成描述按钮');
+
+                // 如果用户已修改描述，显示确认对话框
+                if (descriptionCustomizedByUser) {
+                    const confirmed = confirm(
+                        '您已手动修改了策略描述。\n\n' +
+                        '点击"确定"将使用系统生成的描述覆盖您的修改。\n' +
+                        '点击"取消"保留您的自定义描述。'
+                    );
+
+                    if (!confirmed) {
+                        console.log('[regenerateDescriptionButton] 用户取消了重新生成');
+                        return;
+                    }
+                }
+
+                await regenerateStrategyDescription();
+            });
+
+            console.log('[setupRegenerateDescriptionButton] 按钮已设置');
+        }
+
+        /**
+         * 重新生成策略描述 (Phase 3: Task 3.5)
+         * 重新读取当前参数值并生成新描述
+         */
+        async function regenerateStrategyDescription() {
+            console.log('[regenerateStrategyDescription] 开始重新生成策略描述');
+
+            if (!selectedTemplate) {
+                alert('无法生成描述：缺少模板信息');
+                return;
+            }
+
+            if (!edgeDisplayTable || !edgeDisplayTable.edges || edgeDisplayTable.edges.length === 0) {
+                alert('无法生成描述：缺少路段数据');
+                return;
+            }
+
+            // 收集当前参数值
+            const currentParams = {};
+            if (selectedTemplate.parameters_schema) {
+                selectedTemplate.parameters_schema.forEach(param => {
+                    const input = document.getElementById(`param-${param.parameter_name}`);
+                    if (input) {
+                        let value = input.value;
+                        if (param.parameter_type === 'integer') {
+                            value = parseInt(value, 10);
+                        } else if (param.parameter_type === 'float') {
+                            value = parseFloat(value);
+                        } else if (param.parameter_type === 'boolean') {
+                            value = value === 'true';
+                        }
+                        currentParams[param.parameter_name] = value;
+                    }
+                });
+            }
+
+            const generatedDescription = StrategyDescriptionGenerator.generate(
+                selectedTemplate,
+                edgeDisplayTable.edges,
+                currentParams
+            );
+
+            console.log('[regenerateStrategyDescription] 重新生成的描述:', generatedDescription);
+
+            const descTextarea = document.getElementById('param-strategy-description');
+            if (descTextarea) {
+                descTextarea.value = generatedDescription;
+                autoGeneratedDescription = generatedDescription;
+                descriptionCustomizedByUser = false;
+                console.log('[regenerateStrategyDescription] 策略描述已更新');
             }
         }
 
@@ -1313,6 +2537,7 @@
             currentStep = 1;
             selectedTemplate = null;
             selectedEdges = [];
+            edgeDisplayTable = null;
             updateStepDisplay();
             document.querySelectorAll('.template-card').forEach(card => {
                 card.classList.remove('selected');
@@ -1545,6 +2770,7 @@
                         <td style="padding: 12px; text-align: center;">
                             <button onclick="viewStrategyDetail('${instance.strategy_id}')" style="padding: 4px 10px; margin: 0 2px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">查看</button>
                             <button onclick="editStrategy('${instance.strategy_id}')" style="padding: 4px 10px; margin: 0 2px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">编辑</button>
+                            <button onclick="copyStrategy('${instance.strategy_id}', '${instance.strategy_name}')" style="padding: 4px 10px; margin: 0 2px; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">复制</button>
                             <button onclick="deleteStrategy('${instance.strategy_id}', '${instance.strategy_name}')" style="padding: 4px 10px; margin: 0 2px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">删除</button>
                         </td>
                     </tr>
@@ -1954,18 +3180,72 @@
             modal.style.display = 'none';
         }
 
-        // 编辑策略（占位符，Phase 6 - US3）
-        function editStrategy(strategyId) {
-            alert(`编辑策略功能将在 Phase 6 (US3) 实现\n策略ID: ${strategyId}`);
-        }
-
-        // 删除策略（占位符，Phase 7 - US4）
-        function deleteStrategy(strategyId, strategyName) {
-            if (confirm(`确定要删除该策略吗？\n策略名称: ${strategyName}\n\n此操作不可撤销！`)) {
-                alert(`删除策略功能将在 Phase 7 (US4) 实现\n策略ID: ${strategyId}`);
-                // TODO: Phase 7 - DELETE /api/v1/control/strategy-instances/{strategyId}
+        // 查看策略详情
+        function viewStrategyDetail(strategyId) {
+            console.log('[Templates] View strategy:', strategyId);
+            if (window.strategyManager) {
+                window.strategyManager.viewStrategy(strategyId);
+            } else {
+                console.error('[Templates] StrategyManager not available');
+                alert('策略管理器未加载，请刷新页面后重试');
             }
         }
+
+        // 编辑策略
+        function editStrategy(strategyId) {
+            console.log('[Templates] Edit strategy:', strategyId);
+            if (window.strategyManager) {
+                window.strategyManager.editStrategy(strategyId);
+            } else {
+                console.error('[Templates] StrategyManager not available');
+                alert('策略管理器未加载，请刷新页面后重试');
+            }
+        }
+
+        // 复制策略
+        async function copyStrategy(strategyId, strategyName) {
+            console.log('[Templates] Copy strategy:', strategyId);
+            if (window.strategyManager) {
+                const result = await window.strategyManager.copyStrategy(strategyId, strategyName);
+                // Refresh list if copy was successful
+                if (result) {
+                    setTimeout(() => {
+                        loadStrategies();
+                    }, 500);
+                }
+            } else {
+                console.error('[Templates] StrategyManager not available');
+                alert('策略管理器未加载，请刷新页面后重试');
+            }
+        }
+
+        // 删除策略
+        async function deleteStrategy(strategyId, strategyName) {
+            console.log('[Templates] Delete strategy:', strategyId);
+            if (window.strategyManager) {
+                const success = await window.strategyManager.deleteStrategy(strategyId, strategyName);
+                // Refresh list if deletion was successful
+                if (success) {
+                    setTimeout(() => {
+                        loadStrategies();
+                    }, 500);
+                }
+            } else {
+                console.error('[Templates] StrategyManager not available');
+                alert('策略管理器未加载，请刷新页面后重试');
+            }
+        }
+
+        // Listen for strategy events to refresh list
+        window.addEventListener('strategyCopied', () => {
+            console.log('[Templates] Strategy copied, refreshing list...');
+            setTimeout(() => loadStrategies(), 500);
+        });
+
+        window.addEventListener('strategyDeleted', () => {
+            console.log('[Templates] Strategy deleted, refreshing list...');
+            setTimeout(() => loadStrategies(), 500);
+        });
     </script>
 
     <!-- 路段选择器功能模块 -->

@@ -1,282 +1,285 @@
-# strategy-configuration-ux Specification
+# 策略配置用户体验规范
 
-## Purpose
+## 目的
 
-Define the user experience and functional requirements for the strategy parameter configuration page (Step 3 in strategy creation workflow), ensuring users can successfully configure all parameter types, verify edge selections, and create well-named, self-documented strategy instances.
+定义策略参数配置页面（策略创建工作流第3步）的用户体验和功能需求，确保用户能够成功配置所有参数类型、验证路段选择，并创建命名规范、自文档化的策略实例。
 
-## Requirements
+## 需求
 
-### ADDED Requirement: Enhanced Parameter Input Components
+### 新增需求：增强的参数输入组件
 
-The system SHALL provide specialized input components for each template parameter type, with clear format guidance, examples, and real-time validation to ensure successful parameter entry.
+系统应为每种模板参数类型提供专门的输入组件，包含清晰的格式指引、示例和实时验证，确保参数输入成功。
 
-#### Scenario: Array parameter with smart placeholder
+#### 场景：带智能占位符的数组参数
 
-- **WHEN** user encounters an array-type parameter (e.g., `time_intervals`, `speed_steps`, `allowed_vehicle_types`)
-- **THEN** system displays textarea with:
-  - Context-aware placeholder based on parameter name and type
-  - Example values from template's default_value if available
-  - Format hint explaining supported input formats (newline-separated, comma-separated, JSON)
-  - Minimum height of 100px for visibility
-  - Monospace font for structured data clarity
-- **THEN** placeholder examples:
-  - **For `time_intervals`**: `示例格式:\n[\n  [7, 9],\n  [17, 19]\n]\n\n每行一个时间段 [开始小时, 结束小时]`
-  - **For `speed_steps`**: `限速值示例(每行一个):\n80\n60\n40\n\n或JSON格式:[80, 60, 40]`
-  - **For `allowed_vehicle_types`**: `车型列表示例:\npassenger\ntruck\nbus\n\n或用逗号分隔:passenger, truck, bus`
-  - **For `affected_edges`**: `路段ID列表示例:\n-5880\n-5881\n-5882\n\n或用逗号分隔:-5880, -5881, -5882`
+- **当** 用户遇到数组类型参数（如 `time_intervals`、`speed_steps`、`allowed_vehicle_types`）
+- **则** 系统显示带有以下内容的文本域：
+  - 基于参数名称和类型的上下文感知占位符
+  - 如可用，从模板的 default_value 提取示例值
+  - 格式提示，说明支持的输入格式（换行分隔、逗号分隔、JSON）
+  - 最小高度100px以提高可见性
+  - 等宽字体用于结构化数据的清晰显示
+- **则** 占位符示例：
+  - **对于 `time_intervals`**: `示例格式:\n[\n  [7, 9],\n  [17, 19]\n]\n\n每行一个时间段 [开始小时, 结束小时]`
+  - **对于 `speed_steps`**: `限速值示例(每行一个):\n80\n60\n40\n\n或JSON格式:[80, 60, 40]`
+  - **对于 `allowed_vehicle_types`**: `车型列表示例:\npassenger\ntruck\nbus\n\n或用逗号分隔:passenger, truck, bus`
+  - **对于 `affected_edges`**: `路段ID列表示例:\n-5880\n-5881\n-5882\n\n或用逗号分隔:-5880, -5881, -5882`
 
-#### Scenario: Nested array parameter (time intervals)
+#### 场景：嵌套数组参数（时间区间）
 
-- **WHEN** parameter has nested array default value (e.g., `[[7, 9], [17, 19]]`)
-- **THEN** system pre-fills textarea with JSON format:
+- **当** 参数具有嵌套数组默认值（如 `[[7, 9], [17, 19]]`）
+- **则** 系统使用JSON格式预填充文本域：
   ```
   [
     [7, 9],
     [17, 19]
   ]
   ```
-- **THEN** placeholder explains: `示例格式:\n[[开始小时, 结束小时], ...]\n可直接编辑JSON或每行输入一个时段`
-- **THEN** user can edit JSON directly or replace with simpler format
+- **则** 占位符说明：`示例格式:\n[[开始小时, 结束小时], ...]\n可直接编辑JSON或每行输入一个时段`
+- **则** 用户可以直接编辑JSON或替换为更简单的格式
 
-#### Scenario: Simple array parameter (vehicle types)
+#### 场景：简单数组参数（车辆类型）
 
-- **WHEN** parameter has simple array default value (e.g., `["passenger", "truck"]`)
-- **THEN** system pre-fills textarea with newline-separated format:
+- **当** 参数具有简单数组默认值（如 `["passenger", "truck"]`）
+- **则** 系统使用换行分隔格式预填充文本域：
   ```
   passenger
   truck
   ```
-- **THEN** user can add/remove lines or use comma-separated format: `passenger, truck, bus`
-- **THEN** system accepts both formats on submission
+- **则** 用户可以添加/删除行或使用逗号分隔格式：`passenger, truck, bus`
+- **则** 系统在提交时接受两种格式
 
-#### Scenario: Array parameter without default value
+#### 场景：无默认值的数组参数
 
-- **WHEN** parameter has no default value but name suggests type (e.g., `entrance_edges`)
-- **THEN** system provides smart placeholder based on naming patterns:
-  - Contains "entrance": Show entrance edge ID examples
-  - Contains "speed": Show speed value examples
-  - Contains "time"|"interval": Show time period examples
-  - Contains "vehicle": Show vehicle type examples
-  - Generic fallback: Multi-line value format hint
-- **THEN** placeholder is clickable to auto-fill with example
+- **当** 参数没有默认值但名称暗示类型（如 `entrance_edges`）
+- **则** 系统基于命名模式提供智能占位符：
+  - 包含 "entrance"：显示入口edge ID示例
+  - 包含 "speed"：显示速度值示例
+  - 包含 "time"|"interval"：显示时间段示例
+  - 包含 "vehicle"：显示车型示例
+  - 通用后备：多行值格式提示
+- **则** 占位符可点击以自动填充示例
 
-#### Scenario: Number parameter with range constraint
+#### 场景：带范围约束的数值参数
 
-- **WHEN** parameter is integer/float with min/max values (e.g., `speed_limit` with min=30, max=130)
-- **THEN** system displays number input with:
-  - Input type="number" with appropriate step (1 for integer, 0.01 for float)
-  - HTML min/max attributes set from schema
-  - Unit label displayed after input (e.g., "km/h")
-  - Hint text showing valid range: `范围: 30-130 | 单位: km/h`
-- **THEN** on blur, validates value is within range
-- **THEN** if out of range, shows inline error: `值不能小于30` or `值不能大于130`
+- **当** 参数是带有最小/最大值的整数/浮点数（如 `speed_limit` 最小=30，最大=130）
+- **则** 系统显示带有以下内容的数值输入：
+  - 输入 type="number"，适当的步进值（整数为1，浮点数为0.01）
+  - 从schema设置HTML min/max属性
+  - 在输入后显示单位标签（如 "km/h"）
+  - 显示有效范围的提示文本：`范围: 30-130 | 单位: km/h`
+- **则** 失焦时验证值是否在范围内
+- **则** 如果超出范围，显示内联错误：`值不能小于30` 或 `值不能大于130`
 
-#### Scenario: String parameter with pattern constraint
+#### 场景：带模式约束的字符串参数
 
-- **WHEN** parameter has regex pattern constraint (e.g., strategy name with maxLength=100)
-- **THEN** system displays text input with:
-  - maxLength HTML attribute
-  - Pattern HTML attribute if applicable
-  - Character counter if maxLength defined: `42/100 字符`
-  - Hint showing format requirements
-- **THEN** on blur, validates against pattern
-- **THEN** if pattern mismatch, shows error: `格式不正确` with pattern description
+- **当** 参数具有正则表达式模式约束（如策略名称 maxLength=100）
+- **则** 系统显示带有以下内容的文本输入：
+  - maxLength HTML属性
+  - 如适用，pattern HTML属性
+  - 如定义了maxLength，显示字符计数器：`42/100 字符`
+  - 显示格式要求的提示
+- **则** 失焦时根据模式验证
+- **则** 如果模式不匹配，显示错误：`格式不正确` 及模式描述
 
-#### Scenario: Boolean parameter
+#### 场景：布尔参数
 
-- **WHEN** parameter is boolean type
-- **THEN** system displays select dropdown with:
-  - Option "是" (value="true")
-  - Option "否" (value="false", selected by default)
-  - Default value from template pre-selected
-- **THEN** clear label explaining what true/false means in context
+- **当** 参数是布尔类型
+- **则** 系统显示选择下拉框：
+  - 选项 "是"（value="true"）
+  - 选项 "否"（value="false"，默认选中）
+  - 从模板预选默认值
+- **则** 清晰标签说明在上下文中true/false的含义
 
-#### Scenario: Enum parameter
+#### 场景：枚举参数
 
-- **WHEN** parameter has allowed_values constraint (e.g., `control_mode` with values ["metering", "closure"])
-- **THEN** system displays select dropdown with:
-  - One option per allowed value
-  - Human-readable label for each value (from template metadata if available)
-  - Default value pre-selected
-  - Hint explaining each option's meaning
-- **THEN** user cannot enter custom values (dropdown only)
+- **当** 参数具有 allowed_values 约束（如 `control_mode` 值为 ["metering", "closure"]）
+- **则** 系统显示选择下拉框：
+  - 每个允许值对应一个选项
+  - 每个值的人类可读标签（如可用，从模板元数据获取）
+  - 预选默认值
+  - 说明每个选项含义的提示
+- **则** 用户无法输入自定义值（仅下拉框）
 
-#### Scenario: Real-time format hint updates
+#### 场景：实时格式提示更新
 
-- **WHEN** parameter name or default value changes during form generation
-- **THEN** hint text updates to reflect current parameter context
-- **THEN** placeholder adapts to show relevant examples
-- **THEN** validation rules adjust to parameter constraints
+- **当** 在表单生成期间参数名称或默认值发生变化
+- **则** 提示文本更新以反映当前参数上下文
+- **则** 占位符调整以显示相关示例
+- **则** 验证规则根据参数约束调整
 
-### ADDED Requirement: Comprehensive Edge Selection Display
+### 新增需求：完整的路段选择展示
 
-The system SHALL display selected edges in a detailed, readable table format showing all relevant attributes to enable verification before strategy creation.
+系统应以详细、可读的表格格式显示已选路段的所有相关属性，以便在创建策略前进行验证。
 
-#### Scenario: Display full edge information table
+#### 场景：显示完整的路段信息表格
 
-- **WHEN** user is on Step 3 (Configure Parameters) after selecting edges in Step 2
-- **THEN** system displays "已选路段" (Selected Edges) section with table containing columns:
-  | Column | Description | Example Value |
-  |--------|-------------|---------------|
-  | 序号 | Row number | 1, 2, 3 |
-  | Edge ID | Unique edge identifier | -5880, edge_k10_001 |
-  | 路线 | Route code | G4202, SA2, G5 |
-  | 路段 | Section code | K10-K15 |
-  | 起始桩号 | Start stake (km) | K10+200 |
-  | 结束桩号 | End stake (km) | K10+800 |
-  | 长度 | Edge length (m) | 600m |
-  | 车道数 | Lane count | 4 |
-  | 方向 | Direction | 顺时针, 上行 |
-  | 节点类型 | Node type | entrance, normal, merging |
-  | 操作 | Actions | [移除] button |
-- **THEN** table is sortable by stake order (default sort)
-- **THEN** table shows pagination if >20 edges selected
+- **当** 用户在第2步选择路段后到达第3步（配置参数）
+- **则** 系统显示"已选路段"部分，包含以下列的表格：
+  | 列名 | 描述 | 示例值 |
+  |------|------|--------|
+  | 序号 | 行号 | 1, 2, 3 |
+  | Edge ID | 唯一edge标识符 | -5880, edge_k10_001 |
+  | 路线 | 路线代码 | G4202, SA2, G5 |
+  | 路段 | 路段代码 | G4202001, SA2015 |
+  | 起始桩号 | 起始桩号(km) | K10+200 |
+  | 结束桩号 | 结束桩号(km) | K10+800 |
+  | 长度 | Edge长度(m) | 600m |
+  | 车道数 | 车道数量 | 4 |
+  | 方向 | 方向 | 顺时针, 上行 |
+  | 节点类型 | 节点类型 | entrance, normal, merging |
+- **则** 表格按桩号顺序排序（默认排序）
+- **则** 如果选择>20个路段，表格显示分页
 
-#### Scenario: Show edge count summary
+#### 场景：显示路段数量摘要
 
-- **WHEN** selected edges table is displayed
-- **THEN** system shows summary above table:
-  - "已选择 15 个路段" (15 edges selected)
-  - "总长度: 8.5 km" (total length sum)
-  - "覆盖路线: G4202, SA2" (unique routes)
-  - "车道数范围: 3-5" (min-max lane count)
-- **THEN** summary updates dynamically if edges are removed
+- **当** 显示已选路段表格时
+- **则** 系统在表格上方显示摘要：
+  - "已选择 15 个路段"（15个路段已选）
+  - "总长度: 8.5 km"（总长度总和）
+  - "覆盖路线: G4202, SA2"（唯一路线）
+  - "车道数范围: 3-5"（最小-最大车道数）
 
-#### Scenario: Inline edge removal
+#### 场景：无路段选择时的信息展示
 
-- **WHEN** user clicks [移除] button in edge table row
-- **THEN** system removes edge from selected list
-- **THEN** table row disappears with fade animation
-- **THEN** edge count summary updates immediately
-- **THEN** removed edge becomes re-selectable in Step 2 if user returns
+- **当** 用户未选择具体路段，但选择了筛选条件（路线、路段、桩号范围）
+- **则** 系统在"已选路段"部分显示摘要信息：
+  - "路线: G4202"（如果选择了路线筛选）
+  - "路段桩号: K10+000 - K15+500"（如果选择了桩号范围）
+  - "筛选条件: 车道数≥4, 方向=顺时针"（其他筛选条件）
+- **则** 显示提示："请返回第2步查询并选择具体路段"
 
-#### Scenario: Edge continuity warning for DHS
+#### 场景：DHS的路段连续性警告
 
-- **WHEN** strategy template is DHS type AND selected edges are not continuous
-- **THEN** system displays warning banner above table:
-  - Icon: ⚠️ yellow warning
-  - Message: `警告:所选路段不连续,DHS策略可能效果降低`
-  - Details: Show gaps in stake coverage (e.g., `K10+800 到 K11+200 之间存在400m间隙`)
-- **THEN** user can proceed despite warning (may be intentional for multiple DHS segments)
-- **THEN** warning disappears if user removes edges to create continuity
+- **当** 策略模板是DHS类型 且 已选路段不连续
+- **则** 系统在表格上方显示警告横幅：
+  - 图标：⚠️ 黄色警告
+  - 消息：`警告:所选路段不连续,DHS策略可能效果降低`
+  - 详情：显示桩号覆盖中的间隙（如 `K10+800 到 K11+200 之间存在400m间隙`）
+- **则** 用户可以继续（可能是有意为多个DHS路段）
+- **则** 如果用户移除路段以创建连续性，警告消失
 
-#### Scenario: Lane count alert for DHS
+#### 场景：DHS的车道数警告
 
-- **WHEN** strategy template is DHS type AND any selected edge has lanes < 4
-- **THEN** system displays error message:
-  - Icon: ❌ red error
-  - Message: `错误:DHS策略要求车道数≥4,以下路段不符合:`
-  - List: Edge IDs with lane count < 4 (e.g., `edge_k8_001 (3车道)`)
-  - Action: [移除不符合路段] button to auto-remove invalid edges
-- **THEN** user cannot proceed until invalid edges removed
+- **当** 策略模板是DHS类型 且 任何已选路段的车道数 < 4
+- **则** 系统显示错误消息：
+  - 图标：❌ 红色错误
+  - 消息：`错误:DHS策略要求车道数≥4,以下路段不符合:`
+  - 列表：车道数 < 4 的Edge ID（如 `edge_k8_001 (3车道)`）
+  - 操作：[移除不符合路段] 按钮自动移除无效路段
+- **则** 用户在移除无效路段前无法继续
 
-#### Scenario: Empty edge selection error
+#### 场景：空路段选择错误
 
-- **WHEN** user proceeds to save strategy with zero selected edges
-- **THEN** system shows validation error: `至少需要选择一个管控路段`
-- **THEN** [保存策略] button remains disabled until edges selected
-- **THEN** error message includes link to return to Step 2
+- **当** 用户尝试保存零个已选路段的策略
+- **则** 系统显示验证错误：`至少需要选择一个管控路段`
+- **则** [保存策略] 按钮保持禁用状态，直到选择路段
+- **则** 错误消息包含返回第2步的链接
 
-#### Scenario: Edge information tooltip
+#### 场景：路段信息工具提示
 
-- **WHEN** user hovers over edge ID in table
-- **THEN** system shows tooltip with additional details:
-  - From/To junction IDs
-  - Demonstration segment name (if applicable)
-  - Gantry presence (if contains gantries)
-  - Last data update timestamp
-- **THEN** tooltip appears after 500ms hover delay
+- **当** 用户将鼠标悬停在表格中的edge ID上
+- **则** 系统显示带有其他详情的工具提示：
+  - From/To junction ID
+  - 示范段名称（如适用）
+  - 门架存在（如包含门架）
+  - 最后数据更新时间戳
+- **则** 工具提示在悬停500ms后出现
 
-#### Scenario: Export edge list
+#### 场景：导出路段列表
 
-- **WHEN** user wants to save edge selection for documentation
-- **THEN** system provides [导出路段列表] button above table
-- **THEN** click exports CSV file with all table columns
-- **THEN** filename format: `strategy_{timestamp}_edges.csv`
+- **当** 用户想保存路段选择用于文档
+- **则** 系统在表格上方提供[导出路段列表]按钮
+- **则** 点击后导出包含所有表格列的CSV文件
+- **则** 文件名格式：`strategy_{timestamp}_edges.csv`
+- **则** 导出内容包含：Edge ID, 路线代码, 路段代码(如G4202001), 起始桩号, 结束桩号, 长度, 车道数, 方向, 节点类型
 
-### ADDED Requirement: Automatic Strategy Name Generation
+### 新增需求：自动生成策略名称
 
-The system SHALL generate strategy names automatically based on template type, affected locations, and key parameters, with user override capability.
+系统应根据模板类型、受影响位置和关键参数自动生成策略名称，并提供用户覆盖功能。
 
-#### Scenario: VSS strategy name generation
+#### 场景：VSS策略名称生成
 
-- **WHEN** user creates VSS strategy with:
-  - Affected edges on route G4202, sections K10-K15
-  - Speed limit: 80 km/h
-  - Time intervals: [[7, 9], [17, 19]]
-- **THEN** system generates name: `G4202 K10-K15 限速80km/h (早晚高峰)`
-- **THEN** name pre-filled in "策略名称" field (user can edit)
-- **THEN** if multiple routes selected, use first route or "多路线"
+- **当** 用户创建VSS策略时：
+  - 受影响路段在路线 G4202，路段代码 G4202001-G4202015
+  - 限速：80 km/h
+  - 时间区间：[[7, 9], [17, 19]]
+- **则** 系统生成名称：`G4202 K10-K15 限速80km/h (早晚高峰)`
+- **则** 名称预填充在"策略名称"字段（用户可编辑）
+- **则** 如果选择了多条路线，使用第一条路线或"多路线"
+- **则** 如果未选择具体路段，使用桩号范围生成名称
 
-#### Scenario: DHS strategy name generation
+#### 场景：DHS策略名称生成
 
-- **WHEN** user creates DHS strategy with:
-  - Affected edges on route SA2, sections K20-K25
-  - Intervals: [[7, 9], [17, 19]]
-- **THEN** system generates name: `SA2 K20-K25 应急车道开放 (早晚高峰)`
-- **THEN** time period description adapts:
+- **当** 用户创建DHS策略时：
+  - 受影响路段在路线 SA2，路段代码 SA2020-SA2025
+  - 时段：[[7, 9], [17, 19]]
+- **则** 系统生成名称：`SA2 K20-K25 应急车道开放 (早晚高峰)`
+- **则** 时段描述自适应：
   - `[[7, 9]]` → "早高峰"
   - `[[17, 19]]` → "晚高峰"
   - `[[7, 9], [17, 19]]` → "早晚高峰"
   - `[[0, 24]]` → "全天"
-  - Custom periods → "定时管控"
+  - 自定义时段 → "定时管控"
+- **则** 路段范围从路段代码或桩号范围中提取
 
-#### Scenario: TEC Metering strategy name generation
+#### 场景：TEC Metering策略名称生成
 
-- **WHEN** user creates TEC Metering strategy with:
-  - Entrance edge: entrance_jinjiang (锦江收费站入口)
-  - Flow intervals: peak hours with reduced flow
-- **THEN** system generates name: `锦江收费站入口 计量控制 (高峰限流)`
-- **THEN** name extracted from entrance edge metadata (junction name) if available
-- **THEN** control type appended: "计量控制" for metering, "关闭管控" for closure
+- **当** 用户创建TEC Metering策略时：
+  - 入口edge：entrance_jinjiang（锦江收费站入口）
+  - 流量时段：高峰时段降低流量
+- **则** 系统生成名称：`锦江收费站入口 计量控制 (高峰限流)`
+- **则** 如可用，从入口edge元数据（junction名称）提取名称
+- **则** 追加控制类型："计量控制"用于metering，"关闭管控"用于closure
 
-#### Scenario: TEC Closure strategy name generation
+#### 场景：TEC Closure策略名称生成
 
-- **WHEN** user creates TEC Closure strategy with:
-  - Entrance edges: entrance_chengya_001, entrance_chengya_002
-  - Vehicle ban: trucks only during [[7, 9]]
-- **THEN** system generates name: `成雅收费站入口 货车限行 (早高峰)`
-- **THEN** if full closure (no allowed types), use "完全关闭" instead of "货车限行"
+- **当** 用户创建TEC Closure策略时：
+  - 入口edges：entrance_chengya_001, entrance_chengya_002
+  - 车辆禁令：仅在[[7, 9]]期间禁止货车
+- **则** 系统生成名称：`成雅收费站入口 货车限行 (早高峰)`
+- **则** 如果完全关闭（无允许类型），使用"完全关闭"而不是"货车限行"
 
-#### Scenario: Name uniqueness enforcement
+#### 场景：名称唯一性强制
 
-- **WHEN** generated name conflicts with existing strategy name
-- **THEN** system appends counter suffix: `G4202 K10-K15 限速80km/h (2)`
-- **THEN** increments counter until unique name found
-- **THEN** user can manually change name to remove suffix
+- **当** 生成的名称与现有策略名称冲突
+- **则** 系统追加计数器后缀：`G4202 K10-K15 限速80km/h (2)`
+- **则** 递增计数器直到找到唯一名称
+- **则** 用户可以手动更改名称以删除后缀
 
-#### Scenario: User overrides generated name
+#### 场景：用户覆盖生成的名称
 
-- **WHEN** user edits auto-generated name in "策略名称" field
-- **THEN** system accepts custom name (no auto-regeneration)
-- **THEN** still validates:
-  - Not empty
-  - Max length 100 characters
-  - Unique (no duplicate strategy names)
-- **THEN** user can click [建议名称] button to regenerate from current parameters
+- **当** 用户在"策略名称"字段中编辑自动生成的名称
+- **则** 系统接受自定义名称（无自动重新生成）
+- **则** 仍然验证：
+  - 非空
+  - 最大长度100字符
+  - 唯一（无重复策略名称）
+- **则** 用户可以点击[建议名称]按钮从当前参数重新生成
 
-#### Scenario: Re-generate name after parameter changes
+#### 场景：参数更改后重新生成名称
 
-- **WHEN** user changes key parameters (edges, speed, time) after name was generated
-- **THEN** system does NOT auto-update name (user may have customized it)
-- **THEN** [建议名称] button appears next to name field
-- **THEN** click button regenerates name from current parameter values
-- **THEN** confirms with user before replacing custom name
+- **当** 用户在名称生成后更改关键参数（路段、速度、时间）
+- **则** 系统不会自动更新名称（用户可能已自定义）
+- **则** 名称字段旁边出现[建议名称]按钮
+- **则** 点击按钮从当前参数值重新生成名称
+- **则** 在替换自定义名称前向用户确认
 
-### ADDED Requirement: Automatic Strategy Description Generation
+### 新增需求：自动生成策略描述
 
-The system SHALL generate comprehensive strategy descriptions from template metadata and configured parameters, with user edit capability.
+系统应从模板元数据和配置的参数生成全面的策略描述，并提供用户编辑功能。
 
-#### Scenario: VSS strategy description generation
+#### 场景：VSS策略描述生成
 
-- **WHEN** user configures VSS strategy with parameters
-- **THEN** system generates description:
+- **当** 用户配置VSS策略参数
+- **则** 系统生成描述：
   ```
   可变限速策略 - 中等控制
 
   管控位置:
   - 路线: G4202 (成都绕城高速)
-  - 路段: K10-K15 (共15个edge,总长8.5km)
+  - 路段代码: G4202001-G4202015 (共15个edge,总长8.5km)
+  - 桩号范围: K10+000 - K15+500
   - 车道数: 3-4车道
 
   管控参数:
@@ -288,19 +291,20 @@ The system SHALL generate comprehensive strategy descriptions from template meta
 
   生成元素: 1个 variableSpeedSign (SUMO XML)
   ```
-- **THEN** description displayed in multiline textarea (editable)
-- **THEN** user can modify description before saving
+- **则** 描述显示在多行文本域中（可编辑）
+- **则** 用户可以在保存前修改描述
 
-#### Scenario: DHS strategy description generation
+#### 场景：DHS策略描述生成
 
-- **WHEN** user configures DHS strategy
-- **THEN** system generates:
+- **当** 用户配置DHS策略
+- **则** 系统生成：
   ```
   动态硬路肩开放策略
 
   管控位置:
   - 路线: SA2 (成都第二绕城)
-  - 路段: K20-K25 (共10个edge,总长5.2km)
+  - 路段代码: SA2020-SA2030 (共10个edge,总长5.2km)
+  - 桩号范围: K20+000 - K25+200
   - 车道数: 4车道 (硬路肩为第3车道)
 
   开放时段:
@@ -315,10 +319,10 @@ The system SHALL generate comprehensive strategy descriptions from template meta
   生成元素: 1个 rerouter,包含2个时段interval (SUMO XML)
   ```
 
-#### Scenario: TEC strategy description generation
+#### 场景：TEC策略描述生成
 
-- **WHEN** user configures TEC strategy
-- **THEN** system generates:
+- **当** 用户配置TEC策略
+- **则** 系统生成：
   ```
   收费站入口计量控制策略
 
@@ -337,223 +341,223 @@ The system SHALL generate comprehensive strategy descriptions from template meta
   生成元素: 1个 calibrator,包含3个流量interval (SUMO XML)
   ```
 
-#### Scenario: Description templates from strategy templates
+#### 场景：从策略模板获取描述模板
 
-- **WHEN** strategy template v2.0 includes description_template field:
+- **当** 策略模板v2.0包含 description_template 字段：
   ```json
   {
     "description_template": "{strategy_type}策略\n\n管控位置:\n- 路线: {routes}\n- 路段: {sections}\n\n{parameters_summary}\n\n策略目的: {purpose}"
   }
   ```
-- **THEN** system uses template with placeholder replacement:
-  - `{strategy_type}` → Template display name
-  - `{routes}` → Unique route codes from edges
-  - `{sections}` → Section code range
-  - `{parameters_summary}` → Key parameter formatted list
-  - `{purpose}` → Template purpose description
-- **THEN** missing placeholders are skipped (no error)
+- **则** 系统使用模板并替换占位符：
+  - `{strategy_type}` → 模板显示名称
+  - `{routes}` → 从路段获取的唯一路线代码
+  - `{sections}` → 路段代码范围
+  - `{parameters_summary}` → 格式化的关键参数列表
+  - `{purpose}` → 模板目的描述
+- **则** 缺少的占位符被跳过（无错误）
 
-#### Scenario: User edits generated description
+#### 场景：用户编辑生成的描述
 
-- **WHEN** user modifies auto-generated description in textarea
-- **THEN** system saves modified description (no auto-regeneration)
-- **THEN** [重新生成描述] button appears next to textarea
-- **THEN** click button regenerates from current parameters
-- **THEN** confirms before replacing user edits
+- **当** 用户在文本域中修改自动生成的描述
+- **则** 系统保存修改后的描述（无自动重新生成）
+- **则** 文本域旁边出现[重新生成描述]按钮
+- **则** 点击按钮从当前参数重新生成
+- **则** 在替换用户编辑前确认
 
-#### Scenario: Description includes validation warnings
+#### 场景：描述包含验证警告
 
-- **WHEN** strategy has validation warnings (e.g., DHS discontinuity)
-- **THEN** description includes warnings section:
+- **当** 策略有验证警告（如DHS不连续）
+- **则** 描述包含警告部分：
   ```
   注意事项:
   ⚠️ 所选路段不连续,存在400m间隙(K10+800 到 K11+200)
   ⚠️ 管控效果可能降低,建议检查路段选择
   ```
-- **THEN** warnings are prepended to generated description
-- **THEN** user can remove warnings if intentional
+- **则** 警告前置到生成的描述中
+- **则** 如果是有意的，用户可以删除警告
 
-### ADDED Requirement: Personnel Field Removal
+### 新增需求：移除人员字段
 
-The system SHALL NOT include any personnel, operator, or OA-related input fields in the strategy configuration form.
+系统在策略配置表单中不应包含任何人员、操作员或OA相关的输入字段。
 
-#### Scenario: No personnel fields in configuration form
+#### 场景：配置表单中无人员字段
 
-- **WHEN** user is on Step 3 (Configure Parameters) form
-- **THEN** form does NOT contain fields for:
-  - Operator name / 操作人员
-  - Department / 部门
-  - Contact information / 联系方式
-  - Approval status / 审批状态
-  - OA workflow ID / OA流程号
-- **THEN** only strategy-specific technical parameters are present
+- **当** 用户在第3步（配置参数）表单上
+- **则** 表单不包含以下字段：
+  - 操作人员 / 操作人员
+  - 部门 / 部门
+  - 联系信息 / 联系方式
+  - 审批状态 / 审批状态
+  - OA工作流ID / OA流程号
+- **则** 仅存在策略特定的技术参数
 
-#### Scenario: Metadata tracks creation automatically
+#### 场景：元数据自动跟踪创建
 
-- **WHEN** user saves strategy
-- **THEN** backend automatically records in strategy metadata:
-  - `created_at`: ISO 8601 timestamp
-  - `updated_at`: ISO 8601 timestamp (same as created_at initially)
-  - `version`: "2.0" (template version)
-- **THEN** no user-entered personnel information stored
-- **THEN** future: If OA integration needed, add separate authentication/user module
+- **当** 用户保存策略
+- **则** 后端自动在策略元数据中记录：
+  - `created_at`: ISO 8601时间戳
+  - `updated_at`: ISO 8601时间戳（初始时与created_at相同）
+  - `version`: "2.0"（模板版本）
+- **则** 不存储用户输入的人员信息
+- **则** 未来：如需OA集成，添加单独的认证/用户模块
 
-#### Scenario: Strategy list shows creation time only
+#### 场景：策略列表仅显示创建时间
 
-- **WHEN** user views strategy list
-- **THEN** each strategy shows:
-  - Strategy name
-  - Strategy type (VSS/DHS/TEC)
-  - Creation date (e.g., "2025-10-24 14:30")
-  - Last modified date (if different from creation)
-- **THEN** NO "Created by" or "Operator" column displayed
+- **当** 用户查看策略列表
+- **则** 每个策略显示：
+  - 策略名称
+  - 策略类型（VSS/DHS/TEC）
+  - 创建日期（如 "2025-10-24 14:30"）
+  - 最后修改日期（如果与创建日期不同）
+- **则** 不显示"创建者"或"操作员"列
 
-### MODIFIED Requirement: Real-Time Parameter Validation (Enhanced)
+### 修改需求：实时参数验证（增强）
 
-The system SHALL validate parameters as user inputs them, with enhanced SUMO-specific constraint checking and actionable error messages.
+系统应在用户输入参数时进行验证，增强SUMO特定的约束检查和可操作的错误消息。
 
-*(This modifies the existing requirement in strategy-templates spec)*
+*（这修改了strategy-templates规范中的现有需求）*
 
-#### Scenario: Array parameter format validation
+#### 场景：数组参数格式验证
 
-- **WHEN** user enters array parameter value in textarea
-- **THEN** system validates on blur:
-  - If starts with `[`, attempt JSON parse
-  - If JSON parse fails, show error: `JSON格式不正确: {error message}`
-  - If JSON parses but not array, show error: `需要数组格式,当前为: {type}`
-  - If newline/comma-separated, split and count items
-  - If count < minItems, show error: `至少需要 {minItems} 个项目,当前: {count}`
-- **THEN** validation error appears inline below textarea (red text)
-- **THEN** [保存策略] button disabled while errors exist
+- **当** 用户在文本域中输入数组参数值
+- **则** 系统在失焦时验证：
+  - 如果以 `[` 开头，尝试JSON解析
+  - 如果JSON解析失败，显示错误：`JSON格式不正确: {error message}`
+  - 如果JSON解析成功但不是数组，显示错误：`需要数组格式,当前为: {type}`
+  - 如果是换行/逗号分隔，拆分并计数项目
+  - 如果计数 < minItems，显示错误：`至少需要 {minItems} 个项目,当前: {count}`
+- **则** 验证错误显示在文本域下方的内联位置（红色文本）
+- **则** 存在错误时禁用[保存策略]按钮
 
-#### Scenario: Nested array validation (time intervals)
+#### 场景：嵌套数组验证（时间区间）
 
-- **WHEN** user enters time_intervals as `[[7, 9], [25, 19]]` (invalid end hour 25)
-- **THEN** system validates each sub-array:
-  - Each item must have exactly 2 elements
-  - First element (start hour) must be 0-24
-  - Second element (end hour) must be 0-24
-  - Start < End (unless wraps midnight)
-- **THEN** shows error: `时段2无效: 结束小时25超出范围(0-24)`
-- **THEN** highlights specific invalid interval
+- **当** 用户输入 time_intervals 为 `[[7, 9], [25, 19]]`（无效结束小时25）
+- **则** 系统验证每个子数组：
+  - 每个项目必须恰好有2个元素
+  - 第一个元素（开始小时）必须是0-24
+  - 第二个元素（结束小时）必须是0-24
+  - 开始 < 结束（除非跨午夜）
+- **则** 显示错误：`时段2无效: 结束小时25超出范围(0-24)`
+- **则** 突出显示特定的无效区间
 
-#### Scenario: Cross-parameter validation (speed steps vs time intervals)
+#### 场景：跨参数验证（速度步骤 vs 时间区间）
 
-- **WHEN** user enters speed_steps and time_intervals for VSS
-- **THEN** system validates cross-parameter consistency:
-  - Number of speed steps should match or exceed time intervals
-  - Time values in speed_steps should align with interval boundaries
-  - No speed step outside defined time intervals
-- **THEN** if mismatch, shows warning (not error): `警告: speed_steps有3个时段,但time_intervals只定义了2个`
-- **THEN** allows save (warning only, not blocking)
+- **当** 用户为VSS输入 speed_steps 和 time_intervals
+- **则** 系统验证跨参数一致性：
+  - 速度步骤数应匹配或超过时间区间数
+  - speed_steps中的时间值应与区间边界对齐
+  - 没有速度步骤在定义的时间区间之外
+- **则** 如果不匹配，显示警告（不是错误）：`警告: speed_steps有3个时段,但time_intervals只定义了2个`
+- **则** 允许保存（仅警告，不阻止）
 
-#### Scenario: Edge existence validation
+#### 场景：Edge存在性验证
 
-- **WHEN** user enters edge IDs in array parameter
-- **THEN** system validates against edge database:
-  - Call `/api/v1/control/edges/validate` endpoint
-  - Pass edge ID list for existence check
-  - Receive response with valid/invalid edges
-- **THEN** if invalid edges found, shows error: `以下edge不存在: edge_invalid1, edge_invalid2`
-- **THEN** provides [打开路段选择器] link to browse valid edges
+- **当** 用户在数组参数中输入edge ID
+- **则** 系统根据edge数据库验证：
+  - 调用 `/api/v1/control/edges/validate` 端点
+  - 传递edge ID列表进行存在性检查
+  - 接收包含有效/无效edge的响应
+- **则** 如果发现无效edge，显示错误：`以下edge不存在: edge_invalid1, edge_invalid2`
+- **则** 提供[打开路段选择器]链接以浏览有效edge
 
-### MODIFIED Requirement: Dynamic Parameter Form Generation (Enhanced)
+### 修改需求：动态参数表单生成（增强）
 
-The system SHALL generate HTML forms with improved visual hierarchy, grouping, and helper elements.
+系统应生成具有改进的视觉层次、分组和辅助元素的HTML表单。
 
-*(This enhances the existing requirement in strategy-templates spec)*
+*（这增强了strategy-templates规范中的现有需求）*
 
-#### Scenario: Parameter grouping by category
+#### 场景：按类别分组参数
 
-- **WHEN** template parameters include multiple types (location, time, control)
-- **THEN** form groups parameters into sections:
-  - **管控位置** (Location): affected_edges, affected_segments, entrance_edges
-  - **时间配置** (Time): time_intervals, intervals, flow_intervals
-  - **管控参数** (Control): speed_steps, allowed_vehicle_types, flow_rate
-  - **其他** (Other): Any parameters not in above categories
-- **THEN** each section has collapsible header
-- **THEN** sections render in logical order: Location → Time → Control → Other
+- **当** 模板参数包括多种类型（位置、时间、控制）
+- **则** 表单将参数分组到以下部分：
+  - **管控位置**（Location）：affected_edges, affected_segments, entrance_edges
+  - **时间配置**（Time）：time_intervals, intervals, flow_intervals
+  - **管控参数**（Control）：speed_steps, allowed_vehicle_types, flow_rate
+  - **其他**（Other）：不在上述类别中的任何参数
+- **则** 每个部分都有可折叠的标题
+- **则** 部分按逻辑顺序呈现：位置 → 时间 → 控制 → 其他
 
-#### Scenario: Inline help icons
+#### 场景：内联帮助图标
 
-- **WHEN** parameter has complex description or SUMO constraints
-- **THEN** system displays small (?) icon next to field label
-- **THEN** hover/(click on mobile) shows tooltip with:
-  - Parameter purpose
-  - SUMO element it maps to
-  - Valid value range
-  - Example value
-  - Common mistakes to avoid
-- **THEN** tooltip remains visible until user clicks outside or hovers away
+- **当** 参数具有复杂的描述或SUMO约束
+- **则** 系统在字段标签旁边显示小的(?)图标
+- **则** 悬停/（移动设备上点击）显示工具提示：
+  - 参数目的
+  - 它映射到的SUMO元素
+  - 有效值范围
+  - 示例值
+  - 要避免的常见错误
+- **则** 工具提示保持可见，直到用户点击外部或悬停离开
 
-#### Scenario: Field dependency indicators
+#### 场景：字段依赖指示器
 
-- **WHEN** parameter depends on another parameter (e.g., hard_shoulder_lane_index depends on affected_segments)
-- **THEN** dependent field shows note: `📌 依赖于: affected_segments`
-- **THEN** dependent field disabled until dependency field filled
-- **THEN** enabling happens automatically when dependency satisfied
+- **当** 参数依赖于另一个参数（如 hard_shoulder_lane_index 依赖于 affected_segments）
+- **则** 依赖字段显示注释：`📌 依赖于: affected_segments`
+- **则** 依赖字段在填充依赖字段前禁用
+- **则** 满足依赖时自动启用
 
-#### Scenario: Form field icons for visual clarity
+#### 场景：表单字段图标以提高视觉清晰度
 
-- **WHEN** rendering form fields
-- **THEN** each field type has icon prefix:
-  - Location parameters: 📍
-  - Time parameters: ⏰
-  - Speed parameters: 🚗
-  - Vehicle type parameters: 🚙
-  - Flow rate parameters: 📊
-  - Boolean parameters: ☑️
-- **THEN** icons provide quick visual scanning of form structure
+- **当** 渲染表单字段
+- **则** 每种字段类型都有图标前缀：
+  - 位置参数：📍
+  - 时间参数：⏰
+  - 速度参数：🚗
+  - 车型参数：🚙
+  - 流量速率参数：📊
+  - 布尔参数：☑️
+- **则** 图标提供表单结构的快速视觉扫描
 
-### ADDED Requirement: Enhanced XML Preview
+### 新增需求：增强的XML预览
 
-The system SHALL provide real-time SUMO XML preview that updates as parameters change, with syntax highlighting and copy functionality.
+系统应提供随参数更改而更新的实时SUMO XML预览，具有语法高亮和复制功能。
 
-#### Scenario: Live XML preview panel
+#### 场景：实时XML预览面板
 
-- **WHEN** user is on Step 3 (Configure Parameters)
-- **THEN** system displays collapsible XML preview panel:
-  - Position: Right side panel (30% width) or bottom panel (collapsible)
-  - Header: "SUMO XML 预览" with [复制XML] button
-  - Content: Syntax-highlighted XML code
-  - Auto-scroll to changed elements on parameter update
-- **THEN** preview updates within 500ms of parameter blur event
+- **当** 用户在第3步（配置参数）
+- **则** 系统显示可折叠的XML预览面板：
+  - 位置：右侧面板（30%宽度）或底部面板（可折叠）
+  - 标题："SUMO XML 预览"，带[复制XML]按钮
+  - 内容：语法高亮的XML代码
+  - 参数更新时自动滚动到更改的元素
+- **则** 预览在参数失焦事件后500ms内更新
 
-#### Scenario: Syntax highlighting in preview
+#### 场景：预览中的语法高亮
 
-- **WHEN** XML preview is displayed
-- **THEN** system applies syntax highlighting:
-  - Tag names: Blue (#3498db)
-  - Attribute names: Green (#27ae60)
-  - Attribute values: Orange (#e67e22)
-  - Comments: Gray (#95a5a6)
-  - Invalid XML: Red background
-- **THEN** uses `<pre><code>` with CSS classes for coloring
+- **当** 显示XML预览
+- **则** 系统应用语法高亮：
+  - 标签名称：蓝色 (#3498db)
+  - 属性名称：绿色 (#27ae60)
+  - 属性值：橙色 (#e67e22)
+  - 注释：灰色 (#95a5a6)
+  - 无效XML：红色背景
+- **则** 使用 `<pre><code>` 和CSS类进行着色
 
-#### Scenario: XML validation in preview
+#### 场景：预览中的XML验证
 
-- **WHEN** generated XML has syntax errors (unclosed tags, invalid attributes)
-- **THEN** preview shows error indicator:
-  - Red border around preview panel
-  - Error icon in header
-  - Error message below XML: `XML格式错误: {validation error}`
-- **THEN** [保存策略] button disabled until XML valid
+- **当** 生成的XML有语法错误（未闭合标签、无效属性）
+- **则** 预览显示错误指示器：
+  - 预览面板周围有红色边框
+  - 标题中的错误图标
+  - XML下方的错误消息：`XML格式错误: {validation error}`
+- **则** XML有效前禁用[保存策略]按钮
 
-#### Scenario: Copy XML to clipboard
+#### 场景：复制XML到剪贴板
 
-- **WHEN** user clicks [复制XML] button
-- **THEN** system copies current XML to clipboard
-- **THEN** shows toast notification: `XML已复制到剪贴板` (2 second duration)
-- **THEN** button text briefly changes to `✓ 已复制` then reverts
+- **当** 用户点击[复制XML]按钮
+- **则** 系统将当前XML复制到剪贴板
+- **则** 显示提示通知：`XML已复制到剪贴板`（2秒持续时间）
+- **则** 按钮文本短暂更改为`✓ 已复制`然后恢复
 
-#### Scenario: Toggle XML preview visibility
+#### 场景：切换XML预览可见性
 
-- **WHEN** user clicks preview panel header/collapse icon
-- **THEN** panel collapses to header bar only (or expands if collapsed)
-- **THEN** main form area expands to use freed space
-- **THEN** user preference saved to localStorage
+- **当** 用户点击预览面板标题/折叠图标
+- **则** 面板折叠为仅标题栏（或展开如果已折叠）
+- **则** 主表单区域扩展以使用释放的空间
+- **则** 用户首选项保存到localStorage
 
-## Related Specifications
+## 相关规范
 
-- `strategy-templates` - Provides template schemas and parameter definitions
-- `database-edge-selector` (future spec) - Defines edge query and display requirements
+- `strategy-templates` - 提供模板schema和参数定义
+- `database-edge-selector`（未来规范）- 定义edge查询和显示需求

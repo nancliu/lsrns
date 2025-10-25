@@ -1,53 +1,53 @@
-# Design: Enhanced Strategy Parameter Configuration
+# 设计：增强策略参数配置
 
-## Overview
+## 概述
 
-This document details the technical design for enhancing the strategy parameter configuration page (Step 3) to address current usability issues and enable successful strategy instance creation.
+本文档详细说明了增强策略参数配置页面（第3步）的技术设计，以解决当前的可用性问题并支持成功创建策略实例。
 
-## Architecture
+## 架构
 
-### Component Structure
+### 组件结构
 
 ```
 frontend/control/
-├── templates.html                    # Main page (enhanced Step 3)
+├── templates.html                    # 主页面（增强第3步）
 ├── js/
-│   ├── strategy_manager.js          # Core strategy CRUD (enhanced)
-│   ├── parameter_form_builder.js    # NEW: Dynamic form generation
-│   ├── edge_display_table.js        # NEW: Edge information table
-│   ├── name_generator.js            # NEW: Auto-naming logic
-│   └── description_generator.js     # NEW: Auto-description logic
+│   ├── strategy_manager.js          # 核心策略CRUD（增强）
+│   ├── parameter_form_builder.js    # 新增：动态表单生成
+│   ├── edge_display_table.js        # 新增：路段信息表格
+│   ├── name_generator.js            # 新增：自动命名逻辑
+│   └── description_generator.js     # 新增：自动描述逻辑
 └── css/
-    └── strategy_config.css           # NEW: Step 3 specific styles
+    └── strategy_config.css           # 新增：第3步专用样式
 ```
 
-### Data Flow
+### 数据流
 
 ```
-User Input (Step 3)
+用户输入（第3步）
     ↓
-Parameter Form Builder
-    ↓ (validation)
-Parameter Validators
-    ↓ (if valid)
-Name Generator + Description Generator
+参数表单构建器
+    ↓ （验证）
+参数验证器
+    ↓ （如果有效）
+名称生成器 + 描述生成器
     ↓
-XML Preview Generator
-    ↓ (user confirms)
-Strategy Manager (save)
+XML预览生成器
+    ↓ （用户确认）
+策略管理器（保存）
     ↓
 POST /api/v1/control/strategy-instances
     ↓
-Backend Validation + Storage
+后端验证 + 存储
 ```
 
-## Component Design
+## 组件设计
 
-### 1. Parameter Form Builder (`parameter_form_builder.js`)
+### 1. 参数表单构建器 (`parameter_form_builder.js`)
 
-**Purpose**: Dynamically generate form inputs based on template parameter schema
+**目的**：基于模板参数schema动态生成表单输入
 
-**Key Methods**:
+**核心方法**：
 
 ```javascript
 class ParameterFormBuilder {
@@ -58,31 +58,31 @@ class ParameterFormBuilder {
     }
 
     /**
-     * Build complete parameter form
-     * @param {HTMLElement} container - Form container element
-     * @param {Object} existingValues - Pre-fill values for edit mode
+     * 构建完整的参数表单
+     * @param {HTMLElement} container - 表单容器元素
+     * @param {Object} existingValues - 编辑模式的预填值
      */
     buildForm(container, existingValues = {}) {
-        // Group parameters by category
+        // 按类别分组参数
         const grouped = this.groupParameters(this.schema.parameters_schema);
 
-        // Render each group
+        // 渲染每个组
         for (const [category, params] of Object.entries(grouped)) {
             this.renderGroup(container, category, params, existingValues);
         }
 
-        // Attach event listeners
+        // 附加事件监听器
         this.attachValidators();
     }
 
     /**
-     * Group parameters by category (Location, Time, Control, Other)
+     * 按类别分组参数（位置、时间、控制、其他）
      */
     groupParameters(parameters) {
         const categories = {
-            location: [], // affected_edges, entrance_edges, etc.
-            time: [],     // time_intervals, intervals, etc.
-            control: [],  // speed_steps, allowed_vehicle_types, etc.
+            location: [], // affected_edges, entrance_edges等
+            time: [],     // time_intervals, intervals等
+            control: [],  // speed_steps, allowed_vehicle_types等
             other: []
         };
 
@@ -95,61 +95,7 @@ class ParameterFormBuilder {
     }
 
     /**
-     * Render parameter group with collapsible section
-     */
-    renderGroup(container, category, parameters, existingValues) {
-        const section = document.createElement('div');
-        section.className = 'param-group';
-        section.id = `param-group-${category}`;
-
-        // Group header
-        const header = this.createGroupHeader(category);
-        section.appendChild(header);
-
-        // Group content
-        const content = document.createElement('div');
-        content.className = 'param-group-content';
-
-        parameters.forEach(param => {
-            const field = this.createParameterField(param, existingValues[param.parameter_name]);
-            content.appendChild(field);
-        });
-
-        section.appendChild(content);
-        container.appendChild(section);
-    }
-
-    /**
-     * Create parameter input field with smart components
-     */
-    createParameterField(paramSchema, existingValue) {
-        const field = document.createElement('div');
-        field.className = 'form-field';
-        field.dataset.paramName = paramSchema.parameter_name;
-
-        // Label with icon
-        const label = this.createLabel(paramSchema);
-        field.appendChild(label);
-
-        // Input component (type-specific)
-        const input = this.createInputComponent(paramSchema, existingValue);
-        field.appendChild(input);
-
-        // Hint text
-        const hint = this.createHintText(paramSchema);
-        field.appendChild(hint);
-
-        // Error placeholder
-        const error = document.createElement('div');
-        error.className = 'field-error';
-        error.id = `error-${paramSchema.parameter_name}`;
-        field.appendChild(error);
-
-        return field;
-    }
-
-    /**
-     * Create input component based on parameter type
+     * 基于参数类型创建输入组件
      */
     createInputComponent(paramSchema, existingValue) {
         const type = paramSchema.parameter_type;
@@ -176,7 +122,7 @@ class ParameterFormBuilder {
     }
 
     /**
-     * Create array input with smart placeholder
+     * 创建带智能占位符的数组输入
      */
     createArrayInput(paramSchema, existingValue) {
         const textarea = document.createElement('textarea');
@@ -185,76 +131,63 @@ class ParameterFormBuilder {
         textarea.rows = 6;
         textarea.className = 'array-input';
 
-        // Set placeholder based on parameter name and default value
+        // 基于参数名称和默认值设置占位符
         textarea.placeholder = this.generateArrayPlaceholder(paramSchema);
 
-        // Pre-fill value
-        if (existingValue) {
-            if (Array.isArray(existingValue)) {
-                if (existingValue.length > 0 && Array.isArray(existingValue[0])) {
-                    // Nested array - use JSON
-                    textarea.value = JSON.stringify(existingValue, null, 2);
-                } else {
-                    // Simple array - newline separated
-                    textarea.value = existingValue.join('\n');
-                }
-            }
-        } else if (paramSchema.default_value) {
-            // Use template default
-            const defaultVal = paramSchema.default_value;
-            if (Array.isArray(defaultVal) && defaultVal.length > 0 && Array.isArray(defaultVal[0])) {
-                textarea.value = JSON.stringify(defaultVal, null, 2);
-            } else if (Array.isArray(defaultVal)) {
-                textarea.value = defaultVal.join('\n');
+        // 预填充值
+        if (existingValue && Array.isArray(existingValue)) {
+            if (existingValue.length > 0 && Array.isArray(existingValue[0])) {
+                // 嵌套数组 - 使用JSON
+                textarea.value = JSON.stringify(existingValue, null, 2);
+            } else {
+                // 简单数组 - 换行分隔
+                textarea.value = existingValue.join('\n');
             }
         }
 
-        // Attach validator
+        // 附加验证器
         textarea.addEventListener('blur', () => this.validateArrayField(paramSchema, textarea));
 
         return textarea;
     }
 
     /**
-     * Generate smart placeholder for array inputs
+     * 为数组输入生成智能占位符
      */
     generateArrayPlaceholder(paramSchema) {
         const name = paramSchema.parameter_name.toLowerCase();
 
-        // Time-related parameters
+        // 时间相关参数
         if (name.includes('time') || name.includes('interval')) {
-            if (paramSchema.default_value && Array.isArray(paramSchema.default_value[0])) {
-                return `示例格式:\n${JSON.stringify(paramSchema.default_value, null, 2)}\n\n可直接编辑JSON,或每行输入一个时段`;
-            }
             return `时段格式示例:\n[\n  [7, 9],\n  [17, 19]\n]\n\n每行一个时间段 [开始小时, 结束小时]`;
         }
 
-        // Speed-related parameters
+        // 速度相关参数
         if (name.includes('speed')) {
             return `限速值示例(每行一个):\n80\n60\n40\n\n或JSON格式:[80, 60, 40]`;
         }
 
-        // Vehicle type parameters
+        // 车型参数
         if (name.includes('vehicle') || name.includes('type')) {
             return `车型列表示例:\npassenger\ntruck\nbus\n\n或用逗号分隔:passenger, truck, bus`;
         }
 
-        // Edge-related parameters
+        // Edge相关参数
         if (name.includes('edge') || name.includes('segment')) {
             return `路段ID列表示例:\n-5880\n-5881\n-5882\n\n或用逗号分隔:-5880, -5881, -5882`;
         }
 
-        // Entrance parameters
+        // 入口参数
         if (name.includes('entrance')) {
             return `入口列表示例:\nentrance_1\nentrance_2\n\n或用逗号分隔:entrance_1, entrance_2`;
         }
 
-        // Generic fallback
+        // 通用后备
         return `多个值,每行一个:\nvalue1\nvalue2\nvalue3\n\n或JSON格式:["value1", "value2", "value3"]`;
     }
 
     /**
-     * Validate array field on blur
+     * 在失焦时验证数组字段
      */
     validateArrayField(paramSchema, textarea) {
         const value = textarea.value.trim();
@@ -273,7 +206,7 @@ class ParameterFormBuilder {
         try {
             let parsed;
 
-            // Try JSON parse first
+            // 首先尝试JSON解析
             if (value.startsWith('[')) {
                 parsed = JSON.parse(value);
                 if (!Array.isArray(parsed)) {
@@ -281,11 +214,11 @@ class ParameterFormBuilder {
                     return false;
                 }
             } else {
-                // Parse as newline/comma separated
+                // 解析为换行/逗号分隔
                 parsed = value.split(/[,\n]/).map(s => s.trim()).filter(s => s);
             }
 
-            // Check min items
+            // 检查最小项数
             if (paramSchema.min_items && parsed.length < paramSchema.min_items) {
                 this.showError(errorEl, `至少需要 ${paramSchema.min_items} 个项目,当前: ${parsed.length}`);
                 return false;
@@ -299,30 +232,14 @@ class ParameterFormBuilder {
             return false;
         }
     }
-
-    /**
-     * Show validation error
-     */
-    showError(errorEl, message) {
-        errorEl.textContent = message;
-        errorEl.style.display = 'block';
-    }
-
-    /**
-     * Clear validation error
-     */
-    clearError(errorEl) {
-        errorEl.textContent = '';
-        errorEl.style.display = 'none';
-    }
 }
 ```
 
-### 2. Edge Display Table (`edge_display_table.js`)
+### 2. 路段展示表格 (`edge_display_table.js`)
 
-**Purpose**: Display selected edges with comprehensive information and inline actions
+**目的**：显示已选路段的完整信息以供验证
 
-**Key Methods**:
+**核心方法**：
 
 ```javascript
 class EdgeDisplayTable {
@@ -330,15 +247,14 @@ class EdgeDisplayTable {
         this.container = containerEl;
         this.strategyType = strategyType;
         this.edges = [];
-        this.onRemove = null; // Callback when edge removed
     }
 
     /**
-     * Load and display edges
-     * @param {Array<string>} edgeIds - Edge IDs to display
+     * 加载并显示路段
+     * @param {Array<string>} edgeIds - 要显示的路段ID
      */
     async loadEdges(edgeIds) {
-        // Fetch full edge information from API
+        // 从API获取完整的路段信息
         const response = await fetch('/api/v1/control/edges/batch-info', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -351,32 +267,7 @@ class EdgeDisplayTable {
     }
 
     /**
-     * Render edge table
-     */
-    render() {
-        this.container.innerHTML = '';
-
-        // Summary section
-        const summary = this.renderSummary();
-        this.container.appendChild(summary);
-
-        // Validation warnings (if any)
-        const warnings = this.renderWarnings();
-        if (warnings) {
-            this.container.appendChild(warnings);
-        }
-
-        // Table
-        const table = this.renderTable();
-        this.container.appendChild(table);
-
-        // Export button
-        const exportBtn = this.renderExportButton();
-        this.container.appendChild(exportBtn);
-    }
-
-    /**
-     * Render summary section
+     * 渲染摘要部分
      */
     renderSummary() {
         const summary = document.createElement('div');
@@ -412,38 +303,8 @@ class EdgeDisplayTable {
     }
 
     /**
-     * Check validation and render warnings
-     */
-    checkValidation() {
-        this.validationIssues = [];
-
-        // DHS-specific validations
-        if (this.strategyType === 'DHS') {
-            // Check lane count >= 4
-            const invalidLanes = this.edges.filter(e => e.lane_count < 4);
-            if (invalidLanes.length > 0) {
-                this.validationIssues.push({
-                    type: 'error',
-                    message: 'DHS策略要求车道数≥4,以下路段不符合:',
-                    details: invalidLanes.map(e => `${e.edge_id} (${e.lane_count}车道)`)
-                });
-            }
-
-            // Check edge continuity
-            const discontinuities = this.checkEdgeContinuity();
-            if (discontinuities.length > 0) {
-                this.validationIssues.push({
-                    type: 'warning',
-                    message: '警告:所选路段不连续,DHS策略可能效果降低',
-                    details: discontinuities
-                });
-            }
-        }
-    }
-
-    /**
-     * Check if edges form continuous path
-     * @returns {Array<string>} List of discontinuity descriptions
+     * 检查路段是否形成连续路径
+     * @returns {Array<string>} 不连续描述列表
      */
     checkEdgeContinuity() {
         const gaps = [];
@@ -463,134 +324,51 @@ class EdgeDisplayTable {
     }
 
     /**
-     * Render warnings banner
+     * 检查验证并渲染警告
      */
-    renderWarnings() {
-        if (this.validationIssues.length === 0) {
-            return null;
+    checkValidation() {
+        this.validationIssues = [];
+
+        // DHS特定验证
+        if (this.strategyType === 'DHS') {
+            // 检查车道数 >= 4
+            const invalidLanes = this.edges.filter(e => e.lane_count < 4);
+            if (invalidLanes.length > 0) {
+                this.validationIssues.push({
+                    type: 'error',
+                    message: 'DHS策略要求车道数≥4,以下路段不符合:',
+                    details: invalidLanes.map(e => `${e.edge_id} (${e.lane_count}车道)`)
+                });
+            }
+
+            // 检查路段连续性
+            const discontinuities = this.checkEdgeContinuity();
+            if (discontinuities.length > 0) {
+                this.validationIssues.push({
+                    type: 'warning',
+                    message: '警告:所选路段不连续,DHS策略可能效果降低',
+                    details: discontinuities
+                });
+            }
         }
-
-        const warnings = document.createElement('div');
-        warnings.className = 'validation-warnings';
-
-        this.validationIssues.forEach(issue => {
-            const banner = document.createElement('div');
-            banner.className = `validation-banner ${issue.type}`;
-
-            const icon = issue.type === 'error' ? '❌' : '⚠️';
-            banner.innerHTML = `
-                <div class="banner-icon">${icon}</div>
-                <div class="banner-content">
-                    <div class="banner-message">${issue.message}</div>
-                    ${issue.details ? `<ul class="banner-details">${issue.details.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
-                </div>
-            `;
-
-            warnings.appendChild(banner);
-        });
-
-        return warnings;
-    }
-
-    /**
-     * Render edge information table
-     */
-    renderTable() {
-        const table = document.createElement('table');
-        table.className = 'edge-table';
-
-        // Table header
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>序号</th>
-                    <th>Edge ID</th>
-                    <th>路线</th>
-                    <th>路段</th>
-                    <th>起始桩号</th>
-                    <th>结束桩号</th>
-                    <th>长度</th>
-                    <th>车道数</th>
-                    <th>方向</th>
-                    <th>节点类型</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${this.edges.map((edge, idx) => this.renderTableRow(edge, idx + 1)).join('')}
-            </tbody>
-        `;
-
-        // Attach remove handlers
-        table.querySelectorAll('.remove-edge-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const edgeId = e.target.dataset.edgeId;
-                this.removeEdge(edgeId);
-            });
-        });
-
-        return table;
-    }
-
-    /**
-     * Render single table row
-     */
-    renderTableRow(edge, index) {
-        return `
-            <tr data-edge-id="${edge.edge_id}">
-                <td>${index}</td>
-                <td class="edge-id">${edge.edge_id}</td>
-                <td>${edge.route_code}</td>
-                <td>${edge.section_code}</td>
-                <td>K${(edge.start_stake / 1000).toFixed(1)}</td>
-                <td>K${(edge.end_stake / 1000).toFixed(1)}</td>
-                <td>${edge.length_m}m</td>
-                <td>${edge.lane_count}</td>
-                <td>${this.translateDirection(edge.direction)}</td>
-                <td>${this.translateNodeType(edge.node_type)}</td>
-                <td>
-                    <button class="remove-edge-btn" data-edge-id="${edge.edge_id}">移除</button>
-                </td>
-            </tr>
-        `;
-    }
-
-    /**
-     * Remove edge from list
-     */
-    removeEdge(edgeId) {
-        this.edges = this.edges.filter(e => e.edge_id !== edgeId);
-        this.render();
-
-        // Trigger callback
-        if (this.onRemove) {
-            this.onRemove(edgeId);
-        }
-    }
-
-    /**
-     * Get current edge IDs
-     */
-    getEdgeIds() {
-        return this.edges.map(e => e.edge_id);
     }
 }
 ```
 
-### 3. Name Generator (`name_generator.js`)
+### 3. 名称生成器 (`name_generator.js`)
 
-**Purpose**: Generate strategy names based on template rules and parameters
+**目的**：基于模板规则和参数生成策略名称
 
-**Key Methods**:
+**核心方法**：
 
 ```javascript
 class StrategyNameGenerator {
     /**
-     * Generate strategy name based on type and parameters
-     * @param {string} strategyType - VSS, DHS, or TEC
-     * @param {Object} parameters - Strategy parameters
-     * @param {Array<Object>} edges - Selected edge information
-     * @returns {Promise<string>} Generated name
+     * 基于类型和参数生成策略名称
+     * @param {string} strategyType - VSS, DHS或TEC
+     * @param {Object} parameters - 策略参数
+     * @param {Array<Object>} edges - 已选路段信息
+     * @returns {Promise<string>} 生成的名称
      */
     static async generate(strategyType, parameters, edges) {
         switch(strategyType) {
@@ -606,8 +384,8 @@ class StrategyNameGenerator {
     }
 
     /**
-     * Generate VSS strategy name
-     * Format: "{Route} {Section} 限速{Speed}km/h ({Time})"
+     * 生成VSS策略名称
+     * 格式："{路线} {路段} 限速{速度}km/h ({时段})"
      */
     static generateVSSName(params, edges) {
         const location = this.extractLocation(edges);
@@ -618,8 +396,8 @@ class StrategyNameGenerator {
     }
 
     /**
-     * Generate DHS strategy name
-     * Format: "{Route} {Section} 应急车道开放 ({Time})"
+     * 生成DHS策略名称
+     * 格式："{路线} {路段} 应急车道开放 ({时段})"
      */
     static generateDHSName(params, edges) {
         const location = this.extractLocation(edges);
@@ -629,46 +407,16 @@ class StrategyNameGenerator {
     }
 
     /**
-     * Generate TEC strategy name
-     * Format: "{Entrance} {ControlType} ({Time/Details})"
-     */
-    static async generateTECName(params, edges) {
-        const entranceName = await this.extractEntranceName(edges[0]);
-        const controlType = this.extractTECControlType(params);
-        const detail = this.extractTECDetail(params);
-
-        return `${entranceName} ${controlType} (${detail})`;
-    }
-
-    /**
-     * Extract location string from edges
-     */
-    static extractLocation(edges) {
-        if (!edges || edges.length === 0) {
-            return {route: '未知路线', section: '未知路段'};
-        }
-
-        const routes = [...new Set(edges.map(e => e.route_code))];
-        const route = routes.length === 1 ? routes[0] : '多路线';
-
-        const sections = [...new Set(edges.map(e => e.section_code))];
-        const section = sections.length <= 2 ? sections.join('-') : `${sections[0]}-${sections[sections.length-1]}`;
-
-        return {route, section};
-    }
-
-    /**
-     * Extract time period description
+     * 提取时段描述
      */
     static extractTimePeriod(intervals) {
         if (!intervals || intervals.length === 0) {
             return '定时管控';
         }
 
-        // Flatten if nested
         const flattened = intervals[0] instanceof Array ? intervals : [intervals];
 
-        // Check for common patterns
+        // 检查常见模式
         const isMorningPeak = flattened.some(([start, end]) => start >= 7 && end <= 10);
         const isEveningPeak = flattened.some(([start, end]) => start >= 17 && end <= 20);
         const isFullDay = flattened.some(([start, end]) => start === 0 && end === 24);
@@ -682,53 +430,12 @@ class StrategyNameGenerator {
     }
 
     /**
-     * Extract entrance name from edge data
-     */
-    static async extractEntranceName(edge) {
-        if (!edge) return '未知入口';
-
-        // Try to get junction name from edge metadata
-        if (edge.from_junction_name) {
-            return edge.from_junction_name.replace('入口', '');
-        }
-
-        // Fallback to route + section
-        return `${edge.route_code} ${edge.section_code}入口`;
-    }
-
-    /**
-     * Extract TEC control type
-     */
-    static extractTECControlType(params) {
-        if (params.control_mode === 'closure') {
-            if (params.allowed_vehicle_types && params.allowed_vehicle_types.includes('truck')) {
-                return '货车限行';
-            }
-            return '入口关闭';
-        }
-        return '计量控制';
-    }
-
-    /**
-     * Extract TEC detail string
-     */
-    static extractTECDetail(params) {
-        if (params.control_mode === 'metering') {
-            const flow = params.flow_intervals?.[0]?.vehsPerHour || 300;
-            return flow < 300 ? '高峰限流' : '计量管控';
-        }
-
-        const time = this.extractTimePeriod(params.intervals?.map(i => [i.begin/3600, i.end/3600]));
-        return time;
-    }
-
-    /**
-     * Ensure name uniqueness
-     * @param {string} baseName - Generated base name
-     * @returns {Promise<string>} Unique name
+     * 确保名称唯一性
+     * @param {string} baseName - 生成的基础名称
+     * @returns {Promise<string>} 唯一名称
      */
     static async ensureUnique(baseName) {
-        // Check against existing strategies
+        // 检查现有策略
         const response = await fetch(`/api/v1/control/strategy-instances?name=${encodeURIComponent(baseName)}`);
         const existing = await response.json();
 
@@ -736,7 +443,7 @@ class StrategyNameGenerator {
             return baseName;
         }
 
-        // Append counter
+        // 追加计数器
         let counter = 2;
         while (true) {
             const candidateName = `${baseName} (${counter})`;
@@ -752,38 +459,58 @@ class StrategyNameGenerator {
 }
 ```
 
-### 4. Description Generator (`description_generator.js`)
+### 4. 描述生成器 (`description_generator.js`)
 
-Similar structure to Name Generator, but creates multi-line formatted descriptions using template metadata and parameter values.
+与名称生成器结构类似，但使用模板元数据和参数值创建多行格式化描述。
 
-## Database Schema
+**示例输出**：
 
-No schema changes required. Uses existing `dim.sim_network_edges` table for edge information retrieval.
+```
+可变限速策略 - 中等控制
 
-## API Endpoints
+管控位置:
+- 路线: G4202 (成都绕城高速)
+- 路段: K10-K15 (共15个edge,总长8.5km)
+- 车道数: 3-4车道
 
-### Existing (No Changes)
+管控参数:
+- 限速值: 80 km/h
+- 管控时段: 07:00-09:00, 17:00-19:00 (早晚高峰)
+- 适用车型: 所有车辆
 
-- `POST /api/v1/control/strategy-instances` - Create strategy
-- `PUT /api/v1/control/strategy-instances/{id}` - Update strategy
-- `GET /api/v1/control/strategy-instances` - List strategies
-- `GET /api/v1/control/templates/{id}` - Get template schema
+策略目的: 通过动态调整限速来管理高峰时段交通流,缓解拥堵。
 
-### New Endpoints (Optional Enhancement)
+生成元素: 1个 variableSpeedSign (SUMO XML)
+```
+
+## 数据库Schema
+
+无需schema更改。使用现有的 `dim.sim_network_edges` 表获取路段信息。
+
+## API端点
+
+### 现有端点（无更改）
+
+- `POST /api/v1/control/strategy-instances` - 创建策略
+- `PUT /api/v1/control/strategy-instances/{id}` - 更新策略
+- `GET /api/v1/control/strategy-instances` - 列出策略
+- `GET /api/v1/control/templates/{id}` - 获取模板schema
+
+### 新端点（可选增强）
 
 ```python
-# API endpoint for batch edge information retrieval
+# 批量路段信息检索API端点
 @router.post("/api/v1/control/edges/batch-info")
 async def get_batch_edge_info(request: BatchEdgeInfoRequest):
     """
-    Get detailed information for multiple edges
+    获取多个路段的详细信息
 
-    Request:
+    请求:
         {
             "edge_ids": ["-5880", "-5881", "edge_k10_001"]
         }
 
-    Response:
+    响应:
         [
             {
                 "edge_id": "-5880",
@@ -804,18 +531,18 @@ async def get_batch_edge_info(request: BatchEdgeInfoRequest):
     """
     pass
 
-# API endpoint for edge ID validation
+# Edge ID验证API端点
 @router.post("/api/v1/control/edges/validate")
 async def validate_edge_ids(request: EdgeValidationRequest):
     """
-    Validate edge IDs exist in network
+    验证edge ID是否存在于网络中
 
-    Request:
+    请求:
         {
             "edge_ids": ["-5880", "invalid_edge"]
         }
 
-    Response:
+    响应:
         {
             "valid": ["-5880"],
             "invalid": ["invalid_edge"]
@@ -824,13 +551,13 @@ async def validate_edge_ids(request: EdgeValidationRequest):
     pass
 ```
 
-## UI/UX Specifications
+## UI/UX规范
 
-### Step 3 Layout
+### 第3步布局
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Step 3: 配置参数                                            │
+│  第3步：配置参数                                             │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
@@ -838,25 +565,25 @@ async def validate_edge_ids(request: EdgeValidationRequest):
 │  │                                                       │  │
 │  │  ⚠️ 警告: 所选路段不连续... [查看详情]                │  │
 │  │                                                       │  │
-│  │  [Edge Table - 10 columns, scrollable]               │  │
+│  │  [路段表格 - 10列，可滚动]                            │  │
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
 │  │  📍 管控位置                           [收起 ▲]      │  │
 │  │  ────────────────────────────────────────────        │  │
-│  │  (Location parameters shown here)                    │  │
+│  │  (位置参数显示在这里)                                │  │
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
 │  │  ⏰ 时间配置                           [收起 ▲]      │  │
 │  │  ────────────────────────────────────────────        │  │
-│  │  (Time parameters shown here)                        │  │
+│  │  (时间参数显示在这里)                                │  │
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
 │  │  🚗 管控参数                           [收起 ▲]      │  │
 │  │  ────────────────────────────────────────────        │  │
-│  │  (Control parameters shown here)                     │  │
+│  │  (控制参数显示在这里)                                │  │
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
@@ -865,7 +592,7 @@ async def validate_edge_ids(request: EdgeValidationRequest):
 │  │                                                       │  │
 │  │  策略描述 *              [重新生成 🔄]               │  │
 │  │  [                                                 ]  │  │
-│  │  [ Auto-generated description...                  ]  │  │
+│  │  [ 自动生成的描述...                               ]  │  │
 │  │  [                                                 ]  │  │
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
@@ -881,90 +608,90 @@ async def validate_edge_ids(request: EdgeValidationRequest):
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Color Scheme
+### 配色方案
 
-- **Validation Error**: `#e74c3c` (Red)
-- **Validation Warning**: `#f39c12` (Orange)
-- **Success/Valid**: `#27ae60` (Green)
-- **Info/Hint**: `#3498db` (Blue)
-- **Group Headers**: `#2c3e50` (Dark Gray)
+- **验证错误**：`#e74c3c`（红色）
+- **验证警告**：`#f39c12`（橙色）
+- **成功/有效**：`#27ae60`（绿色）
+- **信息/提示**：`#3498db`（蓝色）
+- **组标题**：`#2c3e50`（深灰色）
 
-## Testing Strategy
+## 测试策略
 
-### Unit Tests
+### 单元测试
 
-- ParameterFormBuilder: Test each input type generation
-- EdgeDisplayTable: Test continuity checking, validation logic
-- NameGenerator: Test name generation for each strategy type
-- DescriptionGenerator: Test description templates
+- ParameterFormBuilder：测试每种输入类型生成
+- EdgeDisplayTable：测试连续性检查、验证逻辑
+- NameGenerator：测试每种策略类型的名称生成
+- DescriptionGenerator：测试描述模板
 
-### Integration Tests
+### 集成测试
 
-- Full Step 3 workflow with real template schemas
-- Edge removal and table updates
-- Name/description auto-generation and override
-- XML preview updates on parameter changes
+- 使用真实模板schema的完整第3步工作流
+- 路段表格显示和验证
+- 名称/描述自动生成和覆盖
+- 参数更改时的XML预览更新
 
-### E2E Tests (Playwright)
+### E2E测试（Playwright）
 
 ```javascript
-test('Create VSS strategy with auto-generated name and description', async ({ page }) => {
+test('创建带自动生成名称和描述的VSS策略', async ({ page }) => {
     await page.goto('/control/templates.html');
 
-    // Select VSS template
-    await page.click('text=VSS Moderate');
+    // 选择VSS模板
+    await page.click('text=VSS中等控制');
 
-    // Select edges (Step 2)
+    // 选择路段（第2步）
     await page.click('text=G4202');
     await page.click('text=K10-K15');
     await page.click('.apply-filter-btn');
     await page.click('.select-all-edges');
 
-    // Proceed to Step 3
+    // 进入第3步
     await page.click('#step2-next');
 
-    // Verify edge table displayed
+    // 验证路段表格已显示
     await expect(page.locator('.edge-table')).toBeVisible();
     await expect(page.locator('.edge-table tbody tr')).toHaveCount(15);
 
-    // Fill parameters
+    // 填写参数
     await page.fill('#param-speed_limit', '80');
     await page.fill('#param-time_intervals', '[[7, 9], [17, 19]]');
 
-    // Verify auto-generated name
+    // 验证自动生成的名称
     await expect(page.locator('#param-strategy_name')).toHaveValue(/G4202.*限速80km\/h/);
 
-    // Verify auto-generated description
+    // 验证自动生成的描述
     await expect(page.locator('#param-strategy_description')).toContainText('可变限速策略');
     await expect(page.locator('#param-strategy_description')).toContainText('G4202');
     await expect(page.locator('#param-strategy_description')).toContainText('80 km/h');
 
-    // Save strategy
+    // 保存策略
     await page.click('.save-strategy-btn');
 
-    // Verify success
+    // 验证成功
     await expect(page.locator('.success-message')).toContainText('策略创建成功');
 });
 ```
 
-## Migration Path
+## 迁移路径
 
-1. **Phase 1**: Deploy enhanced parameter form builder (backward compatible)
-2. **Phase 2**: Add edge display table
-3. **Phase 3**: Implement auto-generation features (name, description)
-4. **Phase 4**: Remove personnel fields (if present)
-5. **Phase 5**: Add XML preview enhancements
+1. **阶段1**：部署增强的参数表单构建器（向后兼容）
+2. **阶段2**：添加路段展示表格
+3. **阶段3**：实现自动生成功能（名称、描述）
+4. **阶段4**：移除人员字段（如果存在）
+5. **阶段5**：添加XML预览增强
 
-## Performance Considerations
+## 性能考虑
 
-- **Edge Table Rendering**: Use virtual scrolling for >50 edges
-- **XML Preview Updates**: Debounce parameter changes (500ms delay)
-- **Name Generation**: Cache generated names to avoid duplicate API calls
-- **Edge Information Loading**: Batch API request instead of individual queries
+- **路段表格渲染**：对>50个路段使用虚拟滚动
+- **XML预览更新**：对参数更改进行防抖（500ms延迟）
+- **名称生成**：缓存生成的名称以避免重复API调用
+- **路段信息加载**：批量API请求而非单个查询
 
-## Security Considerations
+## 安全考虑
 
-- **XSS Prevention**: Sanitize all user inputs before rendering in HTML
-- **CSRF Protection**: Use CSRF tokens for all form submissions
-- **Input Validation**: Server-side validation in addition to client-side
-- **Rate Limiting**: Limit name uniqueness check API calls to prevent abuse
+- **XSS防护**：在HTML渲染前清理所有用户输入
+- **CSRF保护**：所有表单提交使用CSRF令牌
+- **输入验证**：除客户端验证外还需服务端验证
+- **速率限制**：限制名称唯一性检查API调用以防滥用

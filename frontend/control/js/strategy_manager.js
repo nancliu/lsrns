@@ -1100,14 +1100,20 @@ class StrategyManager {
                 input.value = value.toString();
             } else if (field.type === 'array') {
                 if (Array.isArray(value)) {
-                    if (value.length > 0 && Array.isArray(value[0])) {
-                        // Nested array - use JSON format
+                    if (value.length === 0) {
+                        // Empty array
+                        input.value = '';
+                    } else if (typeof value[0] === 'object' || Array.isArray(value[0])) {
+                        // Array of objects or nested array - use JSON format
                         input.value = JSON.stringify(value, null, 2);
                     } else {
-                        // Simple array - newline separated
+                        // Simple array of primitives - newline separated
                         input.value = value.join('\n');
                     }
                 }
+            } else if (typeof value === 'object' && value !== null) {
+                // Object value - use JSON format
+                input.value = JSON.stringify(value, null, 2);
             } else {
                 input.value = value;
             }
@@ -1314,6 +1320,395 @@ class StrategyManager {
         this.editingStrategy = null;
 
         console.log('[StrategyManager] Edit modal closed');
+    }
+
+    // ==================== View Strategy Details ====================
+
+    /**
+     * View strategy details in a read-only modal
+     * GET /api/v1/control/strategy-instances/{strategy_id}
+     *
+     * @param {string} strategyId - Strategy ID to view
+     * @returns {Promise<boolean>} True if loaded successfully
+     */
+    async viewStrategy(strategyId) {
+        console.log(`[StrategyManager] Loading strategy details: ${strategyId}`);
+
+        try {
+            // Fetch strategy details from API
+            const response = await fetch(`${this.API_BASE}/${strategyId}`);
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    this.showMessage('策略未找到', 'error');
+                } else {
+                    this.showMessage(`加载策略失败 (${response.status})`, 'error');
+                }
+                return false;
+            }
+
+            const strategy = await response.json();
+            console.log('[StrategyManager] Strategy loaded:', strategy);
+
+            // Show view modal
+            this.showViewModal(strategy);
+            return true;
+
+        } catch (error) {
+            console.error('[StrategyManager] Error loading strategy:', error);
+            this.showMessage('网络错误，请检查连接后重试', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Show view modal with strategy details (read-only)
+     * @param {Object} strategy - Strategy data
+     */
+    showViewModal(strategy) {
+        // Create or get view modal
+        let modal = document.getElementById('view-strategy-modal');
+
+        if (!modal) {
+            modal = this.createViewModal();
+            document.body.appendChild(modal);
+        }
+
+        // Populate modal content
+        const content = modal.querySelector('#view-modal-content');
+        if (!content) return;
+
+        const strategyNames = {
+            'VSS': '可变限速',
+            'DHS': '动态硬路肩',
+            'TEC': '收费站管控'
+        };
+
+        let parametersHTML = '';
+        const params = strategy.parameters || {};
+        Object.keys(params).forEach(key => {
+            const value = params[key];
+            let displayValue = value;
+
+            if (Array.isArray(value)) {
+                if (value.length === 0) {
+                    // Empty array
+                    displayValue = '<span style="color: #999;">空列表</span>';
+                } else if (typeof value[0] === 'object') {
+                    // Array of objects (e.g., speed_steps, flow_intervals)
+                    displayValue = `<pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5;">${JSON.stringify(value, null, 2)}</pre>`;
+                } else if (Array.isArray(value[0])) {
+                    // Nested array (e.g., time_intervals [[7,9], [17,19]])
+                    displayValue = `<pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5;">${JSON.stringify(value, null, 2)}</pre>`;
+                } else {
+                    // Simple array of primitives (strings, numbers)
+                    displayValue = value.join(', ');
+                }
+            } else if (typeof value === 'object' && value !== null) {
+                // Single object
+                displayValue = `<pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5;">${JSON.stringify(value, null, 2)}</pre>`;
+            } else if (typeof value === 'boolean') {
+                // Boolean values
+                displayValue = value ? '<span style="color: #27ae60; font-weight: 600;">是</span>' : '<span style="color: #e74c3c; font-weight: 600;">否</span>';
+            } else if (value === null || value === undefined) {
+                // Null or undefined
+                displayValue = '<span style="color: #999;">未设置</span>';
+            }
+
+            parametersHTML += `
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #555;">${key}:</strong>
+                    <div style="margin-top: 5px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                        ${displayValue}
+                    </div>
+                </div>
+            `;
+        });
+
+        let edgesHTML = '';
+        if (strategy.affected_edges && strategy.affected_edges.length > 0) {
+            edgesHTML = strategy.affected_edges.map(edge => `
+                <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <div><strong>路段ID:</strong> ${edge.edge_id}</div>
+                    ${edge.route_code ? `<div><strong>路线:</strong> ${edge.route_code}</div>` : ''}
+                    ${edge.stake_range ? `<div><strong>桩号范围:</strong> ${edge.stake_range}</div>` : ''}
+                    ${edge.length ? `<div><strong>长度:</strong> ${edge.length.toFixed(2)}m</div>` : ''}
+                </div>
+            `).join('');
+        } else {
+            edgesHTML = '<p style="color: #999;">无路段信息</p>';
+        }
+
+        content.innerHTML = `
+            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+                ${strategy.strategy_name}
+            </h2>
+
+            <div style="margin-bottom: 25px;">
+                <div style="display: inline-block; padding: 5px 12px; background: #3498db; color: white; border-radius: 4px; font-size: 12px; margin-right: 10px;">
+                    ${strategyNames[strategy.strategy_type] || strategy.strategy_type}
+                </div>
+                <span style="color: #7f8c8d; font-size: 14px;">
+                    ID: ${strategy.strategy_id}
+                </span>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">模板信息</h3>
+                <p><strong>模板ID:</strong> ${strategy.template_id}</p>
+                <p><strong>模板名称:</strong> ${strategy.template_name}</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">配置参数</h3>
+                ${parametersHTML || '<p style="color: #999;">无参数</p>'}
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">受影响路段 (${strategy.affected_edges.length})</h3>
+                ${edgesHTML}
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">元数据</h3>
+                <p><strong>创建时间:</strong> ${new Date(strategy.metadata.created_at).toLocaleString('zh-CN')}</p>
+                <p><strong>更新时间:</strong> ${new Date(strategy.metadata.updated_at).toLocaleString('zh-CN')}</p>
+                <p><strong>创建者:</strong> ${strategy.metadata.created_by}</p>
+                <p><strong>版本:</strong> ${strategy.metadata.version}</p>
+            </div>
+        `;
+
+        modal.style.display = 'block';
+    }
+
+    /**
+     * Create view modal HTML structure
+     * @returns {HTMLElement} Modal element
+     */
+    createViewModal() {
+        const modal = document.createElement('div');
+        modal.id = 'view-strategy-modal';
+        modal.className = 'modal';
+        modal.style.display = 'none';
+        modal.style.position = 'fixed';
+        modal.style.zIndex = '10000';
+        modal.style.left = '0';
+        modal.style.top = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.overflow = 'auto';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.4)';
+
+        modal.innerHTML = `
+            <div class="modal-content" style="background-color: #fefefe; margin: 2% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 900px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header" style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                    <span class="close" id="view-modal-close" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+                </div>
+                <div class="modal-body" id="view-modal-content">
+                    <!-- Content will be injected here -->
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <button type="button" id="view-close-btn" class="btn btn-secondary" style="padding: 10px 20px; border: 1px solid #ccc; background: #f8f9fa; color: #333; border-radius: 4px; cursor: pointer;">关闭</button>
+                </div>
+            </div>
+        `;
+
+        // Attach event listeners
+        const closeBtn = modal.querySelector('#view-modal-close');
+        const closeBtn2 = modal.querySelector('#view-close-btn');
+
+        closeBtn.onclick = () => this.closeViewModal();
+        closeBtn2.onclick = () => this.closeViewModal();
+
+        // Close when clicking outside modal
+        modal.onclick = (event) => {
+            if (event.target === modal) {
+                this.closeViewModal();
+            }
+        };
+
+        return modal;
+    }
+
+    /**
+     * Close view modal
+     */
+    closeViewModal() {
+        const modal = document.getElementById('view-strategy-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        console.log('[StrategyManager] View modal closed');
+    }
+
+    // ==================== Copy Strategy ====================
+
+    /**
+     * Copy a strategy with optional new name
+     * POST /api/v1/control/strategy-instances/{strategy_id}/copy
+     *
+     * @param {string} strategyId - Strategy ID to copy
+     * @param {string} strategyName - Original strategy name (for default naming)
+     * @returns {Promise<Object>} API response with new strategy_id
+     */
+    async copyStrategy(strategyId, strategyName) {
+        console.log(`[StrategyManager] Copying strategy: ${strategyId}`);
+
+        // Show name input dialog
+        const newName = await this.showCopyNameDialog(strategyName);
+
+        if (newName === null) {
+            console.log('[StrategyManager] Copy cancelled by user');
+            return null;
+        }
+
+        try {
+            // Call copy API
+            const url = newName
+                ? `${this.API_BASE}/${strategyId}/copy?new_name=${encodeURIComponent(newName)}`
+                : `${this.API_BASE}/${strategyId}/copy`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Handle response
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('[StrategyManager] Copy error:', errorData);
+
+                if (response.status === 404) {
+                    this.showMessage('源策略未找到', 'error');
+                } else {
+                    this.showMessage(`复制失败 (${response.status}): ${errorData.detail || '请检查后重试'}`, 'error');
+                }
+
+                return null;
+            }
+
+            const result = await response.json();
+            console.log('[StrategyManager] Strategy copied:', result);
+
+            // Show success message
+            this.showMessage(`策略复制成功！新策略ID: ${result.strategy_id}`, 'success');
+
+            // Dispatch event for list refresh
+            window.dispatchEvent(new Event('strategyCopied'));
+
+            return result;
+
+        } catch (error) {
+            console.error('[StrategyManager] Network error:', error);
+            this.showMessage('网络错误，请检查连接后重试', 'error');
+            return null;
+        }
+    }
+
+    /**
+     * Show dialog to input new name for copied strategy
+     * @param {string} originalName - Original strategy name
+     * @returns {Promise<string|null>} New name or null if cancelled
+     */
+    async showCopyNameDialog(originalName) {
+        return new Promise((resolve) => {
+            // Create copy name dialog
+            const modal = document.createElement('div');
+            modal.id = 'copy-name-dialog';
+            modal.style.position = 'fixed';
+            modal.style.zIndex = '10000';
+            modal.style.left = '0';
+            modal.style.top = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+
+            const defaultName = `[复制] ${originalName}`;
+
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); width: 90%; max-width: 500px;">
+                    <h2 style="margin: 0 0 20px 0; color: #2c3e50; font-size: 18px;">复制策略</h2>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">
+                            新策略名称
+                        </label>
+                        <input type="text" id="copy-new-name-input" value="${defaultName}"
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;"
+                               maxlength="100" />
+                        <p style="margin: 8px 0 0 0; color: #7f8c8d; font-size: 12px;">
+                            留空则使用默认名称 "[复制] 原名称"
+                        </p>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="copy-cancel-btn" style="padding: 10px 20px; border: 1px solid #ccc; background: #f8f9fa; color: #333; border-radius: 4px; cursor: pointer;">
+                            取消
+                        </button>
+                        <button id="copy-confirm-btn" style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 4px; cursor: pointer;">
+                            确定
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const input = modal.querySelector('#copy-new-name-input');
+            const cancelBtn = modal.querySelector('#copy-cancel-btn');
+            const confirmBtn = modal.querySelector('#copy-confirm-btn');
+
+            // Focus and select the input
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 100);
+
+            const cleanup = () => {
+                document.body.removeChild(modal);
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve(null);
+            };
+
+            confirmBtn.onclick = () => {
+                const value = input.value.trim();
+                cleanup();
+                resolve(value || null); // Return null if empty (use default)
+            };
+
+            // Submit on Enter key
+            input.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    const value = input.value.trim();
+                    cleanup();
+                    resolve(value || null);
+                }
+            });
+
+            // Cancel on Escape key
+            const escapeHandler = (event) => {
+                if (event.key === 'Escape') {
+                    document.removeEventListener('keydown', escapeHandler);
+                    cleanup();
+                    resolve(null);
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+
+            // Close on background click
+            modal.onclick = (event) => {
+                if (event.target === modal) {
+                    cleanup();
+                    resolve(null);
+                }
+            };
+        });
     }
 
     // ==================== T097: Delete Strategy ====================

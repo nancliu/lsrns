@@ -35,7 +35,9 @@
 ┌─────────────────────────────────────────────────────────┐
 │                   策略模板层 (Template)                  │
 │  预定义的管控措施配置模板（全局，高复用性）               │
-│  - VSS模板、DHS模板、TEC模板                            │
+│  - VSS模板：5个（2基础+3补充）                           │
+│  - DHS模板：3个（1基础+2补充）                           │
+│  - TEC模板：3个（3层优化设计）                           │
 └────────────────────┬────────────────────────────────────┘
                      ↓ 实例化（选择路段 + 配置参数）
 ┌─────────────────────────────────────────────────────────┐
@@ -100,20 +102,22 @@
 
 ```
 templates/
-├── control_strategies/              # 新增：策略模板库
-│   ├── variable_speed_sign/        # 可变限速
+├── control_strategies/              # 新增：策略模板库 - 11个模板
+│   ├── variable_speed_sign/        # VSS模板 (5个)
 │   │   ├── vss_moderate.json
 │   │   ├── vss_strict.json
-│   │   └── README.md
-│   ├── dynamic_hard_shoulder/      # 动态硬路肩
+│   │   ├── vss_weather_based.json
+│   │   ├── vss_upstream_warning.json
+│   │   └── vss_lane_differentiated.json
+│   ├── dynamic_hard_shoulder/      # DHS模板 (3个)
 │   │   ├── dhs_peak_hours.json
-│   │   ├── dhs_congestion_triggered.json
-│   │   └── README.md
-│   ├── toll_entrance_control/      # 收费入口控制
-│   │   ├── tec_truck_ban_daytime.json
-│   │   ├── tec_entrance_close_emergency.json
-│   │   └── README.md
-│   └── templates_index.json        # 模板索引文件
+│   │   ├── dhs_passenger_only.json
+│   │   └── dhs_peak_multi_interval.json
+│   ├── toll_entrance_control/      # TEC模板 (3个) - 3层设计
+│   │   ├── tec_flow_metering.json      # 基础层：流量控制
+│   │   ├── tec_vehicle_restriction.json # 限制层：车型限制
+│   │   └── tec_emergency_closure.json   # 应急层：紧急关闭
+│   └── templates_index.json        # 模板索引
 ```
 
 #### 3.1.2 全局管控数据
