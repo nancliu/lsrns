@@ -98,6 +98,8 @@ def _validate_parameter_schema(params: List[Dict[str, Any]]) -> bool:
         "edge_array",
         "step_array",
         "flow_interval_array",
+        "dhs_interval_array",  # NEW: DHS-specific interval array
+        "tec_interval_array",   # NEW: TEC-specific interval array
         "enum_array",
         "number",
         "enum",

@@ -82,6 +82,7 @@ class ParameterSchema(BaseModel):
         pattern=(
             "^(integer|float|string|boolean|array|"
             "edge_array|step_array|flow_interval_array|"
+            "dhs_interval_array|tec_interval_array|"
             "enum_array|number|enum)$"
         ),
     )
