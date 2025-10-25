@@ -17,8 +17,8 @@
     },
     {
       "parameter_name": "restriction_intervals",
-      "parameter_type": "array",
-      "description": "货车禁入的时间区间",
+      "parameter_type": "tec_interval_array",
+      "description": "货车禁入的时间区间列表",
       "required": true,
       "default_value": [
         {"begin_hours": 7, "end_hours": 9},
@@ -48,10 +48,10 @@
       "default_value": ["truck"],
       "unit": null,
       "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)", "disabled": true},
-        {"value": "bus", "label": "公交车", "disabled": true},
-        {"value": "truck", "label": "货车", "disabled": false},
-        {"value": "emergency", "label": "应急车", "disabled": true}
+        {"value": "passenger", "label": "乘用车 (客车)", "disabled": "true"},
+        {"value": "bus", "label": "公交车", "disabled": "true"},
+        {"value": "truck", "label": "货车", "disabled": "false"},
+        {"value": "emergency", "label": "应急车", "disabled": "true"}
       ],
       "note": "通常禁止truck和trailer;passenger/bus/emergency总是允许",
       "sumo_mapping": "disallow 属性"

@@ -17,8 +17,8 @@
     },
     {
       "parameter_name": "closure_intervals",
-      "parameter_type": "array",
-      "description": "入口关闭的时间区间",
+      "parameter_type": "tec_interval_array",
+      "description": "入口关闭的时间区间列表",
       "required": true,
       "default_value": [
         {"begin_hours": 7, "end_hours": 9}

@@ -28,8 +28,8 @@
     },
     {
       "parameter_name": "intervals",
-      "parameter_type": "array",
-      "description": "应急车道开放/关闭的时间区间列表",
+      "parameter_type": "dhs_interval_array",
+      "description": "应急车道开放/关闭的时间区间列表（注意：必须覆盖完整24小时，不能有时间重叠或间隙）",
       "required": true,
       "default_value": [
         {

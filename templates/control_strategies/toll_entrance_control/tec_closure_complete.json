@@ -17,8 +17,8 @@
     },
     {
       "parameter_name": "closure_intervals",
-      "parameter_type": "array",
-      "description": "完全关闭的时间区间",
+      "parameter_type": "tec_interval_array",
+      "description": "完全关闭的时间区间列表（建议每次关闭1-4小时）",
       "required": true,
       "default_value": [
         {"begin_hours": 7, "end_hours": 9}
@@ -27,7 +27,7 @@
       "constraints": {
         "min_intervals": 1,
         "max_intervals": 10,
-        "typical_duration_hours": "1-4"
+        "recommended_duration_hours": "1-4"
       },
       "interval_structure": {
         "begin_display_unit": "hours",

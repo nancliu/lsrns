@@ -27,8 +27,8 @@
     },
     {
       "parameter_name": "intervals",
-      "parameter_type": "array",
-      "description": "应急车道开放/关闭的时间区间",
+      "parameter_type": "dhs_interval_array",
+      "description": "应急车道开放/关闭的时间区间（预设为仅允许客车和公交，禁止货车）",
       "required": true,
       "default_value": [
         {
@@ -65,7 +65,8 @@
       "unit": null,
       "constraints": {
         "min_intervals": 1,
-        "max_intervals": 10
+        "max_intervals": 10,
+        "coverage": "应覆盖完整的24小时"
       },
       "interval_structure": {
         "begin_display_unit": "hours",
@@ -86,10 +87,10 @@
       "default_value": ["passenger", "bus"],
       "unit": null,
       "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)", "disabled": false},
-        {"value": "bus", "label": "公交车", "disabled": false},
-        {"value": "truck", "label": "货车", "disabled": true},
-        {"value": "emergency", "label": "应急车", "disabled": false}
+        {"value": "passenger", "label": "乘用车 (客车)", "disabled": "false"},
+        {"value": "bus", "label": "公交车", "disabled": "false"},
+        {"value": "truck", "label": "货车", "disabled": "true"},
+        {"value": "emergency", "label": "应急车", "disabled": "false"}
       ],
       "sumo_mapping": "allow 属性",
       "note": "货车和配送车自动禁止（show_prohibited_types: ['truck', 'delivery']）"

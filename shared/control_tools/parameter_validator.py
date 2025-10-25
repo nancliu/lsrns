@@ -101,6 +101,13 @@ def validate_strategy_parameters(
             warnings.extend(warns)
             converted_params[param_name] = converted or param_value
 
+        elif param_type in ("dhs_interval_array", "tec_interval_array"):
+            # DHS and TEC interval arrays (time-based, no flow rates)
+            errs, warns, converted = _validate_tec_dhs_interval_array(param_name, param_value, param_def)
+            errors.extend(errs)
+            warnings.extend(warns)
+            converted_params[param_name] = converted or param_value
+
         elif param_type == "enum_array":
             errs, warns = _validate_enum_array(param_name, param_value, param_def)
             errors.extend(errs)
@@ -421,6 +428,113 @@ def _validate_flow_interval_array(
             converted_interval["target_speed"] = interval["target_speed"]
         converted.append(converted_interval)
 
+        previous_end = end_hours
+
+    return errors, warnings, converted if not errors else None
+
+
+def _validate_tec_dhs_interval_array(
+    param_name: str, value: Any, schema: Dict[str, Any]
+) -> Tuple[List, List, Optional[List]]:
+    """Validate DHS/TEC interval array parameter (time-based intervals with status/vehicle types)."""
+    errors = []
+    warnings = []
+    converted = []
+
+    # Type check
+    if not isinstance(value, list):
+        errors.append({
+            "parameter": param_name,
+            "message": f"Parameter '{param_name}' must be an array of intervals",
+            "constraint": {"type": "interval_array"},
+            "provided_value": value
+        })
+        return errors, warnings, None
+
+    # Check item count
+    constraints = schema.get("constraints", {})
+    min_items = constraints.get("min_intervals", 1)
+    max_items = constraints.get("max_intervals", 10)
+
+    if len(value) < min_items:
+        errors.append({
+            "parameter": param_name,
+            "message": f"Parameter '{param_name}' requires at least {min_items} interval(s)",
+            "constraint": {"min_intervals": min_items},
+            "provided_value": len(value)
+        })
+        return errors, warnings, None
+
+    if len(value) > max_items:
+        errors.append({
+            "parameter": param_name,
+            "message": f"Parameter '{param_name}' cannot exceed {max_items} interval(s)",
+            "constraint": {"max_intervals": max_items},
+            "provided_value": len(value)
+        })
+        return errors, warnings, None
+
+    # Validate each interval
+    previous_end = -1
+    for idx, interval in enumerate(value):
+        if not isinstance(interval, dict):
+            errors.append({
+                "parameter": param_name,
+                "message": f"Interval {idx} must be a dictionary",
+                "constraint": {"item_type": "dict"},
+                "provided_value": interval
+            })
+            continue
+
+        # Get begin time
+        begin_key = "begin_hours" if "begin_hours" in interval else "begin_seconds"
+        begin_val = interval.get(begin_key)
+        if begin_val is None:
+            errors.append({
+                "parameter": param_name,
+                "message": f"Interval {idx}: missing 'begin_hours' or 'begin_seconds'",
+                "constraint": {"required_field": begin_key},
+                "provided_value": interval
+            })
+            continue
+
+        begin_hours = begin_val if begin_key == "begin_hours" else begin_val / 3600
+
+        # Get end time
+        end_key = "end_hours" if "end_hours" in interval else "end_seconds"
+        end_val = interval.get(end_key)
+        if end_val is None:
+            errors.append({
+                "parameter": param_name,
+                "message": f"Interval {idx}: missing 'end_hours' or 'end_seconds'",
+                "constraint": {"required_field": end_key},
+                "provided_value": interval
+            })
+            continue
+
+        end_hours = end_val if end_key == "end_hours" else end_val / 3600
+
+        # Validate time ordering
+        if begin_hours >= end_hours:
+            errors.append({
+                "parameter": param_name,
+                "message": f"Interval {idx}: begin time must be less than end time",
+                "constraint": {"begin_lt_end": True},
+                "provided_value": f"[{begin_hours}, {end_hours}]"
+            })
+
+        # Build converted interval
+        converted_interval = {
+            "begin_seconds": int(begin_hours * 3600),
+            "end_seconds": int(end_hours * 3600)
+        }
+
+        # Copy optional fields (status, allowed_vehicle_types, etc.)
+        for key in interval:
+            if key not in (begin_key, end_key):
+                converted_interval[key] = interval[key]
+
+        converted.append(converted_interval)
         previous_end = end_hours
 
     return errors, warnings, converted if not errors else None

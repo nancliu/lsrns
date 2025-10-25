@@ -27,62 +27,47 @@
     },
     {
       "parameter_name": "intervals",
-      "parameter_type": "array",
-      "description": "5+个精确的时间段定义，确保完整覆盖24小时（0-24）",
+      "parameter_type": "dhs_interval_array",
+      "description": "5个及以上精确的时间段定义（最少5个），必须完整覆盖24小时（0-24），无缝隙或重叠",
       "required": true,
       "default_value": [
         {
-          "label": "夜间段1 (00:00-07:00)",
           "begin_hours": 0,
           "end_hours": 7,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"],
-          "description": "凌晨和清晨，应急车道关闭"
+          "allowed_vehicle_types": ["emergency", "authority"]
         },
         {
-          "label": "早高峰 (07:00-09:00)",
           "begin_hours": 7,
           "end_hours": 9,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"],
-          "description": "早上工作高峰，完全开放"
+          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
         },
         {
-          "label": "平峰段 (09:00-17:00)",
           "begin_hours": 9,
           "end_hours": 17,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"],
-          "description": "白天平峰，应急车道关闭"
+          "allowed_vehicle_types": ["emergency", "authority"]
         },
         {
-          "label": "晚高峰 (17:00-19:00)",
           "begin_hours": 17,
           "end_hours": 19,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"],
-          "description": "下班时段，完全开放"
+          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
         },
         {
-          "label": "夜间段2 (19:00-24:00)",
           "begin_hours": 19,
           "end_hours": 24,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"],
-          "description": "晚间和夜间，应急车道关闭"
+          "allowed_vehicle_types": ["emergency", "authority"]
         }
       ],
       "unit": null,
       "constraints": {
         "min_intervals": 5,
         "max_intervals": 10,
-        "coverage": "必须覆盖完整24小时(0-24),无缝隙或重叠"
+        "coverage": "必须覆盖完整24小时(0-24)，无缝隙或重叠"
       },
-      "validation_rules": [
-        "相邻区间的end_hours必须等于下一个区间的begin_hours",
-        "第一个区间必须以0开始,最后一个区间必须以24结束",
-        "所有时间值必须在0-24范围内"
-      ],
       "interval_structure": {
         "begin_display_unit": "hours",
         "begin_sumo_unit": "seconds",
