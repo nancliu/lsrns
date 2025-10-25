@@ -1065,9 +1065,9 @@
 
             // 根据策略类型提供智能筛选提示
             const filterHints = {
-                'VSS': '💡 <strong>筛选建议：</strong>可变限速通常应用于主路路段，建议筛选：车道数≥3、路段长度500-2000米',
-                'DHS': '💡 <strong>筛选建议：</strong>动态硬路肩需要宽路段，建议筛选：车道数≥4、主路类型路段',
-                'TEC': '💡 <strong>筛选建议：</strong>收费站管控针对入口匝道，建议筛选：节点类型=入口、临近收费站'
+                'VSS': '💡 <strong>筛选建议：</strong>可变限速通常应用于主路路段，建议筛选：车道数≥3、路段长度500-2000米。💡 建议选择连续路段以保证限速一致性',
+                'DHS': '💡 <strong>筛选建议：</strong>动态硬路肩需要连续的宽路段区间，建议筛选：车道数≥4、主路类型。⚠️ <strong>重要：</strong>所选路段必须形成连续区间（相邻桩号）',
+                'TEC': '💡 <strong>筛选建议：</strong>收费站管控针对<strong>单个</strong>入口匝道，建议筛选：节点类型=入口、临近收费站。⚠️ <strong>注意：</strong>仅需选择1条路段'
             };
 
             hintEl.innerHTML = filterHints[strategyType];
@@ -1080,8 +1080,64 @@
             updateStepDisplay();
         }
 
+        // 验证路段选择是否符合策略要求 (建议3)
+        function validateEdgeSelection() {
+            if (!selectedTemplate) {
+                return {
+                    valid: false,
+                    message: '⚠️ 请先选择策略模板'
+                };
+            }
+
+            const count = selectedEdges.length;
+            const type = selectedTemplate.strategy_type;
+
+            // TEC策略：仅需1条路段
+            if (type === 'TEC' && count !== 1) {
+                return {
+                    valid: false,
+                    message: '⚠️ 收费站管控策略仅需选择1条入口匝道路段（当前已选: ' + count + ' 条）'
+                };
+            }
+
+            // DHS策略：至少2条连续路段
+            if (type === 'DHS' && count < 2) {
+                return {
+                    valid: false,
+                    message: '⚠️ 动态硬路肩策略至少需要2条连续路段（当前已选: ' + count + ' 条）'
+                };
+            }
+
+            // VSS策略：至少1条路段
+            if (type === 'VSS' && count === 0) {
+                return {
+                    valid: false,
+                    message: '⚠️ 可变限速策略至少需要选择1条路段'
+                };
+            }
+
+            // 所有策略都不能没有路段选择
+            if (count === 0) {
+                return {
+                    valid: false,
+                    message: '⚠️ 请至少选择1条路段'
+                };
+            }
+
+            return { valid: true };
+        }
+
         // 下一步
         function nextStep() {
+            // 如果在步骤2，需要验证路段选择
+            if (currentStep === 2) {
+                const validation = validateEdgeSelection();
+                if (!validation.valid) {
+                    alert(validation.message);
+                    return; // 阻止进入下一步
+                }
+            }
+
             if (currentStep < 3) {
                 currentStep++;
                 updateStepDisplay();

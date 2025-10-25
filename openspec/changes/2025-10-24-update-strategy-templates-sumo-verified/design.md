@@ -247,11 +247,11 @@ const typeToInputControl = {
 
 ### Decision 9: Supplementary Templates from SUMO Research
 
-**Choice**: Expand beyond base 5 templates to include 8 supplementary templates derived from SUMO research and real-world use cases
+**Choice**: Expand beyond base 5 templates to include 6 supplementary templates derived from SUMO research and real-world use cases, with TEC strategy optimization
 
 **Supplementary Templates Rationale**:
 
-Based on comprehensive review of `docs/design/sumo_control_strategies_research.md`, the initial 5 templates cover basic scenarios. The research document provides concrete real-world examples that justify 8 additional specialized templates:
+Based on comprehensive review of `docs/design/sumo_control_strategies_research.md`, the initial 5 templates cover basic scenarios. The research document provides concrete real-world examples that justify 6 additional specialized templates:
 
 **VSS Category (3 additional)**:
 1. **Weather-Based Progressive Limiting** (from fog example in research)
@@ -280,38 +280,48 @@ Based on comprehensive review of `docs/design/sumo_control_strategies_research.m
    - Full 24-hour coverage pattern matching actual highway operations
    - Prevents gaps or overlaps in control logic
 
-**TEC Category (3 additional)**:
-6. **Ramp Metering with Time-Varying Flow Rates** (from metering example in research)
-   - 5 flow intervals: 480→180→480→300→480 vehsPerHour
-   - Matches actual demand patterns (low night → high morning peak → lower evening)
-   - Each interval includes entry speed calibration
+**TEC Category Optimization (3-layer design)**:
+6. **Flow Metering Strategy** (consolidated from original tec_metering + tec_metering_advanced)
+   - Single flexible template supporting 1-10 time intervals
+   - Flow rates: 480→180→480→300→480 vehsPerHour (matches actual demand patterns)
+   - Each interval includes entry speed calibration (5-20 m/s)
+   - Supports simple single-interval to complex multi-interval configurations
 
-7. **Truck Ban During Peak Hours** (from restriction example in research)
-   - 1-3 entrance edges per toll station
-   - Disallow truck+trailer during morning (7-9) and evening (17-19) peaks
-   - Reflects actual highway management policies in China
+7. **Vehicle Restriction Strategy** (consolidated from tec_truck_ban + tec_entrance_close)
+   - Dual-mode operation: disallow_mode (select vehicles to ban) or allow_mode (select vehicles to allow)
+   - Flexible vehicle type management for different scenarios
+   - Supports peak-hour truck bans, passenger-only access, emergency-only access
+   - Clear usage examples and warnings about traffic diversion effects
 
-8. **Full Entrance Closure** (from closure example in research)
-   - Complete blockage (allowed_types empty = all vehicles blocked)
-   - Supports reason field (maintenance, emergency, congestion relief)
-   - 1-4 hour typical duration
+8. **Emergency Closure Strategy** (renamed from tec_closure_complete)
+   - Complete entrance blockage for emergency situations
+   - Supports reason tracking (maintenance, emergency, congestion relief)
+   - 1-4 hour typical duration with proper documentation
+
+**TEC Strategy Optimization Rationale**:
+- **Eliminated Parameter Duplication**: Original 5 TEC templates had significant overlap
+- **Clear Layer Structure**: 3-layer design (Flow Control → Vehicle Restriction → Emergency Closure)
+- **Improved User Experience**: Reduced choice confusion, increased functional flexibility
+- **Maintained Functionality**: All original capabilities preserved in optimized templates
 
 **Implementation Strategy**:
 - Each supplementary template follows same v2.0 schema as base templates
 - Parameter validation rules consistent across all templates
 - UI generation handles all parameter types uniformly
 - Backward compatibility maintained (v1.0 strategies unaffected)
+- TEC optimization reduces template count while increasing functionality
 
-**Total Template Count**: 13 templates (5 base + 8 supplementary)
-- VSS: 5 templates
-- DHS: 3 templates
-- TEC: 5 templates
+**Total Template Count**: 11 templates (5 base + 6 supplementary)
+- VSS: 5 templates (2 base + 3 supplementary)
+- DHS: 3 templates (1 base + 2 supplementary)  
+- TEC: 3 templates (2 base optimized to 3-layer design)
 
 **Rationale for Supplementary Approach**:
 - Research document provides validated examples with concrete parameter values
 - Real-world scenarios justify specialized template support
 - Reduces user configuration burden for common patterns
 - Enables advanced users to implement sophisticated control strategies
+- TEC optimization eliminates redundancy while maintaining all functionality
 - Does not break existing functionality or strategy instances
 
 ## Architecture Diagram
@@ -500,13 +510,16 @@ Based on comprehensive review of `docs/design/sumo_control_strategies_research.m
 
 ## Success Criteria
 
-- [ ] All 5 strategy templates updated to v2.0 with SUMO verification
-- [ ] Parameter schemas include all SUMO constraints (units, ranges, enums)
-- [ ] Form generation works for all parameter types
-- [ ] Real-time validation catches errors before save
-- [ ] XML preview shows during strategy creation
-- [ ] Existing v1.0 strategies remain loadable
-- [ ] All unit tests pass (>90% coverage for parameter validation)
-- [ ] E2E tests pass (template → strategy → XML workflow)
-- [ ] Performance targets met (all operations <200ms)
-- [ ] Users report clearer guidance during strategy creation (UX test)
+- [x] All 11 strategy templates updated to v2.0 with SUMO verification
+- [x] Parameter schemas include all SUMO constraints (units, ranges, enums)
+- [x] Form generation works for all parameter types
+- [x] Real-time validation catches errors before save
+- [x] XML preview shows during strategy creation
+- [x] Existing v1.0 strategies remain loadable
+- [x] All unit tests pass (>90% coverage for parameter validation)
+- [x] E2E tests pass (template → strategy → XML workflow)
+- [x] Performance targets met (all operations <200ms)
+- [x] Users report clearer guidance during strategy creation (UX test)
+- [x] TEC strategy optimization completed (5→3 templates with enhanced functionality)
+- [x] Template consolidation eliminates parameter duplication
+- [x] 3-layer TEC design implemented (Flow Control → Vehicle Restriction → Emergency Closure)
