@@ -1,0 +1,431 @@
+"""
+SUMO Additional File Generator for Control Strategies (v2.0)
+
+Generates SUMO additional XML files for control strategies based on v2.0
+template specifications. Supports VSS (Variable Speed Sign), DHS (Dynamic Hard
+Shoulder), and TEC (Toll Entrance Control) strategies.
+
+Functions:
+- generate_strategy_xml: Main entry point for XML generation
+- generate_vss_xml: Generate variableSpeedSign XML element
+- generate_dhs_xml: Generate rerouter XML element for hard shoulder control
+- generate_tec_xml: Generate calibrator or rerouter XML for toll control
+"""
+
+import logging
+from typing import Dict, Any, Optional, List
+from xml.etree.ElementTree import Element, SubElement, tostring
+
+logger = logging.getLogger(__name__)
+
+
+def generate_strategy_xml(
+    template_id: str,
+    template: Dict[str, Any],
+    parameters: Dict[str, Any]
+) -> str:
+    """
+    Generate SUMO XML content for a strategy based on template and parameters.
+
+    Dispatches to type-specific generators (VSS, DHS, TEC) based on template.
+
+    Args:
+        template_id: Unique template identifier
+        template: Template dictionary with strategy_type and schema
+        parameters: Validated and converted parameters
+
+    Returns:
+        XML string representation of the strategy
+
+    Raises:
+        ValueError: If strategy type is unsupported or parameters invalid
+    """
+    strategy_type = template.get("strategy_type")
+    logger.info(f"Generating XML for {strategy_type} strategy: {template_id}")
+
+    if strategy_type == "VSS":
+        return generate_vss_xml(template_id, template, parameters)
+    elif strategy_type == "DHS":
+        return generate_dhs_xml(template_id, template, parameters)
+    elif strategy_type == "TEC":
+        return generate_tec_xml(template_id, template, parameters)
+    else:
+        raise ValueError(f"Unsupported strategy type: {strategy_type}")
+
+
+def generate_vss_xml(
+    strategy_id: str,
+    template: Dict[str, Any],
+    parameters: Dict[str, Any]
+) -> str:
+    """
+    Generate SUMO variableSpeedSign XML element.
+
+    Structure:
+        <variableSpeedSign id="strategy_id" edges="edge1 edge2 ...">
+            <step time="0" speed="27.78"/>
+            <step time="25200" speed="22.22"/>
+        </variableSpeedSign>
+
+    Args:
+        strategy_id: Strategy identifier (becomes element id)
+        template: VSS template dictionary
+        parameters: Strategy parameters with affected_edges and speed_steps
+
+    Returns:
+        XML string of variableSpeedSign element
+    """
+    logger.info(f"Generating VSS XML for strategy: {strategy_id}")
+
+    try:
+        # Extract parameters
+        affected_edges = parameters.get("affected_edges", [])
+        speed_steps = parameters.get("speed_steps", [])
+
+        # Create root element
+        vss_elem = Element("variableSpeedSign")
+        vss_elem.set("id", strategy_id)
+
+        # Add edges attribute (space-separated)
+        if affected_edges:
+            vss_elem.set("edges", " ".join(affected_edges))
+
+        # Add speed steps
+        for step in speed_steps:
+            step_elem = SubElement(vss_elem, "step")
+
+            # Time in seconds
+            if "time_seconds" in step:
+                step_elem.set("time", str(int(step["time_seconds"])))
+            elif "time_hours" in step:
+                # Convert hours to seconds if needed
+                time_seconds = int(step["time_hours"] * 3600)
+                step_elem.set("time", str(time_seconds))
+            else:
+                continue
+
+            # Speed in m/s
+            if "speed_ms" in step:
+                speed_ms = round(float(step["speed_ms"]), 2)
+                step_elem.set("speed", str(speed_ms))
+            elif "speed_kmh" in step:
+                # Convert km/h to m/s: divide by 3.6
+                speed_ms = round(float(step["speed_kmh"]) / 3.6, 2)
+                step_elem.set("speed", str(speed_ms))
+            else:
+                continue
+
+        # Convert to string
+        xml_str = tostring(vss_elem, encoding="unicode")
+        logger.debug(f"Generated VSS XML: {xml_str}")
+
+        return xml_str
+
+    except Exception as e:
+        logger.error(f"Error generating VSS XML: {e}", exc_info=True)
+        raise
+
+
+def generate_dhs_xml(
+    strategy_id: str,
+    template: Dict[str, Any],
+    parameters: Dict[str, Any]
+) -> str:
+    """
+    Generate SUMO rerouter XML element for hard shoulder control.
+
+    Structure:
+        <rerouter id="strategy_id" edges="edge1 edge2 ...">
+            <interval begin="0" end="25200">
+                <closingLaneReroute id="0" allow="passenger bus truck emergency"/>
+            </interval>
+            <interval begin="25200" end="32400">
+                <closingLaneReroute id="0" allow=""/>
+            </interval>
+        </rerouter>
+
+    Args:
+        strategy_id: Strategy identifier (becomes element id)
+        template: DHS template dictionary
+        parameters: Strategy parameters with affected_edges, intervals, etc.
+
+    Returns:
+        XML string of rerouter element
+    """
+    logger.info(f"Generating DHS XML for strategy: {strategy_id}")
+
+    try:
+        # Extract parameters
+        affected_edges = parameters.get("affected_edges", [])
+        hard_shoulder_lane = parameters.get("hard_shoulder_lane_index", 3)
+        intervals = parameters.get("intervals", [])
+
+        # Create root element
+        rerouter_elem = Element("rerouter")
+        rerouter_elem.set("id", strategy_id)
+
+        # Add edges attribute (space-separated)
+        if affected_edges:
+            rerouter_elem.set("edges", " ".join(affected_edges))
+
+        # Add intervals
+        for interval in intervals:
+            interval_elem = SubElement(rerouter_elem, "interval")
+
+            # Begin time in seconds
+            if "begin_seconds" in interval:
+                begin_seconds = int(interval["begin_seconds"])
+            elif "begin_hours" in interval:
+                begin_seconds = int(interval["begin_hours"] * 3600)
+            else:
+                continue
+
+            # End time in seconds
+            if "end_seconds" in interval:
+                end_seconds = int(interval["end_seconds"])
+            elif "end_hours" in interval:
+                end_seconds = int(interval["end_hours"] * 3600)
+            else:
+                continue
+
+            interval_elem.set("begin", str(begin_seconds))
+            interval_elem.set("end", str(end_seconds))
+
+            # Add closingLaneReroute element for hard shoulder
+            status = interval.get("status", "CLOSED")
+            allowed_types = interval.get("allowed_vehicle_types", [])
+
+            # Create closingLaneReroute for the hard shoulder lane
+            closing_elem = SubElement(interval_elem, "closingLaneReroute")
+            closing_elem.set("id", str(hard_shoulder_lane))
+
+            # Set allow attribute (space-separated vehicle types, or empty if closed)
+            if status == "OPEN" and allowed_types:
+                closing_elem.set("allow", " ".join(allowed_types))
+            else:
+                closing_elem.set("allow", "")
+
+        # Convert to string
+        xml_str = tostring(rerouter_elem, encoding="unicode")
+        logger.debug(f"Generated DHS XML: {xml_str}")
+
+        return xml_str
+
+    except Exception as e:
+        logger.error(f"Error generating DHS XML: {e}", exc_info=True)
+        raise
+
+
+def generate_tec_xml(
+    strategy_id: str,
+    template: Dict[str, Any],
+    parameters: Dict[str, Any]
+) -> str:
+    """
+    Generate SUMO calibrator or rerouter XML for toll entrance control.
+
+    Supports two modes:
+    1. Metering mode (calibrator): Controls flow rates
+    2. Closure/restriction mode (rerouter): Blocks or restricts vehicles
+
+    Metering structure:
+        <calibrator id="strategy_id" edge="edge_id" pos="0">
+            <flow begin="0" end="25200" vehsPerHour="480" speed="15"/>
+            <flow begin="25200" end="32400" vehsPerHour="180" speed="12"/>
+        </calibrator>
+
+    Closure structure:
+        <rerouter id="strategy_id" edges="edge1 ...">
+            <interval begin="0" end="86400">
+                <closingReroute allow=""/>
+            </interval>
+        </rerouter>
+
+    Args:
+        strategy_id: Strategy identifier (becomes element id)
+        template: TEC template dictionary
+        parameters: Strategy parameters with entrance info, flow intervals, etc.
+
+    Returns:
+        XML string of calibrator or rerouter element
+    """
+    logger.info(f"Generating TEC XML for strategy: {strategy_id}")
+
+    try:
+        # Determine control mode (metering, closure, restriction)
+        control_mode = parameters.get("control_mode", "metering")
+
+        if control_mode == "metering":
+            return _generate_tec_metering_xml(strategy_id, template, parameters)
+        elif control_mode in ["closure", "restriction"]:
+            return _generate_tec_closure_xml(strategy_id, template, parameters)
+        else:
+            logger.warning(f"Unknown TEC control mode: {control_mode}, defaulting to closure")
+            return _generate_tec_closure_xml(strategy_id, template, parameters)
+
+    except Exception as e:
+        logger.error(f"Error generating TEC XML: {e}", exc_info=True)
+        raise
+
+
+def _generate_tec_metering_xml(
+    strategy_id: str,
+    template: Dict[str, Any],
+    parameters: Dict[str, Any]
+) -> str:
+    """Generate TEC metering (ramp metering) XML with flow control."""
+    logger.debug(f"Generating TEC metering XML: {strategy_id}")
+
+    # Get entrance edge (single edge for metering)
+    entrance_edge = parameters.get("entrance_edge") or \
+                   (parameters.get("entrance_edges", [])[0] if parameters.get("entrance_edges") else None)
+
+    if not entrance_edge:
+        raise ValueError("TEC metering requires entrance_edge or entrance_edges")
+
+    # Create calibrator element
+    calibrator_elem = Element("calibrator")
+    calibrator_elem.set("id", strategy_id)
+    calibrator_elem.set("edge", entrance_edge)
+    calibrator_elem.set("pos", "0")
+
+    # Add flow intervals
+    flow_intervals = parameters.get("flow_intervals", [])
+    for flow in flow_intervals:
+        flow_elem = SubElement(calibrator_elem, "flow")
+
+        # Begin time
+        if "begin_seconds" in flow:
+            begin_seconds = int(flow["begin_seconds"])
+        elif "begin_hours" in flow:
+            begin_seconds = int(flow["begin_hours"] * 3600)
+        else:
+            continue
+
+        # End time
+        if "end_seconds" in flow:
+            end_seconds = int(flow["end_seconds"])
+        elif "end_hours" in flow:
+            end_seconds = int(flow["end_hours"] * 3600)
+        else:
+            continue
+
+        flow_elem.set("begin", str(begin_seconds))
+        flow_elem.set("end", str(end_seconds))
+
+        # Flow rate (vehicles per hour)
+        if "vehsPerHour" in flow:
+            flow_elem.set("vehsPerHour", str(int(flow["vehsPerHour"])))
+
+        # Target speed (m/s)
+        if "target_speed" in flow:
+            target_speed = flow["target_speed"]
+            if isinstance(target_speed, float):
+                flow_elem.set("speed", str(round(target_speed, 2)))
+            else:
+                flow_elem.set("speed", str(target_speed))
+
+    # Convert to string
+    xml_str = tostring(calibrator_elem, encoding="unicode")
+    logger.debug(f"Generated TEC metering XML: {xml_str}")
+
+    return xml_str
+
+
+def _generate_tec_closure_xml(
+    strategy_id: str,
+    template: Dict[str, Any],
+    parameters: Dict[str, Any]
+) -> str:
+    """Generate TEC closure/restriction XML using rerouter."""
+    logger.debug(f"Generating TEC closure/restriction XML: {strategy_id}")
+
+    # Get entrance edges
+    entrance_edges = parameters.get("entrance_edges", [])
+    entrance_edge = parameters.get("entrance_edge")
+
+    if entrance_edge:
+        entrance_edges = [entrance_edge]
+    elif not entrance_edges:
+        raise ValueError("TEC closure requires entrance_edge or entrance_edges")
+
+    # Create rerouter element
+    rerouter_elem = Element("rerouter")
+    rerouter_elem.set("id", strategy_id)
+    rerouter_elem.set("edges", " ".join(entrance_edges))
+
+    # Add closure intervals
+    closure_intervals = parameters.get("closure_intervals", [])
+    allowed_types = parameters.get("allowed_vehicle_types", [])
+
+    # If no intervals specified, create a single interval covering full day
+    if not closure_intervals:
+        closure_intervals = [
+            {"begin_hours": 0, "end_hours": 24}
+        ]
+
+    for interval in closure_intervals:
+        interval_elem = SubElement(rerouter_elem, "interval")
+
+        # Begin time
+        if "begin_seconds" in interval:
+            begin_seconds = int(interval["begin_seconds"])
+        elif "begin_hours" in interval:
+            begin_seconds = int(interval["begin_hours"] * 3600)
+        else:
+            begin_seconds = 0
+
+        # End time
+        if "end_seconds" in interval:
+            end_seconds = int(interval["end_seconds"])
+        elif "end_hours" in interval:
+            end_seconds = int(interval["end_hours"] * 3600)
+        else:
+            end_seconds = 86400  # Full day
+
+        interval_elem.set("begin", str(begin_seconds))
+        interval_elem.set("end", str(end_seconds))
+
+        # Add closingReroute element
+        closing_elem = SubElement(interval_elem, "closingReroute")
+
+        # Set allow attribute
+        if allowed_types:
+            closing_elem.set("allow", " ".join(allowed_types))
+        else:
+            closing_elem.set("allow", "")  # Empty = block all vehicles
+
+    # Convert to string
+    xml_str = tostring(rerouter_elem, encoding="unicode")
+    logger.debug(f"Generated TEC closure XML: {xml_str}")
+
+    return xml_str
+
+
+def validate_generated_xml(xml_content: str) -> tuple[bool, str]:
+    """
+    Validate that generated XML is well-formed.
+
+    Uses ElementTree to parse the XML and check for structural validity.
+
+    Args:
+        xml_content: XML string to validate
+
+    Returns:
+        Tuple of (is_valid, error_message)
+        - is_valid: True if XML is well-formed
+        - error_message: Error description if invalid, empty string if valid
+    """
+    try:
+        from xml.etree.ElementTree import fromstring
+
+        # Try to parse the XML
+        fromstring(xml_content)
+
+        logger.debug("XML validation passed")
+        return True, ""
+
+    except Exception as e:
+        error_msg = f"XML validation failed: {str(e)}"
+        logger.error(error_msg)
+        return False, error_msg

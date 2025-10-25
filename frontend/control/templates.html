@@ -912,7 +912,14 @@
                 errorEl.style.display = 'none';
                 containerEl.innerHTML = '';
 
-                const response = await fetch('/api/v1/control/templates/');
+                // Add cache-busting timestamp to ensure fresh data
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/v1/control/templates/?_t=${timestamp}`, {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -920,6 +927,13 @@
 
                 const data = await response.json();
                 templates = data.templates;
+
+                // Log template count for debugging
+                console.log(`Loaded ${templates.length} templates:`, {
+                    total_count: data.total_count,
+                    by_type: data.by_type,
+                    template_ids: templates.map(t => t.template_id)
+                });
 
                 renderTemplateCards(templates);
                 loadingEl.style.display = 'none';

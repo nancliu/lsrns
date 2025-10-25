@@ -1,0 +1,139 @@
+{
+  "template_id": "tec_vehicle_restriction",
+  "template_name": "收费入口 - 车型限制",
+  "description": "灵活地限制或禁止特定车型进入收费站入口，实现差异化的车型管理。支持禁止特定车型（如货车）或仅允许特定车型（如仅允许客车）。适用于客运高峰禁货车、特定车型限行等场景。",
+  "strategy_type": "TEC",
+  "sumo_element": "rerouter",
+  "version": "2.0",
+  "parameters_schema": [
+    {
+      "parameter_name": "entrance_edges",
+      "parameter_type": "edge_array",
+      "description": "受管控的收费站入口edge ID列表（支持1个或多个入口）",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "edges (直接使用)"
+    },
+    {
+      "parameter_name": "restriction_intervals",
+      "parameter_type": "tec_interval_array",
+      "description": "车型限制的时间区间列表",
+      "required": true,
+      "default_value": [
+        {"begin_hours": 7, "end_hours": 9},
+        {"begin_hours": 17, "end_hours": 19}
+      ],
+      "unit": null,
+      "constraints": {
+        "min_intervals": 1,
+        "max_intervals": 10
+      },
+      "interval_structure": {
+        "begin_display_unit": "hours",
+        "begin_sumo_unit": "seconds",
+        "begin_conversion_factor": 3600,
+        "end_display_unit": "hours",
+        "end_sumo_unit": "seconds",
+        "end_conversion_factor": 3600
+      },
+      "sumo_element": "interval",
+      "sumo_child_element": "closingReroute"
+    },
+    {
+      "parameter_name": "restriction_mode",
+      "parameter_type": "enum",
+      "description": "限制模式：禁止模式（选择要禁止的车型）或允许模式（选择要允许的车型）",
+      "required": false,
+      "default_value": "disallow_mode",
+      "enum_values": [
+        {"value": "disallow_mode", "label": "禁止模式 - 选择要禁止的车型"},
+        {"value": "allow_mode", "label": "允许模式 - 仅允许选中的车型"}
+      ],
+      "note": "两种模式不能混用。禁止模式：禁止的车型被拦截；允许模式：未选中的车型被拦截"
+    },
+    {
+      "parameter_name": "disallow_vehicle_types",
+      "parameter_type": "enum_array",
+      "description": "禁止进入的车辆类型（仅在禁止模式下使用）",
+      "required": false,
+      "default_value": ["truck"],
+      "unit": null,
+      "enum_values": [
+        {"value": "passenger", "label": "乘用车 (客车)"},
+        {"value": "bus", "label": "公交车"},
+        {"value": "truck", "label": "货车"},
+        {"value": "emergency", "label": "应急车"}
+      ],
+      "note": "选择要禁止的车型。未选中的车型可自由进入。建议：禁止[truck]可实现货车限行",
+      "sumo_mapping": "disallow 属性"
+    },
+    {
+      "parameter_name": "allowed_vehicle_types",
+      "parameter_type": "enum_array",
+      "description": "允许进入的车辆类型（仅在允许模式下使用）",
+      "required": false,
+      "default_value": ["passenger", "bus", "emergency"],
+      "unit": null,
+      "enum_values": [
+        {"value": "passenger", "label": "乘用车 (客车)"},
+        {"value": "bus", "label": "公交车"},
+        {"value": "truck", "label": "货车"},
+        {"value": "emergency", "label": "应急车"}
+      ],
+      "note": "仅选中的车型允许进入。其他车型被禁止。建议：允许[passenger, bus, emergency]可禁止货车",
+      "sumo_mapping": "allow 属性"
+    },
+    {
+      "parameter_name": "restriction_reason",
+      "parameter_type": "enum",
+      "description": "限制原因（用于文档和事件管理）",
+      "required": false,
+      "default_value": "traffic_management",
+      "enum_values": [
+        {"value": "traffic_management", "label": "交通管理"},
+        {"value": "peak_hour_control", "label": "高峰期控制"},
+        {"value": "cargo_restriction", "label": "货运限制"},
+        {"value": "environmental_protection", "label": "环保限制"},
+        {"value": "maintenance", "label": "维护作业"}
+      ]
+    }
+  ],
+  "usage_examples": [
+    {
+      "scenario": "禁止货车（高峰期）",
+      "mode": "disallow_mode",
+      "disallow_vehicle_types": ["truck"],
+      "effect": "禁止货车进入，客车、公交、应急车可自由通行"
+    },
+    {
+      "scenario": "仅允许客车和公交（高峰期）",
+      "mode": "allow_mode",
+      "allowed_vehicle_types": ["passenger", "bus"],
+      "effect": "仅客车和公交允许进入，货车和应急车被禁止"
+    },
+    {
+      "scenario": "允许应急车通过（其他全禁）",
+      "mode": "allow_mode",
+      "allowed_vehicle_types": ["emergency"],
+      "effect": "仅应急车允许，客车、货车、公交全部禁止（适合紧急情况）"
+    },
+    {
+      "scenario": "禁止货车和应急车（仅客车和公交）",
+      "mode": "disallow_mode",
+      "disallow_vehicle_types": ["truck", "emergency"],
+      "effect": "禁止货车和应急车，仅客车和公交通行"
+    }
+  ],
+  "warnings": [
+    "车型限制可能导致被禁车型经由其他入口进入，造成那些入口拥堵",
+    "建议配合整体网络流量分析，避免转移拥堵到周边路线",
+    "监控替代路由的交通状态，及时调整限制策略"
+  ],
+  "notes": {
+    "replaces": "合并了原来的 tec_truck_ban（货车限行）和 tec_entrance_close（灵活关闭，部分用途）",
+    "reason": "两个模板都使用 rerouter 元素进行车型控制，但 tec_truck_ban 仅能禁止货车，tec_entrance_close 则过于通用且名称不清晰。统一为一个灵活的车型限制模板，支持两种模式"
+  },
+  "created_at": "2025-10-25T00:00:00Z",
+  "updated_at": "2025-10-25T00:00:00Z"
+}

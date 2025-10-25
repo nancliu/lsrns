@@ -1,7 +1,7 @@
 {
-  "template_id": "tec_metering",
-  "template_name": "收费入口 - 限流",
-  "description": "使用匝道信号（metering）控制进入主线的流量。通过限制每小时进入的车辆数来控制入口流量，适用于需要精细流量控制的场景。",
+  "template_id": "tec_flow_metering",
+  "template_name": "收费入口 - 流量控制",
+  "description": "通过限制每小时进入车辆数来管理入口流量，适用于日常的拥堵控制和流量均衡。支持灵活的时间段配置，从简单的单时段到复杂的多时段管理，可精确匹配交通需求曲线。",
   "strategy_type": "TEC",
   "sumo_element": "calibrator",
   "version": "2.0",
@@ -65,7 +65,8 @@
       "unit": null,
       "constraints": {
         "min_intervals": 1,
-        "max_intervals": 10
+        "max_intervals": 10,
+        "coverage": "建议覆盖完整的24小时"
       },
       "interval_structure": {
         "begin_display_unit": "hours",
@@ -84,6 +85,20 @@
       "sumo_attributes": ["begin", "end", "vehsPerHour", "speed"]
     }
   ],
+  "usage_guidelines": {
+    "simple_case": {
+      "description": "单时段配置 - 全天统一流量限制",
+      "example": "1个时段覆盖0-24小时，不分高低峰"
+    },
+    "medium_case": {
+      "description": "多时段配置 - 高峰与非高峰分别管理",
+      "example": "2-3个时段：夜间低流量→早高峰严格→白天中等→晚高峰→夜间"
+    },
+    "advanced_case": {
+      "description": "精细管理 - 精确匹配需求曲线",
+      "example": "4-10个时段：精确到每个小时或30分钟的流量调整"
+    }
+  },
   "flow_reference_table": {
     "description": "常用流量值参考（vehicles/hour ↔ 间隔秒数）",
     "table": [
@@ -94,6 +109,17 @@
       {"vehsPerHour": 180, "interval_seconds": 20, "level": "极严格限流"}
     ]
   },
+  "visualization_guidance": {
+    "description": "建议在UI中显示流量曲线可视化",
+    "graph_type": "折线图",
+    "x_axis": "时间（小时，0-24）",
+    "y_axis": "流量（vehicles/hour，0-600）",
+    "typical_pattern": "U形曲线或多峰曲线（低→高→低→中→低）"
+  },
+  "notes": {
+    "replaces": "合并了原来的 tec_metering（基础限流）和 tec_metering_advanced（高级限流）",
+    "reason": "两个模板的参数结构完全相同，仅约束条件不同。统一为一个灵活的模板，用户可自由选择时段数"
+  },
   "created_at": "2025-10-24T12:00:00Z",
-  "updated_at": "2025-10-24T12:00:00Z"
+  "updated_at": "2025-10-25T00:00:00Z"
 }

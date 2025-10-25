@@ -211,26 +211,15 @@ class StrategyInstanceService:
 
         # Validate parameters against template schema
         if parameters_schema:
-            # Convert list-based schema to dict format expected by validator
-            # Template schema is list of dicts with 'parameter_name' key
-            # Validator expects dict with parameter names as keys
-            schema_dict = {}
-            for param in parameters_schema:
-                param_name = param.get("parameter_name")
-                if param_name:
-                    schema_dict[param_name] = {
-                        "type": param.get("parameter_type"),
-                        "required": param.get("required", False),
-                        "min": param.get("min_value"),
-                        "max": param.get("max_value"),
-                        "pattern": param.get("pattern"),
-                        "min_items": param.get("min_items"),
-                        "allowed_values": param.get("allowed_values"),
-                    }
-
-            validation_errors = validate_strategy_parameters(schema_dict, request.parameters)
-            if validation_errors:
-                error_messages = [e["message"] for e in validation_errors]
+            # Use the new v2.0 validator with correct parameters
+            validation_result = validate_strategy_parameters(
+                parameters_schema=parameters_schema,
+                parameters=request.parameters,
+                strategy_type=strategy_type
+            )
+            
+            if not validation_result.valid:
+                error_messages = [e["message"] for e in validation_result.errors]
                 raise ValueError(f"Parameter validation failed: {'; '.join(error_messages)}")
 
         # Generate unique strategy ID

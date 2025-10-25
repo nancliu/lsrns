@@ -86,81 +86,90 @@
       "supplementary": true
     },
     {
-      "template_id": "tec_metering",
-      "template_name": "收费入口 - 限流",
+      "template_id": "tec_flow_metering",
+      "template_name": "收费入口 - 流量控制",
       "strategy_type": "TEC",
       "version": "2.0",
-      "file_path": "toll_entrance_control/tec_metering.json",
+      "file_path": "toll_entrance_control/tec_flow_metering.json",
       "sumo_element": "calibrator",
-      "use_case": "匝道信号流量控制，5时段流量设置",
-      "difficulty": "简单"
+      "use_case": "灵活的流量限制管理，支持简单到复杂的多时段配置",
+      "difficulty": "简单",
+      "layer": "基础层",
+      "replaces": ["tec_metering", "tec_metering_advanced"]
     },
     {
-      "template_id": "tec_metering_advanced",
-      "template_name": "收费入口 - 时变限流",
+      "template_id": "tec_vehicle_restriction",
+      "template_name": "收费入口 - 车型限制",
       "strategy_type": "TEC",
       "version": "2.0",
-      "file_path": "toll_entrance_control/tec_metering_advanced.json",
-      "sumo_element": "calibrator",
-      "use_case": "高级匝道控制，精细的4+时段流量管理",
-      "difficulty": "中等",
-      "supplementary": true
-    },
-    {
-      "template_id": "tec_entrance_close",
-      "template_name": "收费入口 - 关闭",
-      "strategy_type": "TEC",
-      "version": "2.0",
-      "file_path": "toll_entrance_control/tec_entrance_close.json",
+      "file_path": "toll_entrance_control/tec_vehicle_restriction.json",
       "sumo_element": "rerouter",
-      "use_case": "临时关闭收费站入口，支持多时段",
-      "difficulty": "简单"
+      "use_case": "灵活的车型限制，支持禁止或仅允许特定车型",
+      "difficulty": "简单",
+      "layer": "限制层",
+      "replaces": ["tec_truck_ban", "tec_entrance_close"]
     },
     {
-      "template_id": "tec_truck_ban",
-      "template_name": "收费入口 - 货车限行",
+      "template_id": "tec_emergency_closure",
+      "template_name": "收费入口 - 紧急关闭",
       "strategy_type": "TEC",
       "version": "2.0",
-      "file_path": "toll_entrance_control/tec_truck_ban.json",
+      "file_path": "toll_entrance_control/tec_emergency_closure.json",
       "sumo_element": "rerouter",
-      "use_case": "禁止货车进入特定入口，支持多时段",
-      "difficulty": "简单"
-    },
-    {
-      "template_id": "tec_closure_complete",
-      "template_name": "收费入口 - 完全关闭",
-      "strategy_type": "TEC",
-      "version": "2.0",
-      "file_path": "toll_entrance_control/tec_closure_complete.json",
-      "sumo_element": "rerouter",
-      "use_case": "完全阻挡所有车辆进入（仅紧急情况）",
+      "use_case": "完全关闭入口处理紧急情况（严重事故、设施故障等）",
       "difficulty": "高",
-      "supplementary": true
+      "layer": "应急层",
+      "replaces": ["tec_closure_complete"]
     }
   ],
   "summary": {
-    "total_templates": 13,
+    "total_templates": 11,
     "base_templates": 5,
-    "supplementary_templates": 8,
+    "supplementary_templates": 6,
     "by_type": {
       "VSS": 5,
       "DHS": 3,
-      "TEC": 5
+      "TEC": 3
     },
     "by_difficulty": {
       "简单": 6,
-      "中等": 5,
+      "中等": 3,
       "高": 2
     },
+    "by_layer": {
+      "基础层": 1,
+      "限制层": 1,
+      "应急层": 1
+    },
     "version": "2.0",
-    "release_date": "2025-10-24",
-    "description": "完整的SUMO v1.19验证的策略模板库，包括5个基础模板和8个真实场景的补充模板"
+    "release_date": "2025-10-25",
+    "description": "优化后的SUMO v1.19验证的策略模板库（11个模板），包括5个基础VSS/DHS模板、4个补充模板、以及新的3层级收费入口管控策略（流量控制→车型限制→紧急关闭）"
+  },
+  "changelog": {
+    "2025-10-25": {
+      "changes": "收费入口管控策略优化：从5个模板合并为3个清晰的层级",
+      "details": [
+        "✅ 新增 tec_flow_metering（合并 tec_metering + tec_metering_advanced）",
+        "✅ 新增 tec_vehicle_restriction（合并 tec_truck_ban + tec_entrance_close）",
+        "✅ 新增 tec_emergency_closure（重命名 tec_closure_complete）",
+        "❌ 删除 tec_metering（功能并入 tec_flow_metering）",
+        "❌ 删除 tec_metering_advanced（功能并入 tec_flow_metering）",
+        "❌ 删除 tec_truck_ban（功能并入 tec_vehicle_restriction）",
+        "❌ 删除 tec_entrance_close（功能并入 tec_vehicle_restriction）",
+        "❌ 删除 tec_closure_complete（重命名为 tec_emergency_closure）"
+      ],
+      "benefits": [
+        "消除参数重复：限流类从2个完全重复的模板减少到1个灵活的模板",
+        "统一车型控制：关闭类和货车限行合并为一个灵活的车型限制模板",
+        "清晰的分层设计：3层明确的控制逻辑（流量→车型→应急）",
+        "改善用户体验：减少选择困难，增加功能灵活性"
+      ]
+    }
   },
   "notes": {
-    "base_templates": "这5个模板提供基本的控制策略功能，适合标准应用场景",
-    "supplementary_templates": "这8个模板源自SUMO研究文档的真实示例，实现更复杂的流量管理需求",
+    "tec_layer_structure": "新的TEC策略采用3层设计：①基础层（流量控制）→②限制层（车型限制）→③应急层（紧急关闭）",
+    "backward_compatibility": "旧的tec_metering等策略文件已保留在目录中，可手动删除。新系统自动使用新的3个模板",
     "sumo_compatibility": "所有模板都经过SUMO v1.19验证，使用正确的XML元素和属性",
-    "backward_compatibility": "v1.0策略保持不变；新策略默认使用v2.0模板",
-    "usage_guidance": "用户可从简单模板开始，根据需求逐步使用更复杂的补充模板"
+    "usage_guidance": "用户创建收费入口策略时，按需选择：流量管理→流量控制；车型限制→车型限制；紧急关闭→紧急关闭"
   }
 }

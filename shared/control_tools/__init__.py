@@ -11,6 +11,7 @@ from .parameter_validator import (
     validate_strategy_parameters,
     validate_time_interval_format,
     validate_edges_exist,
+    ValidationResult,
 )
 from .strategy_file_manager import (
     generate_strategy_id,
@@ -27,6 +28,7 @@ __all__ = [
     "validate_strategy_parameters",
     "validate_time_interval_format",
     "validate_edges_exist",
+    "ValidationResult",
     # File management
     "generate_strategy_id",
     "save_strategy",

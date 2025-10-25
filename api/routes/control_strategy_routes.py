@@ -2,8 +2,8 @@
 交通管控策略路由
 """
 
-from fastapi import APIRouter
-from typing import List, Dict, Any
+from fastapi import APIRouter, Response
+from typing import List, Dict, Any, Optional
 
 # 创建控制策略路由器
 router = APIRouter()
@@ -28,7 +28,7 @@ template_service = ControlTemplateService()
 
 
 @router.get("/templates/", response_model=TemplateListResponse)
-async def list_control_templates():
+async def list_control_templates(response: Response):
     """
     获取所有策略模板列表 (Phase 1A implemented)
 
@@ -37,9 +37,15 @@ async def list_control_templates():
     """
     try:
         logger.info("GET /api/v1/control/templates/ - Listing templates")
-        response = template_service.list_templates()
-        logger.info(f"Successfully returned {response.total_count} templates")
-        return response
+        templates_response = template_service.list_templates()
+        logger.info(f"Successfully returned {templates_response.total_count} templates")
+
+        # Add cache control headers to prevent caching stale template list
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+        return templates_response
     except Exception as e:
         logger.error(f"Error listing templates: {e}", exc_info=True)
         raise HTTPException(
@@ -343,6 +349,225 @@ async def get_network_geometry(
                 "error": "GEOMETRY_ERROR",
                 "message": "Failed to fetch network geometry",
                 "details": {"error_type": type(e).__name__, "route_codes": route_codes}
+            }
+        )
+
+
+# ==================== 策略参数验证和XML预览 Validation & Preview ====================
+
+from pydantic import BaseModel
+from shared.control_tools.parameter_validator import validate_strategy_parameters
+from shared.control_tools.template_loader import load_template_with_schema
+
+
+class ValidateParametersRequest(BaseModel):
+    """Request model for parameter validation."""
+    template_id: str
+    parameters: Dict[str, Any]
+
+
+class ValidateParametersResponse(BaseModel):
+    """Response model for parameter validation."""
+    valid: bool
+    errors: List[Dict[str, Any]]
+    warnings: List[Dict[str, Any]]
+    converted_parameters: Optional[Dict[str, Any]] = None
+
+
+class GenerateXMLPreviewRequest(BaseModel):
+    """Request model for XML preview generation."""
+    template_id: str
+    parameters: Dict[str, Any]
+
+
+class GenerateXMLPreviewResponse(BaseModel):
+    """Response model for XML preview generation."""
+    valid: bool
+    xml_content: Optional[str] = None
+    validation_message: str
+    errors: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
+
+
+@router.post("/strategies/validate-params", response_model=ValidateParametersResponse)
+async def validate_strategy_parameters_endpoint(request: ValidateParametersRequest):
+    """
+    Validate strategy parameters against template schema.
+
+    Performs comprehensive validation including:
+    - Parameter type checking
+    - Constraint validation (min/max, ranges, enums)
+    - SUMO-specific validation (vehicle types, time ranges)
+    - Unit conversion (hours→seconds, km/h→m/s)
+
+    Args:
+        request: ValidateParametersRequest with template_id and parameters
+
+    Returns:
+        ValidateParametersResponse with validation result and converted parameters
+    """
+    try:
+        logger.info(f"Validating parameters for template: {request.template_id}")
+
+        # Load template schema
+        from pathlib import Path
+        templates_dir = Path(__file__).parent.parent.parent / "templates" / "control_strategies"
+        template = load_template_with_schema(request.template_id, templates_dir)
+
+        if template is None:
+            logger.warning(f"Template not found: {request.template_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "TEMPLATE_NOT_FOUND",
+                    "message": f"Template '{request.template_id}' not found"
+                }
+            )
+
+        # Validate parameters
+        strategy_type = template.get("strategy_type")
+        param_schema = template.get("parameters_schema", [])
+
+        result = validate_strategy_parameters(
+            parameters_schema=param_schema,
+            parameters=request.parameters,
+            strategy_type=strategy_type
+        )
+
+        logger.info(
+            f"Parameter validation completed",
+            extra={
+                "template_id": request.template_id,
+                "valid": result.valid,
+                "error_count": len(result.errors),
+                "warning_count": len(result.warnings)
+            }
+        )
+
+        return ValidateParametersResponse(
+            valid=result.valid,
+            errors=result.errors,
+            warnings=result.warnings,
+            converted_parameters=result.converted_parameters
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating parameters: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "VALIDATION_ERROR",
+                "message": "Failed to validate parameters",
+                "details": {"error_type": type(e).__name__}
+            }
+        )
+
+
+@router.post("/strategies/generate-xml-preview", response_model=GenerateXMLPreviewResponse)
+async def generate_xml_preview_endpoint(request: GenerateXMLPreviewRequest):
+    """
+    Generate SUMO XML preview from strategy parameters.
+
+    Creates a preview of the generated XML element(s) that will be used in
+    the SUMO simulation configuration. Validates parameters first to ensure
+    XML generation will succeed.
+
+    Args:
+        request: GenerateXMLPreviewRequest with template_id and parameters
+
+    Returns:
+        GenerateXMLPreviewResponse with generated XML and validation status
+    """
+    try:
+        logger.info(f"Generating XML preview for template: {request.template_id}")
+
+        # Load template schema
+        from pathlib import Path
+        templates_dir = Path(__file__).parent.parent.parent / "templates" / "control_strategies"
+        template = load_template_with_schema(request.template_id, templates_dir)
+
+        if template is None:
+            logger.warning(f"Template not found: {request.template_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "TEMPLATE_NOT_FOUND",
+                    "message": f"Template '{request.template_id}' not found"
+                }
+            )
+
+        # Validate parameters first
+        strategy_type = template.get("strategy_type")
+        param_schema = template.get("parameters_schema", [])
+
+        validation_result = validate_strategy_parameters(
+            parameters_schema=param_schema,
+            parameters=request.parameters,
+            strategy_type=strategy_type
+        )
+
+        # If validation fails, return errors without XML
+        if not validation_result.valid:
+            logger.info(f"XML preview skipped due to validation errors for {request.template_id}")
+            return GenerateXMLPreviewResponse(
+                valid=False,
+                xml_content=None,
+                validation_message="Parameters have validation errors. Fix errors before generating XML.",
+                errors=validation_result.errors,
+                warnings=validation_result.warnings
+            )
+
+        # Generate XML preview
+        try:
+            from shared.control_tools.additional_generator import generate_strategy_xml
+
+            xml_content = generate_strategy_xml(
+                template_id=request.template_id,
+                template=template,
+                parameters=validation_result.converted_parameters or request.parameters
+            )
+
+            logger.info(
+                f"XML preview generated successfully for {request.template_id}",
+                extra={
+                    "template_id": request.template_id,
+                    "xml_length": len(xml_content) if xml_content else 0
+                }
+            )
+
+            return GenerateXMLPreviewResponse(
+                valid=True,
+                xml_content=xml_content,
+                validation_message="XML preview generated successfully",
+                errors=[],
+                warnings=validation_result.warnings
+            )
+
+        except Exception as e:
+            logger.error(f"Error generating XML: {e}", exc_info=True)
+            return GenerateXMLPreviewResponse(
+                valid=False,
+                xml_content=None,
+                validation_message=f"Failed to generate XML: {str(e)}",
+                errors=[{
+                    "parameter": "all",
+                    "message": f"XML generation failed: {str(e)}"
+                }],
+                warnings=validation_result.warnings
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in XML preview endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "PREVIEW_ERROR",
+                "message": "Failed to generate XML preview",
+                "details": {"error_type": type(e).__name__}
             }
         )
 

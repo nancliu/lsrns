@@ -18,13 +18,13 @@
     {
       "parameter_name": "hard_shoulder_lane_index",
       "parameter_type": "integer",
-      "description": "应急车道索引（通常为最大索引=最右侧车道）",
+      "description": "应急车道索引（SUMO中索引0为最右侧车道，即硬路肩）",
       "required": false,
-      "default_value": 3,
+      "default_value": 0,
       "min_value": 0,
       "max_value": 7,
       "unit": null,
-      "note": "4车道公路：索引3为硬路肩；3车道：索引2为硬路肩"
+      "note": "SUMO车道编号：0=最右侧（硬路肩），递增向左。4车道公路中：0为硬路肩，3为最左侧车道"
     },
     {
       "parameter_name": "intervals",
