@@ -347,6 +347,104 @@ def regenerate_index(strategies_dir: str, templates_dir: Optional[str] = None) -
         return 0
 
 
+def increment_strategy_reference(strategy_id: str, plan_id: str, strategies_dir: str) -> bool:
+    """
+    Increment strategy reference count by adding plan to referenced_by list.
+
+    Args:
+        strategy_id: Strategy ID to update
+        plan_id: Plan ID that references this strategy
+        strategies_dir: Path to strategies directory
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        strategy = load_strategy(strategy_id, strategies_dir)
+        if not strategy:
+            logger.error(f"Strategy not found for reference increment: {strategy_id}")
+            return False
+
+        # Initialize referenced_by if not exists
+        if "referenced_by" not in strategy:
+            strategy["referenced_by"] = []
+
+        # Add plan_id if not already referenced
+        if plan_id not in strategy["referenced_by"]:
+            strategy["referenced_by"].append(plan_id)
+            logger.info(f"Added plan {plan_id} to strategy {strategy_id} references")
+
+        # Save updated strategy
+        return save_strategy(strategy, strategies_dir)
+
+    except Exception as e:
+        logger.error(f"Failed to increment strategy reference [{strategy_id}]: {e}", exc_info=True)
+        return False
+
+
+def decrement_strategy_reference(strategy_id: str, plan_id: str, strategies_dir: str) -> bool:
+    """
+    Decrement strategy reference count by removing plan from referenced_by list.
+
+    Args:
+        strategy_id: Strategy ID to update
+        plan_id: Plan ID to remove from references
+        strategies_dir: Path to strategies directory
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        strategy = load_strategy(strategy_id, strategies_dir)
+        if not strategy:
+            logger.error(f"Strategy not found for reference decrement: {strategy_id}")
+            return False
+
+        # Remove plan_id if exists
+        if "referenced_by" in strategy and plan_id in strategy["referenced_by"]:
+            strategy["referenced_by"].remove(plan_id)
+            logger.info(f"Removed plan {plan_id} from strategy {strategy_id} references")
+
+        # Save updated strategy
+        return save_strategy(strategy, strategies_dir)
+
+    except Exception as e:
+        logger.error(f"Failed to decrement strategy reference [{strategy_id}]: {e}", exc_info=True)
+        return False
+
+
+def can_delete_strategy(strategy_id: str, strategies_dir: str) -> tuple[bool, List[str]]:
+    """
+    Check if strategy can be deleted (not referenced by any plans).
+
+    Args:
+        strategy_id: Strategy ID to check
+        strategies_dir: Path to strategies directory
+
+    Returns:
+        Tuple of (can_delete, referenced_by_plans)
+        - can_delete: True if strategy is not referenced
+        - referenced_by_plans: List of plan IDs that reference this strategy
+    """
+    try:
+        strategy = load_strategy(strategy_id, strategies_dir)
+        if not strategy:
+            logger.warning(f"Strategy not found for delete check: {strategy_id}")
+            return True, []  # Allow deletion if not found
+
+        referenced_by = strategy.get("referenced_by", [])
+
+        if referenced_by:
+            logger.info(f"Strategy {strategy_id} is referenced by {len(referenced_by)} plan(s)")
+            return False, referenced_by
+        else:
+            return True, []
+
+    except Exception as e:
+        logger.error(f"Failed to check strategy delete permission [{strategy_id}]: {e}", exc_info=True)
+        return True, []  # Allow deletion on error
+
+
 def _update_index_after_save(strategy: Dict[str, Any], strategies_dir: str) -> None:
     """
     Update index after saving a strategy (create or update).

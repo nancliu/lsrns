@@ -49,34 +49,51 @@ from .file_service import (
     get_folders_service,
 )
 
+from .batch_optimization_service import (
+    create_batch_service,
+    start_batch_service,
+    get_batch_progress_service,
+    get_batch_results_service,
+    cancel_batch_service,
+    delete_batch_service,
+)
+
 # 导出所有服务函数，保持原有导入方式不变
 __all__ = [
     # 数据处理服务
     "process_od_data_service",
-    
+
     # 仿真服务
     "run_simulation_service",
-    "get_simulation_progress_service", 
+    "get_simulation_progress_service",
     "get_case_simulations_service",
     "get_simulation_detail_service",
     "delete_simulation_service",
     "prepare_simulation_service",
     "start_simulation_service",
-    
+
     # 分析服务（现在通过独立的服务类在路由中直接使用）
-    
+
     # 案例管理服务
     "create_case_service",
     "list_cases_service",
-    "get_case_service", 
+    "get_case_service",
     "delete_case_service",
     "clone_case_service",
-    
+
     # 模板服务
     "get_taz_templates_service",
     "get_network_templates_service",
     "get_simulation_templates_service",
-    
+
     # 文件服务
     "get_folders_service",
+
+    # 批量优化服务
+    "create_batch_service",
+    "start_batch_service",
+    "get_batch_progress_service",
+    "get_batch_results_service",
+    "cancel_batch_service",
+    "delete_batch_service",
 ]

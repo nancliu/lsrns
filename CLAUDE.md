@@ -310,13 +310,30 @@ cases/{case_id}/
 
 ### Configuration
 
-Database connection requires `.env` file:
+**Database credentials are already configured in system environment variables:**
 ```env
 DB_NAME=sdzg
-DB_USER=username
-DB_PASSWORD=password
+DB_USER=ln
+DB_PASSWORD=caneln
 DB_HOST=10.149.235.123
 DB_PORT=5432
+```
+
+**Important**:
+- Environment variables are set at OS level (no `.env` file needed)
+- PostgreSQL client tools (psql) can be used directly without explicit password parameters
+- Python code uses `shared/data_access/db_config.py` to read these environment variables
+
+**Example psql usage:**
+```bash
+# Direct access (credentials from environment)
+psql -h 10.149.235.123 -U ln -d sdzg -c "SELECT COUNT(*) FROM baseline.baseflow_pattern_gantry"
+
+# List schemas
+psql -h 10.149.235.123 -U ln -d sdzg -c "\dn"
+
+# List tables in baseline schema
+psql -h 10.149.235.123 -U ln -d sdzg -c "\dt baseline.*"
 ```
 
 ### Database Usage
@@ -327,6 +344,12 @@ DB_PORT=5432
 - **Connection management**: `shared/data_access/connection.py`
 - Always use connection pooling (SQLAlchemy)
 - Never log sensitive data (credentials)
+
+### Available Schemas
+
+- **dim**: Dimension tables (road network edges, nodes, routes)
+- **baseline**: Baseline traffic flow data (gantry patterns, OD patterns, toll square patterns)
+- Other schemas contain additional traffic data
 
 ### Database Performance
 
@@ -366,6 +389,90 @@ DB_PORT=5432
 1. Migrate `edge_query.py` functions to use `get_pooled_connection()` from `connection.py`
 2. Add query result caching (Redis or in-memory LRU cache)
 3. Add database query monitoring/logging for slow queries (>2s threshold)
+
+## Control Strategies - Real Data Analysis
+
+### Overview
+
+The system supports traffic control strategies based on real baseline data analysis. Strategy configurations are stored in `control_data/strategies/` and managed through the Control Strategies API.
+
+### Strategy Types
+
+- **VSS (可变限速)**: Variable Speed Signs - Dynamic speed limit control
+- **TEC (收费站管控)**: Toll/Entrance Control - Flow metering at ramps
+- **DHS (动态硬路肩)**: Dynamic Hard Shoulder - Emergency lane opening during peak hours
+
+### Real Data Analysis Results (2025-10-26)
+
+**Data Source**: `baseline.baseflow_pattern_gantry` (batch: 20251013_20251019)
+
+**Routes Analyzed**: G4202 (成都绕城高速), G5 (京昆高速四川段)
+
+**Key Findings**:
+1. **Severe Congestion Identified**:
+   - G4202 K52.4: 15.14 km/h (morning peak) - Extreme congestion
+   - G4202 K42.32: 15.65 km/h (evening peak, 478 veh/hr) - Extreme congestion
+   - G5 K1820.15: 17.97 km/h (evening peak) - Extreme congestion
+   - G4202 K32.51: 18.22 km/h (morning peak, 489 veh/hr) - Extreme congestion
+
+2. **Actual DHS (Dynamic Hard Shoulder) Segments on G4202**:
+   - **Segment 1**: K38.2 - K36.9 (Counterclockwise, 1.47 km, 4 edges)
+   - **Segment 2**: K36.9 - K32.968 (Counterclockwise, 3.69 km, 12 edges) - **Covers K32.51 congestion point**
+   - **Segment 3**: K51.8 - K43.3 (Counterclockwise, 8.78 km, 18 edges) - **Covers K42.32 & K42.35 congestion points**
+   - **Segment 4**: K25.1 - K33.9 (Clockwise, 15.59 km, 36 edges) - Longest segment
+   - **Total**: 29.53 km, 70 edges
+
+3. **Strategy Validation**:
+   - ✅ Our baseline data analysis **accurately identified** the same congestion points already covered by actual DHS segments
+   - ✅ K42.32 and K32.51 (identified as TOP congestion points) are covered by existing DHS segments 2 & 3
+   - ✅ This validates that **baseline data-driven congestion identification is reliable**
+
+### Strategy Configuration Files
+
+**Location**: `control_data/strategies/`
+
+**File Format**:
+- Individual strategies: `strategy_*.json` or `strat_*.json`
+- Index file: `strategies_index.json`
+
+**Key Fields**:
+```json
+{
+  "strategy_id": "strategy_real_vss_g4202_001",
+  "strategy_name": "G4202绕西双流段早高峰可变限速",
+  "strategy_type": "VSS",
+  "configured_params": {
+    "affected_edges": ["-8712", "-15452.627", ...],
+    "speed_steps": [
+      {"time_hours": 7, "speed_kmh": 50},
+      ...
+    ]
+  },
+  "data_source": {
+    "gantry_id": "G420151002000220010",
+    "batch_id": "20251013_20251019",
+    "min_speed": 15.14,
+    "max_flow": 445.08
+  }
+}
+```
+
+### Documentation
+
+Detailed analysis and strategy recommendations:
+- **Main Document**: `docs/真实数据分析与策略建议_G4202_G5综合.md`
+- **Methodology Guide**: `docs/真实策略生成指南.md`
+- **API Endpoints**: `/api/v1/control/strategies/instances`
+
+### Implementation Priority
+
+| Priority | Strategy | Route | Target Segment | Type | Expected Effect |
+|----------|----------|-------|----------------|------|-----------------|
+| P0 | strategy_real_vss_g4202_001 | G4202 | K52.4 | VSS | Speed +230% |
+| P0 | strategy_real_vss_g4202_002 | G4202 | K42.32 | VSS+DHS | Speed +220%~283% |
+| P0 | strategy_real_vss_g5_001 | G5 | K1820 | VSS+DHS | Speed +123%~178% |
+| P1 | strategy_real_vss_g4202_003 | G4202 | K32.51 | VSS+DHS | Speed +174%~229% |
+| P1 | strategy_real_vss_g5_002 | G5 | K1768 | VSS | Speed +121% |
 
 ## Code Standards from Cursor Rules
 

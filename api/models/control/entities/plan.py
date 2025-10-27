@@ -34,6 +34,24 @@ class Plan(BaseModel):
         examples=[["strategy_001", "strategy_002", "strategy_003"]]
     )
 
+    tags: List[str] = Field(
+        default_factory=list,
+        description="标签列表，用于分类和筛选",
+        examples=[["早高峰", "综合管控"], ["恶劣天气", "应急"]]
+    )
+
+    target_scenario: Optional[str] = Field(
+        None,
+        description="目标场景描述",
+        examples=["工作日早高峰(7:00-9:00)", "节假日全天", "恶劣天气应急"]
+    )
+
+    expected_effects: Optional[dict] = Field(
+        None,
+        description="预期效果说明（键值对）",
+        examples=[{"reduce_congestion": "降低瓶颈路段拥堵20%", "improve_speed": "提升平均速度15%"}]
+    )
+
     additional_file_path: Optional[str] = Field(
         None,
         description="生成的SUMO Additional文件路径（相对路径）",
@@ -50,6 +68,16 @@ class Plan(BaseModel):
         description="最后更新时间戳"
     )
 
+    @property
+    def is_baseline(self) -> bool:
+        """判断是否为基准方案（全局基准，plan_id为baseline_plan）"""
+        return self.plan_id == "baseline_plan"
+
+    @property
+    def strategy_count(self) -> int:
+        """获取包含的策略数量"""
+        return len(self.strategy_ids)
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -57,6 +85,12 @@ class Plan(BaseModel):
                 "plan_name": "高峰时段综合管控方案A",
                 "description": "结合G4202分流点限速和入口控制",
                 "strategy_ids": ["strategy_001", "strategy_002"],
+                "tags": ["早高峰", "综合管控"],
+                "target_scenario": "工作日早高峰(7:00-9:00)",
+                "expected_effects": {
+                    "reduce_congestion": "降低瓶颈路段拥堵20%",
+                    "improve_speed": "提升平均速度15%"
+                },
                 "additional_file_path": "control_data/plans/plan_20251019_001/control.add.xml",
                 "created_at": "2025-10-19T11:00:00",
                 "updated_at": "2025-10-19T11:00:00"

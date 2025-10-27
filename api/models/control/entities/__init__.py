@@ -3,14 +3,16 @@
 """
 
 from .template import ControlTemplate, StrategyType, ParameterSchema, TemplateIndexEntry, TemplatesIndex
-
-# Phase 1A: Only ControlTemplate and related models are implemented
-# Future phases will add: Strategy, Plan, BatchSimulation
+from .plan import Plan
+from .batch_simulation import BatchSimulation, BatchSimulationTask
 
 __all__ = [
     "ControlTemplate",
     "StrategyType",
     "ParameterSchema",
     "TemplateIndexEntry",
-    "TemplatesIndex"
+    "TemplatesIndex",
+    "Plan",
+    "BatchSimulation",
+    "BatchSimulationTask"
 ]

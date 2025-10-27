@@ -1,0 +1,58 @@
+{
+  "strategy_id": "strategy_real_dhs_g4202_003",
+  "strategy_name": "G4202机场段早高峰应急车道开放",
+  "description": "针对K32.51机场段早高峰超高流量（489-500 veh/hr）问题，早高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g4202_003使用，形成VSS+DHS复合管控方案。基于baseline门架数据G420151001000910010",
+  "template_id": "dhs_peak_hours",
+  "strategy_type": "DHS",
+  "configured_params": {
+    "affected_edges": [
+      "-10896",
+      "-9428",
+      "-15632",
+      "-7106",
+      "-14192",
+      "-8370",
+      "-9938",
+      "-13154",
+      "-5004",
+      "-9292",
+      "-8014",
+      "-10702"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 7,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      },
+      {
+        "begin_hours": 7,
+        "end_hours": 10,
+        "status": "OPEN",
+        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      }
+    ],
+    "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+  },
+  "tags": ["G4202", "绕城高速", "机场段", "早高峰", "应急车道", "真实数据", "P1", "复合策略"],
+  "data_source": {
+    "gantry_id": "G420151001000910010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "max_flow": 500.90,
+    "stake": "K32.51"
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

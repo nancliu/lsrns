@@ -1,0 +1,47 @@
+{
+  "strategy_id": "strategy_real_vss_g4202_003",
+  "strategy_name": "G4202机场段早高峰可变限速",
+  "description": "针对K32.51天府国际机场枢纽-成自泸枢纽早高峰极度拥堵（速度18.22km/h，超高流量489veh/hr），采用分时段限速控制。基于baseline门架数据G420151001000910010（批次20251013_20251019）。建议配合DHS策略strategy_real_dhs_g4202_003使用",
+  "template_id": "vss_moderate",
+  "strategy_type": "VSS",
+  "configured_params": {
+    "affected_edges": [
+      "-10896",
+      "-9428",
+      "-15632",
+      "-7106",
+      "-14192",
+      "-8370",
+      "-9938",
+      "-13154",
+      "-5004",
+      "-9292",
+      "-8014",
+      "-10702"
+    ],
+    "speed_steps": [
+      {"time_hours": 0, "speed_kmh": 100},
+      {"time_hours": 7, "speed_kmh": 80},
+      {"time_hours": 8, "speed_kmh": 50},
+      {"time_hours": 10, "speed_kmh": 80},
+      {"time_hours": 16, "speed_kmh": 100},
+      {"time_hours": 23, "speed_kmh": 100}
+    ],
+    "applicable_vehicle_types": ["passenger", "truck"]
+  },
+  "tags": ["G4202", "绕城高速", "机场段", "早高峰", "真实数据", "baseline", "P1", "复合策略"],
+  "data_source": {
+    "gantry_id": "G420151001000910010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "avg_morning_speed": 35.11,
+    "min_speed": 18.22,
+    "max_flow": 500.90,
+    "stake": "K32.51"
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

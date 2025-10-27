@@ -1,0 +1,180 @@
+{
+  "plan_id": "plan_vss_dhs_tec_allday_complex",
+  "plan_name": "全天持续拥堵三策略立体管控方案",
+  "description": "针对全天持续拥堵（拥堵持续时长>6小时，平均速度<20 km/h，入口流量过载），采用TEC入口流量控制+VSS可变限速+DHS应急车道开放的三策略立体协同管控。实现上游控源（TEC）→中游稳流（VSS）→下游扩容（DHS）的三层防御体系。这是最复杂的P0优先级综合管控方案。",
+  "strategy_ids": [
+    "strategy_real_vss_g5_001",
+    "strategy_real_dhs_g5_002",
+    "strategy_real_tec_g5_001"
+  ],
+  "tags": [
+    "P0",
+    "复杂策略",
+    "VSS+DHS+TEC",
+    "全天管控",
+    "三策略协同",
+    "立体化管控",
+    "入口控制"
+  ],
+  "target_scenario": "工作日全天持续拥堵(拥堵时长>6小时)，高速公路或快速路主线严重拥堵（平均速度<20 km/h）且入口流量过载（入口流量>主线容量的80%），路段具备应急车道和入口控制条件",
+  "expected_effects": {
+    "speed_improvement": "预期速度提升150-250%（三层管控协同效果）",
+    "capacity_increase": "主线通行能力提升30-35%（DHS应急车道开放）",
+    "entrance_flow_control": "入口流量削减50-70%，防止过多车辆进入拥堵路段",
+    "congestion_duration_reduction": "预期拥堵持续时长减少50-70%（从全天拥堵降至高峰拥堵）",
+    "synergy_effect": "三层协同：TEC上游限流减少进入车辆→VSS主线限速稳定交通流→DHS下游扩容疏导车辆",
+    "implementation_difficulty": "复杂（三策略协同，需要精确时序控制、参数调优和风险管控）",
+    "deployment_time": "4-8周（包含单策略测试、双策略组合、三策略协同优化）"
+  },
+  "applicable_conditions": {
+    "congestion_pattern": "全天持续拥堵（早晚高峰连续）",
+    "time_window": "全天（6:00-20:00拥堵持续>6小时）",
+    "severity_threshold": "平均速度 < 20 km/h，持续时长 > 6小时，入口流量 > 主线容量80%",
+    "road_types": [
+      "高速公路主线（具备入口匝道+应急车道）",
+      "城市快速路主线（具备入口匝道+应急车道）"
+    ],
+    "infrastructure_requirements": [
+      "主线路段长度 ≥ 5 km",
+      "应急车道宽度 ≥ 3.0 m，连续性好",
+      "上游具备入口匝道，可实施流量控制",
+      "具备可变限速标志设施",
+      "具备实时监控系统（流量、速度、排队长度）"
+    ],
+    "traffic_characteristics": "入口流量过载+主线拥堵+持续时长长，单一策略无法有效缓解"
+  },
+  "strategy_coordination": {
+    "complexity_level": "高",
+    "coordination_type": "三策略空间-时序-参数立体协同",
+    "spatial_layers": {
+      "upstream_layer": {
+        "control_type": "TEC入口流量控制",
+        "location": "上游入口匝道",
+        "function": "源头控制进入主线的车辆数量，防止拥堵路段过载"
+      },
+      "midstream_layer": {
+        "control_type": "VSS可变限速",
+        "location": "主线拥堵路段",
+        "function": "稳定交通流，防止速度波动和二次拥堵"
+      },
+      "downstream_layer": {
+        "control_type": "DHS应急车道开放",
+        "location": "主线拥堵路段（与VSS重合或邻接）",
+        "function": "增加通行能力，疏导已进入主线的车辆"
+      }
+    },
+    "time_coordination": {
+      "morning_peak": {
+        "6:00-7:00": "TEC开始限流（削减40-50%），VSS预警限速（80 km/h）",
+        "7:00-10:00": "TEC严格限流（削减60-70%），VSS严格限速（50 km/h），DHS开放应急车道",
+        "10:00+": "TEC放宽限流，VSS恢复限速，DHS关闭"
+      },
+      "evening_peak": {
+        "16:00-17:00": "TEC开始限流（削减40-50%），VSS预警限速（60 km/h），DHS准备开放",
+        "17:00-20:00": "TEC极严限流（削减60-70%），VSS极严限速（40 km/h），DHS全程开放",
+        "20:00+": "所有策略逐步解除"
+      }
+    },
+    "parameter_coupling": {
+      "tec_vss_coupling": "TEC限流值应使主线流量保持在VSS限速下的安全容量范围内（容量=车道数×限速×密度系数）",
+      "vss_dhs_coupling": "DHS开放后，VSS限速应适当提高10-15 km/h以充分利用增加的车道，但不超过60 km/h（安全约束）",
+      "tec_dhs_coupling": "TEC限流需考虑DHS开放后的主线通行能力提升，避免过度限流",
+      "dynamic_adjustment": "根据实时流量、速度、排队长度数据，动态调整三个策略的参数"
+    },
+    "activation_priority": "TEC → VSS → DHS（依次激活，确保上游限流先生效，再进行主线管控和扩容）"
+  },
+  "validation_records": [
+    {
+      "case_id": "待关联",
+      "batch_id": "20251013_20251019",
+      "validation_date": "2025-10-26",
+      "road_segment": "G5 K1820.15 双流段",
+      "baseline_metrics": {
+        "avg_speed_kmh": 17.97,
+        "congestion_duration_hours": 12,
+        "max_flow_veh_per_hour": 316,
+        "entrance_flow_veh_per_hour": 296
+      },
+      "improvement_metrics": {
+        "speed_improvement_percent": 180,
+        "capacity_increase_percent": 33,
+        "congestion_reduction_hours": 6,
+        "entrance_flow_reduction_percent": 65
+      },
+      "validation_status": "候选方案（待仿真验证）"
+    }
+  ],
+  "implementation_phases": {
+    "phase1_baseline": {
+      "description": "运行无管控基准仿真，记录当前拥堵状况",
+      "duration": "1周",
+      "deliverables": "基准仿真结果、拥堵特征分析报告"
+    },
+    "phase2_single": {
+      "description": "依次测试单策略效果（VSS、DHS、TEC各自独立）",
+      "duration": "2周",
+      "deliverables": "VSS单策略效果报告、DHS单策略效果报告、TEC单策略效果报告"
+    },
+    "phase3_dual": {
+      "description": "测试双策略组合（VSS+DHS、VSS+TEC、DHS+TEC）",
+      "duration": "2周",
+      "deliverables": "三组双策略组合效果对比报告"
+    },
+    "phase4_triple": {
+      "description": "测试三策略协同，优化参数和时序",
+      "duration": "2周",
+      "deliverables": "三策略协同效果报告、参数优化建议"
+    },
+    "phase5_validation": {
+      "description": "验证最终方案效果，生成对比报告",
+      "duration": "1周",
+      "deliverables": "最终方案验证报告、部署建议"
+    }
+  },
+  "risk_mitigation": {
+    "tec_queue_overflow": {
+      "risk": "入口排队过长，导致匝道溢出或影响主道",
+      "mitigation": "实时监控匝道排队长度，排队长度>500m时自动放宽限流20%",
+      "severity": "高"
+    },
+    "vss_compliance": {
+      "risk": "驾驶员限速遵守率低，导致VSS效果不佳",
+      "mitigation": "配合执法设施（测速摄像头）或信号灯控制提高遵守率，初期可设置较宽松限速值",
+      "severity": "中"
+    },
+    "dhs_safety": {
+      "risk": "应急车道开放后发生事故，影响通行",
+      "mitigation": "确保路段长度≥5km、宽度≥3.0m、无障碍物，设置明确引导标志，限速不超过60 km/h",
+      "severity": "高"
+    },
+    "coordination_failure": {
+      "risk": "策略协同失败（如时序冲突、参数不匹配）",
+      "mitigation": "建立实时监控系统，检测异常指标（速度突降、流量突增），自动降级或关闭策略",
+      "severity": "中"
+    },
+    "system_failure": {
+      "risk": "控制系统故障导致策略失效",
+      "mitigation": "设计故障安全机制（fail-safe），系统故障时自动恢复到无管控状态",
+      "severity": "高"
+    }
+  },
+  "implementation_notes": {
+    "prerequisites": [
+      "完成路段基础设施评估（应急车道条件、入口匝道容量）",
+      "建立实时监控系统（流量、速度、排队长度、事故检测）",
+      "制定应急预案（策略失效、事故处置）",
+      "开展驾驶员宣传教育（限速标志、应急车道使用规则）"
+    ],
+    "deployment_sequence": "务必按照Phase 1→2→3→4→5顺序实施，不可跳过中间阶段",
+    "monitoring_requirements": [
+      "实时监控主线速度、流量、占有率",
+      "实时监控入口匝道流量、排队长度",
+      "实时监控应急车道使用率、事故发生率",
+      "每15分钟评估策略效果，必要时调整参数"
+    ],
+    "rollback_plan": "如策略效果不佳或出现安全风险，立即回退到Phase 3（双策略）或Phase 2（单策略），最坏情况下恢复到无管控基准"
+  },
+  "additional_file_path": "control_data/plans/plan_vss_dhs_tec_allday_complex/control.add.xml",
+  "created_at": "2025-10-26T14:00:00",
+  "updated_at": "2025-10-26T14:00:00"
+}

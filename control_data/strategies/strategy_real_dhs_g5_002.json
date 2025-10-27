@@ -1,0 +1,72 @@
+{
+  "strategy_id": "strategy_real_dhs_g5_002",
+  "strategy_name": "G5成雅双流段高峰应急车道开放",
+  "description": "针对K1820双流段全天持续拥堵，早晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g5_001使用，形成VSS+DHS复合管控方案。基于baseline门架数据G000551005000220010",
+  "template_id": "dhs_peak_multi_interval",
+  "strategy_type": "DHS",
+  "configured_params": {
+    "affected_edges": [
+      "-8174",
+      "-14036",
+      "-7854",
+      "-15664",
+      "-4878",
+      "-13916",
+      "-10274",
+      "-2092",
+      "-9480",
+      "-11518",
+      "-4878.749",
+      "-4878.924",
+      "-14628",
+      "-6476"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 7,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      },
+      {
+        "begin_hours": 7,
+        "end_hours": 10,
+        "status": "OPEN",
+        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 16,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      },
+      {
+        "begin_hours": 16,
+        "end_hours": 20,
+        "status": "OPEN",
+        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+      },
+      {
+        "begin_hours": 20,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      }
+    ],
+    "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+  },
+  "tags": ["G5", "成雅高速", "双流段", "早晚高峰", "应急车道", "真实数据", "P0", "复合策略"],
+  "data_source": {
+    "gantry_id": "G000551005000220010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "max_flow": 316.95,
+    "stake": "K1820.15"
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

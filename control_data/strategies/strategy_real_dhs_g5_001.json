@@ -1,0 +1,56 @@
+{
+  "strategy_id": "strategy_real_dhs_g5_001",
+  "strategy_name": "G5白家段早高峰应急车道开放",
+  "description": "针对K1811.9白家站-双流北站G5成雅段高流量（峰值330 veh/hr），采用预防性应急车道开放策略。虽然速度正常（115-122 km/h），但流量接近容量，且与下游K1820拥堵段相邻，需预防性管控。基于baseline门架数据G000551005003710010（批次20251013_20251019）",
+  "template_id": "dhs_peak_hours",
+  "strategy_type": "DHS",
+  "configured_params": {
+    "affected_edges": [
+      "-11518",
+      "-4878.924",
+      "-4878.749",
+      "-4878",
+      "-15664",
+      "-7854",
+      "-14036",
+      "-8174"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 7,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      },
+      {
+        "begin_hours": 7,
+        "end_hours": 10,
+        "status": "OPEN",
+        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": ["emergency"]
+      }
+    ],
+    "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+  },
+  "tags": ["G5", "成雅高速", "白家段", "早高峰", "应急车道", "预防性管控", "真实数据", "P2"],
+  "data_source": {
+    "gantry_id": "G000551005003710010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "max_flow": 330.27,
+    "avg_speed": 119.23,
+    "stake": "K1811.9",
+    "note": "G5成雅段流量最高，预防性管控保护下游K1820拥堵点"
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

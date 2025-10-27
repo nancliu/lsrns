@@ -25,16 +25,20 @@
 
 ---
 
-## 2. 核心概念模型 ✅ 两层架构
+## 2. 核心概念模型 ✅ 方案-仿真分层架构
 
-### 2.1 策略-方案两层架构
+### 2.1 核心架构图
 
-基于 `sumo_control_strategies_research.md` 的研究成果，系统采用**策略-方案两层架构**：
+基于 `sumo_control_strategies_research.md` 的研究成果，系统采用**策略-方案-仿真三层架构**：
 
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  全局资源层 (Global Resources) - 可跨案例复用
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ┌─────────────────────────────────────────────────────────┐
 │                   策略模板层 (Template)                  │
-│  预定义的管控措施配置模板（全局，高复用性）               │
+│  预定义的管控措施配置模板                                │
 │  - VSS模板：5个（2基础+3补充）                           │
 │  - DHS模板：3个（1基础+2补充）                           │
 │  - TEC模板：3个（3层优化设计）                           │
@@ -42,61 +46,139 @@
                      ↓ 实例化（选择路段 + 配置参数）
 ┌─────────────────────────────────────────────────────────┐
 │                   策略实例层 (Strategy)                  │
-│  针对特定路段/入口的单一管控措施（全局，可跨案例复用）    │
-│  - 单一路段区间或单一入口的独立管控措施                  │
+│  针对特定路段/入口的单一管控措施                         │
+│  - 单一路段区间 OR 单一入口                              │
+│  - 一种管控类型（VSS/DHS/TEC）                          │
 │  - 可独立运行，可被多个方案引用                          │
 └────────────────────┬────────────────────────────────────┘
                      ↓ 组合（选择多个策略）
 ┌─────────────────────────────────────────────────────────┐
 │                   管控方案层 (Plan)                      │
-│  多个策略的组合，形成完整管控措施集（全局，可跨案例复用）  │
+│  多个策略的业务组合，描述通用管控场景                     │
 │  - 方案 = 策略1 + 策略2 + 策略3 + ...                   │
 │  - 支持基准方案（无管控，用于对比）                      │
+│  - 描述适用条件（拥堵模式、时间窗口、严重度阈值）         │
+│  - 预期效果范围（如"速度提升100-200%"）                  │
+│  - 包含control.add.xml模板                              │
 └────────────────────┬────────────────────────────────────┘
-                     ↓ 生成SUMO配置
+                     │
+━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  案例级资源层 (Case-Specific Resources) - 绑定具体案例
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                     │
+                     ↓ 应用到Case（创建仿真实例）
 ┌─────────────────────────────────────────────────────────┐
-│                 SUMO配置文件 (control.add.xml)            │
-│  包含所有策略的XML元素，按类型排序（VSS→DHS→TEC）        │
+│                   仿真实例层 (Simulation)                │
+│  Plan应用到具体Case的运行实例                            │
+│  - 绑定到case_id                                        │
+│  - 包含具体仿真参数（begin, end, step_length等）        │
+│  - 复制/调整Plan的control.add.xml                       │
+│  - 包含仿真结果文件（summary.xml, tripinfo.xml等）      │
 └────────────────────┬────────────────────────────────────┘
-                     ↓ 应用到案例
+                     ↓ 批量运行（多个方案对比）
 ┌─────────────────────────────────────────────────────────┐
-│              批量仿真 (Batch Simulation)                 │
-│  在特定案例上运行多个方案，对比评估效果                   │
+│              批量仿真管理 (Batch Management)             │
+│  在同一Case上并行运行多个Plan的仿真实例                  │
+│  - batch_id标识一组对比仿真                             │
+│  - 管理多个仿真实例的调度和进度                          │
 └────────────────────┬────────────────────────────────────┘
                      ↓ 评估分析
 ┌─────────────────────────────────────────────────────────┐
 │                  优化结果 (Optimization)                  │
-│  多目标排序，筛选最优方案                                │
+│  基于仿真结果的多目标评估和排序                          │
+│  - 提取各仿真实例的指标                                  │
+│  - 多目标排序，筛选最优方案                              │
+│  - 更新Plan的validation_records                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**核心设计原则**：
+### 2.2 核心设计原则
 
-- **策略（Strategy）**：单一控制对象的独立管控措施
-  - 一个路段区间 OR 一个入口
-  - 一种管控类型（VSS/DHS/TEC）
-  - 可独立运行、可复用
+#### 2.2.1 方案层（Plan） - 全局可复用
 
-- **方案（Plan）**：多个策略的业务组合
-  - ≥0个策略（基准方案为0）
-  - 以解决问题为目标（如"早高峰综合管控"）
-  - 生成独立的control.add.xml
+**定位**：通用的管控方案模板，描述"什么样的拥堵场景下使用什么策略组合"
 
-### 2.2 核心概念定义
+**特征**：
+- **通用性**：不绑定具体case，描述拥堵场景模式（如"早高峰拥堵"）
+- **可复用性**：同一Plan可应用到多个满足条件的Case
+- **适用条件**：明确定义适用的拥堵模式、时间窗口、严重度阈值
+- **预期效果**：给出改善范围（如"速度提升100-200%"），而非具体数值
+- **验证积累**：通过validation_records记录在不同Case上的验证结果
 
-| 概念 | 定义 | 全局/案例级 | 可复用性 |
-|------|------|------------|---------|
-| **策略模板** | 预定义的管控措施配置模板 | 全局 | 高 |
-| **策略实例** | 基于模板创建的具体策略 | 全局 | 高（跨案例） |
-| **管控方案** | 多个策略的组合（策略集） | 全局 | 高（跨案例） |
-| **批量仿真** | 在特定案例上运行多个方案 | 案例级 | 无 |
-| **优化分析** | 基于仿真结果的评估排序 | 全局（关联批次） | 可参考 |
+**包含内容**：
+- 方案元数据（plan_metadata.json）
+- 策略引用列表（strategy_refs.json）
+- SUMO配置模板（control.add.xml）
+
+**示例**：
+- `plan_vss_morning_peak_simple`：早高峰单策略VSS限速方案
+- `plan_vss_dhs_evening_composite`：晚高峰VSS+DHS复合管控方案
+- `plan_vss_dhs_tec_allday_complex`：全天持续拥堵三策略立体管控方案
+
+#### 2.2.2 仿真层（Simulation） - 案例级实例
+
+**定位**：Plan应用到具体Case的运行实例
+
+**特征**：
+- **案例绑定**：必须关联到具体的case_id
+- **参数具体化**：包含具体的仿真参数（begin, end, step_length等）
+- **结果存储**：包含仿真运行的所有输出文件
+- **一次性**：仿真结果不可复用，每次运行产生新实例
+
+**包含内容**：
+- 仿真配置文件（simulation.sumocfg）
+- 管控配置文件（control.add.xml，从Plan复制）
+- 仿真结果文件（summary.xml, tripinfo.xml, edgedata.xml等）
+- 仿真元数据（simulation_metadata.json，关联plan_id和case_id）
+
+**工作流程**：
+```
+1. 用户选择Case + Plan
+2. 系统创建Simulation实例
+   - 复制Plan的control.add.xml到仿真目录
+   - 复制Case的网络文件、路由文件
+   - 生成simulation.sumocfg
+3. 运行SUMO仿真
+4. 保存仿真结果
+5. 提取指标 → 更新Plan的validation_records
+```
+
+### 2.3 核心概念对比
+
+| 维度 | Plan（方案） | Simulation（仿真） |
+|------|-------------|-------------------|
+| **存储位置** | `control_data/plans/{plan_id}/` | `cases/{case_id}/control_simulations/{batch_id}/{plan_id}_sim/` |
+| **生命周期** | 长期存在，可复用 | 一次性，仿真完成后归档 |
+| **绑定对象** | 不绑定Case，通用场景模式 | 绑定到具体case_id |
+| **可复用性** | ✅ 高（可应用到多个Case） | ❌ 无（一次性运行） |
+| **参数特性** | 通用参数（范围、阈值） | 具体参数（begin=0, end=14400） |
+| **效果描述** | 范围预期（"速度提升100-200%"） | 具体结果（"速度从15.14→50 km/h"） |
+| **验证记录** | validation_records[] | 单次仿真结果 |
+| **control.add.xml** | 模板（通用策略组合） | 实例（可能根据Case微调） |
+
+### 2.4 职责边界
+
+#### Plan的职责
+1. ✅ 定义策略组合
+2. ✅ 描述适用场景（通用）
+3. ✅ 生成control.add.xml模板
+4. ✅ 累积验证记录
+5. ❌ 不包含具体仿真参数
+6. ❌ 不存储仿真结果
+
+#### Simulation的职责
+1. ✅ 关联Plan和Case
+2. ✅ 配置具体仿真参数
+3. ✅ 运行SUMO仿真
+4. ✅ 存储仿真结果
+5. ✅ 提供指标给Optimization
+6. ❌ 不修改Plan的定义
 
 ---
 
 ## 3. 数据架构设计
 
-### 3.1 全局资源存储
+### 3.1 全局资源存储（跨案例复用）
 
 #### 3.1.1 策略模板（复用现有templates目录）
 
@@ -120,40 +202,189 @@ templates/
 │   └── templates_index.json        # 模板索引
 ```
 
-#### 3.1.2 全局管控数据
+#### 3.1.2 策略实例库
 
 ```
-control_data/                        # 新增：全局管控数据目录
-├── strategies/                      # 策略实例库
-│   ├── {strategy_id}.json          # 策略定义文件
-│   └── strategies_index.json       # 策略索引
-├── plans/                           # 方案库
-│   ├── {plan_id}/
-│   │   ├── plan_metadata.json      # 方案元数据
-│   │   ├── strategy_refs.json      # 引用的策略ID列表
-│   │   └── control.add.xml         # 生成的SUMO additional文件
-│   └── plans_index.json            # 方案索引
-└── optimizations/                   # 优化分析记录（全局存储）
-    ├── {optimization_id}/
-    │   ├── metadata.json            # 关联case_id, batch_id
-    │   ├── evaluation.json          # 评估指标
-    │   └── ranking.json             # 排名结果
-    └── optimizations_index.json
+control_data/strategies/             # 策略实例库（全局）
+├── {strategy_id}.json              # 策略定义文件
+│   # 示例: strategy_real_vss_g4202_001.json
+│   # 内容: template_id, configured_params, description, tags
+└── strategies_index.json           # 策略索引
 ```
 
-### 3.2 案例级数据存储
+**说明**：
+- 策略实例是全局的，不绑定case
+- 可被多个Plan引用
+- 包含具体的路段选择和参数配置
+
+#### 3.1.3 管控方案库（全局，可复用）
+
+```
+control_data/plans/                  # 方案库（全局）
+├── baseline_plan/                   # 基准方案（无管控）
+│   ├── plan_metadata.json          # 方案元数据
+│   │   # 字段: plan_id, plan_name, description
+│   │   #       strategy_ids: []
+│   │   #       applicable_conditions (通用)
+│   │   #       expected_effects (范围)
+│   │   #       validation_records: [{case_id, metrics}]
+│   ├── strategy_refs.json          # [] (空列表)
+│   └── control.add.xml             # 空文件或无此文件
+│
+├── plan_vss_morning_peak_simple/   # 早高峰单策略方案
+│   ├── plan_metadata.json
+│   │   # applicable_conditions:
+│   │   #   - congestion_pattern: "早高峰单向拥堵"
+│   │   #   - severity_threshold: "速度<30 km/h, 持续≥2h"
+│   │   # expected_effects:
+│   │   #   - speed_improvement: "100-200%"
+│   │   # validation_records:
+│   │   #   - {case_id: "待关联", road_segment: "G4202 K52.4", improvement: 230%}
+│   ├── strategy_refs.json          # ["strategy_real_vss_g4202_001"]
+│   └── control.add.xml             # VSS策略的SUMO配置模板
+│
+├── plan_vss_dhs_evening_composite/ # 晚高峰复合方案
+│   ├── plan_metadata.json
+│   ├── strategy_refs.json          # ["strategy_real_vss_g4202_002", "strategy_real_dhs_g4202_002"]
+│   └── control.add.xml             # VSS+DHS策略的SUMO配置模板
+│
+└── plans_index.json                # 方案索引
+    # [{plan_id, plan_name, strategy_count, complexity_level, target_scenario}]
+```
+
+**关键字段说明（plan_metadata.json）**：
+
+```json
+{
+  "plan_id": "plan_vss_morning_peak_simple",
+  "plan_name": "早高峰单策略VSS限速方案",
+  "description": "针对早高峰时段（6:00-10:00）出现的严重拥堵",
+  "strategy_ids": ["strategy_real_vss_g4202_001"],
+  "tags": ["P0", "单策略", "VSS", "早高峰"],
+
+  // ✅ 通用适用条件（不绑定具体case）
+  "applicable_conditions": {
+    "congestion_pattern": "早高峰单向拥堵",
+    "time_window": "6:00-10:00",
+    "severity_threshold": "平均速度 < 30 km/h，持续时长 ≥ 2小时",
+    "road_types": ["城市快速路", "高速公路主线"]
+  },
+
+  // ✅ 预期效果范围（不是具体数值）
+  "expected_effects": {
+    "speed_improvement": "预期速度提升100-200%",
+    "congestion_duration_reduction": "预期拥堵时长减少30-50%"
+  },
+
+  // ✅ 验证记录（记录在不同case上的实际效果）
+  "validation_records": [
+    {
+      "case_id": "待关联",
+      "batch_id": "20251013_20251019",
+      "road_segment": "G4202 K52.4",
+      "baseline_metrics": {"avg_speed_kmh": 15.14},
+      "improvement_metrics": {"speed_improvement_percent": 230},
+      "validation_status": "候选方案（待仿真验证）"
+    }
+  ],
+
+  "additional_file_path": "control_data/plans/plan_vss_morning_peak_simple/control.add.xml",
+  "created_at": "2025-10-26T14:00:00",
+  "updated_at": "2025-10-26T14:00:00"
+}
+```
+
+### 3.2 案例级数据存储（绑定具体案例）
+
+#### 3.2.1 仿真实例存储
 
 ```
 cases/{case_id}/
-├── control_simulations/             # 新增：管控仿真结果
-│   ├── {batch_id}/                 # 批次目录
-│   │   ├── {plan_id}_sim/          # 单个方案的仿真结果
+├── control_simulations/             # 新增：管控仿真结果目录
+│   ├── {batch_id}/                 # 批次目录（一组对比仿真）
+│   │   │
+│   │   ├── baseline_plan_sim/      # 基准方案仿真实例
+│   │   │   ├── simulation.sumocfg
+│   │   │   ├── summary.xml         # SUMO输出
+│   │   │   ├── tripinfo.xml        # SUMO输出
+│   │   │   ├── edgedata.xml        # SUMO输出（可选）
+│   │   │   ├── control.add.xml     # 空文件（基准方案无管控）
+│   │   │   └── simulation_metadata.json
+│   │   │       # {
+│   │   │       #   "simulation_id": "sim_001",
+│   │   │       #   "case_id": "case_20251019_001",
+│   │   │       #   "plan_id": "baseline_plan",
+│   │   │       #   "batch_id": "batch_001",
+│   │   │       #   "simulation_params": {
+│   │   │       #     "begin": 0,
+│   │   │       #     "end": 14400,
+│   │   │       #     "step_length": 1
+│   │   │       #   },
+│   │   │       #   "status": "COMPLETED",
+│   │   │       #   "started_at": "...",
+│   │   │       #   "completed_at": "..."
+│   │   │       # }
+│   │   │
+│   │   ├── plan_vss_morning_peak_simple_sim/  # Plan应用到Case的仿真实例
 │   │   │   ├── simulation.sumocfg
 │   │   │   ├── summary.xml
 │   │   │   ├── tripinfo.xml
+│   │   │   ├── edgedata.xml
+│   │   │   ├── control.add.xml     # 从Plan复制而来
 │   │   │   └── simulation_metadata.json
+│   │   │       # 同上，但plan_id = "plan_vss_morning_peak_simple"
+│   │   │
+│   │   ├── plan_vss_dhs_evening_composite_sim/  # 另一个Plan的仿真实例
+│   │   │   └── ...
+│   │   │
 │   │   └── batch_metadata.json     # 批次元数据
+│   │       # {
+│   │       #   "batch_id": "batch_001",
+│   │       #   "case_id": "case_20251019_001",
+│   │       #   "plan_ids": ["baseline_plan", "plan_vss_morning_peak_simple", ...],
+│   │       #   "status": "COMPLETED",
+│   │       #   "progress": {...},
+│   │       #   "created_at": "...",
+│   │       #   "completed_at": "..."
+│   │       # }
+│   │
 │   └── batches_index.json          # 批次索引
+       # [{batch_id, case_id, plan_count, status, created_at}]
+```
+
+**关键设计说明**：
+
+1. **Simulation实例命名规则**：`{plan_id}_sim`
+   - `baseline_plan_sim`：基准方案仿真
+   - `plan_vss_morning_peak_simple_sim`：具体Plan的仿真实例
+
+2. **control.add.xml的来源**：
+   - 从Plan的`control_data/plans/{plan_id}/control.add.xml`复制
+   - 可能根据Case的具体情况微调（如调整时间参数）
+
+3. **simulation_metadata.json**：
+   - 关联到plan_id和case_id
+   - 包含具体的仿真参数（begin, end, step_length）
+   - 记录仿真状态和时间戳
+
+### 3.3 数据流向
+
+```
+创建Plan（全局）
+  → 选择策略 → 生成control.add.xml模板 → 保存到 control_data/plans/{plan_id}/
+
+应用Plan到Case（创建Simulation）
+  → 选择Case + Plan
+  → 创建仿真目录 cases/{case_id}/control_simulations/{batch_id}/{plan_id}_sim/
+  → 复制Plan的control.add.xml
+  → 复制Case的网络文件、路由文件
+  → 生成simulation.sumocfg
+
+运行仿真
+  → 运行SUMO → 生成 summary.xml, tripinfo.xml 等
+
+评估结果
+  → 提取指标 → 对比分析 → 更新Plan的validation_records[]
 ```
 
 ---
@@ -254,26 +485,157 @@ cases/{case_id}/
 ### 5.1 端到端流程
 
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  全局资源管理流程（一次创建，多次复用）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ┌─────────────┐
-│ 策略管理    │  选模板 → 配置参数 → 保存策略
-└──────┬──────┘
+│ 策略管理    │  选模板 → 配置路段和参数 → 保存策略实例
+└──────┬──────┘  （全局资源，可跨案例复用）
        ↓
 ┌─────────────┐
-│ 方案管理    │  选策略 → 组合方案 → 生成additional文件
-└──────┬──────┘
-       ↓
+│ 方案管理    │  选策略 → 组合方案 → 生成control.add.xml模板
+└──────┬──────┘  （全局资源，描述通用管控场景）
+       │
+━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  案例级应用流程（每次运行创建新实例）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       │
+       ↓ 应用Plan到Case
 ┌─────────────┐
-│ 并行仿真    │  选案例 + 选方案集 → 批量运行 → 监控进度
-└──────┬──────┘
+│ 批量仿真    │  选Case + 选Plans → 创建仿真实例 → 批量运行 → 监控进度
+└──────┬──────┘  （案例级资源，绑定到case_id和batch_id）
+       │          每个Plan创建一个Simulation实例
        ↓
 ┌─────────────┐
 │ 方案优化    │  选批次 → 配置指标 → 计算排名 → 对比分析
-└─────────────┘
+└──────┬──────┘  （提取仿真结果，更新Plan的validation_records）
+       ↓
+    [ Plan的验证记录更新 ]
 ```
 
-### 5.2 模块交互图
+### 5.2 Plan管理流程（全局）
 
 ```
+用户操作                    系统行为                     存储位置
+──────────                  ──────────                   ────────────
+选择策略实例                加载策略列表                 control_data/strategies/
+   ↓
+选择多个策略                验证策略兼容性
+(可拖拽排序)
+   ↓
+配置方案元数据              生成plan_id                  control_data/plans/{plan_id}/
+- 名称                      (语义化ID)
+- 描述
+- 标签
+- 适用条件(通用)
+- 预期效果(范围)
+   ↓
+预览配置                    根据策略生成                 control_data/plans/{plan_id}/
+                           control.add.xml模板           control.add.xml
+   ↓
+保存方案                    保存元数据和策略引用          plan_metadata.json
+                                                        strategy_refs.json
+                           更新plans_index.json
+```
+
+**关键点**：
+- ✅ Plan是全局的，不绑定case
+- ✅ 适用条件和预期效果是通用描述
+- ✅ control.add.xml是模板，可复用
+
+### 5.3 仿真管理流程（案例级）
+
+```
+用户操作                    系统行为                     存储位置
+──────────                  ──────────                   ────────────
+选择Case                    加载案例信息                 cases/{case_id}/
+   ↓
+选择多个Plans               加载方案列表                 control_data/plans/
+(含基准方案)
+   ↓
+配置仿真参数                验证参数合法性
+- begin                     - 检查时间范围
+- end                       - 检查step_length
+- step_length
+- 其他SUMO参数
+   ↓
+提交批量仿真                创建batch_id                 cases/{case_id}/control_simulations/
+                           生成批次目录                  {batch_id}/
+   ↓
+系统为每个Plan              创建仿真实例目录              {batch_id}/{plan_id}_sim/
+创建Simulation
+   ↓
+                           复制Plan的                    {plan_id}_sim/control.add.xml
+                           control.add.xml
+   ↓
+                           复制Case的网络/路由文件       {plan_id}_sim/
+   ↓
+                           生成simulation.sumocfg       {plan_id}_sim/simulation.sumocfg
+   ↓
+                           生成simulation_metadata      {plan_id}_sim/simulation_metadata.json
+                           (关联plan_id和case_id)
+   ↓
+并行运行仿真                启动SUMO进程
+                           更新进度状态
+   ↓
+仿真完成                    保存仿真结果                 summary.xml, tripinfo.xml等
+```
+
+**关键点**：
+- ✅ Simulation实例绑定到case_id和batch_id
+- ✅ 每个Plan创建一个独立的Simulation实例
+- ✅ control.add.xml从Plan复制，可能根据Case微调
+- ✅ simulation_metadata.json记录plan_id关联
+
+### 5.4 优化分析流程
+
+```
+用户操作                    系统行为                     更新目标
+──────────                  ──────────                   ────────────
+选择批次                    加载批次中所有仿真实例        cases/{case_id}/control_simulations/
+                                                        {batch_id}/
+   ↓
+配置评估指标                加载指标配置模板
+- 权重
+- 方向(maximize/minimize)
+   ↓
+计算指标                    从每个仿真实例提取            summary.xml, tripinfo.xml
+                           - 平均行程时间
+                           - 总延误
+                           - 平均速度
+                           - 通行量
+   ↓
+排序方案                    多目标加权排序
+                           生成排名结果
+   ↓
+查看对比                    生成对比图表
+- 雷达图                    - 各方案指标对比
+- 柱状图                    - TOP-N排名
+   ↓
+更新验证记录                将仿真结果添加到              control_data/plans/{plan_id}/
+                           Plan的validation_records      plan_metadata.json
+                           {
+                             case_id,
+                             batch_id,
+                             road_segment,
+                             baseline_metrics,
+                             improvement_metrics
+                           }
+```
+
+**关键点**：
+- ✅ 评估基于Simulation实例的结果
+- ✅ 排序帮助选择最优Plan
+- ✅ 结果反馈到Plan的验证记录，积累效果数据
+
+### 5.5 模块交互图
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  全局资源层
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ┌────────────────┐      ┌────────────────┐
 │  策略模板库    │─────→│  策略实例库    │
 │  (Templates)   │ 实例化│  (Strategies)  │
@@ -281,20 +643,36 @@ cases/{case_id}/
                                  │
                                  ↓ 组合
                         ┌────────────────┐
-                        │   方案库       │
-                        │   (Plans)      │
+                        │   方案库       │  ← 全局资源
+                        │   (Plans)      │    可复用
                         └────────┬───────┘
                                  │
-                                 ↓ 应用到案例
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━
+  案例级资源层
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                                 │
+                                 ↓ 应用到Case（创建Simulation）
                         ┌────────────────┐
-         ┌─────────────→│  批量仿真      │
-         │              │  (Batch Sim)   │
+         ┌─────────────→│  仿真实例      │  ← 案例级资源
+         │              │  (Simulations) │    一次性
+         │  提供网络/路由└────────┬───────┘
+         │                       │
+  案例数据 (Case)                 ↓ 批量管理
+         │              ┌────────────────┐
+         │              │  批量仿真      │
+         │              │  (Batch)       │
          │              └────────┬───────┘
          │                       │
-  案例数据 (Case)                 ↓ 结果分析
+         │                       ↓ 提取指标
          │              ┌────────────────┐
          └─────────────→│  优化分析      │
                         │  (Optimization)│
+                        └────────┬───────┘
+                                 │
+                                 ↓ 更新validation_records
+                        ┌────────────────┐
+                        │   方案库       │  ← 反馈到全局
+                        │   (Plans)      │    验证记录
                         └────────────────┘
 ```
 

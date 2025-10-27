@@ -1,0 +1,67 @@
+{
+  "plans": [
+    {
+      "plan_id": "baseline_plan",
+      "plan_name": "基准方案（无管控）",
+      "is_baseline": true,
+      "strategy_count": 0,
+      "tags": [
+        "基准",
+        "无管控",
+        "系统"
+      ],
+      "created_at": "2025-10-26T09:04:16.034112"
+    },
+    {
+      "plan_id": "plan_vss_morning_peak_simple",
+      "plan_name": "早高峰单策略VSS限速方案",
+      "is_baseline": false,
+      "strategy_count": 1,
+      "tags": [
+        "P0",
+        "单策略",
+        "VSS",
+        "早高峰",
+        "快速路",
+        "简单部署"
+      ],
+      "complexity_level": "简单",
+      "target_scenario": "工作日早高峰(6:00-10:00)，严重拥堵（速度<30 km/h）",
+      "created_at": "2025-10-26T14:00:00"
+    },
+    {
+      "plan_id": "plan_vss_dhs_evening_composite",
+      "plan_name": "晚高峰VSS+DHS复合管控方案",
+      "is_baseline": false,
+      "strategy_count": 2,
+      "tags": [
+        "P0",
+        "复合策略",
+        "VSS+DHS",
+        "晚高峰",
+        "双策略协同"
+      ],
+      "complexity_level": "中等",
+      "target_scenario": "工作日晚高峰(16:00-20:00)，高流量拥堵（速度<20 km/h，流量>300 veh/hr）",
+      "created_at": "2025-10-26T14:00:00"
+    },
+    {
+      "plan_id": "plan_vss_dhs_tec_allday_complex",
+      "plan_name": "全天持续拥堵三策略立体管控方案",
+      "is_baseline": false,
+      "strategy_count": 3,
+      "tags": [
+        "P0",
+        "复杂策略",
+        "VSS+DHS+TEC",
+        "全天管控",
+        "三策略协同"
+      ],
+      "complexity_level": "高",
+      "target_scenario": "工作日全天持续拥堵(>6小时)，速度<20 km/h，入口过载",
+      "created_at": "2025-10-26T14:00:00"
+    }
+  ],
+  "total": 4,
+  "last_updated": "2025-10-26T14:00:00"
+}

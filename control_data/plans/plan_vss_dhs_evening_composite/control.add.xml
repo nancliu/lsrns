@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    控制方案Additional文件
+    方案ID: plan_20251026_113658_95518
+    方案名称: G4202锦城湖段晚高峰VSS+DHS复合管控方案
+    生成时间: 2025-10-26 11:36:58
+    策略数量: 2 (VSS + DHS)
+    策略协同: VSS限速 + DHS应急车道开放
+-->
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+
+    <!-- ==================== VSS策略组 ==================== -->
+
+    <!-- 策略: strategy_real_vss_g4202_002 - G4202绕东锦城湖段晚高峰可变限速 -->
+    <variableSpeedSign id="vss_strategy_real_vss_g4202_002" lanes="-7798.460_0 -7798.460_1 -7798.460_2 -13928_0 -13928_1 -13928_2 -7790_0 -7790_1 -7790_2 -5220_0 -5220_1 -5220_2 -7790.354_0 -7790.354_1 -7790.354_2 -1842_0 -1842_1 -1842_2 -1842.115_0 -1842.115_1 -1842.115_2 -11526_0 -11526_1 -11526_2 -15156_0 -15156_1 -15156_2 -15156.326_0 -15156.326_1 -15156.326_2 -7982_0 -7982_1 -7982_2 -7982.425_0 -7982.425_1 -7982.425_2 -7982.512_0 -7982.512_1 -7982.512_2">
+        <step time="0" speed="27.78"/>      <!-- 0:00, 100 km/h -->
+        <step time="57600" speed="22.22"/>  <!-- 16:00, 80 km/h 预警 -->
+        <step time="61200" speed="13.89"/>  <!-- 17:00, 50 km/h 严格限速 -->
+        <step time="72000" speed="22.22"/>  <!-- 20:00, 80 km/h -->
+        <step time="82800" speed="27.78"/>  <!-- 23:00, 100 km/h -->
+    </variableSpeedSign>
+
+    <!-- ==================== DHS策略组 ==================== -->
+
+    <!-- 策略: strategy_real_dhs_g4202_002 - G4202绕东锦城湖段晚高峰应急车道开放 -->
+    <rerouter id="dhs_strategy_real_dhs_g4202_002" edges="-7798.460 -13928 -7790 -5220 -7790.354 -1842 -1842.115 -11526 -15156 -15156.326 -7982 -7982.425 -7982.512">
+        <!-- 0:00-17:00: 应急车道关闭，仅应急车辆 -->
+        <interval begin="0" end="61200">
+            <closingLaneReroute id="hard_shoulder_0" allow="emergency"/>
+        </interval>
+        <!-- 17:00-20:00: 应急车道开放，所有车辆 -->
+        <interval begin="61200" end="72000">
+            <closingLaneReroute id="hard_shoulder_0" allow="passenger bus truck emergency" disallow=""/>
+        </interval>
+        <!-- 20:00-24:00: 应急车道关闭 -->
+        <interval begin="72000" end="86400">
+            <closingLaneReroute id="hard_shoulder_0" allow="emergency"/>
+        </interval>
+    </rerouter>
+
+</additional>

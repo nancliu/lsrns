@@ -1,0 +1,59 @@
+{
+  "strategy_id": "strategy_real_tec_g5_001",
+  "strategy_name": "G5成雅双流南站入口流量控制",
+  "description": "针对K1820.15成雅双流南站严重拥堵（入口即瓶颈，速度21-25km/h），采用严格的入口流量控制。早高峰限流120 veh/hr（削减60%），晚高峰限流100 veh/hr（削减68%）。基于baseline门架数据G000551005000220010（批次20251013_20251019）。配合VSS和DHS策略使用",
+  "template_id": "tec_flow_metering",
+  "strategy_type": "TEC",
+  "configured_params": {
+    "entrance_edge": "-1232",
+    "position": 0,
+    "flow_intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 6,
+        "vehsPerHour": 300,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 6,
+        "end_hours": 10,
+        "vehsPerHour": 120,
+        "target_speed": 8
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 16,
+        "vehsPerHour": 250,
+        "target_speed": 12
+      },
+      {
+        "begin_hours": 16,
+        "end_hours": 20,
+        "vehsPerHour": 100,
+        "target_speed": 6
+      },
+      {
+        "begin_hours": 20,
+        "end_hours": 24,
+        "vehsPerHour": 300,
+        "target_speed": 15
+      }
+    ]
+  },
+  "tags": ["G5", "成雅高速", "双流南站", "入口管控", "TEC", "真实数据", "baseline", "P0"],
+  "data_source": {
+    "gantry_id": "G000551005000220010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "peak_flow": 296,
+    "main_speed": 21.69,
+    "stake": "K1820.15",
+    "taz_id": "G00055100500301010",
+    "entrance_edge_verified": true
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

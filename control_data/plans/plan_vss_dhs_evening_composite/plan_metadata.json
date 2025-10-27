@@ -1,0 +1,88 @@
+{
+  "plan_id": "plan_vss_dhs_evening_composite",
+  "plan_name": "晚高峰VSS+DHS复合管控方案",
+  "description": "针对晚高峰时段（16:00-20:00）出现的高流量高拥堵（平均速度<20 km/h且流量>300 veh/hr），采用VSS可变限速+DHS应急车道开放的双策略协同管控。VSS负责稳定交通流、防止速度波动，DHS负责增加通行能力、疏导车流。适用于通行能力不足导致的拥堵场景。",
+  "strategy_ids": [
+    "strategy_real_vss_g4202_002",
+    "strategy_real_dhs_g4202_002"
+  ],
+  "tags": [
+    "P0",
+    "复合策略",
+    "VSS+DHS",
+    "晚高峰",
+    "双策略协同",
+    "通行能力提升"
+  ],
+  "target_scenario": "工作日晚高峰(16:00-20:00)，城市快速路或高速公路出现高流量拥堵（平均速度<20 km/h，流量>300 veh/hr，持续3小时以上），且路段具备应急车道开放条件",
+  "expected_effects": {
+    "speed_improvement": "预期速度提升200-300%（VSS限速稳流+DHS增加车道）",
+    "capacity_increase": "通行能力提升30-35%（3车道→4车道，应急车道开放）",
+    "congestion_duration_reduction": "预期拥堵持续时长减少40-60%",
+    "synergy_effect": "双策略协同：VSS限速确保DHS开放安全性，DHS扩容充分利用VSS管控效果",
+    "implementation_difficulty": "中等（需要协调两个策略的激活时序和参数配置）",
+    "deployment_time": "2-4周（包含协同测试和参数调优）"
+  },
+  "applicable_conditions": {
+    "congestion_pattern": "晚高峰高流量拥堵",
+    "time_window": "16:00-20:00",
+    "severity_threshold": "平均速度 < 20 km/h，流量 > 300 veh/hr，持续时长 ≥ 3小时",
+    "road_types": [
+      "城市快速路（具备应急车道）",
+      "高速公路主线（具备应急车道）"
+    ],
+    "infrastructure_requirements": [
+      "路段长度 ≥ 3 km",
+      "应急车道宽度 ≥ 3.0 m",
+      "应急车道连续性好，无障碍物",
+      "具备可变限速标志设施或可快速部署"
+    ],
+    "traffic_characteristics": "高流量导致通行能力饱和，需要增加车道数"
+  },
+  "strategy_coordination": {
+    "complexity_level": "中等",
+    "coordination_type": "双策略时序协同",
+    "activation_sequence": {
+      "phase1": "VSS先激活（提前1小时预警限速，如16:00启动80 km/h）",
+      "phase2": "VSS严格限速+DHS同步开放（如17:00启动50 km/h限速+应急车道开放）",
+      "phase3": "VSS恢复+DHS关闭（如20:00恢复80 km/h+应急车道关闭）"
+    },
+    "parameter_coupling": {
+      "vss_dhs_coupling": "DHS开放后，VSS限速可适当提高10 km/h以充分利用增加的通行能力",
+      "safety_constraint": "VSS限速不超过60 km/h when DHS开放（安全限制）"
+    },
+    "spatial_coordination": "VSS和DHS作用于相同路段，确保限速和车道开放同步生效"
+  },
+  "validation_records": [
+    {
+      "case_id": "待关联",
+      "batch_id": "20251013_20251019",
+      "validation_date": "2025-10-26",
+      "road_segment": "G4202 K42.32 锦城湖段",
+      "baseline_metrics": {
+        "avg_speed_kmh": 15.65,
+        "congestion_duration_hours": 4,
+        "max_flow_veh_per_hour": 478
+      },
+      "improvement_metrics": {
+        "speed_improvement_percent": 220,
+        "capacity_increase_percent": 33,
+        "congestion_reduction_hours": 2.5
+      },
+      "validation_status": "候选方案（待仿真验证）"
+    }
+  ],
+  "implementation_notes": {
+    "prerequisites": "确认路段具备应急车道且符合开放条件（长度、宽度、连续性）",
+    "deployment_phases": [
+      "Phase 1: 单独测试VSS效果",
+      "Phase 2: 单独测试DHS效果",
+      "Phase 3: 测试VSS+DHS协同效果，优化时序和参数",
+      "Phase 4: 验证最终方案，生成对比报告"
+    ],
+    "monitoring_requirements": "实时监控速度、流量、车道使用率，确保DHS开放安全性"
+  },
+  "additional_file_path": "control_data/plans/plan_vss_dhs_evening_composite/control.add.xml",
+  "created_at": "2025-10-26T14:00:00",
+  "updated_at": "2025-10-26T14:00:00"
+}

@@ -1,0 +1,46 @@
+{
+  "strategy_id": "strategy_real_vss_g5_002",
+  "strategy_name": "G5成绵新都段晚高峰可变限速",
+  "description": "针对K1768.5成绵新都北站-新都站晚高峰拥堵（速度27.11km/h），采用分时段限速控制。基于baseline门架数据G000551044001310010（批次20251013_20251019）",
+  "template_id": "vss_moderate",
+  "strategy_type": "VSS",
+  "configured_params": {
+    "affected_edges": [
+      "-14748",
+      "-4956",
+      "-13450",
+      "-8466",
+      "-6184",
+      "-15818",
+      "-10590",
+      "-13074",
+      "-2866",
+      "-11914",
+      "-7642",
+      "-9700"
+    ],
+    "speed_steps": [
+      {"time_hours": 0, "speed_kmh": 100},
+      {"time_hours": 16, "speed_kmh": 80},
+      {"time_hours": 17, "speed_kmh": 60},
+      {"time_hours": 20, "speed_kmh": 80},
+      {"time_hours": 23, "speed_kmh": 100}
+    ],
+    "applicable_vehicle_types": ["passenger", "truck"]
+  },
+  "tags": ["G5", "成绵高速", "新都段", "晚高峰", "真实数据", "baseline", "P1"],
+  "data_source": {
+    "gantry_id": "G000551044001310010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "avg_evening_speed": 31.16,
+    "min_speed": 27.11,
+    "max_flow": 215.60,
+    "stake": "K1768.5"
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

@@ -457,3 +457,84 @@ def get_edges_by_ids(edge_ids: List[str]) -> List[EdgeInfo]:
             cur.close()
         if conn:
             conn.close()
+
+
+def get_edges_by_ids_simple(edge_ids: List[str]) -> List[EdgeInfo]:
+    """
+    根据边ID列表获取边的基本信息（优化版本 - 用于策略详情页面）
+
+    性能优化：
+    - 使用连接池（无需每次创建新连接）
+    - 简化SQL查询（无JOIN，无GROUP BY）
+    - 只查询必需字段（edge_id, route_code, stake, length）
+
+    预期性能：
+    - 旧版本（get_edges_by_ids）：~5秒（新建连接 + 复杂查询）
+    - 新版本（本函数）：~0.2秒（连接池 + 简单查询）
+
+    Args:
+        edge_ids: 边ID列表
+
+    Returns:
+        List[EdgeInfo]: 边信息列表（只包含基本字段）
+    """
+    if not edge_ids:
+        return []
+
+    # 使用连接池获取连接（性能优化关键点1）
+    from .connection import get_engine
+
+    engine = get_engine()
+    raw_conn = None
+    cur = None
+
+    try:
+        # 从连接池获取psycopg2连接
+        raw_conn = engine.raw_connection()
+        cur = raw_conn.cursor()
+
+        # 简化SQL查询 - 无JOIN，无GROUP BY（性能优化关键点2）
+        sql = """
+            SELECT
+                edge_id,
+                route_code,
+                start_stake,
+                end_stake,
+                length
+            FROM dim.sim_network_edges
+            WHERE edge_id = ANY(%s)
+        """
+
+        cur.execute(sql, (edge_ids,))
+        rows = cur.fetchall()
+
+        # 转换为EdgeInfo对象（只填充基本字段）
+        edges = []
+        for row in rows:
+            edge = EdgeInfo(
+                edge_id=str(row[0]),
+                route_code=row[1],
+                section_code=None,  # 策略详情页面不需要
+                start_stake=float(row[2]) if row[2] is not None else None,
+                end_stake=float(row[3]) if row[3] is not None else None,
+                length=float(row[4]) if row[4] is not None else None,
+                num_lanes=None,  # 策略详情页面不需要
+                route_direction=None,  # 策略详情页面不需要
+                node_type=None,  # 策略详情页面不需要
+                gantry_count=0,  # 策略详情页面不需要
+                gantry_ids=[]  # 策略详情页面不需要
+            )
+            edges.append(edge)
+
+        logger.info(f"[Fast query] Found {len(edges)} edges out of {len(edge_ids)} requested IDs")
+        return edges
+
+    except Exception as e:
+        logger.error(f"Error getting edges by IDs (simple): {e}")
+        raise
+    finally:
+        if cur:
+            cur.close()
+        if raw_conn:
+            # 重要：将连接归还给连接池（而不是关闭）
+            raw_conn.close()

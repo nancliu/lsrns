@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>并行仿真 - 交通管控仿真优化系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
@@ -22,6 +25,7 @@
             flex-direction: column;
         }
 
+        /* 顶栏 */
         .top-bar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -52,12 +56,14 @@
             background: rgba(255,255,255,0.3);
         }
 
+        /* 主容器 */
         .main-container {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
 
+        /* 左侧导航栏 */
         .sidebar {
             width: 200px;
             background: #2c3e50;
@@ -95,28 +101,307 @@
             font-weight: 600;
         }
 
+        /* 主内容区 */
         .content-area {
             flex: 1;
             overflow-y: auto;
-            padding: 40px;
+            padding: 30px;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .content-header h2 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .content-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* 配置视图 */
+        .config-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .plan-item {
+            padding: 10px;
+            border: 1px solid #ecf0f1;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
         }
 
-        .placeholder {
-            text-align: center;
-            color: #7f8c8d;
+        .plan-item:hover {
+            background: #f8f9fa;
         }
 
-        .placeholder h2 {
-            font-size: 2rem;
-            margin-bottom: 20px;
+        .plan-item.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .plan-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .plan-item label {
+            margin: 0;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .estimate-box {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+            margin-top: 20px;
+        }
+
+        .estimate-box p {
+            margin: 5px 0;
             color: #2c3e50;
         }
 
-        .placeholder p {
-            font-size: 1.1rem;
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        /* 进度视图 */
+        .progress-header {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 30px;
+            background: #ecf0f1;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+            width: 0%;
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .tasks-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .plan-tasks {
+            margin-bottom: 30px;
+        }
+
+        .plan-tasks h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .task-item {
+            padding: 10px 15px;
+            margin: 8px 0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .task-icon {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .task-completed {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .task-running {
+            background: #fff3cd;
+            color: #f39c12;
+        }
+
+        .task-pending {
+            background: #f8f9fa;
+            color: #7f8c8d;
+        }
+
+        .task-failed {
+            background: #f8d7da;
+            color: #c0392b;
+        }
+
+        /* 结果视图 */
+        .results-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .results-container h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .results-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .results-container th,
+        .results-container td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .results-container th {
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+        }
+
+        .results-container tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #95a5a6;
         }
     </style>
 </head>
@@ -137,11 +422,100 @@
         </div>
 
         <div class="content-area">
-            <div class="placeholder">
-                <h2>并行仿真</h2>
-                <p>Phase 1C - 功能开发中...</p>
+            <!-- 配置视图 -->
+            <div id="configView" class="view active">
+                <div class="content-header">
+                    <h2>批量优化仿真</h2>
+                    <p class="content-subtitle">配置和执行多方案并行仿真对比</p>
+                </div>
+
+                <div class="config-section">
+                    <h3>选择案例</h3>
+                    <div class="form-group">
+                        <label for="caseSelect">案例:</label>
+                        <select id="caseSelect">
+                            <option value="">-- 加载中 --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>选择方案</h3>
+                    <div id="plansList">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>仿真配置</h3>
+                    <div class="form-group">
+                        <label for="numSeeds">随机种子数 (每个方案):</label>
+                        <input type="number" id="numSeeds" value="3" min="1" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="baseSeed">起始种子:</label>
+                        <input type="number" id="baseSeed" value="66" min="0">
+                    </div>
+
+                    <div class="estimate-box">
+                        <p><strong>预估:</strong></p>
+                        <p id="estimateText">请选择方案</p>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="location.reload()">取消</button>
+                    <button class="btn btn-primary" id="startBatchBtn">开始批量仿真</button>
+                </div>
+            </div>
+
+            <!-- 进度视图 -->
+            <div id="progressView" class="view">
+                <div class="content-header">
+                    <h2>批量仿真进度</h2>
+                    <p class="content-subtitle">实时监控多方案仿真执行状态</p>
+                </div>
+
+                <div class="progress-header">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar">
+                            <span id="progressText">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tasks-container">
+                    <div id="tasksList">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-danger" id="cancelBatchBtn">取消批量仿真</button>
+                    <button class="btn btn-primary" id="viewResultsBtn" style="display: none;">查看结果</button>
+                </div>
+            </div>
+
+            <!-- 结果视图 -->
+            <div id="resultsView" class="view">
+                <div class="content-header">
+                    <h2>批量仿真结果</h2>
+                    <p class="content-subtitle">查看和对比多方案仿真结果</p>
+                </div>
+
+                <div class="results-container">
+                    <div id="resultsTable">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="backToConfigBtn">返回配置</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <script src="js/batch_simulation.js"></script>
 </body>
 </html>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    控制方案Additional文件
+    方案ID: plan_20251026_140000_complex
+    方案名称: G5双流段全天综合管控方案（VSS+DHS+TEC三策略协同）
+    生成时间: 2025-10-26 14:00:00
+    策略数量: 3 (VSS + DHS + TEC)
+    策略协同: TEC入口限流 → VSS主线限速 → DHS应急车道开放
+    管控层次: 三层立体化管控（上游控源+中游稳流+下游扩容）
+-->
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+
+    <!-- ==================== TEC策略组（第一层：上游入口控制） ==================== -->
+
+    <!-- 策略: strategy_real_tec_g5_001 - G5成雅双流南站入口流量控制 -->
+    <!-- 功能：源头控制进入主线的车辆数量，防止拥堵路段过载 -->
+    <calibrator id="tec_strategy_real_tec_g5_001" edge="-1232" pos="0">
+        <!-- 0:00-6:00: 平峰期，正常通行 300 veh/hr -->
+        <flow begin="0" end="21600" vehsPerHour="300" speed="15"/>
+        <!-- 6:00-10:00: 早高峰，严格限流 120 veh/hr（削减60%） -->
+        <flow begin="21600" end="36000" vehsPerHour="120" speed="8"/>
+        <!-- 10:00-16:00: 白天平峰，中等限流 250 veh/hr -->
+        <flow begin="36000" end="57600" vehsPerHour="250" speed="12"/>
+        <!-- 16:00-20:00: 晚高峰，极严限流 100 veh/hr（削减68%） -->
+        <flow begin="57600" end="72000" vehsPerHour="100" speed="6"/>
+        <!-- 20:00-24:00: 夜间平峰，正常通行 300 veh/hr -->
+        <flow begin="72000" end="86400" vehsPerHour="300" speed="15"/>
+    </calibrator>
+
+    <!-- ==================== VSS策略组（第二层：主线限速控制） ==================== -->
+
+    <!-- 策略: strategy_real_vss_g5_001 - G5成雅双流段全天可变限速 -->
+    <!-- 功能：稳定交通流，防止速度波动，配合TEC和DHS策略 -->
+    <variableSpeedSign id="vss_strategy_real_vss_g5_001" lanes="-8174_0 -8174_1 -8174_2 -14036_0 -14036_1 -14036_2 -7854_0 -7854_1 -7854_2 -15664_0 -15664_1 -15664_2 -4878_0 -4878_1 -4878_2 -13916_0 -13916_1 -13916_2 -10274_0 -10274_1 -10274_2 -2092_0 -2092_1 -2092_2 -9480_0 -9480_1 -9480_2 -11518_0 -11518_1 -11518_2 -4878.749_0 -4878.749_1 -4878.749_2 -4878.924_0 -4878.924_1 -4878.924_2 -14628_0 -14628_1 -14628_2 -6476_0 -6476_1 -6476_2">
+        <step time="0" speed="27.78"/>      <!-- 0:00, 100 km/h -->
+        <step time="21600" speed="22.22"/>  <!-- 6:00, 80 km/h 早高峰预警 -->
+        <step time="25200" speed="13.89"/>  <!-- 7:00, 50 km/h 早高峰严格限速 -->
+        <step time="36000" speed="22.22"/>  <!-- 10:00, 80 km/h 恢复 -->
+        <step time="57600" speed="16.67"/>  <!-- 16:00, 60 km/h 晚高峰预警 -->
+        <step time="61200" speed="11.11"/>  <!-- 17:00, 40 km/h 晚高峰极严限速 -->
+        <step time="72000" speed="22.22"/>  <!-- 20:00, 80 km/h 恢复 -->
+        <step time="82800" speed="27.78"/>  <!-- 23:00, 100 km/h 正常 -->
+    </variableSpeedSign>
+
+    <!-- ==================== DHS策略组（第三层：应急车道扩容） ==================== -->
+
+    <!-- 策略: strategy_real_dhs_g5_002 - G5成雅双流段高峰应急车道开放 -->
+    <!-- 功能：增加通行能力，疏导车流，配合VSS限速确保安全 -->
+    <rerouter id="dhs_strategy_real_dhs_g5_002" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476">
+        <!-- 0:00-7:00: 应急车道关闭，仅应急车辆 -->
+        <interval begin="0" end="25200">
+            <closingLaneReroute id="hard_shoulder_0" allow="emergency"/>
+        </interval>
+        <!-- 7:00-10:00: 早高峰应急车道开放，所有车辆 -->
+        <interval begin="25200" end="36000">
+            <closingLaneReroute id="hard_shoulder_0" allow="passenger bus truck emergency" disallow=""/>
+        </interval>
+        <!-- 10:00-16:00: 应急车道关闭 -->
+        <interval begin="36000" end="57600">
+            <closingLaneReroute id="hard_shoulder_0" allow="emergency"/>
+        </interval>
+        <!-- 16:00-20:00: 晚高峰应急车道开放 -->
+        <interval begin="57600" end="72000">
+            <closingLaneReroute id="hard_shoulder_0" allow="passenger bus truck emergency" disallow=""/>
+        </interval>
+        <!-- 20:00-24:00: 应急车道关闭 -->
+        <interval begin="72000" end="86400">
+            <closingLaneReroute id="hard_shoulder_0" allow="emergency"/>
+        </interval>
+    </rerouter>
+
+</additional>

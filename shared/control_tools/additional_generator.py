@@ -429,3 +429,158 @@ def validate_generated_xml(xml_content: str) -> tuple[bool, str]:
         error_msg = f"XML validation failed: {str(e)}"
         logger.error(error_msg)
         return False, error_msg
+
+
+def generate_plan_additional(
+    plan_id: str,
+    plan_name: str,
+    strategies: List[Dict[str, Any]]
+) -> str:
+    """
+    Generate plan-level control.add.xml by combining multiple strategies.
+
+    Merges multiple strategy XML elements into a single <additional> root,
+    organized by strategy type (VSS, DHS, TEC).
+
+    Args:
+        plan_id: Plan identifier
+        plan_name: Plan name for documentation
+        strategies: List of strategy instance dictionaries with complete configuration
+
+    Returns:
+        Formatted XML string with all strategies combined
+
+    Example output:
+        <?xml version="1.0" encoding="UTF-8"?>
+        <additional>
+            <!-- 方案: 早高峰综合管控方案A (plan_20251025_140530_a1b2c) -->
+            <!-- 生成时间: 2025-10-25 14:05:30 -->
+
+            <!-- ==================== VSS策略组 ==================== -->
+            <!-- 策略: strategy_001 - K10-K15路段限速80km/h -->
+            <variableSpeedSign id="strategy_001" lanes="...">
+                ...
+            </variableSpeedSign>
+
+            <!-- ==================== DHS策略组 ==================== -->
+            ...
+        </additional>
+    """
+    from datetime import datetime
+    from xml.etree.ElementTree import Element, SubElement, fromstring, tostring
+    from xml.dom.minidom import parseString
+
+    logger.info(f"Generating plan additional XML: {plan_id}")
+
+    # Create root element
+    additional = Element("additional")
+
+    # Add plan header comments
+    header_comment = (
+        f"\n    方案: {plan_name} ({plan_id})\n"
+        f"    生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n    "
+    )
+
+    # Group strategies by type
+    vss_strategies = []
+    dhs_strategies = []
+    tec_strategies = []
+
+    for strategy in strategies:
+        strategy_type = strategy.get("template", {}).get("strategy_type")
+        if strategy_type == "VSS":
+            vss_strategies.append(strategy)
+        elif strategy_type == "DHS":
+            dhs_strategies.append(strategy)
+        elif strategy_type == "TEC":
+            tec_strategies.append(strategy)
+        else:
+            logger.warning(f"Unknown strategy type: {strategy_type}, strategy_id: {strategy.get('strategy_id')}")
+
+    # Build XML content parts
+    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>\n<additional>']
+    xml_parts.append(f"    <!--{header_comment}-->")
+
+    # Add VSS strategies
+    if vss_strategies:
+        xml_parts.append("\n    <!-- ==================== VSS策略组 ==================== -->")
+        for strategy in vss_strategies:
+            strategy_id = strategy.get("strategy_id")
+            strategy_name = strategy.get("strategy_name", "")
+            xml_parts.append(f"\n    <!-- 策略: {strategy_id} - {strategy_name} -->")
+
+            try:
+                # Generate strategy XML
+                template = strategy.get("template", {})
+                parameters = strategy.get("parameters", {})
+                strategy_xml = generate_strategy_xml(
+                    template_id=strategy.get("template_id", ""),
+                    template=template,
+                    parameters=parameters
+                )
+
+                # Format and indent the XML
+                xml_parts.append(f"    {strategy_xml}")
+
+            except Exception as e:
+                logger.error(f"Error generating XML for strategy {strategy_id}: {e}")
+
+    # Add DHS strategies
+    if dhs_strategies:
+        xml_parts.append("\n    <!-- ==================== DHS策略组 ==================== -->")
+        for strategy in dhs_strategies:
+            strategy_id = strategy.get("strategy_id")
+            strategy_name = strategy.get("strategy_name", "")
+            xml_parts.append(f"\n    <!-- 策略: {strategy_id} - {strategy_name} -->")
+
+            try:
+                template = strategy.get("template", {})
+                parameters = strategy.get("parameters", {})
+                strategy_xml = generate_strategy_xml(
+                    template_id=strategy.get("template_id", ""),
+                    template=template,
+                    parameters=parameters
+                )
+                xml_parts.append(f"    {strategy_xml}")
+
+            except Exception as e:
+                logger.error(f"Error generating XML for strategy {strategy_id}: {e}")
+
+    # Add TEC strategies
+    if tec_strategies:
+        xml_parts.append("\n    <!-- ==================== TEC策略组 ==================== -->")
+        for strategy in tec_strategies:
+            strategy_id = strategy.get("strategy_id")
+            strategy_name = strategy.get("strategy_name", "")
+            xml_parts.append(f"\n    <!-- 策略: {strategy_id} - {strategy_name} -->")
+
+            try:
+                template = strategy.get("template", {})
+                parameters = strategy.get("parameters", {})
+                strategy_xml = generate_strategy_xml(
+                    template_id=strategy.get("template_id", ""),
+                    template=template,
+                    parameters=parameters
+                )
+                xml_parts.append(f"    {strategy_xml}")
+
+            except Exception as e:
+                logger.error(f"Error generating XML for strategy {strategy_id}: {e}")
+
+    # Handle empty plan (baseline)
+    if not strategies:
+        xml_parts.append("\n    <!-- 基准方案：无管控 -->")
+
+    xml_parts.append("\n</additional>")
+
+    # Combine all parts
+    xml_content = "\n".join(xml_parts)
+
+    # Validate XML
+    is_valid, error_msg = validate_generated_xml(xml_content)
+    if not is_valid:
+        logger.error(f"Generated plan XML is invalid: {error_msg}")
+        raise ValueError(f"Invalid XML generated for plan {plan_id}: {error_msg}")
+
+    logger.info(f"Plan additional XML generated successfully: {plan_id}")
+    return xml_content

@@ -1,0 +1,60 @@
+{
+  "strategy_id": "strategy_real_tec_g5_003",
+  "strategy_name": "G5成绵新都站入口流量控制",
+  "description": "针对K1768.55成绵新都站进入K1768.5拥堵区域（峰值流量262 veh/hr，主线速度67km/h显示拥堵迹象），采用早晚高峰双时段入口流量控制。早高峰限流180 veh/hr（削减31%），晚高峰限流150 veh/hr（削减42%）。基于baseline门架数据G000551044001320010（批次20251013_20251019）",
+  "template_id": "tec_flow_metering",
+  "strategy_type": "TEC",
+  "configured_params": {
+    "entrance_edge": "-15818",
+    "position": 0,
+    "flow_intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 7,
+        "vehsPerHour": 300,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 7,
+        "end_hours": 10,
+        "vehsPerHour": 180,
+        "target_speed": 12
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 17,
+        "vehsPerHour": 300,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 17,
+        "end_hours": 20,
+        "vehsPerHour": 150,
+        "target_speed": 10
+      },
+      {
+        "begin_hours": 20,
+        "end_hours": 24,
+        "vehsPerHour": 300,
+        "target_speed": 15
+      }
+    ]
+  },
+  "tags": ["G5", "成绵高速", "新都站", "入口管控", "TEC", "真实数据", "baseline", "P1"],
+  "data_source": {
+    "gantry_id": "G000551044001320010",
+    "batch_id": "20251013_20251019",
+    "pattern_type": "workday",
+    "peak_flow": 262,
+    "main_speed": 67.51,
+    "stake": "K1768.55",
+    "taz_id": "G00055104401101010",
+    "entrance_edge_verified": true,
+    "edge_advantage": "2车道入口支持更高计量容量"
+  },
+  "created_at": "2025-10-26T00:00:00Z",
+  "updated_at": "2025-10-26T00:00:00Z",
+  "created_by": "data_analyst",
+  "status": "active",
+  "referenced_by": []
+}

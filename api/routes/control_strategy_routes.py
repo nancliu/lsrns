@@ -722,28 +722,7 @@ async def delete_strategy(strategy_id: str):
 
 
 # ==================== 控制方案 Plans ====================
-@router.get("/plans/", response_model=List[Dict[str, Any]])
-async def list_plans():
-    """获取所有方案列表 (Phase 0 stub)"""
-    return []
-
-
-@router.post("/plans/", status_code=501)
-async def create_plan():
-    """创建新方案 (Phase 0 not implemented)"""
-    return {"detail": "Phase 0: Not implemented yet"}
-
-
-@router.get("/plans/{plan_id}", response_model=Dict[str, Any])
-async def get_plan(plan_id: str):
-    """获取方案详情 (Phase 0 stub)"""
-    return {}
-
-
-@router.post("/plans/{plan_id}/generate", status_code=501)
-async def generate_plan_additional(plan_id: str):
-    """生成Additional文件 (Phase 0 not implemented)"""
-    return {"detail": "Phase 0: Not implemented yet"}
+# Plan management endpoints moved to control_plan_routes.py (Phase 1)
 
 
 # ==================== 批量仿真 Batch Simulations ====================

@@ -40,6 +40,7 @@ async def startup_event():
     import logging
     from pathlib import Path
     from shared.control_tools import load_index, regenerate_index
+    from shared.control_tools.plan_file_manager import ensure_baseline_plan_exists
 
     logger = logging.getLogger(__name__)
 
@@ -59,6 +60,13 @@ async def startup_event():
         logger.info(f"Strategy instance system initialized with {index['total_count']} strategies")
     except Exception as e:
         logger.error(f"Error initializing strategy instance system: {e}", exc_info=True)
+
+    # Initialize baseline plan (Phase 2 - Plan Management)
+    try:
+        ensure_baseline_plan_exists()
+        logger.info("Baseline plan initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing baseline plan: {e}", exc_info=True)
 
 
 @app.get("/", include_in_schema=False)
