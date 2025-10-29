@@ -1,0 +1,35 @@
+{
+  "plan_id": "plan_vss_evening_peak_severe",
+  "plan_name": "晚高峰严重拥堵VSS可变限速方案",
+  "description": "针对工作日晚高峰时段（16:00-20:00）出现的严重拥堵，采用VSS可变限速管控。",
+  "strategy_ids": [
+    "strategy_real_vss_g4202_001"
+  ],
+  "tags": [
+    "P0",
+    "evening高峰",
+    "简单策略",
+    "VSS"
+  ],
+  "complexity_level": "简单",
+  "target_scenario": "16:00-20:00，平均速度 < 30 km/h，持续时长 ≥ 2小时",
+  "applicable_conditions": {
+    "congestion_pattern": "工作日晚高峰时段（16:00-20:00）出现的严重拥堵",
+    "time_window": "16:00-20:00",
+    "severity_threshold": "平均速度 < 30 km/h，持续时长 ≥ 2小时",
+    "road_types": [
+      "城市快速路",
+      "高速公路主线"
+    ]
+  },
+  "expected_effects": {
+    "speed_improvement": "预期速度提升100-200%（具体改善幅度取决于初始拥堵严重程度）",
+    "implementation_difficulty": "简单（单策略，快速部署）"
+  },
+  "validation_records": [],
+  "created_at": "2025-10-27T12:51:59.754834",
+  "generation_method": "quick_template_based",
+  "is_baseline": false,
+  "additional_file_path": "control_data/plans/plan_vss_evening_peak_severe/control.add.xml",
+  "updated_at": "2025-10-27T12:51:59.754834"
+}

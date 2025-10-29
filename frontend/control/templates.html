@@ -324,30 +324,45 @@
 
         /* 参数配置区 */
         .params-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            max-width: 1200px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
+            width: 100%;
         }
 
         .form-group label {
             font-weight: 600;
             color: #2c3e50;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: normal;
         }
 
         .form-group input,
-        .form-group select,
-        .form-group textarea {
-            padding: 10px;
+        .form-group select {
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            min-height: 100px;
+            resize: vertical;
+            transition: border-color 0.3s;
         }
 
         .form-group input:focus,
@@ -355,12 +370,30 @@
         .form-group textarea:focus {
             outline: none;
             border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
 
         .form-hint {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: #7f8c8d;
-            margin-top: 5px;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* 可视化控件样式 */
+        .enum-array-control,
+        .step-array-control,
+        .interval-array-control {
+            width: 100%;
+        }
+
+        .info-message {
+            padding: 12px 16px;
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            color: #2e7d32;
+            font-size: 0.95rem;
         }
 
         /* 操作按钮 */
@@ -387,6 +420,17 @@
 
         .btn-primary:hover {
             background: #2980b9;
+        }
+
+        /* 浮动下一步按钮特殊样式 */
+        #floating-next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        #floating-next-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
         }
 
         .btn-secondary {
@@ -542,7 +586,7 @@
             <ul class="sidebar-nav">
                 <li><a href="templates.html" class="active">策略管理</a></li>
                 <li><a href="plans.html">方案管理</a></li>
-                <li><a href="simulations.html">并行仿真</a></li>
+                <li><a href="simulations.html">批量仿真</a></li>
                 <li><a href="optimization.html">方案优化</a></li>
             </ul>
         </div>
@@ -763,11 +807,28 @@
                         <div id="network-viz-container" style="position: relative; width: 100%; height: 500px; background: #f5f7fa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
                             <!-- 网络层 (底层，静态渲染) -->
                             <canvas id="network-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; cursor: default;"></canvas>
-                            <!-- Hover层 (顶层，交互效果) -->
+                            <!-- Hover层 (中层，交互效果) -->
                             <canvas id="network-canvas-hover" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: default; pointer-events: none;"></canvas>
-                            <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; display: none;">正在加载网络几何数据...</div>
-                            <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; display: none;"></div>
-                            <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6;">点击"加载网络地图"按钮可视化路网结构</div>
+                            <!-- 提示信息层 (顶层，始终可见) -->
+                            <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; display: none;">正在加载网络几何数据...</div>
+                            <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; display: none;"></div>
+                            <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 250px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10;">点击"加载网络地图"按钮可视化路网结构</div>
+
+                            <!-- 浮动的下一步按钮（地图右上角） -->
+                            <button
+                                id="floating-next-btn"
+                                class="btn btn-primary"
+                                onclick="nextStep()"
+                                style="position: absolute; top: 15px; right: 15px; z-index: 20;
+                                       padding: 12px 30px; font-size: 1.1rem; font-weight: 600;
+                                       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                       border: none; border-radius: 6px; color: white; cursor: pointer;
+                                       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                                       transition: all 0.3s ease;
+                                       display: flex; align-items: center; gap: 8px;">
+                                <span>下一步</span>
+                                <span style="font-size: 1.2rem;">→</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1177,6 +1238,8 @@
             // 策略名称（必填）- Task 3.3: 添加"建议名称"按钮
             const nameGroup = document.createElement('div');
             nameGroup.className = 'form-group';
+            nameGroup.setAttribute('data-parameter-name', 'strategy_name');
+            nameGroup.setAttribute('data-parameter-type', 'string');
             nameGroup.innerHTML = `
                 <label>策略名称 *</label>
                 <div style="display: flex; gap: 10px; align-items: flex-start;">
@@ -1192,6 +1255,8 @@
             // 策略描述（可选）- Task 3.5: 添加"重新生成描述"按钮
             const descGroup = document.createElement('div');
             descGroup.className = 'form-group';
+            descGroup.setAttribute('data-parameter-name', 'strategy_description');
+            descGroup.setAttribute('data-parameter-type', 'string');
             descGroup.innerHTML = `
                 <label>策略描述</label>
                 <div style="display: flex; gap: 10px; align-items: flex-start;">
@@ -1213,11 +1278,14 @@
 
                 const group = document.createElement('div');
                 group.className = 'form-group';
+                // Add data attributes for test validation and parameter identification
+                group.setAttribute('data-parameter-name', param.parameter_name);
+                group.setAttribute('data-parameter-type', param.parameter_type);
 
                 let inputHtml = '';
                 let hintHtml = '';
 
-                if (param.parameter_type === 'integer' || param.parameter_type === 'float') {
+                if (param.parameter_type === 'integer' || param.parameter_type === 'float' || param.parameter_type === 'number') {
                     inputHtml = `<input type="number" id="param-${param.parameter_name}"
                                    ${param.required ? 'required' : ''}
                                    ${param.min_value !== null ? `min="${param.min_value}"` : ''}
@@ -1225,6 +1293,24 @@
                                    ${param.default_value !== null ? `value="${param.default_value}"` : ''}
                                    step="${param.parameter_type === 'float' ? '0.01' : '1'}">`;
                     hintHtml = `${param.unit || ''} ${param.min_value !== null && param.max_value !== null ? `范围: ${param.min_value}-${param.max_value}` : ''}`;
+                } else if (param.parameter_type === 'enum') {
+                    // Enum 类型：使用下拉框
+                    if (param.enum_values && param.enum_values.length > 0) {
+                        const options = param.enum_values.map(enumVal => {
+                            const value = enumVal.value || enumVal;
+                            const label = enumVal.label || enumVal;
+                            const selected = param.default_value === value ? 'selected' : '';
+                            return `<option value="${value}" ${selected}>${label}</option>`;
+                        }).join('');
+                        inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>${options}</select>`;
+                        const enumLabels = param.enum_values.map(ev => ev.label || ev).join(', ');
+                        hintHtml = `可选值: ${enumLabels}`;
+                    } else {
+                        inputHtml = `<input type="text" id="param-${param.parameter_name}"
+                                       ${param.required ? 'required' : ''}
+                                       ${param.default_value !== null ? `value="${param.default_value}"` : ''}>`;
+                        hintHtml = param.unit || '';
+                    }
                 } else if (param.parameter_type === 'string') {
                     // 如果有 allowed_values，使用下拉框
                     if (param.allowed_values && param.allowed_values.length > 0) {
@@ -1247,11 +1333,52 @@
                                    <option value="false" ${!defaultVal ? 'selected' : ''}>否</option>
                                  </select>`;
                     hintHtml = param.unit || '';
-                } else if (param.parameter_type === 'array') {
+                } else if (param.parameter_type === 'step_array') {
+                    // VSS speed_steps 参数 - 使用 step-array-control 容器
+                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value, null, 2) : '[]';
+                    const placeholder = '[{"time_hours": 7, "speed_kmh": 100}, {"time_hours": 9, "speed_kmh": 80}]';
+
+                    inputHtml = `<div class="step-array-control">
+                                   <textarea id="param-${param.parameter_name}" rows="8"
+                                     ${param.required ? 'required' : ''}
+                                     placeholder='${placeholder}'
+                                     style="font-family: 'Courier New', monospace; font-size: 13px;">${defaultValueStr}</textarea>
+                                 </div>`;
+                    hintHtml = `${param.unit || ''} JSON数组格式。每个步骤包含time_hours和speed_kmh字段。`;
+                } else if (param.parameter_type === 'dhs_interval_array') {
+                    // DHS intervals 参数 - 使用 interval-array-control 容器
+                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value, null, 2) : '[]';
+                    const placeholder = '[{"begin_hours": 0, "end_hours": 7, "status": "CLOSED", "allowed_vehicle_types": ["emergency"]}]';
+
+                    inputHtml = `<div class="interval-array-control">
+                                   <textarea id="param-${param.parameter_name}" rows="8"
+                                     ${param.required ? 'required' : ''}
+                                     placeholder='${placeholder}'
+                                     style="font-family: 'Courier New', monospace; font-size: 13px;">${defaultValueStr}</textarea>
+                                 </div>`;
+                    hintHtml = `${param.unit || ''} JSON数组格式。每个时间区间包含begin_hours, end_hours等字段。注意：必须覆盖完整的24小时`;
+                } else if (param.parameter_type === 'tec_interval_array' || param.parameter_type === 'flow_interval_array') {
+                    // TEC flow_intervals 参数 - 使用 interval-array-control 容器
+                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value, null, 2) : '[]';
+                    const placeholder = '[{"begin_hours": 6, "end_hours": 10, "vehsPerHour": 120, "target_speed": 8}]';
+
+                    inputHtml = `<div class="interval-array-control">
+                                   <textarea id="param-${param.parameter_name}" rows="8"
+                                     ${param.required ? 'required' : ''}
+                                     placeholder='${placeholder}'
+                                     style="font-family: 'Courier New', monospace; font-size: 13px;">${defaultValueStr}</textarea>
+                                 </div>`;
+                    hintHtml = `${param.unit || ''} JSON数组格式。每个时间区间包含begin_hours, end_hours等字段。注意：合理设置流量和速度限制`;
+                } else if (param.parameter_type === 'enum_array' || param.parameter_type === 'array') {
                     // 特殊处理：车型选择参数使用多选框
                     const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
                     if (vehicleTypeParams.includes(param.parameter_name)) {
                         const vehicleTypes = [
+                            { value: 'passenger', label: '客车' },
+                            { value: 'bus', label: '公交车' },
+                            { value: 'truck', label: '货车' },
+                            { value: 'emergency', label: '应急车辆' },
+                            { value: 'authority', label: '政府/执法车辆' },
                             { value: 'passenger_small', label: '小型客车 (k1, k2)' },
                             { value: 'passenger_large', label: '大型客车 (k3, k4)' },
                             { value: 'truck_small', label: '小型货车 (h1, h2)' },
@@ -1275,20 +1402,31 @@
                             customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，选中的车型将被禁止进入';
                         }
 
-                        inputHtml = `<select id="param-${param.parameter_name}" multiple size="6"
+                        inputHtml = `<select id="param-${param.parameter_name}" multiple size="8"
                                        style="width: 100%; padding: 8px;"
                                        ${param.required ? 'required' : ''}>
                                        ${options}
                                      </select>`;
                         hintHtml = customHint;
                     } else {
-                        // 其他 Array 类型：使用 textarea，JSON格式输入
+                        // 其他 Array 类型：使用 textarea，JSON格式输入，包装在 array-control-container 中
                         const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value) : '[]';
-                        inputHtml = `<textarea id="param-${param.parameter_name}" rows="3"
-                                       ${param.required ? 'required' : ''}
-                                       placeholder='例如: [[7,9],[17,19]] 或 [60,80,100]'>${defaultValueStr}</textarea>`;
+                        inputHtml = `<div class="array-control-container">
+                                       <textarea id="param-${param.parameter_name}" rows="3"
+                                         ${param.required ? 'required' : ''}
+                                         placeholder='例如: [[7,9],[17,19]] 或 [60,80,100]'>${defaultValueStr}</textarea>
+                                     </div>`;
                         hintHtml = `${param.unit || ''} JSON数组格式，例如: [[7,9],[17,19]] 表示时间段，或 [60,80,100] 表示数值列表`;
                     }
+                } else if (param.parameter_type === 'edge_array') {
+                    // Edge array 类型：使用 array-control-container 包装
+                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value) : '[]';
+                    inputHtml = `<div class="array-control-container">
+                                   <textarea id="param-${param.parameter_name}" rows="3"
+                                     ${param.required ? 'required' : ''}
+                                     placeholder='例如: ["-8712", "-15452"]'>${defaultValueStr}</textarea>
+                                 </div>`;
+                    hintHtml = `${param.unit || ''} JSON数组格式，edge ID列表`;
                 }
 
                 group.innerHTML = `
@@ -2016,22 +2154,43 @@
             try {
                 console.log('[fetchExistingStrategyNames] 获取现有策略名称列表');
 
-                // 获取所有策略实例（不分页，或使用大的page_size）
-                const response = await fetch('/api/v1/control/strategy-instances/?page=1&page_size=1000');
+                // 获取所有策略实例（使用API最大page_size=100，支持多页）
+                let allNames = [];
+                let page = 1;
+                let hasMore = true;
 
-                if (!response.ok) {
-                    console.warn('[fetchExistingStrategyNames] API 调用失败:', response.status);
-                    return [];
+                while (hasMore) {
+                    const response = await fetch(`/api/v1/control/strategy-instances/?page=${page}&page_size=100`);
+
+                    if (!response.ok) {
+                        console.warn(`[fetchExistingStrategyNames] API 调用失败 (page ${page}):`, response.status);
+                        break;
+                    }
+
+                    const data = await response.json();
+                    const strategies = data.strategies || [];
+                    const names = strategies.map(s => s.strategy_name).filter(name => name);
+
+                    allNames.push(...names);
+
+                    // 检查是否还有更多页（API返回: total_count, page, page_size）
+                    const totalCount = data.total_count || 0;
+                    const currentPage = data.page || page;
+                    const pageSize = data.page_size || 100;
+                    const totalPages = Math.ceil(totalCount / pageSize);
+
+                    hasMore = currentPage < totalPages;
+                    page++;
+
+                    // 安全限制：最多查询10页（1000条记录）
+                    if (page > 10) {
+                        console.warn('[fetchExistingStrategyNames] 达到最大页数限制，停止查询');
+                        break;
+                    }
                 }
 
-                const data = await response.json();
-                const strategies = data.strategies || [];
-
-                // 提取所有策略名称
-                const names = strategies.map(s => s.strategy_name).filter(name => name);
-
-                console.log(`[fetchExistingStrategyNames] 找到 ${names.length} 个现有策略名称`);
-                return names;
+                console.log(`[fetchExistingStrategyNames] 找到 ${allNames.length} 个现有策略名称`);
+                return allNames;
 
             } catch (error) {
                 console.error('[fetchExistingStrategyNames] 获取策略名称失败:', error);
@@ -3253,7 +3412,7 @@
     <!-- 网络可视化模块 (Phase 1B - US4) -->
     <script src="js/network_viz.js?v=20251022k"></script>
     <!-- 策略实例管理模块 (Phase 1C) -->
-    <script src="js/strategy_manager.js?v=20251021"></script>
+    <script src="js/strategy_manager.js?v=20251028f"></script>
 
     <!-- Debug: 模块加载检查 -->
     <script>

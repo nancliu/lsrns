@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>方案优化 - 交通管控仿真优化系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
@@ -22,6 +25,7 @@
             flex-direction: column;
         }
 
+        /* 顶栏 */
         .top-bar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -52,12 +56,14 @@
             background: rgba(255,255,255,0.3);
         }
 
+        /* 主容器 */
         .main-container {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
 
+        /* 左侧导航栏 */
         .sidebar {
             width: 200px;
             background: #2c3e50;
@@ -95,30 +101,200 @@
             font-weight: 600;
         }
 
+        /* 主内容区 */
         .content-area {
             flex: 1;
             overflow-y: auto;
-            padding: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 30px;
         }
 
-        .placeholder {
-            text-align: center;
-            color: #7f8c8d;
+        .content-header {
+            margin-bottom: 30px;
         }
 
-        .placeholder h2 {
+        .content-header h2 {
             font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .content-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        /* 节区样式 */
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+        }
+
+        .section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* 信息卡片 */
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
             color: #2c3e50;
         }
 
-        .placeholder p {
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* 指标卡片 */
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .metric-card h4 {
+            margin: 0 0 10px 0;
+            color: #667eea;
             font-size: 1.1rem;
         }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.95rem;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* 按钮 */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #95a5a6;
+        }
+
+        /* 网格布局 */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 15px;
+        }
+
+        .chart-container canvas {
+            max-height: 400px;
+        }
     </style>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="top-bar">
@@ -131,17 +307,81 @@
             <ul class="sidebar-nav">
                 <li><a href="templates.html">策略管理</a></li>
                 <li><a href="plans.html">方案管理</a></li>
-                <li><a href="simulations.html">并行仿真</a></li>
+                <li><a href="simulations.html">批量仿真</a></li>
                 <li><a href="optimization.html" class="active">方案优化</a></li>
             </ul>
         </div>
 
         <div class="content-area">
-            <div class="placeholder">
-                <h2>方案优化</h2>
-                <p>Phase 1D - 功能开发中...</p>
+            <div class="content-header">
+                <h2>方案优化分析</h2>
+                <p class="content-subtitle">详细的方案对比分析和可视化</p>
+            </div>
+
+            <!-- 批次选择区（无batch_id时显示） -->
+            <div id="batchSelectorSection" class="section" style="display: none;">
+                <h3>选择批次</h3>
+                <div id="batchSelectorContainer">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+
+            <!-- 批次信息区 -->
+            <div id="batchInfoSection" class="section">
+                <h3>批次信息</h3>
+                <div id="batchInfoContainer">
+                    <div class="empty-state">
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果展示区 -->
+            <div id="resultsSection" style="display: none;">
+                <!-- 方案对比表格 -->
+                <div class="section">
+                    <h3>方案对比表</h3>
+                    <div id="comparisonTableContainer">
+                        <!-- 动态加载 -->
+                    </div>
+                </div>
+
+                <!-- 在网车辆峰值曲线 -->
+                <div id="peakCurveSection" class="section" style="display: none;">
+                    <h3>在网车辆峰值曲线对比</h3>
+                    <div class="chart-container">
+                        <canvas id="peakCurveChart"></canvas>
+                    </div>
+                    <div id="peakMetricsContainer" class="metrics-grid">
+                        <!-- 峰值指标卡片将动态填充 -->
+                    </div>
+                </div>
+
+                <!-- 多指标雷达图 -->
+                <div id="radarChartSection" class="section" style="display: none;">
+                    <h3>多指标综合对比</h3>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                            <strong>说明：</strong>所有指标已归一化到0-100范围。
+                            "平均速度"和"总车辆数"越高越好；
+                            "行程时间"和"峰值车辆数"越低越好；
+                            "系统稳定性"基于速度标准差，数值越高表示越稳定。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="backToBatchBtn">返回批量仿真</button>
+                <button class="btn btn-success" id="exportReportBtn">导出详细报告</button>
             </div>
         </div>
     </div>
+
+    <script src="js/optimization.js"></script>
 </body>
 </html>

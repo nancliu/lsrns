@@ -1,6 +1,8 @@
 /**
  * Strategy Manager Module (Phase 1C)
  *
+ * Version: 20251028f - Debug logs for visual control creation
+ *
  * Provides strategy instance management functionality:
  * - Create strategy instances from templates (T046-T050)
  * - Dynamic form generation based on template schemas (T047)
@@ -15,6 +17,7 @@
 
 class StrategyManager {
     constructor() {
+        console.log('[StrategyManager] Version 20251028f loaded - Debug logs enabled');
         this.API_BASE = '/api/v1/control/strategy-instances';
         this.currentStep = 1;
         this.selectedTemplate = null;
@@ -161,6 +164,9 @@ class StrategyManager {
                 return;
             }
 
+            // Debug log for parameter type
+            console.log(`[StrategyManager] Adding field '${param.parameter_name}' with type '${param.parameter_type}'`);
+
             this.addFormField(form, {
                 name: param.parameter_name,
                 label: param.description || param.parameter_name,
@@ -172,7 +178,7 @@ class StrategyManager {
                 unit: param.unit,
                 pattern: param.pattern,
                 minItems: param.min_items,
-                allowedValues: param.allowed_values
+                allowedValues: param.enum_values || param.allowed_values  // Template uses enum_values
             });
         });
 
@@ -194,12 +200,18 @@ class StrategyManager {
         label.textContent = `${field.label} ${field.required ? '*' : ''}`;
 
         const input = this.createInputElement(field);
-        input.id = `param-${field.name}`;
-        input.name = field.name;
 
-        // Attach validation listener (T048)
-        input.addEventListener('blur', () => this.validateField(field.name));
-        input.addEventListener('input', () => this.clearFieldError(field.name));
+        // For simple input elements (not complex visual controls), set id/name and attach listeners
+        const isComplexControl = ['enum_array', 'step_array', 'dhs_interval_array', 'tec_interval_array', 'edge_array'].includes(field.type);
+
+        if (!isComplexControl) {
+            input.id = `param-${field.name}`;
+            input.name = field.name;
+
+            // Attach validation listener (T048)
+            input.addEventListener('blur', () => this.validateField(field.name));
+            input.addEventListener('input', () => this.clearFieldError(field.name));
+        }
 
         const hint = document.createElement('span');
         hint.className = 'form-hint';
@@ -227,14 +239,16 @@ class StrategyManager {
      * @returns {HTMLElement} Input element
      */
     createInputElement(field) {
+        console.log(`[StrategyManager] createInputElement called for field: ${field.name}, type: ${field.type}, allowedValues:`, field.allowedValues);
         let input;
 
         switch (field.type) {
             case 'integer':
+            case 'number':
             case 'float':
                 input = document.createElement('input');
                 input.type = 'number';
-                input.step = field.type === 'float' ? '0.01' : '1';
+                input.step = field.type === 'float' || field.type === 'number' ? '0.01' : '1';
                 if (field.min !== null && field.min !== undefined) input.min = field.min;
                 if (field.max !== null && field.max !== undefined) input.max = field.max;
                 if (field.defaultValue !== null) input.value = field.defaultValue;
@@ -325,6 +339,34 @@ class StrategyManager {
                 if (field.defaultValue) input.value = field.defaultValue;
                 break;
 
+            case 'enum_array':
+                // Visual checkbox group for multi-select (better UX than select multiple)
+                input = this.createEnumArrayControl(field);
+                break;
+
+            case 'step_array':
+                // Visual time-speed step editor
+                input = this.createStepArrayControl(field);
+                break;
+
+            case 'dhs_interval_array':
+            case 'tec_interval_array':
+                // Visual time interval editor
+                input = this.createIntervalArrayControl(field);
+                break;
+
+            case 'edge_array':
+                // Edge array is handled separately in Step 2, show placeholder
+                input = document.createElement('div');
+                input.className = 'info-message';
+                input.textContent = '路段选择已在Step 2完成，此处无需配置';
+                input.style.padding = '10px';
+                input.style.backgroundColor = '#e8f5e9';
+                input.style.border = '1px solid #4caf50';
+                input.style.borderRadius = '4px';
+                input.style.color = '#2e7d32';
+                break;
+
             default:
                 input = document.createElement('input');
                 input.type = 'text';
@@ -335,6 +377,281 @@ class StrategyManager {
         }
 
         return input;
+    }
+
+    // ==================== Visual Control Creators ====================
+
+    /**
+     * Create visual checkbox group for enum_array type (vehicle types, etc.)
+     * @param {Object} field - Field configuration
+     * @returns {HTMLElement} Checkbox group container
+     */
+    createEnumArrayControl(field) {
+        const container = document.createElement('div');
+        container.className = 'enum-array-control';
+        container.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa;';
+
+        let options = [];
+
+        // For vehicle type parameters, ALWAYS use vehicle_types.json standard types (English names)
+        if (field.name && (field.name.includes('vehicle') || field.name.includes('allowed'))) {
+            // Standard vehicle types from vehicle_types.json (6 types in English)
+            options = [
+                'passenger_small',
+                'passenger_large',
+                'truck_small',
+                'truck_large',
+                'special_small',
+                'special_large'
+            ];
+            console.log('[StrategyManager] Using vehicle_types.json standard types (6 English types)');
+        } else if (field.allowedValues && Array.isArray(field.allowedValues)) {
+            // For other enum_array parameters, extract values from allowedValues
+            // Handle both formats: [{value: "x", label: "y"}] or ["x", "y", "z"]
+            options = field.allowedValues.map(item => {
+                if (typeof item === 'object' && item.value) {
+                    return item.value;  // Extract value from {value, label} object
+                }
+                return item;  // Already a string
+            });
+            console.log(`[StrategyManager] Using template enum_values: ${options.join(', ')}`);
+        }
+
+        options.forEach(value => {
+            const label = document.createElement('label');
+            label.style.cssText = 'display: flex; align-items: center; gap: 6px; padding: 6px 10px; cursor: pointer; border-radius: 4px; transition: background 0.2s;';
+            label.onmouseenter = () => label.style.background = '#e3f2fd';
+            label.onmouseleave = () => label.style.background = 'transparent';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = value;
+            checkbox.className = 'enum-checkbox';
+            checkbox.style.cursor = 'pointer';
+
+            // Check default values
+            if (field.defaultValue && Array.isArray(field.defaultValue) && field.defaultValue.includes(value)) {
+                checkbox.checked = true;
+            }
+
+            const text = document.createTextNode(value);
+
+            label.appendChild(checkbox);
+            label.appendChild(text);
+            container.appendChild(label);
+        });
+
+        // Store data attribute for form collection
+        container.setAttribute('data-field-name', field.name);
+        container.setAttribute('data-field-type', 'enum_array');
+
+        return container;
+    }
+
+    /**
+     * Create visual step array editor for speed_steps
+     * @param {Object} field - Field configuration
+     * @returns {HTMLElement} Step array editor container
+     */
+    createStepArrayControl(field) {
+        const container = document.createElement('div');
+        container.className = 'step-array-control';
+        container.style.cssText = 'border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fafafa;';
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
+        header.innerHTML = '<strong style="color: #555;">时间-速度步骤</strong>';
+
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.textContent = '+ 添加步骤';
+        addButton.style.cssText = 'padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;';
+        addButton.onmouseover = () => addButton.style.background = '#5568d3';
+        addButton.onmouseout = () => addButton.style.background = '#667eea';
+
+        header.appendChild(addButton);
+        container.appendChild(header);
+
+        // Steps list container
+        const stepsList = document.createElement('div');
+        stepsList.className = 'steps-list';
+        stepsList.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+        container.appendChild(stepsList);
+
+        // Add button click handler
+        addButton.onclick = () => {
+            const stepRow = this.createStepRow({ time_hours: 0, speed_kmh: 100 }, stepsList);
+            stepsList.appendChild(stepRow);
+        };
+
+        // Initialize with default steps
+        const defaultSteps = field.defaultValue || [
+            { time_hours: 0, speed_kmh: 100 },
+            { time_hours: 7, speed_kmh: 80 },
+            { time_hours: 9, speed_kmh: 100 }
+        ];
+
+        defaultSteps.forEach(step => {
+            const stepRow = this.createStepRow(step, stepsList);
+            stepsList.appendChild(stepRow);
+        });
+
+        container.setAttribute('data-field-name', field.name);
+        container.setAttribute('data-field-type', 'step_array');
+
+        return container;
+    }
+
+    /**
+     * Create a single step row
+     * @param {Object} step - Step data {time_hours, speed_kmh}
+     * @param {HTMLElement} container - Parent container
+     * @returns {HTMLElement} Step row element
+     */
+    createStepRow(step, container) {
+        const row = document.createElement('div');
+        row.className = 'step-row';
+        row.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; padding: 8px; background: white; border: 1px solid #e0e0e0; border-radius: 4px;';
+
+        // Time input
+        const timeGroup = document.createElement('div');
+        timeGroup.innerHTML = `
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">时间 (小时)</label>
+            <input type="number" class="step-time" min="0" max="24" step="1" value="${step.time_hours}"
+                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+        `;
+
+        // Speed input
+        const speedGroup = document.createElement('div');
+        speedGroup.innerHTML = `
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">速度 (km/h)</label>
+            <input type="number" class="step-speed" min="30" max="130" step="5" value="${step.speed_kmh}"
+                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+        `;
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✕';
+        removeBtn.title = '删除此步骤';
+        removeBtn.style.cssText = 'padding: 6px 12px; background: #ff5252; color: white; border: none; border-radius: 4px; cursor: pointer; align-self: end;';
+        removeBtn.onclick = () => {
+            if (container.children.length > 1) {
+                row.remove();
+            } else {
+                alert('至少需要保留一个时间步骤');
+            }
+        };
+
+        row.appendChild(timeGroup);
+        row.appendChild(speedGroup);
+        row.appendChild(removeBtn);
+
+        return row;
+    }
+
+    /**
+     * Create visual interval array editor for DHS/TEC intervals
+     * @param {Object} field - Field configuration
+     * @returns {HTMLElement} Interval array editor container
+     */
+    createIntervalArrayControl(field) {
+        const container = document.createElement('div');
+        container.className = 'interval-array-control';
+        container.style.cssText = 'border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fafafa;';
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;';
+        header.innerHTML = '<strong style="color: #555;">时间段配置</strong>';
+
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.textContent = '+ 添加时间段';
+        addButton.style.cssText = 'padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;';
+        addButton.onmouseover = () => addButton.style.background = '#5568d3';
+        addButton.onmouseout = () => addButton.style.background = '#667eea';
+
+        header.appendChild(addButton);
+        container.appendChild(header);
+
+        // Intervals list container
+        const intervalsList = document.createElement('div');
+        intervalsList.className = 'intervals-list';
+        intervalsList.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+        container.appendChild(intervalsList);
+
+        // Add button click handler
+        addButton.onclick = () => {
+            const intervalRow = this.createIntervalRow({ begin_hours: 7, end_hours: 9 }, intervalsList, field.type);
+            intervalsList.appendChild(intervalRow);
+        };
+
+        // Initialize with default intervals
+        const defaultIntervals = field.defaultValue || [
+            { begin_hours: 7, end_hours: 9 },
+            { begin_hours: 17, end_hours: 19 }
+        ];
+
+        defaultIntervals.forEach(interval => {
+            const intervalRow = this.createIntervalRow(interval, intervalsList, field.type);
+            intervalsList.appendChild(intervalRow);
+        });
+
+        container.setAttribute('data-field-name', field.name);
+        container.setAttribute('data-field-type', field.type);
+
+        return container;
+    }
+
+    /**
+     * Create a single interval row
+     * @param {Object} interval - Interval data {begin_hours, end_hours, ...}
+     * @param {HTMLElement} container - Parent container
+     * @param {string} fieldType - Field type (dhs_interval_array or tec_interval_array)
+     * @returns {HTMLElement} Interval row element
+     */
+    createIntervalRow(interval, container, fieldType) {
+        const row = document.createElement('div');
+        row.className = 'interval-row';
+        row.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; padding: 8px; background: white; border: 1px solid #e0e0e0; border-radius: 4px;';
+
+        // Begin time input
+        const beginGroup = document.createElement('div');
+        beginGroup.innerHTML = `
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">开始时间 (小时)</label>
+            <input type="number" class="interval-begin" min="0" max="24" step="1" value="${interval.begin_hours}"
+                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+        `;
+
+        // End time input
+        const endGroup = document.createElement('div');
+        endGroup.innerHTML = `
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 4px;">结束时间 (小时)</label>
+            <input type="number" class="interval-end" min="0" max="24" step="1" value="${interval.end_hours}"
+                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+        `;
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✕';
+        removeBtn.title = '删除此时间段';
+        removeBtn.style.cssText = 'padding: 6px 12px; background: #ff5252; color: white; border: none; border-radius: 4px; cursor: pointer; align-self: end;';
+        removeBtn.onclick = () => {
+            if (container.children.length > 1) {
+                row.remove();
+            } else {
+                alert('至少需要保留一个时间段');
+            }
+        };
+
+        row.appendChild(beginGroup);
+        row.appendChild(endGroup);
+        row.appendChild(removeBtn);
+
+        return row;
     }
 
     /**
@@ -723,9 +1040,84 @@ class StrategyManager {
             parameters: {}
         };
 
+        // First, collect data from visual controls (composite controls with custom containers)
+        const processedFields = new Set();
+
+        // 1. Handle enum_array controls (checkbox grids)
+        const enumControls = form.querySelectorAll('.enum-array-control[data-field-name]');
+        enumControls.forEach(container => {
+            const fieldName = container.getAttribute('data-field-name');
+            const checkedBoxes = container.querySelectorAll('.enum-checkbox:checked');
+            data.parameters[fieldName] = Array.from(checkedBoxes).map(cb => cb.value);
+            processedFields.add(fieldName);
+            console.log(`[StrategyManager] Collected enum_array '${fieldName}':`, data.parameters[fieldName]);
+        });
+
+        // 2. Handle step_array controls (time-speed step editors)
+        const stepControls = form.querySelectorAll('.step-array-control[data-field-name]');
+        stepControls.forEach(container => {
+            const fieldName = container.getAttribute('data-field-name');
+            const stepRows = container.querySelectorAll('.step-row');
+            const steps = [];
+
+            stepRows.forEach(row => {
+                const timeInput = row.querySelector('.step-time');
+                const speedInput = row.querySelector('.step-speed');
+                if (timeInput && speedInput) {
+                    steps.push({
+                        time_hours: parseFloat(timeInput.value) || 0,
+                        speed_kmh: parseFloat(speedInput.value) || 100
+                    });
+                }
+            });
+
+            data.parameters[fieldName] = steps;
+            processedFields.add(fieldName);
+            console.log(`[StrategyManager] Collected step_array '${fieldName}':`, data.parameters[fieldName]);
+        });
+
+        // 3. Handle interval_array controls (time interval editors)
+        const intervalControls = form.querySelectorAll('.interval-array-control[data-field-name]');
+        intervalControls.forEach(container => {
+            const fieldName = container.getAttribute('data-field-name');
+            const intervalRows = container.querySelectorAll('.interval-row');
+            const intervals = [];
+
+            intervalRows.forEach(row => {
+                const beginInput = row.querySelector('.interval-begin');
+                const endInput = row.querySelector('.interval-end');
+                if (beginInput && endInput) {
+                    intervals.push({
+                        begin_hours: parseFloat(beginInput.value) || 0,
+                        end_hours: parseFloat(endInput.value) || 24
+                    });
+                }
+            });
+
+            data.parameters[fieldName] = intervals;
+            processedFields.add(fieldName);
+            console.log(`[StrategyManager] Collected interval_array '${fieldName}':`, data.parameters[fieldName]);
+        });
+
+        // Then, collect data from simple inputs (text, number, select, textarea)
         const inputs = form.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
             const fieldName = input.name;
+
+            // Skip if already processed by visual control logic
+            if (processedFields.has(fieldName)) {
+                return;
+            }
+
+            // Skip if part of a visual control (checkbox, dynamic row inputs)
+            if (input.classList.contains('enum-checkbox') ||
+                input.classList.contains('step-time') ||
+                input.classList.contains('step-speed') ||
+                input.classList.contains('interval-begin') ||
+                input.classList.contains('interval-end')) {
+                return;
+            }
+
             const value = input.value.trim();
 
             if (fieldName === 'strategy_name') {
@@ -734,39 +1126,39 @@ class StrategyManager {
                 // Handle type conversion
                 const field = this.getFieldConfig(fieldName);
 
-                if (field.type === 'integer') {
-                    data.parameters[fieldName] = parseInt(value);
+                if (field.type === 'integer' || field.type === 'number') {
+                    data.parameters[fieldName] = parseInt(value) || 0;
                 } else if (field.type === 'float') {
-                    data.parameters[fieldName] = parseFloat(value);
+                    data.parameters[fieldName] = parseFloat(value) || 0.0;
                 } else if (field.type === 'boolean') {
                     data.parameters[fieldName] = value === 'true';
-                } else if (field.type === 'array') {
-                    // Try to parse as JSON first (for nested arrays)
+                } else if (field.type === 'array' || field.type === 'edge_array') {
+                    // Handle simple arrays (not visual controls)
                     try {
                         const trimmed = value.trim();
                         if (trimmed.startsWith('[')) {
-                            // Looks like JSON array
                             data.parameters[fieldName] = JSON.parse(trimmed);
                         } else {
-                            // Parse as simple array (newline or comma separated)
                             data.parameters[fieldName] = value
                                 .split(/[,\n]/)
                                 .map(s => s.trim())
                                 .filter(s => s);
                         }
                     } catch (e) {
-                        // Fallback to simple array parsing
+                        console.error(`[StrategyManager] Error parsing array parameter '${fieldName}':`, e);
                         data.parameters[fieldName] = value
                             .split(/[,\n]/)
                             .map(s => s.trim())
                             .filter(s => s);
                     }
                 } else {
+                    // String, enum, etc.
                     data.parameters[fieldName] = value;
                 }
             }
         });
 
+        console.log('[StrategyManager] Final collected form data:', data);
         return data;
     }
 
@@ -1056,7 +1448,8 @@ class StrategyManager {
                 unit: param.unit,
                 pattern: param.pattern,
                 minItems: param.min_items,
-                allowedValues: param.allowed_values
+                // Handle both enum_values (from templates) and allowed_values (internal)
+                allowedValues: param.enum_values || param.allowed_values
             });
         });
 
@@ -1088,38 +1481,88 @@ class StrategyManager {
 
         // Populate parameters
         const parameters = strategy.parameters || {};
-        Object.keys(parameters).forEach(paramName => {
-            const input = document.getElementById(`param-${paramName}`);
-            if (!input) return;
+        const form = document.getElementById('edit-params-form');
 
+        Object.keys(parameters).forEach(paramName => {
             const value = parameters[paramName];
             const field = this.getFieldConfig(paramName);
 
-            // Set value based on type
-            if (field.type === 'boolean') {
-                input.value = value.toString();
-            } else if (field.type === 'array') {
+            // Try to find visual control first
+            const enumControl = form.querySelector(`.enum-array-control[data-field-name="${paramName}"]`);
+            const stepControl = form.querySelector(`.step-array-control[data-field-name="${paramName}"]`);
+            const intervalControl = form.querySelector(`.interval-array-control[data-field-name="${paramName}"]`);
+
+            if (enumControl) {
+                // Handle enum_array (checkboxes)
+                console.log(`[StrategyManager] Populating enum_array '${paramName}':`, value);
                 if (Array.isArray(value)) {
-                    if (value.length === 0) {
-                        // Empty array
-                        input.value = '';
-                    } else if (typeof value[0] === 'object' || Array.isArray(value[0])) {
-                        // Array of objects or nested array - use JSON format
-                        input.value = JSON.stringify(value, null, 2);
-                    } else {
-                        // Simple array of primitives - newline separated
-                        input.value = value.join('\n');
+                    const checkboxes = enumControl.querySelectorAll('.enum-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = value.includes(checkbox.value);
+                    });
+                }
+            } else if (stepControl) {
+                // Handle step_array (time-speed steps)
+                console.log(`[StrategyManager] Populating step_array '${paramName}':`, value);
+                if (Array.isArray(value) && value.length > 0) {
+                    const stepsList = stepControl.querySelector('.steps-list');
+                    if (stepsList) {
+                        // Clear existing rows
+                        stepsList.innerHTML = '';
+                        // Add rows from value
+                        value.forEach(step => {
+                            const stepRow = this.createStepRow(step, stepsList);
+                            stepsList.appendChild(stepRow);
+                        });
                     }
                 }
-            } else if (typeof value === 'object' && value !== null) {
-                // Object value - use JSON format
-                input.value = JSON.stringify(value, null, 2);
+            } else if (intervalControl) {
+                // Handle interval_array (time intervals)
+                console.log(`[StrategyManager] Populating interval_array '${paramName}':`, value);
+                if (Array.isArray(value) && value.length > 0) {
+                    const intervalsList = intervalControl.querySelector('.intervals-list');
+                    if (intervalsList) {
+                        // Clear existing rows
+                        intervalsList.innerHTML = '';
+                        // Add rows from value
+                        const fieldType = intervalControl.getAttribute('data-field-type');
+                        value.forEach(interval => {
+                            const intervalRow = this.createIntervalRow(interval, intervalsList, fieldType);
+                            intervalsList.appendChild(intervalRow);
+                        });
+                    }
+                }
             } else {
-                input.value = value;
+                // Handle standard inputs (fallback to original logic)
+                const input = document.getElementById(`param-${paramName}`);
+                if (!input) return;
+
+                // Set value based on type
+                if (field.type === 'boolean') {
+                    input.value = value.toString();
+                } else if (field.type === 'array') {
+                    if (Array.isArray(value)) {
+                        if (value.length === 0) {
+                            // Empty array
+                            input.value = '';
+                        } else if (typeof value[0] === 'object' || Array.isArray(value[0])) {
+                            // Array of objects or nested array - use JSON format
+                            input.value = JSON.stringify(value, null, 2);
+                        } else {
+                            // Simple array of primitives - newline separated
+                            input.value = value.join('\n');
+                        }
+                    }
+                } else if (typeof value === 'object' && value !== null) {
+                    // Object value - use JSON format
+                    input.value = JSON.stringify(value, null, 2);
+                } else {
+                    input.value = value;
+                }
             }
         });
 
-        console.log('[StrategyManager] Form populated with existing values');
+        console.log('[StrategyManager] Form populated with existing values (including visual controls)');
     }
 
     // ==================== T086: Save Strategy Update ====================
@@ -1386,7 +1829,16 @@ class StrategyManager {
 
         let parametersHTML = '';
         const params = strategy.parameters || {};
+
+        // Edge-related fields to exclude (displayed separately in "Affected Edges" section)
+        const edgeFields = ['affected_edges', 'entrance_edge'];
+
         Object.keys(params).forEach(key => {
+            // Skip edge-related fields - they are shown in the "Affected Edges" section
+            if (edgeFields.includes(key)) {
+                return;
+            }
+
             const value = params[key];
             let displayValue = value;
 
@@ -1395,13 +1847,13 @@ class StrategyManager {
                     // Empty array
                     displayValue = '<span style="color: #999;">空列表</span>';
                 } else if (typeof value[0] === 'object') {
-                    // Array of objects (e.g., speed_steps, flow_intervals)
+                    // Array of objects (e.g., speed_steps, flow_intervals, intervals)
                     displayValue = `<pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5;">${JSON.stringify(value, null, 2)}</pre>`;
                 } else if (Array.isArray(value[0])) {
                     // Nested array (e.g., time_intervals [[7,9], [17,19]])
                     displayValue = `<pre style="margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5;">${JSON.stringify(value, null, 2)}</pre>`;
                 } else {
-                    // Simple array of primitives (strings, numbers)
+                    // Simple array of primitives (strings, numbers) - e.g., applicable_vehicle_types
                     displayValue = value.join(', ');
                 }
             } else if (typeof value === 'object' && value !== null) {
@@ -1439,42 +1891,89 @@ class StrategyManager {
             edgesHTML = '<p style="color: #999;">无路段信息</p>';
         }
 
+        // Get description from API response (if available)
+        const description = strategy.description || '';
+
         content.innerHTML = `
-            <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
-                ${strategy.strategy_name}
-            </h2>
-
-            <div style="margin-bottom: 25px;">
-                <div style="display: inline-block; padding: 5px 12px; background: #3498db; color: white; border-radius: 4px; font-size: 12px; margin-right: 10px;">
-                    ${strategyNames[strategy.strategy_type] || strategy.strategy_type}
+            <!-- 策略标题卡片 -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 12px; margin-bottom: 25px; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-right: 15px;">
+                        ${strategyNames[strategy.strategy_type] || strategy.strategy_type}
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 15px; font-size: 12px;">
+                        ID: ${strategy.strategy_id}
+                    </div>
                 </div>
-                <span style="color: #7f8c8d; font-size: 14px;">
-                    ID: ${strategy.strategy_id}
-                </span>
+                <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: 600; line-height: 1.4; word-wrap: break-word;">
+                    ${strategy.strategy_name}
+                </h2>
+                ${description ? `
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.6; word-wrap: break-word; margin-top: 15px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; opacity: 0.9;">📝 策略描述</div>
+                        <div style="opacity: 0.95;">${description}</div>
+                    </div>
+                ` : ''}
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">模板信息</h3>
-                <p><strong>模板ID:</strong> ${strategy.template_id}</p>
-                <p><strong>模板名称:</strong> ${strategy.template_name}</p>
+            <!-- 两栏布局：左侧配置信息，右侧路段信息 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <!-- 左栏：配置信息 -->
+                <div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="color: #34495e; font-size: 16px; margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                            📋 模板信息
+                        </h3>
+                        <div style="margin-bottom: 12px;">
+                            <strong style="color: #555; display: inline-block; min-width: 90px;">模板ID:</strong>
+                            <span style="color: #333;">${strategy.template_id}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #555; display: inline-block; min-width: 90px;">模板名称:</strong>
+                            <span style="color: #333;">${strategy.template_name}</span>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                        <h3 style="color: #34495e; font-size: 16px; margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                            🕐 元数据
+                        </h3>
+                        <div style="margin-bottom: 12px;">
+                            <strong style="color: #555; display: inline-block; min-width: 90px;">创建时间:</strong>
+                            <span style="color: #333; font-size: 14px;">${new Date(strategy.metadata.created_at).toLocaleString('zh-CN')}</span>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <strong style="color: #555; display: inline-block; min-width: 90px;">更新时间:</strong>
+                            <span style="color: #333; font-size: 14px;">${new Date(strategy.metadata.updated_at).toLocaleString('zh-CN')}</span>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <strong style="color: #555; display: inline-block; min-width: 90px;">创建者:</strong>
+                            <span style="color: #333;">${strategy.metadata.created_by}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #555; display: inline-block; min-width: 90px;">版本:</strong>
+                            <span style="color: #333;">${strategy.metadata.version}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右栏：路段信息 -->
+                <div>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; max-height: 500px; overflow-y: auto;">
+                        <h3 style="color: #34495e; font-size: 16px; margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                            🛣️ 受影响路段 (${strategy.affected_edges.length})
+                        </h3>
+                        ${edgesHTML}
+                    </div>
+                </div>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">配置参数</h3>
+            <!-- 配置参数（全宽显示） -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <h3 style="color: #34495e; font-size: 16px; margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e9ecef;">
+                    ⚙️ 配置参数
+                </h3>
                 ${parametersHTML || '<p style="color: #999;">无参数</p>'}
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">受影响路段 (${strategy.affected_edges.length})</h3>
-                ${edgesHTML}
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <h3 style="color: #34495e; font-size: 16px; margin-bottom: 10px;">元数据</h3>
-                <p><strong>创建时间:</strong> ${new Date(strategy.metadata.created_at).toLocaleString('zh-CN')}</p>
-                <p><strong>更新时间:</strong> ${new Date(strategy.metadata.updated_at).toLocaleString('zh-CN')}</p>
-                <p><strong>创建者:</strong> ${strategy.metadata.created_by}</p>
-                <p><strong>版本:</strong> ${strategy.metadata.version}</p>
             </div>
         `;
 

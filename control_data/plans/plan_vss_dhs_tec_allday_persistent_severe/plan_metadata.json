@@ -1,0 +1,81 @@
+{
+  "plan_id": "plan_vss_dhs_tec_allday_persistent_severe",
+  "plan_name": "全天持续拥堵VSS+DHS+TEC三策略立体管控方案",
+  "description": "针对工作日全天持续拥堵（拥堵持续时长>6小时），采用VSS+DHS+TEC三策略立体管控管控。",
+  "strategy_ids": [
+    "strategy_real_vss_g5_001",
+    "strategy_real_dhs_g5_002",
+    "strategy_real_tec_g5_001"
+  ],
+  "tags": [
+    "P0",
+    "allday高峰",
+    "高策略",
+    "VSS",
+    "DHS",
+    "TEC"
+  ],
+  "complexity_level": "高",
+  "target_scenario": "全天（6:00-20:00拥堵持续>6小时），平均速度 < 20 km/h，持续时长 > 6小时，入口流量 > 主线容量80%",
+  "applicable_conditions": {
+    "congestion_pattern": "工作日全天持续拥堵（拥堵持续时长>6小时）",
+    "time_window": "全天（6:00-20:00拥堵持续>6小时）",
+    "severity_threshold": "平均速度 < 20 km/h，持续时长 > 6小时，入口流量 > 主线容量80%",
+    "road_types": [
+      "高速公路主线"
+    ],
+    "infrastructure_requirements": [
+      "主线路段长度 ≥ 5 km",
+      "应急车道宽度 ≥ 3.0 m",
+      "上游具备入口匝道",
+      "具备实时监控系统"
+    ]
+  },
+  "expected_effects": {
+    "speed_improvement": "预期速度提升150-250%",
+    "capacity_increase": "主线通行能力提升30-35%",
+    "entrance_flow_control": "入口流量削减50-70%",
+    "congestion_duration_reduction": "拥堵持续时长减少50-70%",
+    "implementation_difficulty": "高（三策略协同，需精细化管理）"
+  },
+  "validation_records": [],
+  "created_at": "2025-10-27T12:51:59.756991",
+  "generation_method": "quick_template_based",
+  "strategy_coordination": {
+    "overall_strategy": "三层防御：上游控源（TEC） → 中游稳流（VSS） → 下游扩容（DHS）",
+    "spatial_layers": {
+      "upstream_layer": {
+        "control_type": "TEC入口流量控制",
+        "function": "源头控制进入主线的车辆数量"
+      },
+      "midstream_layer": {
+        "control_type": "VSS可变限速",
+        "function": "稳定交通流，防止速度波动"
+      },
+      "downstream_layer": {
+        "control_type": "DHS应急车道开放",
+        "function": "增加通行能力，疏导车辆"
+      }
+    },
+    "time_coordination": {
+      "morning_peak": {
+        "6:00-7:00": "TEC开始限流，VSS预警限速",
+        "7:00-10:00": "TEC严格限流，VSS严格限速，DHS开放",
+        "10:00+": "所有策略逐步恢复"
+      },
+      "evening_peak": {
+        "16:00-17:00": "TEC开始限流，VSS预警，DHS准备",
+        "17:00-20:00": "三策略全激活",
+        "20:00+": "所有策略解除"
+      }
+    },
+    "parameter_coupling": {
+      "tec_vss_coupling": "TEC限流值应使主线流量保持在VSS限速下的安全容量范围内",
+      "vss_dhs_coupling": "DHS开放后，VSS限速应适当提高10-15 km/h"
+    },
+    "complexity_level": "高"
+  },
+  "is_baseline": false,
+  "additional_file_path": "control_data/plans/plan_vss_dhs_tec_allday_persistent_severe/control.add.xml",
+  "updated_at": "2025-10-27T12:51:59.756991"
+}

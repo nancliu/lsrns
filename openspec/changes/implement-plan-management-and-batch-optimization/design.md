@@ -692,6 +692,34 @@ def generate_plan_additional(
 
 ## 4. 前端界面设计
 
+### 4.0 前端访问URL路径
+
+**重要**: 所有管控优化相关页面必须使用 `/control/` 前缀访问
+
+| 功能模块 | 页面文件 | 访问URL | Phase | 状态 |
+|---------|---------|---------|-------|------|
+| **策略管理** | `templates.html` | `http://localhost:8000/control/templates.html` | Phase 1A | ✅ 已实现 |
+| **方案管理** | `plans.html` | `http://localhost:8000/control/plans.html` | Phase 1B | ✅ 已实现 |
+| **并行仿真** | `simulations.html` | `http://localhost:8000/control/simulations.html` | Phase 2-3 | ✅ 已实现 |
+| **方案优化** | `optimization.html` | `http://localhost:8000/control/optimization.html` | Phase 4 | 🔜 待实现 |
+
+**后端配置** (api/main.py):
+```python
+from fastapi.staticfiles import StaticFiles
+
+# 挂载整个frontend目录到根路径
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+```
+
+**路径映射**:
+- 物理文件: `frontend/control/plans.html`
+- 访问URL: `http://localhost:8000/control/plans.html`
+- 浏览器请求 `/control/plans.html` → FastAPI 查找 `frontend/control/plans.html` → 返回文件
+
+**说明**: 由于`frontend`目录挂载到根路径`/`，所有`frontend/control/`下的文件自动映射到`/control/`URL路径
+
+---
+
 ### 4.1 方案管理页面（plans.html）
 
 **页面结构**:

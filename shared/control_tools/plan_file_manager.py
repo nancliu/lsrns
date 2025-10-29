@@ -32,6 +32,7 @@ def _generate_plan_id() -> str:
         str: 方案ID
     """
     from random import randint
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     random_suffix = f"{randint(10000, 99999):05d}"
     return f"plan_{timestamp}_{random_suffix}"
@@ -140,14 +141,16 @@ def create_plan(plan_data: Dict[str, Any]) -> str:
 
         # 更新索引
         index = _load_plans_index()
-        index["plans"].append({
-            "plan_id": plan_id,
-            "plan_name": metadata["plan_name"],
-            "is_baseline": plan_id == "baseline_plan",
-            "strategy_count": len(metadata["strategy_ids"]),
-            "tags": metadata["tags"],
-            "created_at": now,
-        })
+        index["plans"].append(
+            {
+                "plan_id": plan_id,
+                "plan_name": metadata["plan_name"],
+                "is_baseline": plan_id == "baseline_plan",
+                "strategy_count": len(metadata["strategy_ids"]),
+                "tags": metadata["tags"],
+                "created_at": now,
+            }
+        )
         _save_plans_index(index)
 
         logger.info(f"方案创建成功: {plan_id}")
@@ -267,10 +270,7 @@ def delete_plan(plan_id: str) -> None:
 
         # 更新索引
         index = _load_plans_index()
-        index["plans"] = [
-            item for item in index["plans"]
-            if item["plan_id"] != plan_id
-        ]
+        index["plans"] = [item for item in index["plans"] if item["plan_id"] != plan_id]
         _save_plans_index(index)
 
         logger.info(f"方案删除成功: {plan_id}")
@@ -310,10 +310,7 @@ def list_plans(filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]
     # 标签过滤
     if "tags" in filters and filters["tags"]:
         filter_tags = set(filters["tags"])
-        filtered_plans = [
-            p for p in filtered_plans
-            if filter_tags & set(p.get("tags", []))
-        ]
+        filtered_plans = [p for p in filtered_plans if filter_tags & set(p.get("tags", []))]
 
     # 场景过滤（需要加载完整元数据）
     if "target_scenario" in filters and filters["target_scenario"]:
@@ -380,9 +377,7 @@ def regenerate_plan_xml(plan_id: str) -> None:
 
     # 生成XML
     xml_content = generate_plan_additional(
-        plan_id=plan_id,
-        plan_name=metadata["plan_name"],
-        strategies=strategies
+        plan_id=plan_id, plan_name=metadata["plan_name"], strategies=strategies
     )
 
     # 保存XML
@@ -426,12 +421,10 @@ def ensure_baseline_plan_exists() -> None:
             "strategy_ids": [],
             "tags": ["基准", "无管控"],
             "target_scenario": "所有场景",
-            "expected_effects": {
-                "baseline": "提供基准数据用于对比"
-            },
+            "expected_effects": {"baseline": "提供基准数据用于对比"},
             "additional_file_path": f"control_data/plans/{BASELINE_PLAN_ID}/control.add.xml",
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
         }
 
         # 保存元数据
@@ -445,23 +438,25 @@ def ensure_baseline_plan_exists() -> None:
         # 生成空XML
         empty_xml = (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<additional>\n'
-            '    <!-- 基准方案：无管控 -->\n'
-            '</additional>'
+            "<additional>\n"
+            "    <!-- 基准方案：无管控 -->\n"
+            "</additional>"
         )
         with open(baseline_path / "control.add.xml", "w", encoding="utf-8") as f:
             f.write(empty_xml)
 
         # 更新索引
         index = _load_plans_index()
-        index["plans"].append({
-            "plan_id": BASELINE_PLAN_ID,
-            "plan_name": baseline_plan["plan_name"],
-            "is_baseline": True,
-            "strategy_count": 0,
-            "tags": baseline_plan["tags"],
-            "created_at": now,
-        })
+        index["plans"].append(
+            {
+                "plan_id": BASELINE_PLAN_ID,
+                "plan_name": baseline_plan["plan_name"],
+                "is_baseline": True,
+                "strategy_count": 0,
+                "tags": baseline_plan["tags"],
+                "created_at": now,
+            }
+        )
         _save_plans_index(index)
 
         logger.info("全局基准方案创建成功")

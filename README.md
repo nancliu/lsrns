@@ -119,6 +119,15 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
    - 仿真配置模板（microscopic、mesoscopic）
    - 车型模板配置（vehicle_types.json）
 
+
+6. **交通管控策略** (v1.0 新增)
+   - **策略实例管理**: VSS（可变限速）、DHS（动态硬路肩）、TEC（收费站管控）
+   - **方案管理**: 多策略组合方案创建、验证、XML自动生成
+   - **批量优化仿真**: 多方案并行仿真、实时进度监控
+   - **结果对比分析**: 聚合统计、峰值曲线可视化（Chart.js）
+   - **智能提示**: 路段选择提示、策略验证警告
+   - **基准方案**: 自动创建基准方案作为对比基准
+
 ### API接口（按业务分组）
 
 - **数据处理**: `POST /api/v1/process_od_data/`
@@ -133,6 +142,13 @@ OD数据处理与仿真系统是一个基于案例管理的交通仿真分析平
   - 分析历史: `GET /api/v1/analysis/analysis_history/{case_id}`
 - **模板管理**: `GET /api/v1/templates/{template_type}`
 - **文件管理**: `GET /api/v1/file_info/{file_path}`
+
+- **交通管控策略**: 
+  - 策略管理: `GET /api/v1/control/strategies/instances`
+  - 方案管理: `GET/POST/PUT/DELETE /api/v1/control/plans/`
+  - 批量仿真: `POST /api/v1/control/optimization/batch`
+  - 仿真进度: `GET /api/v1/control/optimization/batch/{batch_id}/progress`
+  - 仿真结果: `GET /api/v1/control/optimization/batch/{batch_id}/results`
 
 ## 项目结构
 

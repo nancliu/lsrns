@@ -40,13 +40,15 @@ def get_max_concurrent_simulations() -> int:
     concurrent = int(cpu_count * 0.75)
     result = max(4, min(80, concurrent))
 
-    logger.info(f"Dynamic concurrency: {cpu_count} CPUs * 0.75 = {concurrent}, using {result}")
+    # 只在DEBUG级别记录（避免频繁日志）
+    logger.debug(f"Dynamic concurrency: {cpu_count} CPUs * 0.75 = {concurrent}, using {result}")
     return result
 
 
 @dataclass
 class BatchTask:
     """批量仿真任务数据类"""
+
     task_id: str
     plan_id: str
     plan_name: str
@@ -56,13 +58,14 @@ class BatchTask:
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     error: Optional[str] = None
+    progress: int = 0  # 仿真进度百分比 (0-100)
 
     def to_dict(self) -> Dict:
         """转换为字典"""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'BatchTask':
+    def from_dict(cls, data: Dict) -> "BatchTask":
         """从字典创建"""
         return cls(**data)
 
@@ -87,7 +90,7 @@ class BatchSimulationScheduler:
         plan_ids: List[str],
         plan_names: Dict[str, str],
         num_seeds: int = 3,
-        base_seed: int = 66
+        base_seed: int = 66,
     ) -> Tuple[str, Path]:
         """
         创建批量仿真批次
@@ -123,7 +126,7 @@ class BatchSimulationScheduler:
                     task_id=f"task_{task_counter:03d}",
                     plan_id=plan_id,
                     plan_name=plan_name,
-                    seed=seed
+                    seed=seed,
                 )
                 tasks.append(task)
                 task_counter += 1
@@ -140,7 +143,7 @@ class BatchSimulationScheduler:
             "progress": 0.0,
             "created_at": datetime.now().isoformat(),
             "started_at": None,
-            "completed_at": None
+            "completed_at": None,
         }
 
         metadata_path = batch_dir / "batch_metadata.json"
@@ -157,7 +160,7 @@ class BatchSimulationScheduler:
             "failed_tasks": 0,
             "running_tasks": 0,
             "tasks": [task.to_dict() for task in tasks],
-            "updated_at": datetime.now().isoformat()
+            "updated_at": datetime.now().isoformat(),
         }
 
         progress_path = batch_dir / "batch_progress.json"
@@ -192,11 +195,7 @@ class BatchSimulationScheduler:
             return json.load(f)
 
     def _update_batch_progress(
-        self,
-        case_id: str,
-        batch_id: str,
-        tasks: List[BatchTask],
-        status: str
+        self, case_id: str, batch_id: str, tasks: List[BatchTask], status: str
     ) -> None:
         """
         更新批次进度文件
@@ -212,7 +211,19 @@ class BatchSimulationScheduler:
         failed = sum(1 for t in tasks if t.status == "failed")
         running = sum(1 for t in tasks if t.status == "running")
 
-        progress = completed / total if total > 0 else 0.0
+        # 基于实际仿真进度的计算：汇总所有任务的progress字段
+        # completed: 100%, running: 使用实际progress, pending/failed: 0%
+        if total > 0:
+            total_progress = 0
+            for task in tasks:
+                if task.status == "completed":
+                    total_progress += 100
+                elif task.status == "running":
+                    total_progress += task.progress  # 使用实际进度 (0-100)
+                # pending和failed都是0
+            progress = total_progress / (total * 100)  # 归一化到0-1
+        else:
+            progress = 0.0
 
         progress_data = {
             "batch_id": batch_id,
@@ -223,7 +234,7 @@ class BatchSimulationScheduler:
             "failed_tasks": failed,
             "running_tasks": running,
             "tasks": [task.to_dict() for task in tasks],
-            "updated_at": datetime.now().isoformat()
+            "updated_at": datetime.now().isoformat(),
         }
 
         progress_path = (
@@ -237,7 +248,7 @@ class BatchSimulationScheduler:
         self,
         case_id: str,
         batch_id: str,
-        simulation_service  # Type hint would be circular, use duck typing
+        simulation_service,  # Type hint would be circular, use duck typing
     ) -> None:
         """
         启动批量仿真（异步执行）
@@ -279,7 +290,7 @@ class BatchSimulationScheduler:
                     batch_id=batch_id,
                     task=task,
                     tasks_list=tasks,
-                    simulation_service=simulation_service
+                    simulation_service=simulation_service,
                 )
                 async_tasks.append(async_task)
 
@@ -309,7 +320,7 @@ class BatchSimulationScheduler:
         batch_id: str,
         task: BatchTask,
         tasks_list: List[BatchTask],
-        simulation_service
+        simulation_service,
     ) -> None:
         """
         运行单个仿真任务（带并发控制）
@@ -332,22 +343,35 @@ class BatchSimulationScheduler:
 
                 # 创建仿真目录
                 sim_dir = (
-                    self.base_dir / case_id / "simulations" / "plan_opti" / batch_id /
-                    task.plan_id / f"sim_{task.seed}"
+                    self.base_dir
+                    / case_id
+                    / "simulations"
+                    / "plan_opti"
+                    / batch_id
+                    / task.plan_id
+                    / f"sim_{task.seed}"
                 )
                 sim_dir.mkdir(parents=True, exist_ok=True)
 
-                # TODO: 实际调用simulation_service的prepare和start方法
-                # 这里需要等待Task 2.6完成集成
-                # 暂时模拟成功
-                await asyncio.sleep(0.5)  # 模拟仿真耗时
+                # 调用simulation_service的prepare和start方法执行真实仿真
+                # 同时启动进度监控协程
+                simulation_id, config_file = (
+                    await self._execute_simulation_with_progress_monitoring(
+                        case_id=case_id,
+                        batch_id=batch_id,
+                        task=task,
+                        tasks_list=tasks_list,
+                        simulation_service=simulation_service,
+                    )
+                )
 
                 # 更新任务状态为completed
                 task.status = "completed"
                 task.completed_at = datetime.now().isoformat()
-                task.simulation_id = f"sim_{batch_id}_{task.task_id}"
+                task.simulation_id = simulation_id
+                task.progress = 100  # 确保完成时进度为100%
 
-                logger.info(f"Completed task {task.task_id}")
+                logger.info(f"Completed task {task.task_id}, simulation_id: {simulation_id}")
 
             except Exception as e:
                 # 更新任务状态为failed
@@ -360,6 +384,232 @@ class BatchSimulationScheduler:
             finally:
                 # 更新进度
                 self._update_batch_progress(case_id, batch_id, tasks_list, "running")
+
+    async def _execute_simulation_with_progress_monitoring(
+        self,
+        case_id: str,
+        batch_id: str,
+        task: BatchTask,
+        tasks_list: List[BatchTask],
+        simulation_service,
+    ) -> tuple[str, str]:
+        """
+        执行仿真并监控进度
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+            task: 批次任务对象
+            tasks_list: 所有任务列表（用于更新批次进度）
+            simulation_service: 仿真服务实例
+
+        Returns:
+            tuple[simulation_id, config_file]: 仿真ID和配置文件路径
+        """
+        # 启动进度监控任务
+        monitor_task = asyncio.create_task(
+            self._monitor_simulation_progress(
+                case_id=case_id, batch_id=batch_id, task=task, tasks_list=tasks_list
+            )
+        )
+
+        try:
+            # 执行仿真（这会阻塞直到完成）
+            result = await self._execute_simulation(
+                case_id=case_id, task=task, simulation_service=simulation_service
+            )
+
+            # 仿真完成，停止进度监控
+            monitor_task.cancel()
+            try:
+                await monitor_task
+            except asyncio.CancelledError:
+                pass
+
+            return result
+
+        except Exception as e:
+            # 发生错误，停止进度监控
+            monitor_task.cancel()
+            try:
+                await monitor_task
+            except asyncio.CancelledError:
+                pass
+            raise
+
+    async def _monitor_simulation_progress(
+        self, case_id: str, batch_id: str, task: BatchTask, tasks_list: List[BatchTask]
+    ) -> None:
+        """
+        监控单个仿真的进度并更新批次进度
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+            task: 任务对象
+            tasks_list: 所有任务列表
+        """
+        while True:
+            try:
+                await asyncio.sleep(2)  # 每2秒检查一次
+
+                # 读取仿真进度文件
+                if task.simulation_id:
+                    progress_file = (
+                        self.base_dir
+                        / case_id
+                        / "simulations"
+                        / task.simulation_id
+                        / "progress.json"
+                    )
+
+                    if progress_file.exists():
+                        with open(progress_file, "r", encoding="utf-8") as f:
+                            progress_data = json.load(f)
+                            new_progress = progress_data.get("percent", 0)
+
+                            # 只在进度变化时更新
+                            if new_progress != task.progress:
+                                task.progress = new_progress
+                                # 更新批次进度文件
+                                self._update_batch_progress(
+                                    case_id, batch_id, tasks_list, "running"
+                                )
+
+            except asyncio.CancelledError:
+                # 任务被取消（仿真完成或失败）
+                break
+            except Exception as e:
+                logger.warning(f"Failed to read progress for task {task.task_id}: {e}")
+
+    async def _execute_simulation(
+        self, case_id: str, task: BatchTask, simulation_service
+    ) -> tuple[str, str]:
+        """
+        执行单个仿真任务（prepare + start + wait for completion）
+
+        Args:
+            case_id: 案例ID
+            task: 批次任务对象
+            simulation_service: 仿真服务实例
+
+        Returns:
+            tuple[simulation_id, config_file]: 仿真ID和配置文件路径
+        """
+        from shared.control_tools import plan_file_manager
+        from shared.data_processors.simulation_processor import SimulationProcessor
+        from api.services.base_service import MetadataManager
+        import os
+
+        # 加载方案元数据，获取additional_file_path
+        plan_metadata = plan_file_manager.get_plan(task.plan_id)
+        additional_file_path = plan_metadata.get("additional_file_path", "")
+
+        # 构建SimulationRequest
+        from api.models.requests.simulation_requests import SimulationRequest
+        from api.models.enums import SimulationType
+
+        simulation_params = {
+            "random_seed": task.seed,
+        }
+
+        # 如果方案有additional_file，添加到仿真参数中
+        if additional_file_path:
+            simulation_params["additional_file"] = additional_file_path
+
+        sim_request = SimulationRequest(
+            case_id=case_id,
+            gui=False,
+            simulation_type=SimulationType.MICROSCOPIC,
+            simulation_name=f"{task.plan_name}_seed{task.seed}",
+            simulation_description=f"Plan {task.plan_id} with seed {task.seed}",
+            simulation_params=simulation_params,
+        )
+
+        # Step 1: Prepare simulation
+        logger.info(f"Preparing simulation for task {task.task_id}")
+        prepare_result = await simulation_service.prepare_simulation(sim_request)
+        simulation_id = prepare_result["simulation_id"]
+        config_file = prepare_result["config_file"]
+        simulation_folder = Path("cases") / case_id / "simulations" / simulation_id
+
+        logger.info(f"Prepared simulation {simulation_id} for task {task.task_id}")
+
+        # Step 2: Run simulation synchronously (wait for completion)
+        # We need to run the simulation directly instead of using start_simulation
+        # which launches it in a background thread
+        logger.info(f"Running simulation {simulation_id} for task {task.task_id}")
+
+        # Create simulation processor and setup SUMO environment
+        sim_processor = SimulationProcessor()
+
+        # Setup SUMO environment
+        sumo_bin_env = os.getenv("SUMO_BIN")
+        sumo_home = os.getenv("SUMO_HOME")
+
+        if sumo_bin_env and os.path.exists(sumo_bin_env):
+            sim_processor.sumo_binary = sumo_bin_env
+        elif sumo_home:
+            sumo_exe = os.path.join(sumo_home, "bin", "sumo.exe")
+            if os.path.exists(sumo_exe):
+                sim_processor.sumo_binary = sumo_exe
+
+        # Load simulation metadata
+        sim_metadata = MetadataManager.load_simulation_metadata(simulation_folder)
+
+        # Build request params
+        request_params = {
+            "run_folder": str(simulation_folder),
+            "gui": False,
+            "mesoscopic": sim_metadata.get("simulation_type") == "mesoscopic",
+            "config_file": config_file,
+            "expected_duration": sim_metadata.get("simulation_params", {}).get("expected_duration"),
+        }
+
+        # Update metadata to running
+        sim_metadata["status"] = "running"
+        sim_metadata["started_at"] = datetime.now().isoformat()
+        MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+
+        # Run simulation in thread pool executor (to avoid blocking async event loop)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None, sim_processor.process_simulation_request, request_params  # Use default executor
+        )
+
+        # Handle result
+        if result.get("success"):
+            # Update metadata to completed
+            sim_metadata = MetadataManager.load_simulation_metadata(simulation_folder)
+            sim_metadata["status"] = "completed"
+            ended_at = datetime.now().isoformat()
+            sim_metadata["completed_at"] = ended_at
+
+            # Calculate duration
+            try:
+                start_time = datetime.fromisoformat(sim_metadata["started_at"])
+                end_time = datetime.fromisoformat(ended_at)
+                duration = (end_time - start_time).total_seconds()
+                sim_metadata["duration"] = int(duration)
+            except:
+                pass
+
+            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+
+            logger.info(
+                f"Simulation {simulation_id} completed successfully for task {task.task_id}"
+            )
+        else:
+            # Handle failure
+            sim_metadata = MetadataManager.load_simulation_metadata(simulation_folder)
+            sim_metadata["status"] = "failed"
+            sim_metadata["completed_at"] = datetime.now().isoformat()
+            sim_metadata["error"] = "仿真执行失败"
+            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+
+            raise Exception("仿真执行失败")
+
+        return simulation_id, config_file
 
     def cancel_batch(self, case_id: str, batch_id: str) -> None:
         """
@@ -398,9 +648,7 @@ class BatchSimulationScheduler:
         logger.info(f"Cancelled batch {batch_id}: {cancelled_count} tasks cancelled")
 
     def _calculate_estimated_completion(
-        self,
-        tasks: List[BatchTask],
-        avg_task_duration_seconds: float = 300.0
+        self, tasks: List[BatchTask], avg_task_duration_seconds: float = 300.0
     ) -> Optional[str]:
         """
         计算预计完成时间

@@ -21,14 +21,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadPlans();
 
     // 绑定事件
-    document.getElementById('caseSelect').addEventListener('change', onCaseChange);
-    document.getElementById('startBatchBtn').addEventListener('click', startBatch);
+    document.getElementById('caseSelector').addEventListener('change', onCaseChange);
+    document.getElementById('createBatchBtn').addEventListener('click', createBatch);
+    document.getElementById('startBatchBtn').addEventListener('click', startBatchExecution);
     document.getElementById('cancelBatchBtn').addEventListener('click', cancelBatch);
+    document.getElementById('clearConfigBtn').addEventListener('click', clearConfig);
     document.getElementById('backToConfigBtn').addEventListener('click', () => switchView('config'));
-    document.getElementById('viewResultsBtn').addEventListener('click', () => switchView('results'));
+    document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
+    document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
 
     // 计算预估
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
+    document.getElementById('baseSeed').addEventListener('input', updateEstimate);
 });
 
 // ========== 视图切换 ==========
@@ -36,9 +40,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 function switchView(view) {
     currentView = view;
 
-    document.getElementById('configView').style.display = view === 'config' ? 'block' : 'none';
-    document.getElementById('progressView').style.display = view === 'progress' ? 'block' : 'none';
-    document.getElementById('resultsView').style.display = view === 'results' ? 'block' : 'none';
+    // Update views
+    document.getElementById('configView').classList.toggle('active', view === 'config');
+    document.getElementById('progressView').classList.toggle('active', view === 'progress');
+    document.getElementById('resultsView').classList.toggle('active', view === 'results');
+
+    // Update tabs
+    document.getElementById('configViewTab').classList.toggle('active', view === 'config');
+    document.getElementById('progressViewTab').classList.toggle('active', view === 'progress');
+    document.getElementById('resultsViewTab').classList.toggle('active', view === 'results');
 
     if (view === 'progress' && currentBatchId) {
         startProgressPolling();
@@ -59,7 +69,7 @@ async function loadCases() {
         if (!response.ok) throw new Error('Failed to load cases');
 
         const data = await response.json();
-        const select = document.getElementById('caseSelect');
+        const select = document.getElementById('caseSelector');
         select.innerHTML = '<option value="">-- 选择案例 --</option>';
 
         data.cases.forEach(c => {
@@ -80,7 +90,7 @@ async function loadPlans() {
         if (!response.ok) throw new Error('Failed to load plans');
 
         const data = await response.json();
-        const container = document.getElementById('plansList');
+        const container = document.getElementById('planSelector');
         container.innerHTML = '';
 
         data.plans.forEach(plan => {
@@ -114,7 +124,7 @@ async function loadPlans() {
 // ========== 配置和启动 ==========
 
 function getSelectedPlans() {
-    const checkboxes = document.querySelectorAll('#plansList input[type="checkbox"]:checked');
+    const checkboxes = document.querySelectorAll('#planSelector input[type="checkbox"]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
@@ -128,12 +138,21 @@ function updateEstimate() {
 }
 
 async function onCaseChange() {
-    const caseId = document.getElementById('caseSelect').value;
+    const caseId = document.getElementById('caseSelector').value;
     // 可以在这里加载case的特定配置
 }
 
-async function startBatch() {
-    const caseId = document.getElementById('caseSelect').value;
+function clearConfig() {
+    document.getElementById('caseSelector').value = '';
+    const checkboxes = document.querySelectorAll('#planSelector input[type="checkbox"]:not([disabled])');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('numSeeds').value = 3;
+    document.getElementById('baseSeed').value = 66;
+    updateEstimate();
+}
+
+async function createBatch() {
+    const caseId = document.getElementById('caseSelector').value;
     const planIds = getSelectedPlans();
     const numSeeds = parseInt(document.getElementById('numSeeds').value) || 3;
     const baseSeed = parseInt(document.getElementById('baseSeed').value) || 66;
@@ -169,7 +188,25 @@ async function startBatch() {
         const batch = await createResponse.json();
         currentBatchId = batch.batch_id;
 
-        // 启动批次
+        // 切换到进度视图 (批次已创建,等待启动)
+        updateBatchInfo(batch);
+        document.getElementById('startBatchBtn').style.display = 'inline-block';
+        document.getElementById('cancelBatchBtn').style.display = 'none';
+        switchView('progress');
+
+        // 显示提示，引导用户点击启动按钮
+        showSuccess('批次创建成功！请点击"启动仿真"按钮开始执行。');
+
+    } catch (error) {
+        console.error('Create batch error:', error);
+        showError('创建批次失败: ' + error.message);
+    }
+}
+
+async function startBatchExecution() {
+    if (!currentBatchId) return;
+
+    try {
         const startResponse = await fetch(
             `${API_BASE}/control/optimization/batch/${currentBatchId}/start`,
             { method: 'POST' }
@@ -179,13 +216,32 @@ async function startBatch() {
             throw new Error('Failed to start batch');
         }
 
-        // 切换到进度视图
-        switchView('progress');
+        // 隐藏启动按钮,显示取消按钮
+        document.getElementById('startBatchBtn').style.display = 'none';
+        document.getElementById('cancelBatchBtn').style.display = 'inline-block';
+
+        // 开始轮询进度
+        startProgressPolling();
 
     } catch (error) {
-        console.error('Start batch error:', error);
-        showError('启动批量仿真失败: ' + error.message);
+        console.error('Start batch execution error:', error);
+        showError('启动仿真失败: ' + error.message);
     }
+}
+
+function updateBatchInfo(batch) {
+    document.getElementById('batchTitle').textContent = `批次: ${batch.batch_id}`;
+
+    // 根据状态显示不同的提示
+    const statusMap = {
+        'pending': '等待启动（请点击下方"启动仿真"按钮）',
+        'running': '运行中...',
+        'completed': '已完成',
+        'failed': '失败',
+        'cancelled': '已取消'
+    };
+    const statusText = statusMap[batch.status] || batch.status || statusMap['pending'];
+    document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
 }
 
 // ========== 进度监控 ==========
@@ -216,20 +272,51 @@ async function updateProgress() {
 
         const data = await response.json();
 
+        // 更新批次信息（使用statusMap保持一致性）
+        const statusMap = {
+            'pending': '等待启动（请点击下方"启动仿真"按钮）',
+            'running': '运行中...',
+            'completed': '已完成',
+            'failed': '失败',
+            'cancelled': '已取消'
+        };
+        const statusText = statusMap[data.status] || data.status;
+        document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
+
         // 更新总进度
         const progressPct = (data.progress * 100).toFixed(0);
-        document.getElementById('progressBar').style.width = `${progressPct}%`;
-        document.getElementById('progressText').textContent =
-            `${progressPct}% (${data.completed_tasks}/${data.total_tasks})`;
+
+        // 计算并显示详细的任务进度
+        const runningTasks = data.tasks.filter(t => t.status === 'running');
+        const taskProgressInfo = runningTasks.map(t => `${t.task_id}:${t.progress}%`).join(', ');
+        console.log(`Batch progress: ${progressPct}% | Completed: ${data.completed_tasks}/${data.total_tasks} | Running: [${taskProgressInfo}]`);
+
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        if (progressBar) {
+            progressBar.style.width = `${progressPct}%`;
+        } else {
+            console.error('progressBar element not found!');
+        }
+
+        if (progressText) {
+            progressText.textContent = `${progressPct}%`;
+        } else {
+            console.error('progressText element not found!');
+        }
 
         // 更新任务详情
-        renderTaskList(data.tasks);
+        renderTaskList(data.tasks || []);
 
-        // 如果完成，停止轮询并显示查看结果按钮
-        if (data.status === 'completed' || data.status === 'failed') {
+        // 如果完成，停止轮询并自动切换到结果视图
+        if (data.status === 'completed') {
             stopProgressPolling();
-            document.getElementById('viewResultsBtn').style.display =
-                data.status === 'completed' ? 'inline-block' : 'none';
+            document.getElementById('cancelBatchBtn').style.display = 'none';
+            setTimeout(() => switchView('results'), 1000);
+        } else if (data.status === 'failed' || data.status === 'cancelled') {
+            stopProgressPolling();
+            document.getElementById('cancelBatchBtn').style.display = 'none';
         }
 
     } catch (error) {
@@ -250,8 +337,13 @@ function renderTaskList(tasks) {
         grouped[task.plan_id].tasks.push(task);
     });
 
-    const container = document.getElementById('tasksList');
+    const container = document.getElementById('taskList');
     container.innerHTML = '';
+
+    if (tasks.length === 0) {
+        container.innerHTML = '<p class="empty-state">暂无任务</p>';
+        return;
+    }
 
     for (const [planId, planData] of Object.entries(grouped)) {
         const planDiv = document.createElement('div');
@@ -266,9 +358,37 @@ function renderTaskList(tasks) {
             taskDiv.className = `task-item task-${task.status}`;
 
             const icon = getStatusIcon(task.status);
-            const text = `Seed ${task.seed}: ${getStatusText(task.status)}`;
+            const statusText = getStatusText(task.status);
 
-            taskDiv.innerHTML = `<span class="task-icon">${icon}</span> ${text}`;
+            // 构建任务显示内容
+            let content = `<span class="task-icon">${icon}</span> Seed ${task.seed}: ${statusText}`;
+
+            // 如果任务正在运行且有进度，显示进度条
+            if (task.status === 'running' && task.progress > 0) {
+                content += `
+                    <div class="task-progress-bar" style="
+                        margin-top: 5px;
+                        height: 8px;
+                        background: #ecf0f1;
+                        border-radius: 4px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            height: 100%;
+                            width: ${task.progress}%;
+                            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+                            transition: width 0.3s;
+                        "></div>
+                    </div>
+                    <div class="task-progress-text" style="
+                        font-size: 0.85em;
+                        color: #7f8c8d;
+                        margin-top: 2px;
+                    ">${task.progress}%</div>
+                `;
+            }
+
+            taskDiv.innerHTML = content;
             planDiv.appendChild(taskDiv);
         });
 
@@ -323,14 +443,16 @@ async function loadResults() {
     if (!currentBatchId) return;
 
     try {
+        // 请求包含时序数据的结果
         const response = await fetch(
-            `${API_BASE}/control/optimization/batch/${currentBatchId}/results`
+            `${API_BASE}/control/optimization/batch/${currentBatchId}/results?include_time_series=true`
         );
 
         if (!response.ok) throw new Error('Failed to load results');
 
         const data = await response.json();
         renderResults(data);
+        renderPeakCurveChart(data);
 
     } catch (error) {
         console.error('Load results error:', error);
@@ -339,10 +461,11 @@ async function loadResults() {
 }
 
 function renderResults(data) {
-    const container = document.getElementById('resultsTable');
+    const container = document.getElementById('comparisonTable');
 
     // 创建表格
     let html = `
+        <h3>方案对比结果</h3>
         <table>
             <thead>
                 <tr>
@@ -373,6 +496,195 @@ function renderResults(data) {
 
     html += '</tbody></table>';
     container.innerHTML = html;
+}
+
+// ========== 在网车辆峰值曲线图表 ==========
+
+let peakCurveChartInstance = null; // 保存Chart实例
+
+function renderPeakCurveChart(data) {
+    // 检查是否有时序数据
+    const hasTimeSeries = data.plan_results.some(plan => plan.time_series);
+
+    if (!hasTimeSeries) {
+        document.getElementById('peakCurveSection').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('peakCurveSection').style.display = 'block';
+
+    // 准备图表数据
+    const datasets = [];
+    const colors = [
+        'rgb(54, 162, 235)',   // 蓝色 - 基准
+        'rgb(75, 192, 192)',   // 绿色 - 方案1
+        'rgb(255, 159, 64)',   // 橙色 - 方案2
+        'rgb(153, 102, 255)',  // 紫色 - 方案3
+        'rgb(255, 99, 132)',   // 红色 - 方案4
+    ];
+
+    let timePoints = null;
+    const peakMetrics = [];
+
+    data.plan_results.forEach((plan, index) => {
+        if (!plan.time_series || !plan.time_series.running) return;
+
+        // 使用第一个方案的时间点
+        if (!timePoints) {
+            timePoints = plan.time_series.time_points;
+        }
+
+        const runningMean = plan.time_series.running.mean;
+
+        // 计算峰值指标
+        const maxRunning = Math.max(...runningMean);
+        const maxIndex = runningMean.indexOf(maxRunning);
+        const peakTime = timePoints[maxIndex];
+        const avgRunning = runningMean.reduce((a, b) => a + b, 0) / runningMean.length;
+
+        peakMetrics.push({
+            plan_name: plan.plan_name,
+            max_running: maxRunning,
+            peak_time: peakTime,
+            avg_running: avgRunning
+        });
+
+        // 添加数据集
+        datasets.push({
+            label: plan.plan_name,
+            data: runningMean,
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 0,
+            fill: false
+        });
+    });
+
+    // 转换时间点为小时:分钟格式
+    const timeLabels = timePoints.map(t => {
+        const hours = Math.floor(t / 3600);
+        const minutes = Math.floor((t % 3600) / 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    });
+
+    // 销毁旧图表实例
+    if (peakCurveChartInstance) {
+        peakCurveChartInstance.destroy();
+    }
+
+    // 创建图表
+    const ctx = document.getElementById('peakCurveChart').getContext('2d');
+    peakCurveChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                title: {
+                    display: true,
+                    text: '在网车辆峰值曲线对比',
+                    font: {
+                        size: 16
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return '时间: ' + context[0].label;
+                        },
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y.toFixed(0) + ' 辆';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: '仿真时间'
+                    },
+                    ticks: {
+                        maxTicksLimit: 20
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: '在网车辆数 (辆)'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // 渲染峰值指标卡片
+    renderPeakMetrics(peakMetrics);
+}
+
+function renderPeakMetrics(metrics) {
+    const container = document.getElementById('peakMetrics');
+
+    let html = '';
+    metrics.forEach(metric => {
+        const peakHours = Math.floor(metric.peak_time / 3600);
+        const peakMinutes = Math.floor((metric.peak_time % 3600) / 60);
+        const peakTimeStr = `${peakHours.toString().padStart(2, '0')}:${peakMinutes.toString().padStart(2, '0')}`;
+
+        html += `
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 10px 0; color: #667eea;">${metric.plan_name}</h4>
+                <div style="font-size: 0.9rem; color: #666;">
+                    <p style="margin: 5px 0;"><strong>峰值车辆数:</strong> ${metric.max_running.toFixed(0)} 辆</p>
+                    <p style="margin: 5px 0;"><strong>峰值时刻:</strong> ${peakTimeStr}</p>
+                    <p style="margin: 5px 0;"><strong>平均车辆数:</strong> ${metric.avg_running.toFixed(0)} 辆</p>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// ========== 结果导出 ==========
+
+async function exportResults() {
+    if (!currentBatchId) return;
+
+    showSuccess('结果导出功能开发中...');
+    // TODO: 实现结果导出为CSV/Excel
+}
+
+// ========== 导航到优化页面 ==========
+
+function viewOptimizationAnalysis() {
+    if (!currentBatchId) {
+        showError('未找到批次ID');
+        return;
+    }
+
+    // 跳转到方案优化页面，传递 batch_id 参数
+    window.location.href = `optimization.html?batch_id=${currentBatchId}`;
 }
 
 // ========== 工具函数 ==========

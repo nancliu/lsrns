@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通用时段策略配置器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+        }
+
+        .scenario-selector {
+            padding: 8px 16px;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .scenario-selector:hover {
+            background: #eff6ff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 8px 12px;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        /* 策略管理面板 */
+        .strategy-panel {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .strategy-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .strategy-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .strategy-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .strategy-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .strategy-name {
+            font-weight: 600;
+            color: #1f2937;
+            flex: 1;
+        }
+
+        .strategy-color-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-input {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .text-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* 时间轴 */
+        .timeline-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+
+        .timeline {
+            position: relative;
+            height: 120px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .timeline-hours {
+            display: flex;
+            height: 30px;
+            border-bottom: 1px solid #d1d5db;
+        }
+
+        .timeline-hour {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: #6b7280;
+            padding-top: 8px;
+            border-right: 1px solid #e5e7eb;
+        }
+
+        .timeline-slots {
+            position: relative;
+            height: 90px;
+            padding: 5px;
+        }
+
+        .timeline-slot {
+            position: absolute;
+            height: 80px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .timeline-slot:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .timeline-slot-label {
+            font-size: 12px;
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 策略图例 */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-label {
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        /* 时段列表 */
+        .slot-list {
+            margin-bottom: 20px;
+        }
+
+        .slot-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .slot-item:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }
+
+        .slot-field {
+            flex: 1;
+        }
+
+        .slot-label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+
+        .slot-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .slot-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .slot-color-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        /* 配置预览 */
+        .config-preview {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .config-code {
+            background: white;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1 id="configTitle">通用时段策略配置器</h1>
+                <select class="scenario-selector" id="scenarioSelector" onchange="loadScenario(this.value)">
+                    <option value="custom">自定义场景</option>
+                    <option value="traffic">交通管控</option>
+                    <option value="hvac">空调控制</option>
+                    <option value="lighting">照明控制</option>
+                    <option value="security">安全等级</option>
+                    <option value="resource">资源分配</option>
+                </select>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="importConfig()">📥 导入配置</button>
+                <button class="btn btn-success" onclick="exportConfig()">💾 导出配置</button>
+            </div>
+        </div>
+
+        <!-- 策略管理面板 -->
+        <div class="strategy-panel">
+            <div class="strategy-panel-header">
+                <h2 class="section-title" style="margin: 0;">策略定义</h2>
+                <button class="btn btn-primary" onclick="showAddStrategyModal()">➕ 添加策略</button>
+            </div>
+            <div class="strategy-grid" id="strategyGrid"></div>
+        </div>
+
+        <!-- 时间轴可视化 -->
+        <div class="timeline-section">
+            <h2 class="section-title">时间轴视图</h2>
+            <div class="timeline">
+                <div class="timeline-hours" id="timelineHours"></div>
+                <div class="timeline-slots" id="timelineSlots"></div>
+            </div>
+        </div>
+
+        <!-- 策略图例 -->
+        <div class="timeline-section">
+            <h2 class="section-title">当前策略</h2>
+            <div class="legend" id="legend"></div>
+        </div>
+
+        <!-- 时段配置 -->
+        <div class="timeline-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 class="section-title" style="margin: 0;">时段配置</h2>
+                <button class="btn btn-primary" onclick="addTimeSlot()">➕ 添加时段</button>
+            </div>
+            <div class="slot-list" id="slotList"></div>
+        </div>
+
+        <!-- 配置预览 -->
+        <div class="config-preview">
+            <h2 class="section-title">配置预览（JSON）</h2>
+            <div class="config-code" id="configPreview"></div>
+        </div>
+    </div>
+
+    <!-- 添加策略Modal -->
+    <div class="modal" id="addStrategyModal">
+        <div class="modal-content">
+            <h2 class="modal-header">添加新策略</h2>
+            <div class="form-group">
+                <label class="form-label">策略名称</label>
+                <input type="text" class="text-input" id="newStrategyName" placeholder="例如：高峰时段">
+            </div>
+            <div class="form-group">
+                <label class="form-label">策略颜色</label>
+                <input type="color" class="color-input" id="newStrategyColor" value="#3b82f6">
+            </div>
+            <div class="form-group">
+                <label class="form-label">策略描述（可选）</label>
+                <input type="text" class="text-input" id="newStrategyDesc" placeholder="描述这个策略的用途">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddStrategyModal()">取消</button>
+                <button class="btn btn-primary" onclick="addStrategy()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="fileInput" class="file-input" accept=".json" onchange="handleFileImport(event)">
+
+    <script>
+        // 预设场景模板
+        const scenarioTemplates = {
+            traffic: {
+                title: '交通管控策略配置',
+                strategies: [
+                    { id: 'green_wave', name: '绿波协调', color: '#10b981', desc: '优化信号灯相位差实现连续通行' },
+                    { id: 'peak_control', name: '高峰管控', color: '#ef4444', desc: '早晚高峰时段的流量控制' },
+                    { id: 'normal', name: '常规放行', color: '#3b82f6', desc: '正常通行模式' },
+                    { id: 'night_mode', name: '夜间模式', color: '#8b5cf6', desc: '低流量夜间运行模式' },
+                    { id: 'emergency', name: '应急响应', color: '#f59e0b', desc: '紧急情况快速响应' },
+                ],
+                defaultSlots: [
+                    { startTime: '07:00', endTime: '09:00', strategy: 'peak_control' },
+                    { startTime: '09:00', endTime: '17:00', strategy: 'normal' },
+                    { startTime: '17:00', endTime: '19:00', strategy: 'peak_control' },
+                    { startTime: '19:00', endTime: '23:00', strategy: 'green_wave' },
+                    { startTime: '23:00', endTime: '07:00', strategy: 'night_mode' },
+                ]
+            },
+            hvac: {
+                title: '空调控制策略配置',
+                strategies: [
+                    { id: 'comfort', name: '舒适模式', color: '#10b981', desc: '最佳舒适温度' },
+                    { id: 'eco', name: '节能模式', color: '#3b82f6', desc: '降低能耗' },
+                    { id: 'sleep', name: '睡眠模式', color: '#8b5cf6', desc: '夜间睡眠温度' },
+                    { id: 'away', name: '外出模式', color: '#6b7280', desc: '无人时最小运行' },
+                    { id: 'boost', name: '强力模式', color: '#ef4444', desc: '快速调温' },
+                ],
+                defaultSlots: [
+                    { startTime: '06:00', endTime: '08:00', strategy: 'comfort' },
+                    { startTime: '08:00', endTime: '18:00', strategy: 'away' },
+                    { startTime: '18:00', endTime: '23:00', strategy: 'comfort' },
+                    { startTime: '23:00', endTime: '06:00', strategy: 'sleep' },
+                ]
+            },
+            lighting: {
+                title: '照明控制策略配置',
+                strategies: [
+                    { id: 'bright', name: '明亮模式', color: '#fbbf24', desc: '全亮度照明' },
+                    { id: 'dim', name: '柔和模式', color: '#fb923c', desc: '50%亮度' },
+                    { id: 'night', name: '夜灯模式', color: '#8b5cf6', desc: '低亮度照明' },
+                    { id: 'off', name: '关闭', color: '#1f2937', desc: '关闭照明' },
+                    { id: 'auto', name: '自动模式', color: '#3b82f6', desc: '根据光线自动调节' },
+                ],
+                defaultSlots: [
+                    { startTime: '06:00', endTime: '08:00', strategy: 'bright' },
+                    { startTime: '08:00', endTime: '18:00', strategy: 'off' },
+                    { startTime: '18:00', endTime: '22:00', strategy: 'bright' },
+                    { startTime: '22:00', endTime: '23:00', strategy: 'dim' },
+                    { startTime: '23:00', endTime: '06:00', strategy: 'night' },
+                ]
+            },
+            security: {
+                title: '安全等级策略配置',
+                strategies: [
+                    { id: 'high', name: '高级别', color: '#ef4444', desc: '最高安全级别' },
+                    { id: 'medium', name: '中级别', color: '#f59e0b', desc: '标准安全级别' },
+                    { id: 'low', name: '低级别', color: '#10b981', desc: '基础安全级别' },
+                    { id: 'maintenance', name: '维护模式', color: '#6b7280', desc: '维护状态' },
+                ],
+                defaultSlots: [
+                    { startTime: '00:00', endTime: '06:00', strategy: 'high' },
+                    { startTime: '06:00', endTime: '18:00', strategy: 'medium' },
+                    { startTime: '18:00', endTime: '22:00', strategy: 'medium' },
+                    { startTime: '22:00', endTime: '00:00', strategy: 'high' },
+                ]
+            },
+            resource: {
+                title: '资源分配策略配置',
+                strategies: [
+                    { id: 'high_priority', name: '高优先级', color: '#ef4444', desc: '优先分配资源' },
+                    { id: 'normal', name: '正常分配', color: '#3b82f6', desc: '常规资源分配' },
+                    { id: 'low_priority', name: '低优先级', color: '#10b981', desc: '降低资源分配' },
+                    { id: 'reserved', name: '预留模式', color: '#f59e0b', desc: '预留资源' },
+                ],
+                defaultSlots: [
+                    { startTime: '08:00', endTime: '12:00', strategy: 'high_priority' },
+                    { startTime: '12:00', endTime: '14:00', strategy: 'low_priority' },
+                    { startTime: '14:00', endTime: '18:00', strategy: 'high_priority' },
+                    { startTime: '18:00', endTime: '08:00', strategy: 'normal' },
+                ]
+            }
+        };
+
+        // 当前配置
+        let currentScenario = 'custom';
+        let configTitle = '通用时段策略配置';
+        let strategies = [];
+        let timeSlots = [];
+        let nextStrategyId = 1;
+        let nextSlotId = 1;
+
+        // 初始化
+        function init() {
+            renderTimelineHours();
+            loadScenario('custom');
+        }
+
+        // 加载场景
+        function loadScenario(scenarioId) {
+            currentScenario = scenarioId;
+            
+            if (scenarioId === 'custom') {
+                configTitle = '通用时段策略配置';
+                strategies = [
+                    { id: 'strategy_1', name: '策略A', color: '#3b82f6', desc: '' },
+                    { id: 'strategy_2', name: '策略B', color: '#10b981', desc: '' },
+                ];
+                timeSlots = [
+                    { id: 1, startTime: '00:00', endTime: '12:00', strategy: 'strategy_1' },
+                    { id: 2, startTime: '12:00', endTime: '00:00', strategy: 'strategy_2' },
+                ];
+                nextStrategyId = 3;
+                nextSlotId = 3;
+            } else {
+                const template = scenarioTemplates[scenarioId];
+                configTitle = template.title;
+                strategies = JSON.parse(JSON.stringify(template.strategies));
+                timeSlots = template.defaultSlots.map((slot, index) => ({
+                    id: index + 1,
+                    ...slot
+                }));
+                nextStrategyId = strategies.length + 1;
+                nextSlotId = timeSlots.length + 1;
+            }
+
+            document.getElementById('configTitle').textContent = configTitle;
+            document.getElementById('scenarioSelector').value = scenarioId;
+            render();
+        }
+
+        // 渲染时间轴小时标记
+        function renderTimelineHours() {
+            const hoursDiv = document.getElementById('timelineHours');
+            hoursDiv.innerHTML = '';
+            for (let i = 0; i < 24; i++) {
+                const hourDiv = document.createElement('div');
+                hourDiv.className = 'timeline-hour';
+                hourDiv.textContent = i.toString().padStart(2, '0');
+                hoursDiv.appendChild(hourDiv);
+            }
+        }
+
+        // 渲染策略管理面板
+        function renderStrategyGrid() {
+            const gridDiv = document.getElementById('strategyGrid');
+            gridDiv.innerHTML = strategies.map(strategy => `
+                <div class="strategy-card">
+                    <div class="strategy-card-header">
+                        <div class="strategy-name">${strategy.name}</div>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" 
+                                onclick="deleteStrategy('${strategy.id}')">删除</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-size: 12px;">名称</label>
+                        <input type="text" class="text-input" value="${strategy.name}" 
+                               onchange="updateStrategy('${strategy.id}', 'name', this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-size: 12px;">颜色</label>
+                        <div class="strategy-color-picker">
+                            <input type="color" class="color-input" value="${strategy.color}"
+                                   onchange="updateStrategy('${strategy.id}', 'color', this.value)">
+                            <input type="text" class="text-input" value="${strategy.color}" readonly>
+                        </div>
+                    </div>
+                    ${strategy.desc !== undefined ? `
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" style="font-size: 12px;">描述</label>
+                            <input type="text" class="text-input" value="${strategy.desc || ''}" 
+                                   onchange="updateStrategy('${strategy.id}', 'desc', this.value)"
+                                   placeholder="可选">
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // 渲染图例
+        function renderLegend() {
+            const legendDiv = document.getElementById('legend');
+            legendDiv.innerHTML = strategies.map(strategy => `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: ${strategy.color};"></div>
+                    <span class="legend-label">${strategy.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // 转换时间为小时数
+        function timeToHours(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            return hours + minutes / 60;
+        }
+
+        // 获取策略
+        function getStrategy(strategyId) {
+            return strategies.find(s => s.id === strategyId) || strategies[0];
+        }
+
+        // 渲染时间轴槽位
+        function renderTimelineSlots() {
+            const slotsDiv = document.getElementById('timelineSlots');
+            slotsDiv.innerHTML = '';
+
+            timeSlots.forEach(slot => {
+                const start = timeToHours(slot.startTime);
+                const end = timeToHours(slot.endTime);
+                const strategy = getStrategy(slot.strategy);
+
+                if (!strategy) return;
+
+                // 处理跨午夜的情况
+                const segments = end <= start 
+                    ? [{ start: start, end: 24 }, { start: 0, end: end }]
+                    : [{ start: start, end: end }];
+
+                segments.forEach(seg => {
+                    const left = (seg.start / 24) * 100;
+                    const width = ((seg.end - seg.start) / 24) * 100;
+
+                    const slotDiv = document.createElement('div');
+                    slotDiv.className = 'timeline-slot';
+                    slotDiv.style.left = `${left}%`;
+                    slotDiv.style.width = `${width}%`;
+                    slotDiv.style.background = strategy.color;
+                    slotDiv.style.opacity = '0.7';
+                    slotDiv.title = `${slot.startTime}-${slot.endTime}: ${strategy.name}`;
+                    slotDiv.innerHTML = `<div class="timeline-slot-label">${strategy.name}</div>`;
+                    
+                    slotsDiv.appendChild(slotDiv);
+                });
+            });
+        }
+
+        // 渲染时段列表
+        function renderSlotList() {
+            const listDiv = document.getElementById('slotList');
+            listDiv.innerHTML = timeSlots.map(slot => {
+                const strategy = getStrategy(slot.strategy);
+                if (!strategy) return '';
+                
+                return `
+                    <div class="slot-item">
+                        <div class="slot-field">
+                            <label class="slot-label">开始时间</label>
+                            <input type="time" class="slot-input" value="${slot.startTime}" 
+                                   onchange="updateSlot(${slot.id}, 'startTime', this.value)">
+                        </div>
+                        <div class="slot-field">
+                            <label class="slot-label">结束时间</label>
+                            <input type="time" class="slot-input" value="${slot.endTime}"
+                                   onchange="updateSlot(${slot.id}, 'endTime', this.value)">
+                        </div>
+                        <div class="slot-field">
+                            <label class="slot-label">应用策略</label>
+                            <select class="slot-input" onchange="updateSlot(${slot.id}, 'strategy', this.value)">
+                                ${strategies.map(s => `
+                                    <option value="${s.id}" ${s.id === slot.strategy ? 'selected' : ''}>
+                                        ${s.name}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="slot-color-indicator" style="background: ${strategy.color};"></div>
+                        <button class="btn btn-danger" onclick="deleteSlot(${slot.id})">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 渲染配置预览
+        function renderConfigPreview() {
+            const config = {
+                scenario: currentScenario,
+                title: configTitle,
+                version: '1.0',
+                timestamp: new Date().toISOString(),
+                strategies: strategies,
+                timeSlots: timeSlots.map(slot => ({
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    strategy: slot.strategy,
+                    strategyName: getStrategy(slot.strategy)?.name
+                }))
+            };
+            
+            const previewDiv = document.getElementById('configPreview');
+            previewDiv.textContent = JSON.stringify(config, null, 2);
+        }
+
+        // 全量渲染
+        function render() {
+            renderStrategyGrid();
+            renderLegend();
+            renderTimelineSlots();
+            renderSlotList();
+            renderConfigPreview();
+        }
+
+        // 策略管理
+        function showAddStrategyModal() {
+            document.getElementById('addStrategyModal').classList.add('active');
+        }
+
+        function closeAddStrategyModal() {
+            document.getElementById('addStrategyModal').classList.remove('active');
+            document.getElementById('newStrategyName').value = '';
+            document.getElementById('newStrategyColor').value = '#3b82f6';
+            document.getElementById('newStrategyDesc').value = '';
+        }
+
+        function addStrategy() {
+            const name = document.getElementById('newStrategyName').value.trim();
+            const color = document.getElementById('newStrategyColor').value;
+            const desc = document.getElementById('newStrategyDesc').value.trim();
+
+            if (!name) {
+                alert('请输入策略名称');
+                return;
+            }
+
+            strategies.push({
+                id: `strategy_${nextStrategyId++}`,
+                name: name,
+                color: color,
+                desc: desc
+            });
+
+            closeAddStrategyModal();
+            render();
+        }
+
+        function updateStrategy(id, field, value) {
+            const strategy = strategies.find(s => s.id === id);
+            if (strategy) {
+                strategy[field] = value;
+                render();
+            }
+        }
+
+        function deleteStrategy(id) {
+            // 检查是否有时段在使用这个策略
+            const inUse = timeSlots.some(slot => slot.strategy === id);
+            if (inUse) {
+                alert('该策略正在被使用，无法删除。请先修改相关时段的策略。');
+                return;
+            }
+
+            if (confirm('确定要删除这个策略吗？')) {
+                strategies = strategies.filter(s => s.id !== id);
+                render();
+            }
+        }
+
+        // 时段管理
+        function addTimeSlot() {
+            if (strategies.length === 0) {
+                alert('请先添加至少一个策略');
+                return;
+            }
+
+            timeSlots.push({
+                id: nextSlotId++,
+                startTime: '00:00',
+                endTime: '01:00',
+                strategy: strategies[0].id
+            });
+            render();
+        }
+
+        function deleteSlot(id) {
+            timeSlots = timeSlots.filter(slot => slot.id !== id);
+            render();
+        }
+
+        function updateSlot(id, field, value) {
+            const slot = timeSlots.find(s => s.id === id);
+            if (slot) {
+                slot[field] = value;
+                render();
+            }
+        }
+
+        // 导出配置
+        function exportConfig() {
+            const config = {
+                scenario: currentScenario,
+                title: configTitle,
+                version: '1.0',
+                timestamp: new Date().toISOString(),
+                strategies: strategies,
+                timeSlots: timeSlots.map(slot => ({
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    strategy: slot.strategy,
+                    strategyName: getStrategy(slot.strategy)?.name,
+                    strategyColor: getStrategy(slot.strategy)?.color
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `time-strategy-config-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 导入配置
+        function importConfig() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    
+                    // 验证配置
+                    if (!config.strategies || !config.timeSlots) {
+                        alert('配置文件格式不正确');
+                        return;
+                    }
+
+                    // 加载配置
+                    currentScenario = config.scenario || 'custom';
+                    configTitle = config.title || '通用时段策略配置';
+                    strategies = config.strategies;
+                    timeSlots = config.timeSlots.map((slot, index) => ({
+                        id: index + 1,
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        strategy: slot.strategy
+                    }));
+
+                    nextStrategyId = strategies.length + 1;
+                    nextSlotId = timeSlots.length + 1;
+
+                    document.getElementById('configTitle').textContent = configTitle;
+                    document.getElementById('scenarioSelector').value = currentScenario;
+
+                    render();
+                    alert('配置导入成功！');
+                } catch (error) {
+                    alert('配置文件解析失败：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+
+            // 清空input，允许重复导入同一文件
+            event.target.value = '';
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

@@ -40,27 +40,26 @@ Tasks are organized into 4 phases, with each task designed to deliver user-visib
 ---
 
 ### Task 1.2: Enhanced number input with range validation
-**Status**: Pending
+**Status**: Partially Complete
 **Estimated Effort**: 1.5 hours
 **Dependencies**: None
 
 **Work**:
-- [ ] Update `renderParameterControl()` to detect number type parameters
-- [ ] Add HTML5 input attributes: `type="number"`, `min`, `max`, `step`
-- [ ] Display unit label after input field (extract from `paramSchema.unit`)
-- [ ] Add hint text showing valid range: `范围: {min}-{max} | 单位: {unit}`
+- [x] Update `renderParameterControl()` to detect number type parameters (added 'number' type support)
+- [x] Add HTML5 input attributes: `type="number"`, `min`, `max`, `step`
+- [x] Display unit label after input field (extract from `paramSchema.unit`)
+- [x] Add hint text showing valid range: `范围: {min}-{max} | 单位: {unit}`
 - [ ] Implement onBlur validation for range checking
 - [ ] Show inline error messages for out-of-range values
 
 **Validation**:
-- [ ] Test with `speed_limit` (min=30, max=130, unit="km/h") → Shows range hint
+- [x] Test with `position` parameter (min=0, max=1000, unit="米") → Shows range hint and number input
 - [ ] Enter value 150 → Shows error `值不能大于130`
 - [ ] Enter value 20 → Shows error `值不能小于30`
 - [ ] Enter valid value 80 → No error, validation passes
 
 **Files Modified**:
-- `frontend/control/js/parameter_form.js` - Update `renderParameterControl()`
-- `frontend/control/css/parameter_form.css` - Add `.parameter-hint`, `.parameter-error` styles
+- `frontend/control/templates.html` - Updated number type detection (line 1233)
 
 ---
 
@@ -93,24 +92,52 @@ Tasks are organized into 4 phases, with each task designed to deliver user-visib
 ---
 
 ### Task 1.4: Enum parameter dropdown generator
-**Status**: Pending
+**Status**: Complete
 **Estimated Effort**: 1 hour
 **Dependencies**: None
 
 **Work**:
-- [ ] Detect parameters with `enum_values` or `allowed_values` in schema
-- [ ] Generate `<select>` dropdown with options
-- [ ] Use `label` for display text, `value` for actual value
-- [ ] Pre-select `default_value` from schema
-- [ ] Add help hint explaining each option's meaning
+- [x] Detect parameters with `enum_values` or `allowed_values` in schema
+- [x] Generate `<select>` dropdown with options
+- [x] Use `label` for display text, `value` for actual value
+- [x] Pre-select `default_value` from schema
+- [x] Add help hint explaining each option's meaning
 
 **Validation**:
-- [ ] Test with `applicable_vehicle_types` enum → Shows dropdown with "乘用车", "货车", etc.
-- [ ] Verify default value is pre-selected
-- [ ] Verify selection saves correct value (not label)
+- [x] Test with `weather_condition` enum → Shows dropdown with "大雾", "暴雨", etc. (4 options)
+- [x] Test with `closure_reason` enum → Shows dropdown with 5 options
+- [x] Verify default value is pre-selected (e.g., "fog" for weather_condition)
+- [x] Verify selection saves correct value (not label)
 
 **Files Modified**:
-- `frontend/control/js/parameter_form.js` - Add enum parameter rendering
+- `frontend/control/templates.html` - Added enum parameter rendering (line 1241-1258)
+
+---
+
+### Task 1.5: Array control containers for specialized parameter types
+**Status**: Complete
+**Estimated Effort**: 2 hours
+**Dependencies**: None
+**Added**: 2025-10-28 (during implementation)
+
+**Work**:
+- [x] Add `.step-array-control` container for `step_array` parameters (VSS speed_steps)
+- [x] Add `.interval-array-control` container for `dhs_interval_array` parameters
+- [x] Add `.interval-array-control` container for `tec_interval_array`/`flow_interval_array` parameters
+- [x] Add `.array-control-container` for generic `array` and `edge_array` parameters
+- [x] Wrap textarea elements in appropriate container divs based on parameter type
+- [x] Add context-specific placeholders for each array type
+
+**Validation**:
+- [x] Test with `speed_steps` (step_array) → Shows `.step-array-control` container
+- [x] Test with `intervals` (dhs_interval_array) → Shows `.interval-array-control` container
+- [x] Test with `flow_intervals` (flow_interval_array) → Shows `.interval-array-control` container
+- [x] Test with `lane_configurations` (array) → Shows `.array-control-container`
+- [x] Test with `entrance_edges` (edge_array) → Shows `.array-control-container`
+- [x] Playwright tests detect containers correctly (14/15 tests passing)
+
+**Files Modified**:
+- `frontend/control/templates.html` - Added array control containers (lines 1263-1357)
 
 ---
 

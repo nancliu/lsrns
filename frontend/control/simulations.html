@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>并行仿真 - 交通管控仿真优化系统</title>
+    <title>批量仿真 - 交通管控仿真优化系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
         * {
@@ -284,6 +284,7 @@
             border-radius: 15px;
             overflow: hidden;
             margin: 20px 0;
+            border: 1px solid #bdc3c7;  /* 添加边框，使容器更明显 */
         }
 
         .progress-bar {
@@ -403,7 +404,38 @@
             margin-bottom: 10px;
             color: #95a5a6;
         }
+
+        /* View Tabs */
+        .view-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .view-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #7f8c8d;
+            transition: all 0.3s;
+        }
+
+        .view-tab:hover {
+            color: #667eea;
+        }
+
+        .view-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
     </style>
+    <!-- Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="top-bar">
@@ -416,24 +448,31 @@
             <ul class="sidebar-nav">
                 <li><a href="templates.html">策略管理</a></li>
                 <li><a href="plans.html">方案管理</a></li>
-                <li><a href="simulations.html" class="active">并行仿真</a></li>
+                <li><a href="simulations.html" class="active">批量仿真</a></li>
                 <li><a href="optimization.html">方案优化</a></li>
             </ul>
         </div>
 
         <div class="content-area">
+            <!-- View Tabs -->
+            <div class="view-tabs">
+                <button class="view-tab active" id="configViewTab" onclick="switchView('config')">配置</button>
+                <button class="view-tab" id="progressViewTab" onclick="switchView('progress')">进度</button>
+                <button class="view-tab" id="resultsViewTab" onclick="switchView('results')">结果</button>
+            </div>
+
             <!-- 配置视图 -->
             <div id="configView" class="view active">
                 <div class="content-header">
                     <h2>批量优化仿真</h2>
-                    <p class="content-subtitle">配置和执行多方案并行仿真对比</p>
+                    <p class="content-subtitle">配置和执行多方案批量仿真对比</p>
                 </div>
 
                 <div class="config-section">
                     <h3>选择案例</h3>
                     <div class="form-group">
-                        <label for="caseSelect">案例:</label>
-                        <select id="caseSelect">
+                        <label for="caseSelector">案例:</label>
+                        <select id="caseSelector">
                             <option value="">-- 加载中 --</option>
                         </select>
                     </div>
@@ -441,7 +480,7 @@
 
                 <div class="config-section">
                     <h3>选择方案</h3>
-                    <div id="plansList">
+                    <div id="planSelector">
                         <!-- 动态加载 -->
                     </div>
                 </div>
@@ -464,8 +503,8 @@
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="location.reload()">取消</button>
-                    <button class="btn btn-primary" id="startBatchBtn">开始批量仿真</button>
+                    <button class="btn btn-secondary" id="clearConfigBtn">清除配置</button>
+                    <button class="btn btn-primary" id="createBatchBtn">创建批次</button>
                 </div>
             </div>
 
@@ -476,7 +515,9 @@
                     <p class="content-subtitle">实时监控多方案仿真执行状态</p>
                 </div>
 
-                <div class="progress-header">
+                <div class="progress-header" id="batchInfo">
+                    <h3 id="batchTitle">批次信息</h3>
+                    <p id="batchStatus">状态: 等待启动</p>
                     <div class="progress-bar-container">
                         <div class="progress-bar" id="progressBar">
                             <span id="progressText">0%</span>
@@ -485,14 +526,14 @@
                 </div>
 
                 <div class="tasks-container">
-                    <div id="tasksList">
+                    <div id="taskList">
                         <!-- 动态加载 -->
                     </div>
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn btn-danger" id="cancelBatchBtn">取消批量仿真</button>
-                    <button class="btn btn-primary" id="viewResultsBtn" style="display: none;">查看结果</button>
+                    <button class="btn btn-primary" id="startBatchBtn">启动仿真</button>
+                    <button class="btn btn-danger" id="cancelBatchBtn" style="display: none;">取消批量仿真</button>
                 </div>
             </div>
 
@@ -504,13 +545,30 @@
                 </div>
 
                 <div class="results-container">
-                    <div id="resultsTable">
-                        <!-- 动态加载 -->
+                    <!-- 在网车辆峰值曲线图表 -->
+                    <div class="config-section" id="peakCurveSection" style="display: none;">
+                        <h3>在网车辆峰值曲线</h3>
+                        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <canvas id="peakCurveChart" style="max-height: 400px;"></canvas>
+                        </div>
+                        <div id="peakMetrics" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <!-- 峰值指标将动态填充 -->
+                        </div>
+                    </div>
+
+                    <!-- 方案对比表格 -->
+                    <div class="config-section">
+                        <h3>方案对比表</h3>
+                        <div id="comparisonTable">
+                            <!-- 动态加载 -->
+                        </div>
                     </div>
                 </div>
 
                 <div class="btn-group">
                     <button class="btn btn-secondary" id="backToConfigBtn">返回配置</button>
+                    <button class="btn btn-primary" id="viewOptimizationBtn">查看详细优化分析 →</button>
+                    <button class="btn btn-success" id="exportResultsBtn">导出结果</button>
                 </div>
             </div>
         </div>

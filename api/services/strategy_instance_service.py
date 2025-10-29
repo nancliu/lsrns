@@ -218,9 +218,9 @@ class StrategyInstanceService:
             validation_result = validate_strategy_parameters(
                 parameters_schema=parameters_schema,
                 parameters=request.parameters,
-                strategy_type=strategy_type
+                strategy_type=strategy_type,
             )
-            
+
             if not validation_result.valid:
                 error_messages = [e["message"] for e in validation_result.errors]
                 raise ValueError(f"Parameter validation failed: {'; '.join(error_messages)}")
@@ -395,6 +395,7 @@ class StrategyInstanceService:
         return StrategyDetailResponse(
             strategy_id=strategy["strategy_id"],
             strategy_name=strategy["strategy_name"],
+            description=strategy.get("description"),  # Optional description field
             template_id=strategy["template_id"],
             template_name=template_name,
             strategy_type=strategy_type,
@@ -581,6 +582,16 @@ class StrategyInstanceService:
             },
         )
 
+        # Task 3.2: Auto-propagate updates to referencing plans
+        try:
+            self._propagate_strategy_update_to_plans(strategy_id)
+        except Exception as e:
+            # Log error but don't fail the update
+            logger.error(
+                f"Failed to propagate strategy update to plans: {e}",
+                extra={"strategy_id": strategy_id},
+            )
+
         # Return updated strategy details
         return self.get_strategy(strategy_id)
 
@@ -690,7 +701,9 @@ class StrategyInstanceService:
         )
         return generate_strategy_id()
 
-    def copy_strategy(self, strategy_id: str, new_name: Optional[str] = None) -> StrategyCreateResponse:
+    def copy_strategy(
+        self, strategy_id: str, new_name: Optional[str] = None
+    ) -> StrategyCreateResponse:
         """
         Copy an existing strategy with a new ID and name.
 
@@ -779,8 +792,76 @@ class StrategyInstanceService:
         )
 
         return StrategyCreateResponse(
-            strategy_id=new_strategy_id,
-            message=f"Strategy copied successfully from {strategy_id}"
+            strategy_id=new_strategy_id, message=f"Strategy copied successfully from {strategy_id}"
+        )
+
+    def _propagate_strategy_update_to_plans(self, strategy_id: str) -> None:
+        """
+        Propagate strategy updates to all referencing plans (Task 3.2).
+
+        After a strategy is updated, regenerate control.add.xml for all plans
+        that reference this strategy.
+
+        Args:
+            strategy_id: The updated strategy ID
+
+        Raises:
+            Exception: If plan XML regeneration fails (logged, not raised)
+        """
+        from shared.control_tools.plan_file_manager import (
+            get_plan_strategies,
+            regenerate_plan_xml,
+        )
+
+        # Load strategy metadata to get referenced_by list
+        strategy = load_strategy(strategy_id, self.strategies_dir)
+        if not strategy:
+            return
+
+        # Get plans that reference this strategy
+        referenced_by = strategy.get("referenced_by", [])
+
+        if not referenced_by:
+            logger.info(
+                f"Strategy {strategy_id} is not referenced by any plans, skipping propagation"
+            )
+            return
+
+        # Regenerate XML for each referencing plan
+        success_count = 0
+        failure_count = 0
+
+        for plan_id in referenced_by:
+            try:
+                regenerate_plan_xml(plan_id)
+                success_count += 1
+                logger.info(
+                    f"Regenerated XML for plan {plan_id} after strategy update",
+                    extra={
+                        "plan_id": plan_id,
+                        "strategy_id": strategy_id,
+                    },
+                )
+            except Exception as e:
+                failure_count += 1
+                logger.error(
+                    f"Failed to regenerate XML for plan {plan_id}: {e}",
+                    extra={
+                        "plan_id": plan_id,
+                        "strategy_id": strategy_id,
+                        "error": str(e),
+                    },
+                )
+
+        # Log summary
+        logger.info(
+            f"Strategy update propagated to {success_count}/{len(referenced_by)} plans",
+            extra={
+                "strategy_id": strategy_id,
+                "success_count": success_count,
+                "failure_count": failure_count,
+                "total_plans": len(referenced_by),
+            },
         )
 
     def reindex_strategies(self) -> Dict[str, Any]:

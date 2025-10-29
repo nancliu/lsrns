@@ -10,8 +10,7 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from typing import Dict, Optional, Any
 
 from shared.control_tools import plan_file_manager
 from shared.control_tools import strategy_file_manager
@@ -67,9 +66,7 @@ class ControlPlanService:
 
             # 4. 生成control.add.xml
             xml_content = generate_plan_additional(
-                plan_id=plan_id,
-                plan_name=plan_metadata["plan_name"],
-                strategies=strategies
+                plan_id=plan_id, plan_name=plan_metadata["plan_name"], strategies=strategies
             )
 
             # 5. 保存XML文件
@@ -100,12 +97,12 @@ class ControlPlanService:
                             "type": w.type,
                             "severity": w.severity,
                             "message": w.message,
-                            "suggestion": w.suggestion
+                            "suggestion": w.suggestion,
                         }
                         for w in validation_result.warnings
                     ],
-                    "suggestions": validation_result.suggestions
-                }
+                    "suggestions": validation_result.suggestions,
+                },
             }
 
             logger.info(f"Plan created successfully: {plan_id}")
@@ -175,10 +172,7 @@ class ControlPlanService:
         try:
             plans = plan_file_manager.list_plans(filters)
 
-            return {
-                "plans": plans,
-                "total": len(plans)
-            }
+            return {"plans": plans, "total": len(plans)}
 
         except Exception as e:
             logger.error(f"Failed to list plans: {e}", exc_info=True)
@@ -308,11 +302,7 @@ class ControlPlanService:
         try:
             plan_file_manager.regenerate_plan_xml(plan_id)
 
-            return {
-                "regenerated": True,
-                "plan_id": plan_id,
-                "message": "XML文件已重新生成"
-            }
+            return {"regenerated": True, "plan_id": plan_id, "message": "XML文件已重新生成"}
 
         except Exception as e:
             logger.error(f"Failed to regenerate XML [{plan_id}]: {e}", exc_info=True)
@@ -348,11 +338,11 @@ class ControlPlanService:
                         "type": w.type,
                         "severity": w.severity,
                         "message": w.message,
-                        "suggestion": w.suggestion
+                        "suggestion": w.suggestion,
                     }
                     for w in validation_result.warnings
                 ],
-                "suggestions": validation_result.suggestions
+                "suggestions": validation_result.suggestions,
             }
 
         except Exception as e:
@@ -412,7 +402,9 @@ class ControlPlanService:
                 # DHS: intervals
                 elif strategy_type == "DHS":
                     for interval in parameters.get("intervals", []):
-                        begin = interval.get("begin_seconds") or interval.get("begin_hours", 0) * 3600
+                        begin = (
+                            interval.get("begin_seconds") or interval.get("begin_hours", 0) * 3600
+                        )
                         end = interval.get("end_seconds") or interval.get("end_hours", 0) * 3600
                         if time_range["earliest"] is None or begin < time_range["earliest"]:
                             time_range["earliest"] = int(begin)
@@ -421,8 +413,12 @@ class ControlPlanService:
 
                 # TEC: flow_intervals or closure_intervals
                 elif strategy_type == "TEC":
-                    for interval in parameters.get("flow_intervals", []) + parameters.get("closure_intervals", []):
-                        begin = interval.get("begin_seconds") or interval.get("begin_hours", 0) * 3600
+                    for interval in parameters.get("flow_intervals", []) + parameters.get(
+                        "closure_intervals", []
+                    ):
+                        begin = (
+                            interval.get("begin_seconds") or interval.get("begin_hours", 0) * 3600
+                        )
                         end = interval.get("end_seconds") or interval.get("end_hours", 0) * 3600
                         if time_range["earliest"] is None or begin < time_range["earliest"]:
                             time_range["earliest"] = int(begin)
@@ -430,13 +426,15 @@ class ControlPlanService:
                             time_range["latest"] = int(end)
 
                 # 添加策略预览信息
-                strategy_preview_list.append({
-                    "strategy_id": strategy.get("strategy_id"),
-                    "strategy_name": strategy.get("strategy_name"),
-                    "strategy_type": strategy_type,
-                    "affected_objects": affected_edges,
-                    "active_periods": []  # 简化版本，不详细展开时段
-                })
+                strategy_preview_list.append(
+                    {
+                        "strategy_id": strategy.get("strategy_id"),
+                        "strategy_name": strategy.get("strategy_name"),
+                        "strategy_type": strategy_type,
+                        "affected_objects": affected_edges,
+                        "active_periods": [],  # 简化版本，不详细展开时段
+                    }
+                )
 
             # 读取XML内容（前500行）
             xml_file = Path(self.plans_base_dir) / plan_id / "control.add.xml"
@@ -456,10 +454,10 @@ class ControlPlanService:
                     "strategy_types": strategy_types_count,
                     "affected_edges": list(affected_edges_set),
                     "affected_edge_count": len(affected_edges_set),
-                    "time_range": time_range if time_range["earliest"] is not None else None
+                    "time_range": time_range if time_range["earliest"] is not None else None,
                 },
                 "strategies": strategy_preview_list,
-                "xml_preview": xml_preview
+                "xml_preview": xml_preview,
             }
 
         except Exception as e:

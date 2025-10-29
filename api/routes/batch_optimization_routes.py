@@ -157,19 +157,27 @@ async def get_batch_progress(batch_id: str):
 
 
 @router.get("/batch/{batch_id}/results", response_model=BatchResultsResponse)
-async def get_batch_results(batch_id: str):
+async def get_batch_results(
+    batch_id: str,
+    include_time_series: bool = False
+):
     """
     获取批量仿真结果
 
     路径参数:
     - batch_id: 批次ID
 
+    查询参数:
+    - include_time_series: 是否包含时序数据（在网车辆峰值曲线等），默认False
+
     返回:
     - 批次结果汇总，包含所有方案的仿真指标和聚合统计
+    - 如果include_time_series=true，还包含时序数据用于可视化
 
     说明:
     - 只能查询已完成的批次
     - 返回每个方案的多次随机仿真结果和统计分析
+    - 时序数据包含running_vehicles等指标的均值、标准差、最大值、最小值
     """
     try:
         # 从batch_id查找case_id
@@ -189,7 +197,11 @@ async def get_batch_results(batch_id: str):
         if not case_id:
             raise FileNotFoundError(f"批次不存在: {batch_id}")
 
-        result = batch_service.get_batch_results(case_id, batch_id)
+        result = batch_service.get_batch_results(
+            case_id,
+            batch_id,
+            include_time_series=include_time_series
+        )
         return result
 
     except FileNotFoundError as e:

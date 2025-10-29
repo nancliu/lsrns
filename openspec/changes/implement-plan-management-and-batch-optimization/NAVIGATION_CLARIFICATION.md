@@ -180,6 +180,43 @@ frontend/control/
 
 ---
 
+## 前端访问URL路径
+
+**重要**: 所有管控优化相关页面必须使用 `/control/` 前缀访问
+
+| 功能模块 | 页面文件 | 访问URL | Phase | 状态 |
+|---------|---------|---------|-------|------|
+| **策略管理** | `templates.html` | `http://localhost:8000/control/templates.html` | Phase 1A | ✅ 已实现 |
+| **方案管理** | `plans.html` | `http://localhost:8000/control/plans.html` | Phase 1B | ✅ 已实现 |
+| **并行仿真** | `simulations.html` | `http://localhost:8000/control/simulations.html` | Phase 2-3 | ✅ 已实现 |
+| **方案优化** | `optimization.html` | `http://localhost:8000/control/optimization.html` | Phase 4 | 🔜 待实现 |
+
+### URL路径设计原则
+
+1. **统一前缀**: 所有管控优化页面使用 `/control/` 前缀，与其他模块（如数据处理、案例管理）区分
+2. **语义化命名**: URL直接反映功能模块名称（templates/plans/simulations/optimization）
+3. **RESTful风格**: 与后端API路径 `/api/v1/control/` 保持一致的命名规范
+4. **静态文件服务**: 由FastAPI的`StaticFiles`中间件处理，映射到`frontend/control/`目录
+
+### 后端静态文件配置
+
+```python
+# api/main.py
+from fastapi.staticfiles import StaticFiles
+
+# 挂载整个frontend目录到根路径
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+```
+
+**路径映射说明**:
+- 物理文件位置: `frontend/control/templates.html`
+- 访问URL: `http://localhost:8000/control/templates.html`
+- 浏览器请求 `/control/templates.html` → FastAPI 查找 `frontend/control/templates.html` → 返回文件
+
+**原理**: 由于`frontend`目录挂载到根路径`/`，所有`frontend/control/`下的文件自动映射到`/control/`URL路径
+
+---
+
 ## 总结
 
 ✅ **侧边导航命名**：策略管理 → 方案管理 → 并行仿真 → 方案优化

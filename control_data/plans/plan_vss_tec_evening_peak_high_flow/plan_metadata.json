@@ -1,0 +1,53 @@
+{
+  "plan_id": "plan_vss_tec_evening_peak_high_flow",
+  "plan_name": "晚高峰高流量拥堵VSS+TEC复合管控方案",
+  "description": "针对工作日晚高峰时段（16:00-20:00）出现的高流量拥堵，采用VSS+TEC复合管控管控。",
+  "strategy_ids": [
+    "strategy_real_vss_g5_001",
+    "strategy_real_tec_g5_001"
+  ],
+  "tags": [
+    "P0",
+    "evening高峰",
+    "中等策略",
+    "VSS",
+    "TEC"
+  ],
+  "complexity_level": "中等",
+  "target_scenario": "16:00-20:00，平均速度 < 20 km/h，流量 > 300 veh/hr，持续时长 ≥ 3小时",
+  "applicable_conditions": {
+    "congestion_pattern": "工作日晚高峰时段（16:00-20:00）出现的高流量拥堵",
+    "time_window": "16:00-20:00",
+    "severity_threshold": "平均速度 < 20 km/h，流量 > 300 veh/hr，持续时长 ≥ 3小时",
+    "road_types": [
+      "城市快速路",
+      "高速公路主线"
+    ],
+    "infrastructure_requirements": [
+      "路段长度 ≥ 3 km",
+      "应急车道宽度 ≥ 3.0 m"
+    ]
+  },
+  "expected_effects": {
+    "speed_improvement": "预期速度提升150-250%",
+    "entrance_flow_control": "入口流量削减50-70%",
+    "implementation_difficulty": "中等（双策略协同，需参数耦合）"
+  },
+  "validation_records": [],
+  "created_at": "2025-10-27T12:51:59.756991",
+  "generation_method": "quick_template_based",
+  "strategy_coordination": {
+    "activation_sequence": {
+      "phase1": "TEC先激活入口限流",
+      "phase2": "VSS配合限速控制主线流速",
+      "phase3": "协同解除"
+    },
+    "parameter_coupling": {
+      "tec_vss_coupling": "TEC限流值应使主线流量保持在VSS限速下的安全容量范围内"
+    },
+    "complexity_level": "中等"
+  },
+  "is_baseline": false,
+  "additional_file_path": "control_data/plans/plan_vss_tec_evening_peak_high_flow/control.add.xml",
+  "updated_at": "2025-10-27T12:51:59.756991"
+}

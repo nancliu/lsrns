@@ -1,0 +1,40 @@
+{
+  "plan_id": "plan_dhs_morning_peak_severe",
+  "plan_name": "早高峰严重拥堵DHS应急车道开放方案",
+  "description": "针对工作日早高峰时段（6:00-10:00）出现的严重拥堵，采用DHS应急车道开放管控。",
+  "strategy_ids": [
+    "strategy_real_dhs_g4202_001"
+  ],
+  "tags": [
+    "P0",
+    "morning高峰",
+    "简单策略",
+    "DHS"
+  ],
+  "complexity_level": "简单",
+  "target_scenario": "6:00-10:00，平均速度 < 30 km/h，持续时长 ≥ 2小时",
+  "applicable_conditions": {
+    "congestion_pattern": "工作日早高峰时段（6:00-10:00）出现的严重拥堵",
+    "time_window": "6:00-10:00",
+    "severity_threshold": "平均速度 < 30 km/h，持续时长 ≥ 2小时",
+    "road_types": [
+      "城市快速路",
+      "高速公路主线"
+    ],
+    "infrastructure_requirements": [
+      "应急车道宽度 ≥ 3.0 m",
+      "路段长度 ≥ 3 km"
+    ]
+  },
+  "expected_effects": {
+    "speed_improvement": "预期速度提升80-150%",
+    "capacity_increase": "通行能力提升30-35%（3车道→4车道）",
+    "implementation_difficulty": "简单（单策略，需确认应急车道条件）"
+  },
+  "validation_records": [],
+  "created_at": "2025-10-27T12:51:59.751832",
+  "generation_method": "quick_template_based",
+  "is_baseline": false,
+  "additional_file_path": "control_data/plans/plan_dhs_morning_peak_severe/control.add.xml",
+  "updated_at": "2025-10-27T12:51:59.751832"
+}

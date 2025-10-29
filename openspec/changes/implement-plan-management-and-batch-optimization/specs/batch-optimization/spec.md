@@ -281,6 +281,102 @@
 
 ---
 
+### Requirement: 系统提取并可视化在网车辆峰值曲线
+
+系统MUST从summary.xml文件中提取时序数据，包括每个时间步的在网车辆数（running vehicles）、已装载车辆数（loaded）、已完成车辆数（ended）等指标。对于同一方案的多次随机仿真，系统计算平均值和标准差，并在结果视图中以折线图形式可视化在网车辆峰值曲线，支持多方案对比。
+
+**优先级**: P1
+**状态**: 新增
+
+#### Scenario: 提取在网车辆时序数据
+
+**Given**:
+- 批次batch_001已完成
+- plan_001包含3次仿真（seeds: 66, 67, 68）
+- 每个仿真的summary.xml包含完整的step级别统计
+
+**When**:
+- 用户发送GET /api/v1/control/optimization/batch/batch_001/results?include_time_series=true
+
+**Then**:
+- 系统解析每个summary.xml文件
+- 对每个<step>元素提取：
+  - time: 仿真时间戳（秒）
+  - running: 在网车辆数
+  - loaded: 已装载车辆数
+  - ended: 已完成车辆数
+  - meanSpeed: 平均速度
+- 对同一方案的3次仿真，按时间对齐并计算：
+  - running_mean: 在网车辆数均值
+  - running_std: 在网车辆数标准差
+  - loaded_mean, ended_mean: 同理
+- 返回时序数据结构：
+  ```json
+  {
+    "plan_id": "plan_001",
+    "time_series": {
+      "time_points": [0, 60, 120, 180, ...],
+      "running_vehicles": {
+        "mean": [0, 45, 120, 230, ...],
+        "std": [0, 2.1, 5.3, 8.7, ...],
+        "max": [0, 47, 125, 239, ...],
+        "min": [0, 43, 115, 221, ...]
+      },
+      "loaded_vehicles": {...},
+      "ended_vehicles": {...}
+    }
+  }
+  ```
+
+---
+
+#### Scenario: 前端可视化在网车辆峰值曲线
+
+**Given**:
+- 批次结果包含时序数据
+- 结果视图已打开
+
+**When**:
+- 用户查看结果页面
+
+**Then**:
+- 前端使用Chart.js或ECharts渲染折线图
+- X轴：仿真时间（秒或小时:分钟格式）
+- Y轴：在网车辆数
+- 每个方案显示一条曲线（不同颜色）
+- 主线：running_vehicles_mean
+- 阴影区域：mean ± std（可选）
+- 图例显示方案名称
+- 支持鼠标悬停查看具体数值
+- 支持缩放和平移
+
+---
+
+#### Scenario: 多方案在网车辆对比
+
+**Given**:
+- 批次包含3个方案（baseline_plan, plan_001, plan_002）
+- 所有方案已完成仿真并提取时序数据
+
+**When**:
+- 用户在结果视图查看"在网车辆峰值曲线"
+
+**Then**:
+- 图表同时显示3条曲线：
+  - 蓝色实线：基准方案（无管控）
+  - 绿色实线：方案A（管控措施1）
+  - 橙色实线：方案B（管控措施2）
+- 用户可观察：
+  - 峰值差异：管控措施是否降低了峰值
+  - 峰值时刻：峰值是否提前或延后
+  - 曲线面积：总在网车辆时长差异
+- 图表下方显示关键指标：
+  - 峰值在网车辆数
+  - 峰值发生时刻
+  - 平均在网车辆数
+
+---
+
 ### Requirement: 用户可以取消正在运行的批量仿真
 
 用户MUST能够随时取消正在运行的批量仿真批次。系统停止启动新任务、尝试终止运行中的任务、将等待中的任务标记为已取消，并保留已完成任务的结果。
@@ -353,7 +449,86 @@
 **优先级**: P0
 **状态**: 新增
 
-#### Scenario: 为每个方案生成3次随机仿真
+---
+
+### Requirement: 用户可以查看详细的方案优化分析
+
+用户MUST能够在批次完成后查看详细的方案优化分析。系统提供两种入口：
+1. 批量仿真页面完成后显示"查看详细优化分析"按钮
+2. 方案优化页面直接通过URL参数加载批次结果
+
+前端通过URL参数传递batch_id，方案优化页面自动加载对应批次的结果数据，展示详细的对比分析、在网车辆峰值曲线和多指标雷达图。
+
+**优先级**: P0
+**状态**: 新增
+
+#### Scenario: 批次完成后从批量仿真页面查看详细分析
+
+**Given**:
+- 批次batch_001在批量仿真页面已完成
+- 用户查看结果视图
+
+**When**:
+- 用户点击"查看详细优化分析"按钮
+
+**Then**:
+- 前端跳转到：/control/optimization.html?batch_id=batch_001
+- 方案优化页面自动加载batch_001的结果数据
+- 显示批次信息卡片（batch_id、case_id、方案数量、完成时间）
+- 显示方案对比表（包含相比基准的改善百分比）
+- 显示在网车辆峰值曲线（多方案对比折线图）
+- 显示峰值指标卡片（峰值车辆数、峰值时刻、平均车辆数）
+- 显示多指标雷达图（归一化的综合对比）
+
+---
+
+#### Scenario: 直接访问方案优化页面（带batch_id参数）
+
+**Given**:
+- 用户从外部链接或书签访问 optimization.html?batch_id=batch_002
+- batch_002已完成
+
+**When**:
+- 页面加载
+
+**Then**:
+- optimization.js 从URL参数读取 batch_id=batch_002
+- 调用 GET /api/v1/control/optimization/batch/batch_002/results?include_time_series=true
+- 加载并显示批次结果（同上）
+
+---
+
+#### Scenario: 直接访问方案优化页面（无batch_id参数）
+
+**Given**:
+- 用户直接访问 /control/optimization.html（不带batch_id参数）
+
+**When**:
+- 页面加载
+
+**Then**:
+- 显示批次选择区域
+- 提示用户：请从批量仿真页面完成仿真后查看结果
+- 显示"返回批量仿真"链接
+- （未来可扩展：显示历史批次列表供选择）
+
+---
+
+#### Scenario: 从方案优化页面返回批量仿真页面
+
+**Given**:
+- 用户在方案优化页面查看结果
+
+**When**:
+- 用户点击"返回批量仿真"按钮
+
+**Then**:
+- 前端跳转到：/control/simulations.html
+- 批量仿真页面加载（默认显示配置视图）
+
+---
+
+### Requirement: 为每个方案生成3次随机仿真
 
 **Given**:
 - 用户配置num_seeds=3, base_seed=66
@@ -444,10 +619,14 @@
 
 - batch_simulation_scheduler: 所有方法
 - batch_optimization_service: 所有方法
+  - 时序数据提取（_extract_time_series_from_summary）
+  - 多仿真时序数据对齐和聚合
+  - running_vehicles均值和标准差计算
 - batch_optimization_routes: 所有API端点
+  - GET /results?include_time_series=true参数处理
 - 任务生成逻辑
 - 进度计算逻辑
-- 结果汇总逻辑
+- 结果汇总逻辑（包含时序数据）
 
 ### 集成测试
 
@@ -461,6 +640,11 @@
 - 前端完整工作流（配置→启动→监控→查看结果）
 - 进度实时更新
 - 多方案对比显示
+- 在网车辆峰值曲线可视化
+  - 图表正确渲染
+  - 多方案曲线同时显示
+  - 交互功能（缩放、hover）
+  - 峰值指标显示
 
 ### 性能测试
 

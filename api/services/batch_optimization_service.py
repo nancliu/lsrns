@@ -42,7 +42,7 @@ class BatchOptimizationService:
         plan_ids: List[str],
         num_seeds: int = 3,
         base_seed: int = 66,
-        simulation_config: Optional[Dict[str, Any]] = None
+        simulation_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         创建批量仿真批次
@@ -89,7 +89,7 @@ class BatchOptimizationService:
             plan_ids=plan_ids,
             plan_names=plan_names,
             num_seeds=num_seeds,
-            base_seed=base_seed
+            base_seed=base_seed,
         )
 
         # 5. 保存仿真配置（如果提供）
@@ -107,18 +107,17 @@ class BatchOptimizationService:
             "plan_ids": plan_ids,
             "total_tasks": total_tasks,
             "status": "pending",
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
         }
 
-        logger.info(f"Batch {batch_id} created: {len(plan_ids)} plans × {num_seeds} seeds = {total_tasks} tasks")
+        logger.info(
+            f"Batch {batch_id} created: {len(plan_ids)} plans × {num_seeds} seeds = {total_tasks} tasks"
+        )
 
         return response
 
     async def start_batch(
-        self,
-        case_id: str,
-        batch_id: str,
-        simulation_service  # Type hint would be circular
+        self, case_id: str, batch_id: str, simulation_service  # Type hint would be circular
     ) -> Dict[str, Any]:
         """
         启动批量仿真（异步）
@@ -144,16 +143,14 @@ class BatchOptimizationService:
         # 启动批量仿真（异步执行）
         asyncio.create_task(
             self.scheduler.start_batch(
-                case_id=case_id,
-                batch_id=batch_id,
-                simulation_service=simulation_service
+                case_id=case_id, batch_id=batch_id, simulation_service=simulation_service
             )
         )
 
         response = {
             "batch_id": batch_id,
             "status": "running",
-            "started_at": datetime.now().isoformat()
+            "started_at": datetime.now().isoformat(),
         }
 
         logger.info(f"Batch {batch_id} started")
@@ -179,26 +176,27 @@ class BatchOptimizationService:
 
             # 添加预计完成时间
             from shared.control_tools.batch_simulation_scheduler import BatchTask
+
             tasks = [BatchTask.from_dict(t) for t in progress_data["tasks"]]
             estimated_completion = self.scheduler._calculate_estimated_completion(tasks)
 
-            response = {
-                **progress_data,
-                "estimated_completion": estimated_completion
-            }
+            response = {**progress_data, "estimated_completion": estimated_completion}
 
             return response
 
         except FileNotFoundError as e:
             raise FileNotFoundError(f"批次不存在: {batch_id}") from e
 
-    def get_batch_results(self, case_id: str, batch_id: str) -> Dict[str, Any]:
+    def get_batch_results(
+        self, case_id: str, batch_id: str, include_time_series: bool = False
+    ) -> Dict[str, Any]:
         """
         获取批次结果汇总
 
         Args:
             case_id: 案例ID
             batch_id: 批次ID
+            include_time_series: 是否包含时序数据（在网车辆峰值曲线等）
 
         Returns:
             Dict: 批次结果数据
@@ -207,7 +205,9 @@ class BatchOptimizationService:
             FileNotFoundError: 批次不存在
             ValueError: 批次未完成
         """
-        logger.info(f"Getting results for batch {batch_id}")
+        logger.info(
+            f"Getting results for batch {batch_id}, " f"include_time_series={include_time_series}"
+        )
 
         # 获取批次进度
         progress_data = self.scheduler.get_batch_progress(case_id, batch_id)
@@ -225,6 +225,7 @@ class BatchOptimizationService:
 
         # 按方案分组任务
         from shared.control_tools.batch_simulation_scheduler import BatchTask
+
         tasks = [BatchTask.from_dict(t) for t in progress_data["tasks"]]
 
         plan_tasks = {}
@@ -250,10 +251,7 @@ class BatchOptimizationService:
                 if task.status == "completed" and task.simulation_id:
                     # 提取仿真指标
                     metrics = self._extract_simulation_metrics(
-                        case_id=case_id,
-                        batch_id=batch_id,
-                        plan_id=plan_id,
-                        task=task
+                        case_id=case_id, batch_id=batch_id, plan_id=plan_id, task=task
                     )
                     if metrics:
                         simulations.append(metrics)
@@ -261,12 +259,22 @@ class BatchOptimizationService:
             # 计算聚合统计
             aggregated_metrics = self._calculate_aggregated_metrics(simulations)
 
-            plan_results.append({
+            plan_result = {
                 "plan_id": plan_id,
                 "plan_name": plan_name,
                 "simulations": simulations,
-                "aggregated_metrics": aggregated_metrics
-            })
+                "aggregated_metrics": aggregated_metrics,
+            }
+
+            # 如果需要时序数据，提取并聚合
+            if include_time_series:
+                time_series = self._extract_and_aggregate_time_series(
+                    case_id=case_id, batch_id=batch_id, plan_id=plan_id, tasks=plan_task_list
+                )
+                if time_series:
+                    plan_result["time_series"] = time_series
+
+            plan_results.append(plan_result)
 
         # 构建响应
         response = {
@@ -274,7 +282,7 @@ class BatchOptimizationService:
             "status": progress_data["status"],
             "plan_results": plan_results,
             "created_at": metadata.get("created_at"),
-            "completed_at": metadata.get("completed_at")
+            "completed_at": metadata.get("completed_at"),
         }
 
         logger.info(f"Results for batch {batch_id}: {len(plan_results)} plans")
@@ -282,11 +290,7 @@ class BatchOptimizationService:
         return response
 
     def _extract_simulation_metrics(
-        self,
-        case_id: str,
-        batch_id: str,
-        plan_id: str,
-        task
+        self, case_id: str, batch_id: str, plan_id: str, task
     ) -> Optional[Dict[str, Any]]:
         """
         从仿真结果文件中提取性能指标
@@ -302,14 +306,16 @@ class BatchOptimizationService:
         """
         try:
             sim_dir = (
-                Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" /
-                batch_id / plan_id / f"sim_{task.seed}"
+                Path(self.cases_base_dir)
+                / case_id
+                / "simulations"
+                / "plan_opti"
+                / batch_id
+                / plan_id
+                / f"sim_{task.seed}"
             )
 
-            metrics = {
-                "seed": task.seed,
-                "simulation_id": task.simulation_id
-            }
+            metrics = {"seed": task.seed, "simulation_id": task.simulation_id}
 
             # 尝试从summary.xml提取指标
             summary_file = sim_dir / "summary.xml"
@@ -348,7 +354,7 @@ class BatchOptimizationService:
             if step_elem is not None:
                 return {
                     "total_vehicles": int(step_elem.get("loaded", 0)),
-                    "avg_speed": float(step_elem.get("meanSpeed", 0.0))
+                    "avg_speed": float(step_elem.get("meanSpeed", 0.0)),
                 }
 
             return {}
@@ -387,7 +393,7 @@ class BatchOptimizationService:
 
             return {
                 "avg_travel_time": total_duration / count if count > 0 else 0.0,
-                "total_delay": total_delay
+                "total_delay": total_delay,
             }
 
         except Exception as e:
@@ -395,8 +401,7 @@ class BatchOptimizationService:
             return {}
 
     def _calculate_aggregated_metrics(
-        self,
-        simulations: List[Dict[str, Any]]
+        self, simulations: List[Dict[str, Any]]
     ) -> Dict[str, Dict[str, float]]:
         """
         计算聚合统计指标
@@ -434,7 +439,171 @@ class BatchOptimizationService:
                     "mean": statistics.mean(values),
                     "std": statistics.stdev(values) if len(values) > 1 else 0.0,
                     "min": min(values),
-                    "max": max(values)
+                    "max": max(values),
+                }
+
+        return aggregated
+
+    def _extract_and_aggregate_time_series(
+        self, case_id: str, batch_id: str, plan_id: str, tasks: List[Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        提取并聚合方案的时序数据
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+            plan_id: 方案ID
+            tasks: 任务列表
+
+        Returns:
+            Dict: 时序数据（包含time_points和各指标的mean/std/min/max）
+            None: 无法提取时序数据
+        """
+        try:
+            # 提取每个仿真的时序数据
+            all_time_series = []
+
+            for task in tasks:
+                if task.status == "completed" and task.simulation_id:
+                    ts_data = self._extract_time_series_from_summary(
+                        case_id=case_id, batch_id=batch_id, plan_id=plan_id, seed=task.seed
+                    )
+                    if ts_data:
+                        all_time_series.append(ts_data)
+
+            if not all_time_series:
+                logger.warning(f"No time series data found for plan {plan_id}")
+                return None
+
+            # 聚合多次仿真的时序数据
+            aggregated_ts = self._aggregate_time_series(all_time_series)
+
+            return aggregated_ts
+
+        except Exception as e:
+            logger.error(f"Failed to extract time series for plan {plan_id}: {e}")
+            return None
+
+    def _extract_time_series_from_summary(
+        self, case_id: str, batch_id: str, plan_id: str, seed: int
+    ) -> Optional[Dict[str, List]]:
+        """
+        从单个仿真的summary.xml提取时序数据
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+            plan_id: 方案ID
+            seed: 随机种子
+
+        Returns:
+            Dict: 时序数据 {time: [...], running: [...], loaded: [...], ...}
+            None: 文件不存在或解析失败
+        """
+        try:
+            # 构建summary.xml路径
+            sim_dir = (
+                Path(self.cases_base_dir)
+                / case_id
+                / "simulations"
+                / "plan_opti"
+                / batch_id
+                / plan_id
+                / f"sim_{seed}"
+            )
+            summary_file = sim_dir / "summary.xml"
+
+            if not summary_file.exists():
+                logger.warning(f"Summary file not found: {summary_file}")
+                return None
+
+            # 解析XML
+            tree = ET.parse(summary_file)
+            root = tree.getroot()
+
+            # 提取所有step元素
+            steps = root.findall("step")
+
+            if not steps:
+                logger.warning(f"No steps found in {summary_file}")
+                return None
+
+            # 初始化数据列表
+            time_data = []
+            running_data = []
+            loaded_data = []
+            ended_data = []
+            mean_speed_data = []
+
+            # 提取每个时间步的数据
+            for step in steps:
+                time_val = float(step.get("time", 0.0))
+                running_val = int(step.get("running", 0))
+                loaded_val = int(step.get("loaded", 0))
+                ended_val = int(step.get("ended", 0))
+                speed_val = float(step.get("meanSpeed", 0.0))
+
+                time_data.append(time_val)
+                running_data.append(running_val)
+                loaded_data.append(loaded_val)
+                ended_data.append(ended_val)
+                mean_speed_data.append(speed_val)
+
+            logger.debug(f"Extracted {len(time_data)} time points from " f"{plan_id}/sim_{seed}")
+
+            return {
+                "time": time_data,
+                "running": running_data,
+                "loaded": loaded_data,
+                "ended": ended_data,
+                "mean_speed": mean_speed_data,
+            }
+
+        except Exception as e:
+            logger.error(
+                f"Failed to extract time series from summary.xml " f"({plan_id}/sim_{seed}): {e}"
+            )
+            return None
+
+    def _aggregate_time_series(self, all_time_series: List[Dict[str, List]]) -> Dict[str, Any]:
+        """
+        聚合多次仿真的时序数据
+
+        Args:
+            all_time_series: 所有仿真的时序数据列表
+
+        Returns:
+            Dict: 聚合后的时序数据
+        """
+        import numpy as np
+
+        if not all_time_series:
+            return {}
+
+        # 假设所有仿真的时间点相同（或取第一个作为参考）
+        time_points = all_time_series[0]["time"]
+
+        # 对每个指标计算mean/std/min/max
+        metrics = ["running", "loaded", "ended", "mean_speed"]
+        aggregated = {"time_points": time_points}
+
+        for metric in metrics:
+            # 收集所有仿真的该指标数据
+            metric_data = []
+            for ts in all_time_series:
+                if metric in ts and len(ts[metric]) == len(time_points):
+                    metric_data.append(ts[metric])
+
+            if metric_data:
+                # 转换为numpy数组方便计算
+                data_array = np.array(metric_data)  # shape: (num_sims, num_time_points)
+
+                aggregated[metric] = {
+                    "mean": data_array.mean(axis=0).tolist(),
+                    "std": data_array.std(axis=0).tolist(),
+                    "min": data_array.min(axis=0).tolist(),
+                    "max": data_array.max(axis=0).tolist(),
                 }
 
         return aggregated
@@ -461,7 +630,7 @@ class BatchOptimizationService:
             response = {
                 "batch_id": batch_id,
                 "status": "cancelled",
-                "cancelled_at": datetime.now().isoformat()
+                "cancelled_at": datetime.now().isoformat(),
             }
 
             logger.info(f"Batch {batch_id} cancelled")
@@ -494,13 +663,10 @@ class BatchOptimizationService:
 
         # 删除批次目录
         import shutil
+
         shutil.rmtree(batch_dir)
 
-        response = {
-            "batch_id": batch_id,
-            "deleted": True,
-            "deleted_at": datetime.now().isoformat()
-        }
+        response = {"batch_id": batch_id, "deleted": True, "deleted_at": datetime.now().isoformat()}
 
         logger.info(f"Batch {batch_id} deleted")
 
@@ -517,7 +683,7 @@ def create_batch_service(
     plan_ids: List[str],
     num_seeds: int = 3,
     base_seed: int = 66,
-    simulation_config: Optional[Dict[str, Any]] = None
+    simulation_config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """创建批量仿真批次服务函数"""
     return batch_optimization_service.create_batch(
@@ -525,20 +691,14 @@ def create_batch_service(
         plan_ids=plan_ids,
         num_seeds=num_seeds,
         base_seed=base_seed,
-        simulation_config=simulation_config
+        simulation_config=simulation_config,
     )
 
 
-async def start_batch_service(
-    case_id: str,
-    batch_id: str,
-    simulation_service
-) -> Dict[str, Any]:
+async def start_batch_service(case_id: str, batch_id: str, simulation_service) -> Dict[str, Any]:
     """启动批量仿真服务函数"""
     return await batch_optimization_service.start_batch(
-        case_id=case_id,
-        batch_id=batch_id,
-        simulation_service=simulation_service
+        case_id=case_id, batch_id=batch_id, simulation_service=simulation_service
     )
 
 

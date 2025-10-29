@@ -167,6 +167,7 @@ class StrategyDetailResponse(BaseModel):
     Attributes:
         strategy_id: Unique identifier
         strategy_name: Display name
+        description: Strategy description (optional)
         template_id: Reference to template
         template_name: Template display name
         strategy_type: Strategy type (VSS/DHS/TEC)
@@ -178,6 +179,7 @@ class StrategyDetailResponse(BaseModel):
 
     strategy_id: str
     strategy_name: str
+    description: Optional[str] = Field(None, description="Strategy description")
     template_id: str
     template_name: str
     strategy_type: str
