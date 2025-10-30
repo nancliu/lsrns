@@ -484,18 +484,8 @@ function viewPlanDetail(planId) {
 }
 
 /**
- * Show success message
+ * showSuccess 和 showError 由 notification.js 提供（居中显示的提示框）
  */
-function showSuccess(message) {
-    alert(message); // Simple implementation - could be replaced with toast
-}
-
-/**
- * Show error message
- */
-function showError(message) {
-    alert('错误: ' + message);
-}
 
 /**
  * Escape HTML to prevent XSS

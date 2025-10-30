@@ -273,15 +273,32 @@ def _generate_tec_metering_xml(
     template: Dict[str, Any],
     parameters: Dict[str, Any]
 ) -> str:
-    """Generate TEC metering (ramp metering) XML with flow control."""
+    """Generate TEC metering (ramp metering) XML with flow control.
+
+    Supports both legacy entrance_edge (string) and new entrance_edges (array) formats.
+    For backward compatibility, entrance_edge is automatically converted to entrance_edges.
+    """
     logger.debug(f"Generating TEC metering XML: {strategy_id}")
 
-    # Get entrance edge (single edge for metering)
-    entrance_edge = parameters.get("entrance_edge") or \
-                   (parameters.get("entrance_edges", [])[0] if parameters.get("entrance_edges") else None)
+    # Backward compatibility: support both entrance_edge (string) and entrance_edges (array)
+    entrance_edges = parameters.get("entrance_edges", [])
 
-    if not entrance_edge:
-        raise ValueError("TEC metering requires entrance_edge or entrance_edges")
+    # If entrance_edge (singular) is provided, convert to array
+    if not entrance_edges and "entrance_edge" in parameters:
+        entrance_edge_single = parameters.get("entrance_edge")
+        if entrance_edge_single:
+            entrance_edges = [entrance_edge_single]
+            logger.info(f"Converted legacy entrance_edge '{entrance_edge_single}' to entrance_edges array")
+
+    if not entrance_edges:
+        raise ValueError("TEC metering requires entrance_edges (or legacy entrance_edge)")
+
+    # For now, only use the first entrance edge (single calibrator)
+    # Future enhancement: generate multiple calibrators for multiple entrances
+    entrance_edge = entrance_edges[0]
+
+    if len(entrance_edges) > 1:
+        logger.warning(f"TEC metering currently supports only one entrance. Using first: {entrance_edge}")
 
     # Create calibrator element
     calibrator_elem = Element("calibrator")

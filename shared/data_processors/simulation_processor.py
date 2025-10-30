@@ -149,41 +149,68 @@ class SimulationProcessor:
                 except Exception as _e:
                     logger.debug(f"写入进度失败: {_e}")
 
-            def get_sim_time_from_summary() -> Optional[float]:
+            def get_summary_last_step() -> Optional[Dict[str, Any]]:
+                """
+                从summary.xml提取最后一步的完整数据（包括time, running, loaded, ended）
+
+                Returns:
+                    Dict with keys: time, running, loaded, ended
+                    如果无法提取，返回None
+                """
                 try:
                     # 修复路径解析问题：优先检查运行目录下的summary.xml
                     candidates = []
                     if run_folder:
                         candidates.append(os.path.join(run_folder, "summary.xml"))
-                    
+
                     # 回退路径：从config目录到simulation目录
                     cfg_dir = config_dir
                     candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulation/summary.xml")))
-                    
+
                     # 额外回退路径：从config目录到simulations/sim_xxx目录
                     candidates.append(os.path.normpath(os.path.join(cfg_dir, "../../simulations/*/summary.xml")))
- 
+
                     def _mtime_ok(path: str) -> bool:
                         try:
                             return os.path.getmtime(path) > start_time.timestamp()
                         except Exception:
                             return True
 
-                    def _tail_parse_time(path: str) -> Optional[float]:
+                    def _tail_parse_step(path: str) -> Optional[Dict[str, Any]]:
+                        """从文件尾部提取最后一个step的所有属性"""
                         try:
-                            # 读取文件末尾一段文本，避免未写完导致XML整体解析失败
+                            # 读取文件末尾一段文本（4KB足够包含最后一个step）
                             with open(path, 'rb') as f:
                                 f.seek(0, os.SEEK_END)
                                 size = f.tell()
-                                read_len = min(200_000, size)
+                                read_len = min(4096, size)
                                 f.seek(size - read_len if size >= read_len else 0)
                                 tail = f.read().decode('utf-8', errors='ignore')
-                            # 匹配所有step，取最后一个中的time/end/begin
-                            matches = list(re.finditer(r"<step[^>]*?(?:time|end|begin)=\"([0-9.]+)\"", tail))
-                            if matches:
-                                val = float(matches[-1].group(1))
-                                return val
-                            return None
+
+                            # 匹配最后一个<step>元素，提取所有属性
+                            # 格式: <step time="X" loaded="Y" inserted="Z" running="W" waiting="A" ended="B" ... />
+                            pattern = r'<step\s+([^>]+)/>'
+                            matches = list(re.finditer(pattern, tail))
+                            if not matches:
+                                return None
+
+                            # 取最后一个匹配
+                            last_match = matches[-1]
+                            step_attributes_str = last_match.group(1)
+
+                            # 解析属性字符串
+                            attr_pattern = r'(\w+)="([^"]+)"'
+                            attributes = dict(re.findall(attr_pattern, step_attributes_str))
+
+                            # 提取关键字段
+                            return {
+                                'time': int(float(attributes.get('time', 0))),
+                                'running': int(attributes.get('running', 0)),
+                                'loaded': int(attributes.get('loaded', 0)),
+                                'ended': int(attributes.get('ended', 0)),
+                                'waiting': int(attributes.get('waiting', 0)),
+                                'inserted': int(attributes.get('inserted', 0))
+                            }
                         except Exception:
                             return None
 
@@ -191,23 +218,28 @@ class SimulationProcessor:
                         if os.path.exists(sf):
                             if not _mtime_ok(sf):
                                 continue
-                            # 先尝试完整XML解析
+                            # 先尝试完整XML解析（提取所有属性）
                             try:
                                 tree = ET.parse(sf)
                                 root = tree.getroot()
                                 steps = list(root.findall('.//step'))
                                 if steps:
                                     last = steps[-1]
-                                    t = last.get('time') or last.get('end') or last.get('begin')
-                                    if t is not None:
-                                        return float(t)
+                                    return {
+                                        'time': int(float(last.get('time', 0))),
+                                        'running': int(last.get('running', 0)),
+                                        'loaded': int(last.get('loaded', 0)),
+                                        'ended': int(last.get('ended', 0)),
+                                        'waiting': int(last.get('waiting', 0)),
+                                        'inserted': int(last.get('inserted', 0))
+                                    }
                             except Exception:
                                 # 忽略，回退到tail解析
                                 pass
                             # 回退：尾部正则解析
-                            t2 = _tail_parse_time(sf)
-                            if t2 is not None:
-                                return t2
+                            step_data = _tail_parse_step(sf)
+                            if step_data is not None:
+                                return step_data
                     return None
                 except Exception:
                     return None
@@ -284,12 +316,14 @@ class SimulationProcessor:
                 if proc.poll() is not None and not drained_any and stdout_queue.empty():
                     break
 
-                # 估算百分比（仅基于 summary.xml）
+                # 估算百分比（基于 summary.xml）+ 提取实时状态
                 percent = last_percent
-                sim_time = get_sim_time_from_summary()
+                step_data = get_summary_last_step()
+                sim_time = step_data['time'] if step_data else None
+
                 if expected_duration and expected_duration > 0 and sim_time is not None:
                     percent = int(min(99, (sim_time / expected_duration) * 100))
- 
+
                 # 组织更直观的message
                 try:
                     if expected_duration and expected_duration > 0:
@@ -302,9 +336,23 @@ class SimulationProcessor:
                 except Exception:
                     msg_out = "waiting summary"
 
+                # 准备额外数据（包含summary的实时状态）
+                extra_data = {}
+                if step_data:
+                    extra_data.update({
+                        'summary': {
+                            'current_step': step_data['time'],
+                            'running_vehicles': step_data['running'],
+                            'loaded_vehicles': step_data['loaded'],
+                            'ended_vehicles': step_data['ended'],
+                            'waiting_vehicles': step_data.get('waiting', 0),
+                            'inserted_vehicles': step_data.get('inserted', 0)
+                        }
+                    })
+
                 now_ts = time.time()
                 if percent != last_percent or (now_ts - last_write_ts) >= 10.0:
-                    write_progress("running", percent, msg_out)
+                    write_progress("running", percent, msg_out, extra=extra_data if extra_data else None)
                     last_percent = percent
                     last_write_ts = now_ts
 

@@ -60,6 +60,43 @@ class BatchCreatedResponse(BaseModel):
         }
 
 
+class LiveTimeSeries(BaseModel):
+    """实时时间序列数据"""
+
+    time_points: List[int] = Field(
+        ...,
+        description="时间点列表（秒数）",
+        examples=[[0, 10, 20, 30]]
+    )
+
+    total_running: List[int] = Field(
+        ...,
+        description="每个时间点的在网车辆总数",
+        examples=[[100, 150, 200, 180]]
+    )
+
+    task_count: int = Field(
+        ...,
+        description="贡献数据的运行中任务数",
+        examples=[3]
+    )
+
+    last_update: datetime = Field(
+        ...,
+        description="最后更新时间"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "time_points": [0, 10, 20, 30],
+                "total_running": [100, 150, 200, 180],
+                "task_count": 3,
+                "last_update": "2025-10-29T10:25:00"
+            }
+        }
+
+
 class BatchProgressResponse(BaseModel):
     """批次进度查询响应"""
 
@@ -115,6 +152,16 @@ class BatchProgressResponse(BaseModel):
         description="预计完成时间"
     )
 
+    estimated_remaining_seconds: Optional[int] = Field(
+        default=None,
+        description="预计剩余秒数"
+    )
+
+    live_time_series: Optional[LiveTimeSeries] = Field(
+        default=None,
+        description="实时时间序列数据（用于动态曲线）"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -135,10 +182,18 @@ class BatchProgressResponse(BaseModel):
                         "simulation_id": "sim_001",
                         "started_at": "2025-10-25T14:30:05",
                         "completed_at": "2025-10-25T14:35:30",
-                        "error": None
+                        "error": None,
+                        "progress": 100
                     }
                 ],
-                "estimated_completion": "2025-10-25T15:30:00"
+                "estimated_completion": "2025-10-25T15:30:00",
+                "estimated_remaining_seconds": 3600,
+                "live_time_series": {
+                    "time_points": [0, 10, 20, 30],
+                    "total_running": [100, 150, 200, 180],
+                    "task_count": 2,
+                    "last_update": "2025-10-25T15:00:00"
+                }
             }
         }
 
@@ -275,7 +330,8 @@ class BatchResultsResponse(BaseModel):
                                 "avg_travel_time": 1450.2,
                                 "total_delay": 58000,
                                 "avg_speed": 22.5,
-                                "total_vehicles": 4200
+                                "total_vehicles": 4200,
+                                "progress": 100
                             }
                         ],
                         "aggregated_metrics": {

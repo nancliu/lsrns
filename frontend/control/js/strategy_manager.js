@@ -345,14 +345,19 @@ class StrategyManager {
                 break;
 
             case 'step_array':
-                // Visual time-speed step editor
-                input = this.createStepArrayControl(field);
+                // Use unified control from parameter_form.js
+                input = window.renderStepArrayControl(field.name, field);
                 break;
 
             case 'dhs_interval_array':
+                // Use unified control from parameter_form.js
+                input = window.renderTimeIntervalArrayControl(field.name, field);
+                break;
+
             case 'tec_interval_array':
-                // Visual time interval editor
-                input = this.createIntervalArrayControl(field);
+            case 'flow_interval_array':
+                // Use unified control from parameter_form.js
+                input = window.renderFlowIntervalControl(field.name, field);
                 break;
 
             case 'edge_array':
@@ -540,7 +545,7 @@ class StrategyManager {
             if (container.children.length > 1) {
                 row.remove();
             } else {
-                alert('至少需要保留一个时间步骤');
+                showWarning('至少需要保留一个时间步骤');
             }
         };
 
@@ -643,7 +648,7 @@ class StrategyManager {
             if (container.children.length > 1) {
                 row.remove();
             } else {
-                alert('至少需要保留一个时间段');
+                showWarning('至少需要保留一个时间段');
             }
         };
 
@@ -1054,10 +1059,12 @@ class StrategyManager {
         });
 
         // 2. Handle step_array controls (time-speed step editors)
-        const stepControls = form.querySelectorAll('.step-array-control[data-field-name]');
-        stepControls.forEach(container => {
-            const fieldName = container.getAttribute('data-field-name');
-            const stepRows = container.querySelectorAll('.step-row');
+        const stepTbodies = form.querySelectorAll('.steps-tbody');
+        stepTbodies.forEach(tbody => {
+            const fieldName = tbody.dataset.parameterName || tbody.closest('[data-parameter-name]')?.dataset.parameterName;
+            if (!fieldName) return;
+
+            const stepRows = tbody.querySelectorAll('.step-row');
             const steps = [];
 
             stepRows.forEach(row => {
@@ -1077,26 +1084,63 @@ class StrategyManager {
         });
 
         // 3. Handle interval_array controls (time interval editors)
-        const intervalControls = form.querySelectorAll('.interval-array-control[data-field-name]');
-        intervalControls.forEach(container => {
-            const fieldName = container.getAttribute('data-field-name');
-            const intervalRows = container.querySelectorAll('.interval-row');
+        // Handle flow_interval_array (TEC)
+        const flowIntervalTbodies = form.querySelectorAll('.intervals-tbody');
+        flowIntervalTbodies.forEach(tbody => {
+            const fieldName = tbody.dataset.parameterName || tbody.closest('[data-parameter-name]')?.dataset.parameterName;
+            if (!fieldName) return;
+
+            const intervalRows = tbody.querySelectorAll('.interval-row');
             const intervals = [];
 
             intervalRows.forEach(row => {
                 const beginInput = row.querySelector('.interval-begin');
                 const endInput = row.querySelector('.interval-end');
+                const flowInput = row.querySelector('.interval-flow');
+                const speedInput = row.querySelector('.interval-speed');
+                if (beginInput && endInput) {
+                    const interval = {
+                        begin_hours: parseFloat(beginInput.value) || 0,
+                        end_hours: parseFloat(endInput.value) || 1
+                    };
+                    if (flowInput) interval.vehsPerHour = parseFloat(flowInput.value) || 480;
+                    if (speedInput) interval.target_speed = parseFloat(speedInput.value) || 15;
+                    intervals.push(interval);
+                }
+            });
+
+            data.parameters[fieldName] = intervals;
+            processedFields.add(fieldName);
+            console.log(`[StrategyManager] Collected flow_interval_array '${fieldName}':`, data.parameters[fieldName]);
+        });
+
+        // Handle dhs_interval_array (DHS)
+        const timeIntervalTbodies = form.querySelectorAll('.time-intervals-tbody');
+        timeIntervalTbodies.forEach(tbody => {
+            const fieldName = tbody.dataset.parameterName || tbody.closest('[data-parameter-name]')?.dataset.parameterName;
+            if (!fieldName) return;
+
+            const intervalRows = tbody.querySelectorAll('.time-interval-row');
+            const intervals = [];
+
+            intervalRows.forEach(row => {
+                const beginInput = row.querySelector('.interval-begin');
+                const endInput = row.querySelector('.interval-end');
+                const statusSelect = row.querySelector('.interval-status');
+                const vehiclesInput = row.querySelector('.interval-vehicles');
                 if (beginInput && endInput) {
                     intervals.push({
                         begin_hours: parseFloat(beginInput.value) || 0,
-                        end_hours: parseFloat(endInput.value) || 24
+                        end_hours: parseFloat(endInput.value) || 24,
+                        status: statusSelect ? statusSelect.value : "CLOSED",
+                        allowed_vehicle_types: vehiclesInput ? vehiclesInput.value.split(',').map(v => v.trim()).filter(v => v) : []
                     });
                 }
             });
 
             data.parameters[fieldName] = intervals;
             processedFields.add(fieldName);
-            console.log(`[StrategyManager] Collected interval_array '${fieldName}':`, data.parameters[fieldName]);
+            console.log(`[StrategyManager] Collected dhs_interval_array '${fieldName}':`, data.parameters[fieldName]);
         });
 
         // Then, collect data from simple inputs (text, number, select, textarea)
@@ -1487,10 +1531,11 @@ class StrategyManager {
             const value = parameters[paramName];
             const field = this.getFieldConfig(paramName);
 
-            // Try to find visual control first
+            // Find visual controls (unified implementation from parameter_form.js)
             const enumControl = form.querySelector(`.enum-array-control[data-field-name="${paramName}"]`);
-            const stepControl = form.querySelector(`.step-array-control[data-field-name="${paramName}"]`);
-            const intervalControl = form.querySelector(`.interval-array-control[data-field-name="${paramName}"]`);
+            const stepsTbody = form.querySelector(`[data-parameter-name="${paramName}"] .steps-tbody`);
+            const intervalsTbody = form.querySelector(`[data-parameter-name="${paramName}"] .intervals-tbody`);
+            const timeIntervalsTbody = form.querySelector(`[data-parameter-name="${paramName}"] .time-intervals-tbody`);
 
             if (enumControl) {
                 // Handle enum_array (checkboxes)
@@ -1501,36 +1546,36 @@ class StrategyManager {
                         checkbox.checked = value.includes(checkbox.value);
                     });
                 }
-            } else if (stepControl) {
-                // Handle step_array (time-speed steps)
+            } else if (stepsTbody) {
+                // Handle step_array
                 console.log(`[StrategyManager] Populating step_array '${paramName}':`, value);
                 if (Array.isArray(value) && value.length > 0) {
-                    const stepsList = stepControl.querySelector('.steps-list');
-                    if (stepsList) {
-                        // Clear existing rows
-                        stepsList.innerHTML = '';
-                        // Add rows from value
-                        value.forEach(step => {
-                            const stepRow = this.createStepRow(step, stepsList);
-                            stepsList.appendChild(stepRow);
-                        });
-                    }
+                    stepsTbody.innerHTML = '';
+                    value.forEach(step => {
+                        window.addStepRow(stepsTbody, paramName, step.time_hours || 0, step.speed_kmh || 100, {});
+                    });
                 }
-            } else if (intervalControl) {
-                // Handle interval_array (time intervals)
-                console.log(`[StrategyManager] Populating interval_array '${paramName}':`, value);
+            } else if (intervalsTbody) {
+                // Handle flow_interval_array
+                console.log(`[StrategyManager] Populating flow_interval_array '${paramName}':`, value);
                 if (Array.isArray(value) && value.length > 0) {
-                    const intervalsList = intervalControl.querySelector('.intervals-list');
-                    if (intervalsList) {
-                        // Clear existing rows
-                        intervalsList.innerHTML = '';
-                        // Add rows from value
-                        const fieldType = intervalControl.getAttribute('data-field-type');
-                        value.forEach(interval => {
-                            const intervalRow = this.createIntervalRow(interval, intervalsList, fieldType);
-                            intervalsList.appendChild(intervalRow);
-                        });
-                    }
+                    intervalsTbody.innerHTML = '';
+                    value.forEach(interval => {
+                        window.addFlowIntervalRow(intervalsTbody, paramName,
+                            interval.begin_hours || 0, interval.end_hours || 1,
+                            interval.vehsPerHour || 480, interval.target_speed || 15);
+                    });
+                }
+            } else if (timeIntervalsTbody) {
+                // Handle dhs_interval_array
+                console.log(`[StrategyManager] Populating dhs_interval_array '${paramName}':`, value);
+                if (Array.isArray(value) && value.length > 0) {
+                    timeIntervalsTbody.innerHTML = '';
+                    value.forEach(interval => {
+                        window.addTimeIntervalRow(timeIntervalsTbody, paramName,
+                            interval.begin_hours || 0, interval.end_hours || 24,
+                            interval.status || "CLOSED", interval.allowed_vehicle_types || []);
+                    });
                 }
             } else {
                 // Handle standard inputs (fallback to original logic)

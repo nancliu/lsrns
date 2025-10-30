@@ -5,7 +5,6 @@
   "template_id": "tec_flow_metering",
   "strategy_type": "TEC",
   "configured_params": {
-    "entrance_edge": "-1232",
     "position": 0,
     "flow_intervals": [
       {
@@ -38,9 +37,21 @@
         "vehsPerHour": 300,
         "target_speed": 15
       }
+    ],
+    "entrance_edges": [
+      "-1232"
     ]
   },
-  "tags": ["G5", "成雅高速", "双流南站", "入口管控", "TEC", "真实数据", "baseline", "P0"],
+  "tags": [
+    "G5",
+    "成雅高速",
+    "双流南站",
+    "入口管控",
+    "TEC",
+    "真实数据",
+    "baseline",
+    "P0"
+  ],
   "data_source": {
     "gantry_id": "G000551005000220010",
     "batch_id": "20251013_20251019",

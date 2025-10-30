@@ -2,96 +2,95 @@
   "template_id": "dhs_passenger_only",
   "template_name": "应急车道 - 仅客车",
   "description": "应急车道仅允许乘用车和公交车通行，禁止货车和特种车辆。适用于需要优先保障客运流量的路段，同时限制货车造成的拥堵。",
-  "strategy_type": "DHS",
-  "sumo_element": "rerouter",
-  "version": "2.0",
+  "extends": "dhs_base",
+  "version": "2.1",
   "parameters_schema": [
-    {
-      "parameter_name": "affected_edges",
-      "parameter_type": "edge_array",
-      "description": "受应急车道控制影响的路段edge ID列表",
-      "required": true,
-      "default_value": [],
-      "unit": null,
-      "sumo_mapping": "edges (直接使用)"
-    },
-    {
-      "parameter_name": "hard_shoulder_lane_index",
-      "parameter_type": "integer",
-      "description": "应急车道索引（SUMO中索引0为最右侧车道，即硬路肩）",
-      "required": false,
-      "default_value": 0,
-      "min_value": 0,
-      "max_value": 7,
-      "unit": null,
-      "note": "SUMO车道编号：0=最右侧（硬路肩），递增向左"
-    },
     {
       "parameter_name": "intervals",
       "parameter_type": "dhs_interval_array",
       "description": "应急车道开放/关闭的时间区间（预设为仅允许客车和公交，禁止货车）",
-      "required": true,
       "default_value": [
         {
           "begin_hours": 0,
           "end_hours": 7,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"]
+          "allowed_vehicle_types": [
+            "emergency",
+            "authority"
+          ]
         },
         {
           "begin_hours": 7,
           "end_hours": 9,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "emergency"]
+          "allowed_vehicle_types": [
+            "passenger",
+            "bus",
+            "emergency"
+          ]
         },
         {
           "begin_hours": 9,
           "end_hours": 17,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"]
+          "allowed_vehicle_types": [
+            "emergency",
+            "authority"
+          ]
         },
         {
           "begin_hours": 17,
           "end_hours": 19,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "emergency"]
+          "allowed_vehicle_types": [
+            "passenger",
+            "bus",
+            "emergency"
+          ]
         },
         {
           "begin_hours": 19,
           "end_hours": 24,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"]
+          "allowed_vehicle_types": [
+            "emergency",
+            "authority"
+          ]
         }
       ],
-      "unit": null,
-      "constraints": {
-        "min_intervals": 1,
-        "max_intervals": 10,
-        "coverage": "应覆盖完整的24小时"
-      },
-      "interval_structure": {
-        "begin_display_unit": "hours",
-        "begin_sumo_unit": "seconds",
-        "begin_conversion_factor": 3600,
-        "end_display_unit": "hours",
-        "end_sumo_unit": "seconds",
-        "end_conversion_factor": 3600
-      },
-      "sumo_element": "interval",
-      "sumo_child_element": "closingLaneReroute"
+      "required": true
     },
     {
       "parameter_name": "allowed_vehicle_types",
       "parameter_type": "enum_array",
       "description": "允许通行的车辆类型（预设为仅客车和公交）",
       "required": false,
-      "default_value": ["passenger", "bus"],
+      "default_value": [
+        "passenger",
+        "bus"
+      ],
       "unit": null,
       "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)", "disabled": "false"},
-        {"value": "bus", "label": "公交车", "disabled": "false"},
-        {"value": "truck", "label": "货车", "disabled": "true"},
-        {"value": "emergency", "label": "应急车", "disabled": "false"}
+        {
+          "value": "passenger",
+          "label": "乘用车 (客车)",
+          "disabled": "false"
+        },
+        {
+          "value": "bus",
+          "label": "公交车",
+          "disabled": "false"
+        },
+        {
+          "value": "truck",
+          "label": "货车",
+          "disabled": "true"
+        },
+        {
+          "value": "emergency",
+          "label": "应急车",
+          "disabled": "false"
+        }
       ],
       "sumo_mapping": "allow 属性",
       "note": "货车和配送车自动禁止（show_prohibited_types: ['truck', 'delivery']）"
@@ -102,5 +101,5 @@
     "可能需要配合上游VSS预警限速以平滑车流"
   ],
   "created_at": "2025-10-24T12:00:00Z",
-  "updated_at": "2025-10-24T12:00:00Z"
+  "updated_at": "2025-10-29T00:00:00Z"
 }

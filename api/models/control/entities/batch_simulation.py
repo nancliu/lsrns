@@ -61,6 +61,28 @@ class BatchSimulationTask(BaseModel):
         description="错误信息（失败时填充）"
     )
 
+    progress: int = Field(
+        default=0,
+        description="仿真进度百分比（0-100）",
+        ge=0,
+        le=100,
+        examples=[85]
+    )
+
+    live_status: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="实时运行状态（仅当status=running时填充）",
+        examples=[{
+            "current_step": 7200,
+            "total_steps": 14400,
+            "progress_percent": 50.0,
+            "running_vehicles": 320,
+            "ended_vehicles": 150,
+            "loaded_vehicles": 470,
+            "estimated_remaining_seconds": 300
+        }]
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -68,11 +90,20 @@ class BatchSimulationTask(BaseModel):
                 "plan_id": "baseline_plan",
                 "plan_name": "基准方案（无管控）",
                 "seed": 66,
-                "status": "completed",
+                "status": "running",
                 "simulation_id": "sim_20251025_143100_001",
                 "started_at": "2025-10-25T14:30:05",
-                "completed_at": "2025-10-25T14:35:30",
-                "error": None
+                "completed_at": None,
+                "error": None,
+                "progress": 50,
+                "live_status": {
+                    "current_step": 7200,
+                    "total_steps": 14400,
+                    "progress_percent": 50.0,
+                    "running_vehicles": 320,
+                    "ended_vehicles": 150,
+                    "loaded_vehicles": 470
+                }
             }
         }
 
@@ -184,7 +215,8 @@ class BatchSimulation(BaseModel):
                         "simulation_id": "sim_001",
                         "started_at": "2025-10-25T14:30:05",
                         "completed_at": "2025-10-25T14:35:30",
-                        "error": None
+                        "error": None,
+                        "progress": 100
                     }
                 ],
                 "status": "running",

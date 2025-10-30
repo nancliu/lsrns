@@ -16,16 +16,41 @@
       "-14872"
     ],
     "speed_steps": [
-      {"time_hours": 0, "speed_kmh": 100},
-      {"time_hours": 6, "speed_kmh": 80},
-      {"time_hours": 7, "speed_kmh": 60},
-      {"time_hours": 10, "speed_kmh": 80},
-      {"time_hours": 16, "speed_kmh": 100},
-      {"time_hours": 23, "speed_kmh": 100}
-    ],
-    "applicable_vehicle_types": ["passenger", "truck"]
+      {
+        "time_hours": 0,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 6,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 7,
+        "speed_kmh": 60
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 16,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 23,
+        "speed_kmh": 100
+      }
+    ]
   },
-  "tags": ["G4202", "绕城高速", "光华段", "早高峰", "真实数据", "baseline", "P2"],
+  "tags": [
+    "G4202",
+    "绕城高速",
+    "光华段",
+    "早高峰",
+    "真实数据",
+    "baseline",
+    "P2"
+  ],
   "data_source": {
     "gantry_id": "G420151002000410010",
     "batch_id": "20251013_20251019",

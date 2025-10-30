@@ -16,3 +16,6 @@ class SimulationRequest(BaseModel):
     simulation_description: Optional[str] = Field(None, description="仿真描述")
     simulation_params: Optional[Dict[str, Any]] = Field({}, description="仿真参数配置")
     expected_duration: Optional[int] = Field(None, description="预期仿真时长（秒），用于进度估算；为空则根据metadata.time_range计算")
+
+    # 批量仿真上下文（用于生成唯一ID和目录结构）
+    batch_context: Optional[Dict[str, str]] = Field(None, description="批量仿真上下文，包含batch_id, plan_id, seed等信息")

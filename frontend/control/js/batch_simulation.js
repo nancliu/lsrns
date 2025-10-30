@@ -13,6 +13,7 @@ const API_BASE = '/api/v1';
 let currentBatchId = null;
 let progressPollInterval = null;
 let currentView = 'config'; // config, progress, results
+let liveCurveVisible = true; // 动态曲线显示状态（默认显示）
 
 // ========== 初始化 ==========
 
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('backToConfigBtn').addEventListener('click', () => switchView('config'));
     document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
     document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
+    document.getElementById('toggleLiveCurveBtn').addEventListener('click', toggleLiveCurveVisibility);
 
     // 计算预估
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
@@ -250,7 +252,7 @@ function startProgressPolling() {
     if (progressPollInterval) return;
 
     updateProgress(); // 立即更新一次
-    progressPollInterval = setInterval(updateProgress, 2000); // 每2秒更新
+    progressPollInterval = setInterval(updateProgress, 2000); // 每2秒更新（确保及时显示曲线数据）
 }
 
 function stopProgressPolling() {
@@ -264,13 +266,52 @@ async function updateProgress() {
     if (!currentBatchId) return;
 
     try {
+        // 添加时间戳参数来破坏浏览器缓存，确保获取最新数据
         const response = await fetch(
-            `${API_BASE}/control/optimization/batch/${currentBatchId}/progress`
+            `${API_BASE}/control/optimization/batch/${currentBatchId}/progress?t=${Date.now()}`,
+            {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            }
         );
 
         if (!response.ok) throw new Error('Failed to get progress');
 
         const data = await response.json();
+
+        // 调试日志：检查API返回的数据结构
+        console.log('=== API Progress Response ===');
+        console.log('Status:', data.status);
+        console.log('Running tasks count:', data.running_tasks);
+        console.log('Total tasks:', data.total_tasks);
+        console.log('Completed tasks:', data.completed_tasks);
+        console.log('Has live_time_series:', !!data.live_time_series);
+        console.log('live_time_series object:', data.live_time_series);  // ✅ 新增：打印完整对象
+        if (data.live_time_series) {
+            console.log('  - time_points:', data.live_time_series.time_points);
+            console.log('  - time_points length:', data.live_time_series.time_points?.length || 0);
+            console.log('  - total_running:', data.live_time_series.total_running);
+            console.log('  - total_running length:', data.live_time_series.total_running?.length || 0);
+            console.log('  - task_count:', data.live_time_series.task_count);
+            console.log('  - last_update:', data.live_time_series.last_update);
+        } else {
+            console.warn('⚠️ live_time_series is null or undefined!');  // ✅ 新增：警告
+        }
+        console.log('Tasks with live_status:');
+        data.tasks.forEach((task, idx) => {
+            if (task.status === 'running') {
+                console.log(`  Task ${idx} (${task.task_id}):`, {
+                    has_live_status: !!task.live_status,
+                    plan_id: task.plan_id,
+                    seed: task.seed,
+                    simulation_id: task.simulation_id,
+                    running_vehicles: task.live_status?.running_vehicles,
+                    progress: task.progress
+                });
+            }
+        });
 
         // 更新批次信息（使用statusMap保持一致性）
         const statusMap = {
@@ -282,6 +323,35 @@ async function updateProgress() {
         };
         const statusText = statusMap[data.status] || data.status;
         document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
+
+        // 更新任务统计信息
+        const taskStatsDiv = document.getElementById('taskStats');
+        if (taskStatsDiv && data.status !== 'pending') {
+            taskStatsDiv.style.display = 'block';
+            document.getElementById('totalTasks').textContent = data.total_tasks || 0;
+            document.getElementById('completedTasks').textContent = data.completed_tasks || 0;
+            document.getElementById('runningTasks').textContent = data.running_tasks || 0;
+            document.getElementById('failedTasks').textContent = data.failed_tasks || 0;
+
+            // 显示预计完成时间
+            const estimatedCompletionDiv = document.getElementById('estimatedCompletion');
+            if (estimatedCompletionDiv && data.status === 'running') {
+                if (data.estimated_remaining_seconds && data.estimated_remaining_seconds > 0) {
+                    const remainingDisplay = formatDuration(data.estimated_remaining_seconds);
+                    const completionTime = data.estimated_completion ?
+                        new Date(data.estimated_completion).toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'}) :
+                        '计算中...';
+                    estimatedCompletionDiv.innerHTML = `
+                        <strong>⏱️ 预计剩余:</strong> ${remainingDisplay}
+                        <span style="margin-left: 15px;"><strong>📅 预计完成:</strong> ${completionTime}</span>
+                    `;
+                } else {
+                    estimatedCompletionDiv.innerHTML = '<strong>⏱️ 正在估算剩余时间...</strong>';
+                }
+            } else {
+                estimatedCompletionDiv.innerHTML = '';
+            }
+        }
 
         // 更新总进度
         const progressPct = (data.progress * 100).toFixed(0);
@@ -301,6 +371,7 @@ async function updateProgress() {
         }
 
         if (progressText) {
+            // 显示进度百分比（剩余时间已在上方taskStats中显示）
             progressText.textContent = `${progressPct}%`;
         } else {
             console.error('progressText element not found!');
@@ -309,11 +380,27 @@ async function updateProgress() {
         // 更新任务详情
         renderTaskList(data.tasks || []);
 
-        // 如果完成，停止轮询并自动切换到结果视图
+        // 更新动态在网车辆曲线
+        renderLiveCurve(data.live_time_series);
+
+        // 如果完成，停止轮询（不再自动跳转，让用户查看曲线）
         if (data.status === 'completed') {
             stopProgressPolling();
             document.getElementById('cancelBatchBtn').style.display = 'none';
-            setTimeout(() => switchView('results'), 1000);
+
+            // ✅ 修复：不再自动跳转到结果视图
+            // 用户可以在进度视图查看最终的曲线图，然后手动点击"结果"tab
+            console.log('仿真完成！曲线已更新，可在进度视图查看最终结果');
+            console.log('点击上方"结果"tab查看详细对比分析');
+
+            // ✅ 显示完成提示（可选）
+            const estimatedCompletionDiv = document.getElementById('estimatedCompletion');
+            if (estimatedCompletionDiv) {
+                estimatedCompletionDiv.innerHTML = `
+                    <strong style="color: #27ae60;">✓ 仿真已完成！</strong>
+                    <span style="margin-left: 15px; font-size: 0.9em;">点击上方"结果"tab查看详细分析</span>
+                `;
+            }
         } else if (data.status === 'failed' || data.status === 'cancelled') {
             stopProgressPolling();
             document.getElementById('cancelBatchBtn').style.display = 'none';
@@ -363,8 +450,13 @@ function renderTaskList(tasks) {
             // 构建任务显示内容
             let content = `<span class="task-icon">${icon}</span> Seed ${task.seed}: ${statusText}`;
 
-            // 如果任务正在运行且有进度，显示进度条
-            if (task.status === 'running' && task.progress > 0) {
+            // 如果任务正在运行，显示进度条和实时状态
+            if (task.status === 'running') {
+                const liveStatus = task.live_status || {};
+                const progressPct = liveStatus.progress_percent || task.progress || 0;
+                const runningVeh = liveStatus.running_vehicles;
+                const remainingSec = liveStatus.estimated_remaining_seconds;
+
                 content += `
                     <div class="task-progress-bar" style="
                         margin-top: 5px;
@@ -375,16 +467,22 @@ function renderTaskList(tasks) {
                     ">
                         <div style="
                             height: 100%;
-                            width: ${task.progress}%;
+                            width: ${progressPct}%;
                             background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
                             transition: width 0.3s;
                         "></div>
                     </div>
-                    <div class="task-progress-text" style="
+                    <div class="task-live-status" style="
                         font-size: 0.85em;
                         color: #7f8c8d;
-                        margin-top: 2px;
-                    ">${task.progress}%</div>
+                        margin-top: 3px;
+                        display: flex;
+                        justify-content: space-between;
+                    ">
+                        <span>${progressPct.toFixed(1)}%</span>
+                        ${runningVeh !== undefined ? `<span>在网: ${runningVeh}辆</span>` : ''}
+                        ${remainingSec !== undefined ? `<span>剩余: ${formatDuration(remainingSec)}</span>` : ''}
+                    </div>
                 `;
             }
 
@@ -394,6 +492,181 @@ function renderTaskList(tasks) {
 
         container.appendChild(planDiv);
     }
+}
+
+function formatDuration(seconds) {
+    if (seconds === null || seconds === undefined || seconds < 0) {
+        return '--';
+    }
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.round(seconds % 60);  // ✅ 修复：四舍五入秒数
+
+    if (hours > 0) {
+        return `${hours}小时${minutes}分`;
+    } else if (minutes > 0) {
+        return `${minutes}分${secs}秒`;
+    } else {
+        return `${secs}秒`;
+    }
+}
+
+// 动态在网车辆曲线
+let liveCurveChartInstance = null;
+
+function renderLiveCurve(liveTimeSeries) {
+    console.log('=== renderLiveCurve called ===');
+    console.log('liveTimeSeries:', liveTimeSeries);
+    console.log('liveCurveVisible state:', liveCurveVisible);
+
+    const controlBar = document.getElementById('liveCurveControlBar');
+    const section = document.getElementById('liveCurveSection');
+    const canvas = document.getElementById('liveCurveChart');
+    const toggleBtn = document.getElementById('toggleLiveCurveBtn');
+
+    // 检查是否有数据
+    const hasData = liveTimeSeries && liveTimeSeries.time_points && liveTimeSeries.time_points.length > 0;
+
+    if (hasData) {
+        console.log('Showing live curve section with', liveTimeSeries.time_points.length, 'data points');
+        // 有数据时，始终显示控制栏，根据用户的toggle状态显示或隐藏图表
+        if (controlBar) controlBar.style.display = 'block';
+        if (section) section.style.display = liveCurveVisible ? 'block' : 'none';
+        // 更新按钮文本
+        if (toggleBtn) {
+            toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
+        }
+    } else {
+        console.log('No live time series data');
+        // 无数据时，始终显示控制栏（允许用户切换），根据toggle状态显示提示或隐藏
+        if (controlBar) controlBar.style.display = 'block';
+        if (section) {
+            section.style.display = liveCurveVisible ? 'block' : 'none';
+        }
+        // 无数据时按钮允许用户显示空的图表区域
+        if (toggleBtn) {
+            toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
+        }
+        if (!hasData && liveCurveVisible) {
+            // 显示"加载中"或"无数据"提示
+            if (canvas) {
+                canvas.style.display = 'none';
+            }
+            // 创建提示信息
+            if (section && !section.querySelector('.curve-loading-notice')) {
+                const notice = document.createElement('div');
+                notice.className = 'curve-loading-notice';
+                notice.style.cssText = 'padding: 20px; text-align: center; color: #7f8c8d; background: white; border-radius: 4px;';
+                notice.textContent = '仿真数据加载中...';
+                section.appendChild(notice);
+            }
+            return;
+        } else if (!hasData && !liveCurveVisible) {
+            return;
+        }
+    }
+
+    // 清除加载提示
+    const notice = section?.querySelector('.curve-loading-notice');
+    if (notice) notice.remove();
+
+    // 如果没有数据，不继续渲染图表
+    if (!hasData) return;
+
+    // 确保canvas显示
+    if (canvas) canvas.style.display = 'block';
+
+    // 转换时间点为时:分格式
+    const timeLabels = liveTimeSeries.time_points.map(t => {
+        const hours = Math.floor(t / 3600);
+        const minutes = Math.floor((t % 3600) / 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    });
+
+    // 销毁旧图表实例
+    if (liveCurveChartInstance) {
+        liveCurveChartInstance.destroy();
+    }
+
+    // 创建简单折线图
+    const ctx = canvas.getContext('2d');
+    liveCurveChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [{
+                label: '总在网车辆数',
+                data: liveTimeSeries.total_running,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 0,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const index = tooltipItems[0].dataIndex;
+                            const seconds = liveTimeSeries.time_points[index];
+                            return `时间: ${timeLabels[index]} (${seconds}秒)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: '仿真时间'
+                    },
+                    ticks: {
+                        maxTicksLimit: 10
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '在网车辆数'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// 切换动态在网车辆曲线的显示/隐藏
+function toggleLiveCurveVisibility() {
+    liveCurveVisible = !liveCurveVisible;
+    console.log('Toggle live curve visibility to:', liveCurveVisible);
+
+    const section = document.getElementById('liveCurveSection');
+    const toggleBtn = document.getElementById('toggleLiveCurveBtn');
+
+    // 更新chart section显示状态
+    if (section) {
+        section.style.display = liveCurveVisible ? 'block' : 'none';
+    }
+
+    // 更新按钮文本
+    if (toggleBtn) {
+        toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
+    }
+
+    console.log('Chart section display:', liveCurveVisible ? 'block' : 'none');
 }
 
 function getStatusIcon(status) {
@@ -688,11 +961,4 @@ function viewOptimizationAnalysis() {
 }
 
 // ========== 工具函数 ==========
-
-function showError(message) {
-    alert('错误: ' + message);
-}
-
-function showSuccess(message) {
-    alert('成功: ' + message);
-}
+// showError 和 showSuccess 由 notification.js 提供（居中显示的提示框）

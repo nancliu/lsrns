@@ -22,18 +22,50 @@
       "-6476"
     ],
     "speed_steps": [
-      {"time_hours": 0, "speed_kmh": 100},
-      {"time_hours": 6, "speed_kmh": 80},
-      {"time_hours": 7, "speed_kmh": 50},
-      {"time_hours": 10, "speed_kmh": 80},
-      {"time_hours": 16, "speed_kmh": 60},
-      {"time_hours": 17, "speed_kmh": 40},
-      {"time_hours": 20, "speed_kmh": 80},
-      {"time_hours": 23, "speed_kmh": 100}
-    ],
-    "applicable_vehicle_types": ["passenger", "truck"]
+      {
+        "time_hours": 0,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 6,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 7,
+        "speed_kmh": 50
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 16,
+        "speed_kmh": 60
+      },
+      {
+        "time_hours": 17,
+        "speed_kmh": 40
+      },
+      {
+        "time_hours": 20,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 23,
+        "speed_kmh": 100
+      }
+    ]
   },
-  "tags": ["G5", "成雅高速", "双流段", "全天拥堵", "真实数据", "baseline", "P0", "复合策略"],
+  "tags": [
+    "G5",
+    "成雅高速",
+    "双流段",
+    "全天拥堵",
+    "真实数据",
+    "baseline",
+    "P0",
+    "复合策略"
+  ],
   "data_source": {
     "gantry_id": "G000551005000220010",
     "batch_id": "20251013_20251019",

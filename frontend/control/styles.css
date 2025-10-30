@@ -461,3 +461,134 @@ header h1 {
     color: #7f8c8d;
     font-size: 0.9rem;
 }
+
+/* ==================== Timeline Visualizer Styles (时间轴可视化样式) ==================== */
+
+/* 时间轴容器 */
+.parameter-timeline {
+    position: relative;
+    height: 120px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+/* 空时间轴 */
+.parameter-timeline-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+}
+
+.timeline-empty-message {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+/* 小时标记容器 */
+.timeline-hours {
+    display: flex;
+    height: 30px;
+    border-bottom: 1px solid #d1d5db;
+}
+
+/* 单个小时标记 */
+.timeline-hour {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    padding-top: 8px;
+    border-right: 1px solid #e5e7eb;
+}
+
+.timeline-hour:last-child {
+    border-right: none;
+}
+
+/* 时间槽容器 */
+.timeline-slots {
+    position: relative;
+    height: 90px;
+    padding: 5px;
+}
+
+/* 时间槽 */
+.timeline-slot {
+    position: absolute;
+    height: 80px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+}
+
+.timeline-slot:hover {
+    opacity: 0.9 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 时间槽标签 */
+.timeline-slot-label {
+    font-size: 12px;
+    color: white;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 步骤数组控件增强容器 */
+.step-array-control-enhanced {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 响应式：小屏幕 */
+@media (max-width: 768px) {
+    .parameter-timeline {
+        height: 80px;
+    }
+
+    .timeline-hours {
+        height: 20px;
+    }
+
+    .timeline-hour {
+        font-size: 8px;
+    }
+
+    .timeline-slots {
+        height: 60px;
+    }
+
+    .timeline-slot {
+        height: 50px;
+    }
+
+    .timeline-slot-label {
+        font-size: 9px;
+    }
+}
+
+/* 打印样式 */
+@media print {
+    .parameter-timeline {
+        box-shadow: none;
+        border: 1px solid #d1d5db;
+    }
+
+    .timeline-slot {
+        box-shadow: none;
+    }
+}

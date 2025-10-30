@@ -7,13 +7,13 @@
   "version": "2.0",
   "parameters_schema": [
     {
-      "parameter_name": "entrance_edge",
-      "parameter_type": "string",
-      "description": "入口匝道edge ID（单一entrance）",
+      "parameter_name": "entrance_edges",
+      "parameter_type": "edge_array",
+      "description": "入口匝道edge ID列表（支持1个或多个entrance，系统为每个entrance生成独立的calibrator）",
       "required": true,
-      "default_value": "",
+      "default_value": [],
       "unit": null,
-      "sumo_mapping": "edge 属性"
+      "sumo_mapping": "edge 属性（为每个edge生成单独的calibrator）"
     },
     {
       "parameter_name": "position",

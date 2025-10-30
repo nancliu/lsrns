@@ -161,9 +161,105 @@ def validate_template(data: Dict[str, Any]) -> bool:
     return _validate_template_structure(data)
 
 
+def _resolve_template_inheritance(
+    data: Dict[str, Any],
+    templates_dir: Path,
+    loaded_templates: Optional[Dict[str, Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    """
+    Resolve template inheritance by merging parent template with child template.
+
+    Supports 'extends' keyword for template inheritance.
+
+    Args:
+        data: Child template data dictionary
+        templates_dir: Root directory containing templates
+        loaded_templates: Cache of loaded templates to prevent circular dependencies
+
+    Returns:
+        Merged template data with parent parameters inherited
+
+    Raises:
+        ValueError: If parent template not found or circular dependency detected
+    """
+    if loaded_templates is None:
+        loaded_templates = {}
+
+    # Check if template has extends field
+    parent_template_id = data.get("extends")
+    if not parent_template_id:
+        # No inheritance, return as-is
+        return data
+
+    logger.info(f"Resolving inheritance: {data.get('template_id')} extends {parent_template_id}")
+
+    # Check for circular dependency
+    if parent_template_id in loaded_templates:
+        raise ValueError(f"Circular dependency detected: {parent_template_id}")
+
+    # Find parent template file
+    parent_file = None
+    for file_path in templates_dir.rglob("*.json"):
+        if file_path.stem == parent_template_id or parent_template_id in str(file_path):
+            parent_data = _load_json_file(file_path)
+            if parent_data and parent_data.get("template_id") == parent_template_id:
+                parent_file = file_path
+                break
+
+    if not parent_file:
+        raise ValueError(f"Parent template not found: {parent_template_id}")
+
+    # Load parent template
+    parent_data = _load_json_file(parent_file)
+    if not parent_data:
+        raise ValueError(f"Failed to load parent template: {parent_template_id}")
+
+    # Mark as loaded to detect circular dependencies
+    loaded_templates[parent_template_id] = parent_data
+
+    # Recursively resolve parent's inheritance
+    parent_data = _resolve_template_inheritance(parent_data, templates_dir, loaded_templates)
+
+    # Merge parent and child templates
+    merged = parent_data.copy()
+
+    # Override fields from child
+    for key, value in data.items():
+        if key == "extends":
+            # Remove extends field from final output
+            continue
+        elif key == "parameters_schema":
+            # Merge parameters: child parameters override parent parameters with same name
+            parent_params = {p["parameter_name"]: p for p in merged.get("parameters_schema", [])}
+            child_params = {p["parameter_name"]: p for p in value}
+
+            # Update parent params with child params
+            parent_params.update(child_params)
+
+            # Preserve order: parent params first, then new child params
+            merged_params = []
+            for p in merged.get("parameters_schema", []):
+                merged_params.append(parent_params.get(p["parameter_name"], p))
+
+            # Add new child params not in parent
+            for param_name, param in child_params.items():
+                if param_name not in {p["parameter_name"] for p in merged.get("parameters_schema", [])}:
+                    merged_params.append(param)
+
+            merged["parameters_schema"] = merged_params
+        else:
+            # Override other fields directly
+            merged[key] = value
+
+    logger.debug(f"Template inheritance resolved: {merged.get('template_id')}")
+    return merged
+
+
 def load_template_from_file(file_path: Path) -> Optional[ControlTemplate]:
     """
     Load template from JSON file with full validation.
+
+    Supports template inheritance via 'extends' keyword.
 
     Args:
         file_path: Path to template JSON file
@@ -173,6 +269,14 @@ def load_template_from_file(file_path: Path) -> Optional[ControlTemplate]:
     """
     data = _load_json_file(file_path)
     if data is None:
+        return None
+
+    # Resolve inheritance if template extends another
+    templates_dir = file_path.parent.parent  # Assuming templates are in subdirectories
+    try:
+        data = _resolve_template_inheritance(data, templates_dir)
+    except ValueError as e:
+        logger.error(f"Failed to resolve template inheritance for {file_path}: {e}")
         return None
 
     if not validate_template(data):
@@ -352,6 +456,15 @@ def load_template_with_schema(
             continue
 
         if data.get("template_id") == template_id:
+            # Resolve template inheritance if needed
+            try:
+                if "extends" in data:
+                    logger.info(f"Resolving inheritance for template: {template_id}")
+                    data = _resolve_template_inheritance(data, templates_dir)
+            except Exception as e:
+                logger.error(f"Failed to resolve template inheritance for {template_id}: {e}")
+                return None
+
             # Validate the template structure
             if not validate_template(data):
                 logger.warning(f"Template {template_id} failed validation")

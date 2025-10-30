@@ -416,7 +416,10 @@ class BatchSimulationScheduler:
         try:
             # 执行仿真（这会阻塞直到完成）
             result = await self._execute_simulation(
-                case_id=case_id, task=task, simulation_service=simulation_service
+                case_id=case_id,
+                batch_id=batch_id,
+                task=task,
+                simulation_service=simulation_service
             )
 
             # 仿真完成，停止进度监控
@@ -453,28 +456,30 @@ class BatchSimulationScheduler:
             try:
                 await asyncio.sleep(2)  # 每2秒检查一次
 
-                # 读取仿真进度文件
-                if task.simulation_id:
-                    progress_file = (
-                        self.base_dir
-                        / case_id
-                        / "simulations"
-                        / task.simulation_id
-                        / "progress.json"
-                    )
+                # 读取仿真进度文件（使用plan_opti目录结构）
+                progress_file = (
+                    self.base_dir
+                    / case_id
+                    / "simulations"
+                    / "plan_opti"
+                    / batch_id
+                    / task.plan_id
+                    / f"sim_{task.seed}"
+                    / "progress.json"
+                )
 
-                    if progress_file.exists():
-                        with open(progress_file, "r", encoding="utf-8") as f:
-                            progress_data = json.load(f)
-                            new_progress = progress_data.get("percent", 0)
+                if progress_file.exists():
+                    with open(progress_file, "r", encoding="utf-8") as f:
+                        progress_data = json.load(f)
+                        new_progress = progress_data.get("percent", 0)
 
-                            # 只在进度变化时更新
-                            if new_progress != task.progress:
-                                task.progress = new_progress
-                                # 更新批次进度文件
-                                self._update_batch_progress(
-                                    case_id, batch_id, tasks_list, "running"
-                                )
+                        # 只在进度变化时更新
+                        if new_progress != task.progress:
+                            task.progress = new_progress
+                            # 更新批次进度文件
+                            self._update_batch_progress(
+                                case_id, batch_id, tasks_list, "running"
+                            )
 
             except asyncio.CancelledError:
                 # 任务被取消（仿真完成或失败）
@@ -483,13 +488,14 @@ class BatchSimulationScheduler:
                 logger.warning(f"Failed to read progress for task {task.task_id}: {e}")
 
     async def _execute_simulation(
-        self, case_id: str, task: BatchTask, simulation_service
+        self, case_id: str, batch_id: str, task: BatchTask, simulation_service
     ) -> tuple[str, str]:
         """
         执行单个仿真任务（prepare + start + wait for completion）
 
         Args:
             case_id: 案例ID
+            batch_id: 批次ID
             task: 批次任务对象
             simulation_service: 仿真服务实例
 
@@ -517,6 +523,13 @@ class BatchSimulationScheduler:
         if additional_file_path:
             simulation_params["additional_file"] = additional_file_path
 
+        # 构建批量仿真上下文（用于生成唯一ID和目录结构）
+        batch_context = {
+            'batch_id': batch_id,
+            'plan_id': task.plan_id,
+            'seed': str(task.seed)
+        }
+
         sim_request = SimulationRequest(
             case_id=case_id,
             gui=False,
@@ -524,6 +537,7 @@ class BatchSimulationScheduler:
             simulation_name=f"{task.plan_name}_seed{task.seed}",
             simulation_description=f"Plan {task.plan_id} with seed {task.seed}",
             simulation_params=simulation_params,
+            batch_context=batch_context
         )
 
         # Step 1: Prepare simulation
@@ -531,9 +545,17 @@ class BatchSimulationScheduler:
         prepare_result = await simulation_service.prepare_simulation(sim_request)
         simulation_id = prepare_result["simulation_id"]
         config_file = prepare_result["config_file"]
-        simulation_folder = Path("cases") / case_id / "simulations" / simulation_id
 
-        logger.info(f"Prepared simulation {simulation_id} for task {task.task_id}")
+        # 立即设置simulation_id到task对象，以便进度监控能够读取
+        task.simulation_id = simulation_id
+
+        # 使用plan_opti目录结构
+        simulation_folder = (
+            Path("cases") / case_id / "simulations" / "plan_opti" /
+            batch_id / task.plan_id / f"sim_{task.seed}"
+        )
+
+        logger.info(f"Prepared simulation {simulation_id} for task {task.task_id} at {simulation_folder}")
 
         # Step 2: Run simulation synchronously (wait for completion)
         # We need to run the simulation directly instead of using start_simulation
@@ -564,6 +586,7 @@ class BatchSimulationScheduler:
             "mesoscopic": sim_metadata.get("simulation_type") == "mesoscopic",
             "config_file": config_file,
             "expected_duration": sim_metadata.get("simulation_params", {}).get("expected_duration"),
+            "progress_path": str(simulation_folder / "progress.json"),  # 添加进度文件路径
         }
 
         # Update metadata to running

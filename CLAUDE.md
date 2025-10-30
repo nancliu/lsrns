@@ -555,6 +555,11 @@ Detailed analysis and strategy recommendations:
 9. **Don't** run tests or scripts without activating `od_project` conda environment first
 10. **Don't** run Playwright tests in conda base environment - always use `od_project`
 11. **Don't** use `open_db_connection()` in new code - use connection pooling from `shared/data_access/connection.py` instead
+12. **Don't** generate documentation or code files in the project root during testing/debugging - always create them in appropriate subdirectories:
+    - Analysis documents → `docs/` (with suitable subdirectory like `docs/control_frontend/parameter_config_analysis/`)
+    - Temporary test files → `tests/` or `test-results/`
+    - Generated code → appropriate `api/`, `shared/`, or `frontend/` subdirectory
+    - Never leave unorganized files in the root directory
 
 ### Best Practices
 

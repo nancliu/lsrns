@@ -164,14 +164,30 @@ class SimulationService(BaseService):
         return case_path
     
     def _create_simulation_structure(self, case_path: Path, request: SimulationRequest) -> tuple[str, Path]:
-        """创建仿真目录结构"""
+        """创建仿真目录结构
+
+        对于批量仿真，使用batch_context生成唯一ID和特殊目录结构
+        """
         # 生成仿真ID
         sim_type_short = "micro" if request.simulation_type.value == "microscopic" else "meso"
-        simulation_id = f"sim_{datetime.now().strftime('%m%d_%H%M%S')}_{sim_type_short}"
-        
+        batch_context = request.batch_context
+
+        if batch_context and all(k in batch_context for k in ['batch_id', 'plan_id', 'seed']):
+            # 批量仿真：使用plan_id和seed生成唯一ID
+            plan_id = batch_context['plan_id']
+            seed = batch_context['seed']
+            simulation_id = f"batch_{batch_context['batch_id']}_{plan_id}_seed{seed}_{sim_type_short}"
+        else:
+            # 普通仿真：使用时间戳（添加微秒避免冲突）
+            simulation_id = f"sim_{datetime.now().strftime('%m%d_%H%M%S%f')[:-3]}_{sim_type_short}"
+
         # 创建仿真目录
-        simulation_folder = DirectoryManager.create_simulation_structure(case_path, simulation_id)
-        
+        simulation_folder = DirectoryManager.create_simulation_structure(
+            case_path,
+            simulation_id,
+            batch_context
+        )
+
         return simulation_id, simulation_folder
     
     def _generate_simulation_config(self, case_path: Path, simulation_folder: Path, 

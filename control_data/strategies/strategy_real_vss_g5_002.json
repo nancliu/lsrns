@@ -20,22 +20,44 @@
       "-9700"
     ],
     "speed_steps": [
-      {"time_hours": 0, "speed_kmh": 100},
-      {"time_hours": 16, "speed_kmh": 80},
-      {"time_hours": 17, "speed_kmh": 60},
-      {"time_hours": 20, "speed_kmh": 80},
-      {"time_hours": 23, "speed_kmh": 100}
-    ],
-    "applicable_vehicle_types": ["passenger", "truck"]
+      {
+        "time_hours": 0,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 16,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 17,
+        "speed_kmh": 60
+      },
+      {
+        "time_hours": 20,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 23,
+        "speed_kmh": 100
+      }
+    ]
   },
-  "tags": ["G5", "成绵高速", "新都段", "晚高峰", "真实数据", "baseline", "P1"],
+  "tags": [
+    "G5",
+    "成绵高速",
+    "新都段",
+    "晚高峰",
+    "真实数据",
+    "baseline",
+    "P1"
+  ],
   "data_source": {
     "gantry_id": "G000551044001310010",
     "batch_id": "20251013_20251019",
     "pattern_type": "workday",
     "avg_evening_speed": 31.16,
     "min_speed": 27.11,
-    "max_flow": 215.60,
+    "max_flow": 215.6,
     "stake": "K1768.5"
   },
   "created_at": "2025-10-26T00:00:00Z",

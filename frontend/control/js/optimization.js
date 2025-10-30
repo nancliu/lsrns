@@ -496,12 +496,9 @@ function backToBatchSimulation() {
 }
 
 async function exportReport() {
-    alert('报告导出功能开发中...');
+    showInfo('报告导出功能开发中...');
     // TODO: 实现报告导出（PDF/Excel）
 }
 
 // ========== 工具函数 ==========
-
-function showError(message) {
-    alert('错误: ' + message);
-}
+// showError 和其他提示函数由 notification.js 提供（居中显示的提示框）

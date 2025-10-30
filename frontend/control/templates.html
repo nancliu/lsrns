@@ -570,7 +570,225 @@
             background: #f0f0f0;
             color: #333;
         }
+
+        /* ==================== Timeline Visualizer Styles (时间轴可视化样式) ==================== */
+
+        /* 步骤数组控件增强容器 - 统一的卡片样式 */
+        .step-array-control-enhanced {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        /* 时间轴容器 */
+        .parameter-timeline {
+            position: relative;
+            height: 120px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        /* 空时间轴 */
+        .parameter-timeline-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 120px;
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+        }
+
+        .timeline-empty-message {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        /* 时间轴说明文字 */
+        .timeline-description {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            padding-left: 2px;
+        }
+
+        /* 配置提示文字 */
+        .config-hint {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #f9fafb;
+            border-left: 3px solid #3b82f6;
+            border-radius: 4px;
+        }
+
+        /* 小时标记容器 */
+        .timeline-hours {
+            display: flex;
+            height: 30px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #ffffff;
+        }
+
+        /* 单个小时标记 */
+        .timeline-hour {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: #6b7280;
+            padding-top: 8px;
+            border-right: 1px solid #f3f4f6;
+        }
+
+        .timeline-hour:last-child {
+            border-right: none;
+        }
+
+        /* 时间槽容器 */
+        .timeline-slots {
+            position: relative;
+            height: 90px;
+            padding: 5px;
+        }
+
+        /* 时间槽 */
+        .timeline-slot {
+            position: absolute;
+            height: 80px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .timeline-slot:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        /* 时间槽标签 */
+        .timeline-slot-label {
+            font-size: 12px;
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 配置表格样式优化 */
+        .steps-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .steps-table thead {
+            background: #f9fafb;
+        }
+
+        .steps-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .steps-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .steps-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .steps-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        /* 步骤输入框样式 */
+        .step-time,
+        .step-speed {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .step-time:focus,
+        .step-speed:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* 按钮组样式 */
+        .step-buttons {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-add-step {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-step:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-remove-step {
+            padding: 6px 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-remove-step:hover {
+            background: #dc2626;
+        }
     </style>
+
+    <!-- 引入时间轴相关模块 -->
+    <script src="js/timeline_converter.js"></script>
+    <script src="js/timeline_visualizer.js"></script>
+
+    <!-- 引入参数表单生成器 -->
+    <script src="js/parameter_form.js"></script>
 </head>
 <body>
     <!-- 顶栏 -->
@@ -1334,41 +1552,17 @@
                                  </select>`;
                     hintHtml = param.unit || '';
                 } else if (param.parameter_type === 'step_array') {
-                    // VSS speed_steps 参数 - 使用 step-array-control 容器
-                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value, null, 2) : '[]';
-                    const placeholder = '[{"time_hours": 7, "speed_kmh": 100}, {"time_hours": 9, "speed_kmh": 80}]';
-
-                    inputHtml = `<div class="step-array-control">
-                                   <textarea id="param-${param.parameter_name}" rows="8"
-                                     ${param.required ? 'required' : ''}
-                                     placeholder='${placeholder}'
-                                     style="font-family: 'Courier New', monospace; font-size: 13px;">${defaultValueStr}</textarea>
-                                 </div>`;
-                    hintHtml = `${param.unit || ''} JSON数组格式。每个步骤包含time_hours和speed_kmh字段。`;
+                    // VSS speed_steps 参数 - 使用交互式时间选择器
+                    inputHtml = window.renderStepArrayControl(param.parameter_name, param);
+                    hintHtml = `${param.unit || ''} 使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h`;
                 } else if (param.parameter_type === 'dhs_interval_array') {
-                    // DHS intervals 参数 - 使用 interval-array-control 容器
-                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value, null, 2) : '[]';
-                    const placeholder = '[{"begin_hours": 0, "end_hours": 7, "status": "CLOSED", "allowed_vehicle_types": ["emergency"]}]';
-
-                    inputHtml = `<div class="interval-array-control">
-                                   <textarea id="param-${param.parameter_name}" rows="8"
-                                     ${param.required ? 'required' : ''}
-                                     placeholder='${placeholder}'
-                                     style="font-family: 'Courier New', monospace; font-size: 13px;">${defaultValueStr}</textarea>
-                                 </div>`;
-                    hintHtml = `${param.unit || ''} JSON数组格式。每个时间区间包含begin_hours, end_hours等字段。注意：必须覆盖完整的24小时`;
+                    // DHS intervals 参数 - 使用增强的DHS区间编辑器（包含时间轴可视化）
+                    inputHtml = window.renderDHSIntervalControl(param.parameter_name, param);
+                    hintHtml = `${param.unit || ''} 使用表格编辑器配置DHS时间区间。注意：必须覆盖完整的24小时`;
                 } else if (param.parameter_type === 'tec_interval_array' || param.parameter_type === 'flow_interval_array') {
-                    // TEC flow_intervals 参数 - 使用 interval-array-control 容器
-                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value, null, 2) : '[]';
-                    const placeholder = '[{"begin_hours": 6, "end_hours": 10, "vehsPerHour": 120, "target_speed": 8}]';
-
-                    inputHtml = `<div class="interval-array-control">
-                                   <textarea id="param-${param.parameter_name}" rows="8"
-                                     ${param.required ? 'required' : ''}
-                                     placeholder='${placeholder}'
-                                     style="font-family: 'Courier New', monospace; font-size: 13px;">${defaultValueStr}</textarea>
-                                 </div>`;
-                    hintHtml = `${param.unit || ''} JSON数组格式。每个时间区间包含begin_hours, end_hours等字段。注意：合理设置流量和速度限制`;
+                    // TEC flow_intervals 参数 - 使用交互式流量区间编辑器
+                    inputHtml = window.renderFlowIntervalControl(param.parameter_name, param);
+                    hintHtml = `${param.unit || ''} 使用表格编辑器配置TEC流量控制区间。合理设置流量和速度限制`;
                 } else if (param.parameter_type === 'enum_array' || param.parameter_type === 'array') {
                     // 特殊处理：车型选择参数使用多选框
                     const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
@@ -1429,11 +1623,28 @@
                     hintHtml = `${param.unit || ''} JSON数组格式，edge ID列表`;
                 }
 
-                group.innerHTML = `
-                    <label>${param.description} ${param.required ? '*' : ''}</label>
-                    ${inputHtml}
-                    <span class="form-hint">${hintHtml}</span>
-                `;
+                // 创建 label
+                const label = document.createElement('label');
+                label.textContent = param.description + (param.required ? ' *' : '');
+                group.appendChild(label);
+
+                // 添加 input (可能是 HTML 字符串或 DOM 元素)
+                if (typeof inputHtml === 'string') {
+                    // HTML 字符串：使用 innerHTML
+                    const inputContainer = document.createElement('div');
+                    inputContainer.innerHTML = inputHtml;
+                    group.appendChild(inputContainer.firstElementChild || inputContainer);
+                } else if (inputHtml instanceof HTMLElement) {
+                    // DOM 元素：直接添加
+                    group.appendChild(inputHtml);
+                }
+
+                // 创建 hint
+                const hint = document.createElement('span');
+                hint.className = 'form-hint';
+                hint.textContent = hintHtml;
+                group.appendChild(hint);
+
                 form.appendChild(group);
             });
         }
@@ -2720,17 +2931,114 @@
 
             const configuredParams = {};
             selectedTemplate.parameters_schema.forEach(param => {
-                const input = document.getElementById(`param-${param.parameter_name}`);
-
                 // 特殊处理：affected_edges 参数使用步骤2选择的路段
                 if (param.parameter_name === 'affected_edges' || param.parameter_name === 'affected_segments' || param.parameter_name === 'entrance_ids') {
                     configuredParams[param.parameter_name] = selectedEdges;
                     return;
                 }
 
+                // 特殊处理：step_array, dhs_interval_array, flow_interval_array 使用新的交互式控件（不依赖 input 元素）
+                if (param.parameter_type === 'step_array') {
+                    // 从表格中提取 speed_steps
+                    console.log('[createStrategy] Extracting step_array for:', param.parameter_name);
+                    const tbody = document.querySelector(`[data-parameter-name="${param.parameter_name}"] .steps-tbody`);
+                    console.log('[createStrategy] Found tbody:', tbody);
+
+                    if (tbody) {
+                        const rows = tbody.querySelectorAll('.step-row');
+                        console.log('[createStrategy] Found rows:', rows.length);
+
+                        // ✅ FIX: Skip optional array parameters with no rows
+                        if (!param.required && rows.length === 0) {
+                            console.log('[createStrategy] Skipping optional step_array with no rows:', param.parameter_name);
+                            return;
+                        }
+
+                        const value = Array.from(rows).map(row => ({
+                            time_hours: parseFloat(row.querySelector('.step-time').value),
+                            speed_kmh: parseFloat(row.querySelector('.step-speed').value)
+                        }));
+                        console.log('[createStrategy] Extracted value:', value);
+                        console.log('[createStrategy] Setting parameter:', param.parameter_name, '=', value);
+                        configuredParams[param.parameter_name] = value;
+                    } else {
+                        console.error('[createStrategy] tbody not found for step_array!');
+                        alert(`无法找到参数 "${param.parameter_name}" 的配置表格`);
+                    }
+                    return;
+                }
+
+                if (param.parameter_type === 'dhs_interval_array') {
+                    // 从表格中提取 DHS intervals
+                    // 尝试多种选择器（因为可能使用不同的父元素结构）
+                    let tbody = document.querySelector(`[data-parameter-name="${param.parameter_name}"] .dhs-intervals-tbody`);
+                    if (!tbody) {
+                        tbody = document.querySelector(`.dhs-intervals-tbody[data-parameter-name="${param.parameter_name}"]`);
+                    }
+
+                    if (tbody) {
+                        const rows = tbody.querySelectorAll('.dhs-interval-row');
+
+                        // ✅ FIX: Skip optional array parameters with no rows
+                        if (!param.required && rows.length === 0) {
+                            console.log('[createStrategy] Skipping optional dhs_interval_array with no rows:', param.parameter_name);
+                            return;
+                        }
+
+                        const value = Array.from(rows).map(row => {
+                            const vehiclesSelect = row.querySelector('.dhs-interval-vehicles');
+                            const selectedOptions = Array.from(vehiclesSelect.selectedOptions).map(opt => opt.value);
+
+                            return {
+                                begin_hours: parseFloat(row.querySelector('.dhs-interval-begin').value),
+                                end_hours: parseFloat(row.querySelector('.dhs-interval-end').value),
+                                status: row.querySelector('.dhs-interval-status').value,
+                                allowed_vehicle_types: selectedOptions
+                            };
+                        });
+                        configuredParams[param.parameter_name] = value;
+                    } else {
+                        console.error('[createStrategy] tbody not found for dhs_interval_array!', param.parameter_name);
+                    }
+                    return;
+                }
+
+                if (param.parameter_type === 'tec_interval_array' || param.parameter_type === 'flow_interval_array') {
+                    // 从表格中提取 TEC flow intervals
+                    const tbody = document.querySelector(`[data-parameter-name="${param.parameter_name}"] .intervals-tbody`);
+                    if (tbody) {
+                        const rows = tbody.querySelectorAll('.interval-row');
+
+                        // ✅ FIX: Skip optional array parameters with no rows
+                        if (!param.required && rows.length === 0) {
+                            console.log('[createStrategy] Skipping optional flow_interval_array with no rows:', param.parameter_name);
+                            return;
+                        }
+
+                        const value = Array.from(rows).map(row => ({
+                            begin_hours: parseFloat(row.querySelector('.interval-begin').value),
+                            end_hours: parseFloat(row.querySelector('.interval-end').value),
+                            vehsPerHour: parseFloat(row.querySelector('.interval-flow').value),
+                            target_speed: parseFloat(row.querySelector('.interval-speed').value)
+                        }));
+                        configuredParams[param.parameter_name] = value;
+                    } else {
+                        console.error('[createStrategy] tbody not found for flow_interval_array!');
+                    }
+                    return;
+                }
+
+                // 对于其他参数类型，需要有 input 元素
+                const input = document.getElementById(`param-${param.parameter_name}`);
                 if (input) {
-                    // 类型转换
                     let value = input.value;
+
+                    // ✅ FIX: Skip optional parameters with empty values
+                    if (!param.required && (value === '' || value === null || value === undefined)) {
+                        console.log('[createStrategy] Skipping optional parameter with empty value:', param.parameter_name);
+                        return;
+                    }
+
                     if (param.parameter_type === 'integer') {
                         value = parseInt(value);
                     } else if (param.parameter_type === 'float') {
@@ -2744,6 +3052,12 @@
                             // 从多选框获取选中的值
                             const selectedOptions = Array.from(input.selectedOptions);
                             value = selectedOptions.map(opt => opt.value);
+
+                            // ✅ FIX: Skip optional array parameters with empty selection
+                            if (!param.required && value.length === 0) {
+                                console.log('[createStrategy] Skipping optional array parameter with empty selection:', param.parameter_name);
+                                return;
+                            }
                         } else {
                             // 其他 array 参数：解析 JSON
                             try {
@@ -2757,9 +3071,12 @@
                             }
                         }
                     }
+                    console.log('[createStrategy] Setting parameter:', param.parameter_name, '=', value);
                     configuredParams[param.parameter_name] = value;
                 }
             });
+
+            console.log('[createStrategy] Final configuredParams:', configuredParams);
 
             // 使用 StrategyManager 调用API创建策略
             if (window.strategyManager) {
@@ -3407,6 +3724,8 @@
         });
     </script>
 
+    <!-- 通用提示组件 -->
+    <script src="js/notification.js"></script>
     <!-- 路段选择器功能模块 -->
     <script src="js/edge_selector_embedded.js?v=20251021"></script>
     <!-- 网络可视化模块 (Phase 1B - US4) -->

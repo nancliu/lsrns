@@ -91,14 +91,43 @@ def create_case_structure(case_id: str) -> Path:
     
     return case_dir
 
-def create_simulation_structure(case_path: Path, simulation_id: str) -> Path:
-    """创建仿真目录结构"""
-    sim_dir = case_path / "simulations" / simulation_id
+def create_simulation_structure(
+    case_path: Path,
+    simulation_id: str,
+    batch_context: dict = None
+) -> Path:
+    """创建仿真目录结构
+
+    Args:
+        case_path: 案例路径
+        simulation_id: 仿真ID
+        batch_context: 批量仿真上下文，包含batch_id, plan_id, seed
+                      如果提供，则使用plan_opti目录结构
+
+    Returns:
+        仿真目录路径
+    """
+    if batch_context:
+        # 批量仿真：使用plan_opti目录结构
+        # 路径：cases/{case_id}/simulations/plan_opti/{batch_id}/{plan_id}/sim_{seed}/
+        batch_id = batch_context.get('batch_id')
+        plan_id = batch_context.get('plan_id')
+        seed = batch_context.get('seed')
+
+        if batch_id and plan_id and seed:
+            sim_dir = case_path / "simulations" / "plan_opti" / batch_id / plan_id / f"sim_{seed}"
+        else:
+            # 缺少必要参数，回退到标准路径
+            sim_dir = case_path / "simulations" / simulation_id
+    else:
+        # 普通仿真：使用标准目录结构
+        sim_dir = case_path / "simulations" / simulation_id
+
     ensure_directory(sim_dir)
-    
+
     # 创建子目录
     ensure_directory(sim_dir / "e1")
-    
+
     return sim_dir
 
 def create_analysis_structure(case_path: Path, analysis_id: str) -> Path:
@@ -354,9 +383,13 @@ class DirectoryManager:
         return create_case_structure(case_id)
     
     @staticmethod
-    def create_simulation_structure(case_path: Path, simulation_id: str) -> Path:
+    def create_simulation_structure(
+        case_path: Path,
+        simulation_id: str,
+        batch_context: dict = None
+    ) -> Path:
         """创建仿真目录结构"""
-        return create_simulation_structure(case_path, simulation_id)
+        return create_simulation_structure(case_path, simulation_id, batch_context)
     
     @staticmethod  
     def create_analysis_structure(case_path: Path, analysis_id: str) -> Path:

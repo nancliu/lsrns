@@ -20,23 +20,49 @@
       "-10702"
     ],
     "speed_steps": [
-      {"time_hours": 0, "speed_kmh": 100},
-      {"time_hours": 7, "speed_kmh": 80},
-      {"time_hours": 8, "speed_kmh": 50},
-      {"time_hours": 10, "speed_kmh": 80},
-      {"time_hours": 16, "speed_kmh": 100},
-      {"time_hours": 23, "speed_kmh": 100}
-    ],
-    "applicable_vehicle_types": ["passenger", "truck"]
+      {
+        "time_hours": 0,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 7,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 8,
+        "speed_kmh": 50
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 16,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 23,
+        "speed_kmh": 100
+      }
+    ]
   },
-  "tags": ["G4202", "绕城高速", "机场段", "早高峰", "真实数据", "baseline", "P1", "复合策略"],
+  "tags": [
+    "G4202",
+    "绕城高速",
+    "机场段",
+    "早高峰",
+    "真实数据",
+    "baseline",
+    "P1",
+    "复合策略"
+  ],
   "data_source": {
     "gantry_id": "G420151001000910010",
     "batch_id": "20251013_20251019",
     "pattern_type": "workday",
     "avg_morning_speed": 35.11,
     "min_speed": 18.22,
-    "max_flow": 500.90,
+    "max_flow": 500.9,
     "stake": "K32.51"
   },
   "created_at": "2025-10-26T00:00:00Z",

@@ -58,20 +58,6 @@
       },
       "sumo_element": "step",
       "sumo_attributes": ["time", "speed"]
-    },
-    {
-      "parameter_name": "applicable_vehicle_types",
-      "parameter_type": "enum_array",
-      "description": "适用的车辆类型（留空表示所有车型）",
-      "required": false,
-      "default_value": [],
-      "unit": null,
-      "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)"},
-        {"value": "bus", "label": "公交车"},
-        {"value": "truck", "label": "货车"},
-        {"value": "emergency", "label": "应急车"}
-      ]
     }
   ],
   "presets": {

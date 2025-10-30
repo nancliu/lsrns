@@ -4,6 +4,7 @@ SUMO配置工具函数（shared）
 from pathlib import Path
 from typing import Dict, Any
 import re
+import os
 from shared.utilities.time_utils import parse_datetime
 
 
@@ -86,22 +87,39 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 	5. TAZ文件自动复制到仿真目录，简化路径管理
 	"""
 	simulation_params = simulation_params or {}
-	
-	# 网络文件路径：从sim_xxx目录到各文件的相对路径计算
+
+	# 动态计算相对路径（支持plan_opti深层目录结构）
+	# 获取项目根目录（cases的父目录）
+	project_root = case_root.parent.parent  # case_root是cases/{case_id}，向上2级到项目根
+
+	# 计算从simulation_folder到case_root/config的相对路径
+	config_dir = case_root / "config"
+	try:
+		rel_to_config = Path(os.path.relpath(config_dir, simulation_folder))
+	except ValueError:
+		# 跨盘符时relpath会失败，回退到绝对路径
+		rel_to_config = config_dir
+
+	# 计算从simulation_folder到project_root的相对路径
+	try:
+		rel_to_project = Path(os.path.relpath(project_root, simulation_folder))
+	except ValueError:
+		rel_to_project = project_root
+
+	# 网络文件路径：动态计算相对路径
 	network_file_path = case_metadata['files']['network_file']
 	if network_file_path.startswith('templates/'):
-		# 从sim_xxx目录到templates目录的相对路径
-		# sim_xxx -> simulations -> case_xxx -> cases -> 项目根目录 -> templates
-		net_file = f"../../../../{network_file_path}"
+		# 从simulation_folder到templates的相对路径
+		net_file = str(rel_to_project / network_file_path).replace('\\', '/')
 	else:
-		# 从sim_xxx目录到case/config目录的相对路径
-		net_file = f"../../config/{Path(network_file_path).name}"
-	
-	# 路由文件路径：从sim_xxx目录到case/config目录的相对路径
+		# 从simulation_folder到case/config的相对路径
+		net_file = str(rel_to_config / Path(network_file_path).name).replace('\\', '/')
+
+	# 路由文件路径：动态计算相对路径
 	route_files = []
 	if 'routes_file' in case_metadata['files'] and case_metadata['files']['routes_file']:
-		# sim_xxx -> simulations -> case_xxx -> config
-		route_files.append(f"../../config/{Path(case_metadata['files']['routes_file']).name}")
+		route_file = str(rel_to_config / Path(case_metadata['files']['routes_file']).name).replace('\\', '/')
+		route_files.append(route_file)
 	
 	# TAZ文件：复制到仿真目录，使用简单路径
 	taz_files = []
@@ -121,13 +139,15 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 				taz_files.append(taz_filename)
 				print(f"TAZ文件已复制到仿真目录: {target_taz}")
 			except Exception as e:
-				# 如果复制失败，回退到原来的相对路径方式
+				# 如果复制失败，回退到相对路径方式
 				print(f"警告：TAZ文件复制失败，使用相对路径: {e}")
-				taz_files.append(f"../../config/{taz_filename}")
+				taz_rel_path = str(rel_to_config / taz_filename).replace('\\', '/')
+				taz_files.append(taz_rel_path)
 		else:
 			# 如果源文件不存在，使用相对路径
 			print(f"警告：TAZ源文件不存在: {source_taz}")
-			taz_files.append(f"../../config/{taz_filename}")
+			taz_rel_path = str(rel_to_config / taz_filename).replace('\\', '/')
+			taz_files.append(taz_rel_path)
 	
 	# 时间计算
 	time_range = case_metadata.get('time_range', {})
@@ -200,8 +220,27 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 		except Exception as e:
 			print(f"警告：edgeData.add.xml 生成失败: {e}")
 	
-	# 构建 additional 文件列表（TAZ + edgeData）
-	additional_files = taz_files + edgedata_files
+	# 处理管控策略additional文件（如果提供）
+	control_files = []
+	if simulation_params.get('additional_file'):
+		additional_file_path = simulation_params['additional_file']
+		# additional_file路径通常是相对于项目根目录的（如control_data/plans/xxx/control.add.xml）
+		# 需要计算相对于simulation_folder的路径
+		if Path(additional_file_path).is_absolute():
+			# 绝对路径：计算相对路径
+			try:
+				control_rel_path = Path(os.path.relpath(additional_file_path, simulation_folder))
+				control_files.append(str(control_rel_path).replace('\\', '/'))
+			except ValueError:
+				# 跨盘符，使用绝对路径
+				control_files.append(str(additional_file_path).replace('\\', '/'))
+		else:
+			# 相对路径：假设相对于项目根目录
+			control_rel_path = str(rel_to_project / additional_file_path).replace('\\', '/')
+			control_files.append(control_rel_path)
+
+	# 构建 additional 文件列表（TAZ + edgeData + 管控策略）
+	additional_files = taz_files + edgedata_files + control_files
 	
 	# 构建input section
 	route_files_str = ",".join(route_files) if route_files else ""
