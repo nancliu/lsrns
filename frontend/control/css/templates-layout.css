@@ -1,0 +1,272 @@
+/**
+ * templates-layout.css
+ * 布局样式 - 顶栏、导航、容器、内容区
+ * v0.9.1
+ */
+
+/* ==================== Top Bar ==================== */
+
+.top-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.top-bar h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.back-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.back-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* ==================== Main Container ==================== */
+
+.main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ==================== Sidebar Navigation ==================== */
+
+.sidebar {
+    width: 200px;
+    background: #2c3e50;
+    color: white;
+    padding: 20px 0;
+    overflow-y: auto;
+}
+
+.sidebar-nav {
+    list-style: none;
+}
+
+.sidebar-nav li {
+    margin: 0;
+}
+
+.sidebar-nav a {
+    display: block;
+    padding: 15px 30px;
+    color: #ecf0f1;
+    text-decoration: none;
+    transition: all 0.3s;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav a:hover {
+    background: #34495e;
+    border-left-color: #3498db;
+}
+
+.sidebar-nav a.active {
+    background: #34495e;
+    border-left-color: #3498db;
+    color: #3498db;
+    font-weight: 600;
+}
+
+/* ==================== Content Area ==================== */
+
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+}
+
+.content-header {
+    margin-bottom: 30px;
+}
+
+.content-header h2 {
+    font-size: 2rem;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.content-subtitle {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+/* ==================== Step Workflow ==================== */
+
+.workflow-steps {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #ecf0f1;
+    color: #7f8c8d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.step.active .step-number {
+    background: #3498db;
+    color: white;
+}
+
+.step.completed .step-number {
+    background: #2ecc71;
+    color: white;
+}
+
+.step-label {
+    margin-left: 10px;
+    font-size: 0.95rem;
+    color: #7f8c8d;
+}
+
+.step.active .step-label {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.step-arrow {
+    margin: 0 20px;
+    color: #bdc3c7;
+    font-size: 1.5rem;
+}
+
+/* ==================== Step Content ==================== */
+
+.step-content {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.step-content h3 {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    border-left: 4px solid #3498db;
+    padding-left: 15px;
+}
+
+/* ==================== Edge Selector ==================== */
+
+.edge-selector-container {
+    min-height: 300px;
+    border: 2px dashed #bdc3c7;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.edge-selector-placeholder {
+    padding: 60px 20px;
+}
+
+.selected-edges-list {
+    margin-top: 15px;
+    text-align: left;
+}
+
+/* ==================== Modal ==================== */
+
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.close-btn {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+
+.close-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+/* ==================== Action Buttons Container ==================== */
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+/* ==================== Floating Button Special Styles ==================== */
+
+#floating-next-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+#floating-next-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+}

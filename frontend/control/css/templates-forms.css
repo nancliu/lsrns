@@ -1,0 +1,309 @@
+/**
+ * templates-forms.css
+ * 表单样式 - 参数配置、模板选择、表格控件
+ * v0.9.1
+ */
+
+/* ==================== Template Selection Grid ==================== */
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.template-card {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.template-card:hover {
+    border-color: #3498db;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+}
+
+.template-card.selected {
+    border-color: #3498db;
+    background: #ebf5fb;
+}
+
+.template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.template-title {
+    font-size: 1.1rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.template-description {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.template-actions {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    display: none;
+    gap: 5px;
+}
+
+.template-card:hover .template-actions {
+    display: flex;
+}
+
+.template-action-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.template-action-btn:hover {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+/* ==================== Parameter Configuration Form ==================== */
+
+.params-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    max-width: 1200px;
+}
+
+.enum-array-control,
+.step-array-control,
+.interval-array-control {
+    width: 100%;
+}
+
+/* ==================== Table Control Styles ==================== */
+
+.steps-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.steps-table thead {
+    background: #f9fafb;
+}
+
+.steps-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.steps-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.steps-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.steps-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* ==================== Step Input Styles ==================== */
+
+.step-time,
+.step-speed {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.step-time:focus,
+.step-speed:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ==================== Step Control Button Group ==================== */
+
+.step-buttons {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-add-step {
+    padding: 8px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-step:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-remove-step {
+    padding: 6px 12px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-remove-step:hover {
+    background: #dc2626;
+}
+
+/* ==================== Step Array Control Enhanced ==================== */
+
+.step-array-control-enhanced {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* ==================== Timeline Visualization ==================== */
+
+.parameter-timeline {
+    position: relative;
+    height: 120px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.parameter-timeline-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 6px;
+}
+
+.timeline-empty-message {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.timeline-description {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    padding-left: 2px;
+}
+
+.config-hint {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-left: 3px solid #3b82f6;
+    border-radius: 4px;
+}
+
+/* ==================== Timeline Hours Marker ==================== */
+
+.timeline-hours {
+    display: flex;
+    height: 30px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.timeline-hour {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    padding-top: 8px;
+    border-right: 1px solid #f3f4f6;
+}
+
+.timeline-hour:last-child {
+    border-right: none;
+}
+
+/* ==================== Timeline Slots ==================== */
+
+.timeline-slots {
+    position: relative;
+    height: 90px;
+    padding: 5px;
+}
+
+.timeline-slot {
+    position: absolute;
+    height: 80px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+}
+
+.timeline-slot:hover {
+    opacity: 0.9 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.timeline-slot-label {
+    font-size: 12px;
+    color: white;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

@@ -1,0 +1,59 @@
+/**
+ * templates-results.css
+ * 结果显示样式 - 策略列表、结果表格、图表
+ * v0.9.1
+ */
+
+/* ==================== Strategy List ==================== */
+
+.strategies-list {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.strategies-list h3 {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    border-left: 4px solid #2ecc71;
+    padding-left: 15px;
+}
+
+/* ==================== Strategy Item ==================== */
+
+.strategy-item {
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.strategy-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.strategy-info {
+    flex: 1;
+}
+
+.strategy-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.strategy-meta {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.strategy-actions {
+    display: flex;
+    gap: 10px;
+}
