@@ -69,11 +69,13 @@ function switchView(view) {
     document.getElementById('configView').classList.toggle('active', view === 'config');
     document.getElementById('progressView').classList.toggle('active', view === 'progress');
     document.getElementById('resultsView').classList.toggle('active', view === 'results');
+    document.getElementById('historyView').classList.toggle('active', view === 'history');
 
     // Update tabs
     document.getElementById('configViewTab').classList.toggle('active', view === 'config');
     document.getElementById('progressViewTab').classList.toggle('active', view === 'progress');
     document.getElementById('resultsViewTab').classList.toggle('active', view === 'results');
+    document.getElementById('historyViewTab').classList.toggle('active', view === 'history');
 
     if (view === 'progress' && currentBatchId) {
         startProgressPolling();
@@ -83,6 +85,10 @@ function switchView(view) {
 
     if (view === 'results' && currentBatchId) {
         loadResults();
+    }
+
+    if (view === 'history' && currentCaseId) {
+        loadBatchHistory();
     }
 }
 
@@ -938,6 +944,113 @@ function viewOptimizationAnalysis() {
 
     // 跳转到方案优化页面，传递 batch_id 参数
     window.location.href = `optimization.html?batch_id=${currentBatchId}`;
+}
+
+// ========== 批次历史管理 ==========
+
+async function loadBatchHistory() {
+    if (!currentCaseId) {
+        document.getElementById('batchHistoryEmpty').style.display = 'block';
+        document.getElementById('batchHistoryList').innerHTML = '';
+        return;
+    }
+
+    try {
+        const status = document.getElementById('historyStatusFilter').value;
+        const params = new URLSearchParams({
+            case_id: currentCaseId,
+            page: 1,
+            limit: 100
+        });
+        if (status) params.append('status', status);
+
+        const response = await fetch(`${API_BASE}/control/batch-optimization/batches?${params}`);
+        if (!response.ok) throw new Error('Failed to load batch history');
+
+        const data = await response.json();
+        const batches = data.batches || [];
+
+        const listContainer = document.getElementById('batchHistoryList');
+        const emptyState = document.getElementById('batchHistoryEmpty');
+
+        if (batches.length === 0) {
+            listContainer.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        listContainer.innerHTML = batches.map(batch => `
+            <div class="batch-history-card">
+                <div class="batch-card-header">
+                    <h4>${batch.batch_id}</h4>
+                    <span class="batch-status ${batch.status}">${getStatusLabel(batch.status)}</span>
+                </div>
+                <div class="batch-card-info">
+                    <p><strong>方案数:</strong> ${batch.plan_count}</p>
+                    <p><strong>总任务:</strong> ${batch.total_tasks}</p>
+                    <p><strong>创建时间:</strong> ${new Date(batch.created_at).toLocaleString()}</p>
+                    ${batch.duration_seconds ? `<p><strong>耗时:</strong> ${formatDuration(batch.duration_seconds)}</p>` : ''}
+                    ${batch.success_rate !== undefined ? `<p><strong>成功率:</strong> ${(batch.success_rate * 100).toFixed(1)}%</p>` : ''}
+                </div>
+                <div class="batch-card-actions">
+                    ${batch.status === 'completed' ? `
+                        <button class="btn btn-small" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+                    ` : ''}
+                    ${batch.status === 'running' ? `
+                        <button class="btn btn-small" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">监控进度</button>
+                    ` : ''}
+                    <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading batch history:', error);
+        showError('加载批次历史失败');
+    }
+}
+
+function filterBatchHistory() {
+    loadBatchHistory();
+}
+
+async function deleteBatchHistory(batchId) {
+    if (!confirm('确认删除该批次吗？此操作不可撤销。')) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete batch');
+
+        showSuccess('批次已删除');
+        loadBatchHistory();
+    } catch (error) {
+        console.error('Error deleting batch:', error);
+        showError('删除批次失败');
+    }
+}
+
+function loadBatchResultsAndSwitch(batchId) {
+    currentBatchId = batchId;
+    switchView('results');
+}
+
+function loadBatchProgressAndSwitch(batchId) {
+    currentBatchId = batchId;
+    switchView('progress');
+}
+
+function getStatusLabel(status) {
+    const labels = {
+        'pending': '待运行',
+        'running': '运行中',
+        'completed': '已完成',
+        'cancelled': '已取消',
+        'failed': '失败',
+        'archived': '已归档'
+    };
+    return labels[status] || status;
 }
 
 // ========== 工具函数 ==========

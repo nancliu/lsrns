@@ -264,3 +264,69 @@ async def delete_batch(batch_id: str):
     except Exception as e:
         logger.error(f"Error deleting batch: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"删除批次失败: {str(e)}")
+
+
+@router.get("/batch-optimization/batches")
+async def list_batches(
+    case_id: str,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
+    """
+    列表查询批次
+
+    查询参数:
+    - case_id: 案例ID（必填）
+    - status: 筛选状态（可选，支持: pending, running, completed, cancelled, failed, archived）
+    - page: 页码（默认1）
+    - limit: 每页数量（默认20）
+
+    返回:
+    - 批次列表和分页信息
+    """
+    try:
+        result = batch_service.list_batches(case_id, status, page, limit)
+        return result
+    except Exception as e:
+        logger.error(f"Error listing batches: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取批次列表失败: {str(e)}")
+
+
+@router.get("/batch-optimization/batches/{batch_id}/detail")
+async def get_batch_detail(batch_id: str):
+    """
+    获取批次详细信息
+
+    路径参数:
+    - batch_id: 批次ID
+
+    返回:
+    - 批次详细信息，包含所有任务和统计摘要
+    """
+    try:
+        # 从batch_id查找case_id
+        from pathlib import Path
+
+        cases_dir = Path("cases")
+        case_id = None
+
+        for case_dir in cases_dir.iterdir():
+            if case_dir.is_dir():
+                possible_path = case_dir / "simulations" / "plan_opti" / batch_id / "batch_metadata.json"
+                if possible_path.exists():
+                    case_id = case_dir.name
+                    break
+
+        if not case_id:
+            raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        result = batch_service.get_batch_detail(case_id, batch_id)
+        return result
+
+    except FileNotFoundError as e:
+        logger.warning(f"Batch not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting batch detail: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取批次详情失败: {str(e)}")

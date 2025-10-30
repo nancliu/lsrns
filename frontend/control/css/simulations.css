@@ -424,3 +424,155 @@ body {
     border-bottom-color: #667eea;
     font-weight: 600;
 }
+
+/* 批次历史样式 */
+.history-filters {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-group label {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    background: white;
+}
+
+.batch-history-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.batch-history-card {
+    background: white;
+    border: 1px solid #ecf0f1;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.batch-history-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.batch-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.batch-card-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #2c3e50;
+    font-family: 'Courier New', monospace;
+}
+
+.batch-status {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.batch-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.batch-status.running {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.batch-status.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.batch-status.cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.batch-status.failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.batch-status.archived {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.batch-card-info {
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+}
+
+.batch-card-info p {
+    margin: 6px 0;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+}
+
+.batch-card-info strong {
+    color: #2c3e50;
+}
+
+.batch-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border: 1px solid #ddd;
+    background: white;
+    color: #667eea;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 70px;
+}
+
+.btn-small:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.btn-small.btn-danger {
+    color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+.btn-small.btn-danger:hover {
+    background: #e74c3c;
+    color: white;
+}

@@ -110,6 +110,20 @@ class BatchOptimizationService:
             "created_at": datetime.now().isoformat(),
         }
 
+        # 7. 更新批次索引
+        batch_metadata = {
+            "batch_id": batch_id,
+            "case_id": case_id,
+            "plan_ids": plan_ids,
+            "total_tasks": total_tasks,
+            "num_seeds": num_seeds,
+            "base_seed": base_seed,
+            "max_concurrent": 1,  # 默认并发数
+            "status": "pending",
+            "created_at": response["created_at"],
+        }
+        self._update_batches_index_on_create(case_id, batch_metadata)
+
         logger.info(
             f"Batch {batch_id} created: {len(plan_ids)} plans × {num_seeds} seeds = {total_tasks} tasks"
         )
@@ -1260,6 +1274,260 @@ class BatchOptimizationService:
 
         return response
 
+    def _get_batches_index_path(self, case_id: str) -> Path:
+        """获取批次索引文件路径"""
+        return Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / "batches_index.json"
+
+    def _load_batches_index(self, case_id: str) -> Dict[str, Any]:
+        """加载批次索引文件，如不存在则返回空索引"""
+        index_path = self._get_batches_index_path(case_id)
+        if not index_path.exists():
+            return {"batches": [], "last_updated": datetime.now().isoformat()}
+
+        try:
+            with open(index_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load batches index: {e}, returning empty index")
+            return {"batches": [], "last_updated": datetime.now().isoformat()}
+
+    def _save_batches_index(self, case_id: str, index: Dict[str, Any]) -> None:
+        """保存批次索引文件"""
+        index_path = self._get_batches_index_path(case_id)
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+
+        index["last_updated"] = datetime.now().isoformat()
+        with open(index_path, 'w', encoding='utf-8') as f:
+            json.dump(index, f, indent=2, ensure_ascii=False)
+
+    def _update_batches_index_on_create(self, case_id: str, batch_metadata: Dict[str, Any]) -> None:
+        """批次创建时更新索引"""
+        index = self._load_batches_index(case_id)
+
+        # 检查是否已存在
+        batch_id = batch_metadata.get("batch_id")
+        existing = next((b for b in index["batches"] if b.get("batch_id") == batch_id), None)
+        if not existing:
+            batch_summary = {
+                "batch_id": batch_id,
+                "case_id": case_id,
+                "plan_ids": batch_metadata.get("plan_ids", []),
+                "plan_count": len(batch_metadata.get("plan_ids", [])),
+                "total_tasks": batch_metadata.get("total_tasks", 0),
+                "num_seeds": batch_metadata.get("num_seeds", 1),
+                "base_seed": batch_metadata.get("base_seed", 66),
+                "max_concurrent": batch_metadata.get("max_concurrent", 1),
+                "status": batch_metadata.get("status", "pending"),
+                "created_at": batch_metadata.get("created_at", datetime.now().isoformat()),
+            }
+            index["batches"].append(batch_summary)
+            self._save_batches_index(case_id, index)
+            logger.debug(f"Updated batches index for case {case_id} on batch creation")
+
+    def _update_batches_index_on_status_change(self, case_id: str, batch_id: str, status: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """批次状态变更时更新索引"""
+        index = self._load_batches_index(case_id)
+
+        for batch in index["batches"]:
+            if batch.get("batch_id") == batch_id:
+                batch["status"] = status
+                if status == "running" and "started_at" not in batch:
+                    batch["started_at"] = datetime.now().isoformat()
+                elif status == "completed":
+                    batch["completed_at"] = datetime.now().isoformat()
+                    if "started_at" in batch and "completed_at" in batch:
+                        start_time = datetime.fromisoformat(batch["started_at"])
+                        end_time = datetime.fromisoformat(batch["completed_at"])
+                        batch["duration_seconds"] = int((end_time - start_time).total_seconds())
+
+                    if metadata:
+                        batch["success_rate"] = metadata.get("success_rate", 0.0)
+                        batch["completed_tasks"] = metadata.get("completed_tasks", 0)
+                        batch["failed_tasks"] = metadata.get("failed_tasks", 0)
+                break
+
+        self._save_batches_index(case_id, index)
+        logger.debug(f"Updated batches index for batch {batch_id} on status change to {status}")
+
+    def _update_batches_index_on_delete(self, case_id: str, batch_id: str) -> None:
+        """批次删除时更新索引"""
+        index = self._load_batches_index(case_id)
+        index["batches"] = [b for b in index["batches"] if b.get("batch_id") != batch_id]
+        self._save_batches_index(case_id, index)
+        logger.debug(f"Updated batches index for case {case_id} on batch deletion")
+
+    def list_batches(self, case_id: str, status: Optional[str] = None, page: int = 1, limit: int = 20) -> Dict[str, Any]:
+        """
+        列表查询批次
+
+        Args:
+            case_id: 案例ID
+            status: 筛选状态（可选）
+            page: 页码（从1开始）
+            limit: 每页数量
+
+        Returns:
+            Dict: 批次列表和分页信息
+        """
+        index = self._load_batches_index(case_id)
+        batches = index.get("batches", [])
+
+        # 按状态筛选
+        if status:
+            batches = [b for b in batches if b.get("status") == status]
+
+        # 按创建时间逆序排序
+        batches = sorted(batches, key=lambda b: b.get("created_at", ""), reverse=True)
+
+        # 分页
+        total = len(batches)
+        start = (page - 1) * limit
+        end = start + limit
+        paginated_batches = batches[start:end]
+
+        return {
+            "batches": paginated_batches,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit if total > 0 else 0,
+        }
+
+    def get_batch_detail(self, case_id: str, batch_id: str) -> Dict[str, Any]:
+        """
+        获取批次详细信息
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+
+        Returns:
+            Dict: 批次详细信息
+
+        Raises:
+            FileNotFoundError: 批次不存在
+        """
+        batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+
+        if not batch_dir.exists():
+            raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        # 加载批次元数据
+        metadata_file = batch_dir / "batch_metadata.json"
+        if metadata_file.exists():
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                batch_metadata = json.load(f)
+        else:
+            batch_metadata = {"batch_id": batch_id, "case_id": case_id}
+
+        # 获取任务列表（从batch_progress.json）
+        progress_file = batch_dir / "batch_progress.json"
+        if progress_file.exists():
+            with open(progress_file, 'r', encoding='utf-8') as f:
+                progress_data = json.load(f)
+                tasks = progress_data.get("tasks", [])
+        else:
+            tasks = []
+
+        # 计算摘要统计
+        total_tasks = len(tasks)
+        completed_tasks = sum(1 for t in tasks if t.get("status") == "completed")
+        failed_tasks = sum(1 for t in tasks if t.get("status") == "failed")
+        cancelled_tasks = sum(1 for t in tasks if t.get("status") == "cancelled")
+
+        # 计算平均任务时长
+        completed = [t for t in tasks if t.get("status") == "completed" and t.get("duration_seconds")]
+        avg_task_duration = (
+            sum(t.get("duration_seconds", 0) for t in completed) // len(completed)
+            if completed else None
+        )
+
+        return {
+            "batch_id": batch_id,
+            "case_id": case_id,
+            "plan_ids": batch_metadata.get("plan_ids", []),
+            "num_seeds": batch_metadata.get("num_seeds", 1),
+            "base_seed": batch_metadata.get("base_seed", 66),
+            "max_concurrent": batch_metadata.get("max_concurrent", 1),
+            "status": batch_metadata.get("status", "pending"),
+            "created_at": batch_metadata.get("created_at"),
+            "started_at": batch_metadata.get("started_at"),
+            "completed_at": batch_metadata.get("completed_at"),
+            "duration_seconds": batch_metadata.get("duration_seconds"),
+            "tasks": tasks,
+            "summary": {
+                "total_tasks": total_tasks,
+                "completed_tasks": completed_tasks,
+                "failed_tasks": failed_tasks,
+                "cancelled_tasks": cancelled_tasks,
+                "success_rate": completed_tasks / total_tasks if total_tasks > 0 else 0.0,
+                "avg_task_duration_seconds": avg_task_duration,
+            }
+        }
+
+    def delete_batch_with_archive(self, case_id: str, batch_id: str, archive: bool = False) -> Dict[str, Any]:
+        """
+        删除或归档批次
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+            archive: True=归档（保留元数据），False=完全删除
+
+        Returns:
+            Dict: 删除/归档结果
+
+        Raises:
+            FileNotFoundError: 批次不存在
+            ValueError: 批次正在运行
+        """
+        batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+
+        if not batch_dir.exists():
+            raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        # 检查批次状态
+        metadata_file = batch_dir / "batch_metadata.json"
+        if metadata_file.exists():
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+                if metadata.get("status") == "running":
+                    raise ValueError("无法删除运行中的批次，请先取消批次")
+
+        import shutil
+
+        if archive:
+            # 归档：删除大文件，保留元数据
+            for plan_dir in batch_dir.glob("**/sim_*"):
+                if plan_dir.is_dir():
+                    # 保留 simulation_metadata.json 和 progress.json
+                    for item in plan_dir.iterdir():
+                        if item.name not in ["simulation_metadata.json", "progress.json", "batch_metadata.json"]:
+                            if item.is_dir():
+                                shutil.rmtree(item)
+                            else:
+                                item.unlink()
+
+            # 更新元数据中的状态
+            if metadata_file.exists():
+                with open(metadata_file, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                metadata["status"] = "archived"
+                with open(metadata_file, 'w', encoding='utf-8') as f:
+                    json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+            response = {"batch_id": batch_id, "archived": True, "archived_at": datetime.now().isoformat()}
+        else:
+            # 完全删除
+            shutil.rmtree(batch_dir)
+            response = {"batch_id": batch_id, "deleted": True, "deleted_at": datetime.now().isoformat()}
+
+        # 更新索引
+        self._update_batches_index_on_delete(case_id, batch_id)
+
+        logger.info(f"Batch {batch_id} {'archived' if archive else 'deleted'}")
+        return response
+
 
 # 单例服务实例
 batch_optimization_service = BatchOptimizationService()
@@ -1308,3 +1576,18 @@ def cancel_batch_service(case_id: str, batch_id: str) -> Dict[str, Any]:
 def delete_batch_service(case_id: str, batch_id: str) -> Dict[str, Any]:
     """删除批量仿真服务函数"""
     return batch_optimization_service.delete_batch(case_id, batch_id)
+
+
+def list_batches_service(case_id: str, status: Optional[str] = None, page: int = 1, limit: int = 20) -> Dict[str, Any]:
+    """列表查询批次服务函数"""
+    return batch_optimization_service.list_batches(case_id, status, page, limit)
+
+
+def get_batch_detail_service(case_id: str, batch_id: str) -> Dict[str, Any]:
+    """获取批次详细信息服务函数"""
+    return batch_optimization_service.get_batch_detail(case_id, batch_id)
+
+
+def delete_batch_with_archive_service(case_id: str, batch_id: str, archive: bool = False) -> Dict[str, Any]:
+    """删除或归档批次服务函数"""
+    return batch_optimization_service.delete_batch_with_archive(case_id, batch_id, archive)

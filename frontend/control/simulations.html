@@ -34,6 +34,7 @@
                 <button class="view-tab active" id="configViewTab" onclick="switchView('config')">配置</button>
                 <button class="view-tab" id="progressViewTab" onclick="switchView('progress')">进度</button>
                 <button class="view-tab" id="resultsViewTab" onclick="switchView('results')">结果</button>
+                <button class="view-tab" id="historyViewTab" onclick="switchView('history')">批次历史</button>
             </div>
 
             <!-- 配置视图 -->
@@ -177,6 +178,36 @@
                     <button class="btn btn-secondary" id="backToConfigBtn">返回配置</button>
                     <button class="btn btn-primary" id="viewOptimizationBtn">查看详细优化分析 →</button>
                     <button class="btn btn-success" id="exportResultsBtn">导出结果</button>
+                </div>
+            </div>
+
+            <!-- 批次历史视图 -->
+            <div id="historyView" class="view">
+                <div class="content-header">
+                    <h2>批次历史</h2>
+                    <p class="content-subtitle">查看和管理历史批次</p>
+                </div>
+
+                <div class="history-filters">
+                    <div class="filter-group">
+                        <label for="historyStatusFilter">状态筛选:</label>
+                        <select id="historyStatusFilter" onchange="filterBatchHistory()">
+                            <option value="">全部状态</option>
+                            <option value="running">运行中</option>
+                            <option value="completed">已完成</option>
+                            <option value="cancelled">已取消</option>
+                            <option value="failed">失败</option>
+                            <option value="archived">已归档</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="batchHistoryList" class="batch-history-list">
+                    <!-- 批次卡片将动态加载 -->
+                </div>
+
+                <div id="batchHistoryEmpty" class="empty-state" style="display: none;">
+                    <p>暂无批次历史</p>
                 </div>
             </div>
         </div>
