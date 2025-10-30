@@ -67,6 +67,153 @@ OD Data Processing and Simulation System (OD数据处理与仿真系统) - A mod
 - Max class length: 300 lines
 - Flag if >10 methods per class
 
+### Frontend Development Standards
+
+**关注点分离原则 (Separation of Concerns)**:
+
+前端代码必须严格遵循 HTML / CSS / JavaScript 分离：
+
+1. **HTML 文件** (`frontend/control/*.html`)
+   - 仅包含语义化 HTML 结构
+   - NO inline styles (`style=""`)
+   - NO inline scripts (`<script>` 内联代码)
+   - 使用有意义的 class 和 id 用于样式和脚本钩子
+
+2. **CSS 文件** (`frontend/control/css/*.css`)
+   - 所有样式规则在单独的 .css 文件中
+   - 优先使用 class 选择器而非 ID
+   - 按功能模块或页面分组组织
+   - 文件命名: `[page-or-component]-name.css`
+   - 示例: `templates-base.css`, `edge_selector.css`, `batch_simulation.css`
+
+3. **JavaScript 文件** (`frontend/control/js/*.js`)
+   - 仅包含 JavaScript 逻辑，NO inline styles
+   - 每个文件处理一个独立的功能模块
+   - 必须遵循最小职责原则（Single Responsibility Principle）
+
+**函数最小职责原则 (Single Responsibility Principle)**:
+
+JavaScript 函数开发严格约束：
+
+- **单一职责**: 每个函数只做一件事，职责清晰
+- **最大长度**: 30 行代码
+- **最大参数**: 5 个参数
+- **最大嵌套**: 3 层深度
+- **命名约定**: 函数名称必须清晰描述其单一职责
+  - 好: `updateRouteDropdown()`, `validateFormInput()`, `fetchSimulationStatus()`
+  - 差: `handleChange()`, `process()`, `doStuff()`
+
+**函数分类与示例**:
+
+```javascript
+// 1. 事件处理函数：每个事件一个简单处理器，委托给功能函数
+document.getElementById('btn').onclick = () => performAction();
+
+// 2. 数据获取函数：每个 API 端点一个函数
+async function fetchSimulationResults() { ... }
+async function loadCaseMetadata() { ... }
+
+// 3. DOM 操作函数：每个 UI 更新任务一个函数
+function updateProgressBar(percent) { ... }
+function renderResultsTable(data) { ... }
+
+// 4. 验证函数：每个验证规则一个函数
+function validateSpeedRange(speed) { ... }
+function validateTimeFormat(time) { ... }
+
+// 5. 格式化函数：每个格式转换一个函数
+function formatTimestamp(date) { ... }
+function formatSpeedValue(speed) { ... }
+```
+
+**反面例子 (禁止)**:
+
+```javascript
+// ❌ 错误：混合多个职责
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  if (!data.speed || data.speed < 0 || data.speed > 120) {
+    alert('Invalid speed');
+    return;
+  }
+
+  fetch('/api/update', { method: 'POST', body: JSON.stringify(data) })
+    .then(r => r.json())
+    .then(result => {
+      document.getElementById('output').innerHTML = `
+        <div class="result">
+          <p>Speed: ${result.speed} km/h</p>
+        </div>
+      `;
+    })
+    .catch(err => console.error(err));
+}
+```
+
+**正面例子 (推荐)**:
+
+```javascript
+// ✅ 正确：分离多个小的、职责清晰的函数
+
+// 验证函数
+function validateSpeedInput(speed) {
+  return speed > 0 && speed <= 120;
+}
+
+// API 调用函数
+async function updateSimulationSpeed(data) {
+  const response = await fetch('/api/update', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+// 格式化函数
+function formatResultDisplay(result) {
+  return `<div class="result"><p>Speed: ${result.speed} km/h</p></div>`;
+}
+
+// DOM 更新函数
+function renderResult(html) {
+  document.getElementById('output').innerHTML = html;
+}
+
+// 事件处理函数：委托给其他专门函数
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  if (!validateSpeedInput(data.speed)) {
+    alert('Invalid speed');
+    return;
+  }
+
+  try {
+    const result = await updateSimulationSpeed(data);
+    const html = formatResultDisplay(result);
+    renderResult(html);
+  } catch (err) {
+    console.error('Error updating simulation:', err);
+  }
+}
+```
+
+**审核清单**:
+
+- [ ] 所有 HTML 文件中没有 `style=""` 属性
+- [ ] 所有 HTML 文件中没有 `<script>` 内联代码
+- [ ] 所有样式都在 `frontend/control/css/*.css` 文件中
+- [ ] 每个 JavaScript 函数长度 ≤ 30 行
+- [ ] 每个函数只做一件事，职责清晰
+- [ ] 函数名称清晰描述其行为
+- [ ] 没有深层嵌套（>3 层）
+- [ ] 没有混合事件处理、数据获取、验证和 DOM 操作的函数
+
 ### Architecture Patterns
 
 **Two-Layer Modular Architecture**:

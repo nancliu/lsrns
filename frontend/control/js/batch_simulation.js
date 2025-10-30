@@ -289,7 +289,7 @@ function startProgressPolling() {
     if (progressPollInterval) return;
 
     updateProgress(); // 立即更新一次
-    progressPollInterval = setInterval(updateProgress, 2000); // 每2秒更新（确保及时显示曲线数据）
+    progressPollInterval = setInterval(updateProgress, 10000); // 每10秒更新（平衡实时性与性能）
 }
 
 function stopProgressPolling() {
