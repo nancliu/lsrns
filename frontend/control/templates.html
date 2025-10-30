@@ -71,11 +71,11 @@
                 <h3>步骤1：选择策略模板</h3>
                 <div id="templates-container" class="templates-grid"></div>
                 <div id="loading" class="loading">加载中...</div>
-                <div id="error" class="error" style="display: none;"></div>
+                <div id="error" class="error" class="hidden"></div>
             </div>
 
             <!-- 步骤2: 选择路段 (默认隐藏) -->
-            <div class="step-content" id="step2-content" style="display: none;">
+            <div class="step-content" id="step2-content" class="hidden">
                 <h3>步骤2：选择管控路段</h3>
 
                 <!-- 已选模板信息卡片 -->
@@ -95,24 +95,24 @@
                 <div class="edge-selector-embedded" style="border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
                     <!-- 筛选面板 -->
                     <div class="filter-panel" style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 15px;">
-                        <h4 style="margin-bottom: 15px; color: #2c3e50;">筛选条件</h4>
+                        <h4 class="mb-15 text-primary">筛选条件</h4>
 
                         <!-- 第一行：层级筛选（路线、路段） -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
                                 <label for="route-codes" class="label-text">路线代码</label>
-                                <select id="route-codes" multiple size="4" style="width: 100%; padding: 5px;">
+                                <select id="route-codes" multiple size="4" class="w-full p-5">
                                     <option value="">加载中...</option>
                                 </select>
-                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d;">支持多选 (Ctrl+点击)</span>
+                                <span class="form-hint" class="text-xs text-secondary">支持多选 (Ctrl+点击)</span>
                             </div>
 
                             <div class="form-group">
                                 <label for="section-codes" class="label-text">路段代码</label>
-                                <select id="section-codes" multiple size="4" style="width: 100%; padding: 5px;">
+                                <select id="section-codes" multiple size="4" class="w-full p-5">
                                     <option value="">请先选择路线</option>
                                 </select>
-                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d;">根据路线自动过滤</span>
+                                <span class="form-hint" class="text-xs text-secondary">根据路线自动过滤</span>
                             </div>
                         </div>
 
@@ -144,7 +144,7 @@
                             <div class="form-group">
                                 <label for="min-lanes" class="label-text">最小车道数</label>
                                 <input type="number" id="min-lanes" min="1" step="1" placeholder="3" class="w-full p-8">
-                                <span class="form-hint" style="font-size: 0.85rem; color: #7f8c8d;">DHS≥4</span>
+                                <span class="form-hint" class="text-xs text-secondary">DHS≥4</span>
                             </div>
 
                             <div class="form-group">
@@ -160,7 +160,7 @@
 
                             <div class="form-group">
                                 <label for="node-types" class="label-text">节点类型</label>
-                                <select id="node-types" multiple size="4" style="width: 100%; padding: 5px;">
+                                <select id="node-types" multiple size="4" class="w-full p-5">
                                     <option value="normal">普通路段</option>
                                     <option value="diverging">分流</option>
                                     <option value="merging">汇流</option>
@@ -173,7 +173,7 @@
 
                             <div class="form-group">
                                 <label for="demonstration-ids" class="label-text">示范段</label>
-                                <select id="demonstration-ids" multiple size="3" style="width: 100%; padding: 5px;">
+                                <select id="demonstration-ids" multiple size="3" class="w-full p-5">
                                     <option value="">加载中...</option>
                                 </select>
                             </div>
@@ -241,11 +241,11 @@
 
                     <!-- 网络可视化面板 (Phase 1B - US4) -->
                     <div class="viz-panel" style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin-top: 20px;">
-                        <h4 style="margin-bottom: 15px; color: #2c3e50;">网络可视化</h4>
+                        <h4 class="mb-15 text-primary">网络可视化</h4>
                         <div class="viz-controls" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
-                            <button class="btn btn-primary" onclick="loadVisualization()" style="padding: 8px 20px; font-size: 0.95rem;">加载网络地图</button>
-                            <button class="btn btn-secondary" onclick="resetView()" style="padding: 8px 20px; font-size: 0.95rem;">重置视图</button>
-                            <button class="btn btn-secondary" onclick="clearVizSelection()" style="padding: 8px 20px; font-size: 0.95rem;">清除可视化选择</button>
+                            <button class="btn btn-primary" onclick="loadVisualization()" class="p-8 px-12 font-95">加载网络地图</button>
+                            <button class="btn btn-secondary" onclick="resetView()" class="p-8 px-12 font-95">重置视图</button>
+                            <button class="btn btn-secondary" onclick="clearVizSelection()" class="p-8 px-12 font-95">清除可视化选择</button>
 
                             <div class="viz-info" style="margin-left: auto; font-size: 0.9rem; color: #7f8c8d;">
                                 <span>可视化选中: <strong id="viz-selected-count">0</strong> 条路段</span>
@@ -290,7 +290,7 @@
             </div>
 
             <!-- 步骤3: 配置参数 (默认隐藏) -->
-            <div class="step-content" id="step3-content" style="display: none;">
+            <div class="step-content" id="step3-content" class="hidden">
                 <h3>步骤3：配置策略参数</h3>
 
                 <!-- 已选路段详细信息展示 (Phase 2: Task 2.1-2.4) -->
@@ -347,7 +347,7 @@
 
                 <!-- 列表容器 (T070) -->
                 <div id="strategies-list-container" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">加载中...</p>
+                    <p class="text-center-large">加载中...</p>
                 </div>
 
                 <!-- 分页控制 (T071) -->
@@ -357,21 +357,21 @@
             </div>
 
             <!-- 策略详情模态框 (T074, T076) -->
-            <div id="strategy-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
-                <div class="strategy-detail-content" style="background: white; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-                    <div style="padding: 25px;">
+            <div id="strategy-detail-modal" class="modal-overlay">
+                <div class="strategy-detail-content" class="modal-content-container">
+                    <div class="p-25">
                         <!-- 详情内容由 viewStrategyDetail() 动态生成 -->
-                        <p style="text-align: center; color: #7f8c8d;">加载中...</p>
+                        <p class="text-center-hint">加载中...</p>
                     </div>
                 </div>
             </div>
 
             <!-- 模板详情模态框 (NEW) -->
-            <div id="template-detail-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
-                <div class="template-detail-content" style="background: white; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-                    <div style="padding: 25px;">
+            <div id="template-detail-modal" class="modal-overlay">
+                <div class="template-detail-content" class="modal-content-container">
+                    <div class="p-25">
                         <!-- 详情内容由 viewTemplateDetail() 动态生成 -->
-                        <p style="text-align: center; color: #7f8c8d;">加载中...</p>
+                        <p class="text-center-hint">加载中...</p>
                     </div>
                 </div>
             </div>
@@ -692,8 +692,8 @@
             nameGroup.setAttribute('data-parameter-type', 'string');
             nameGroup.innerHTML = `
                 <label>策略名称 *</label>
-                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                    <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略" style="flex: 1;">
+                <div class="flex-start">
+                    <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略" class="flex-1">
                     <button type="button" id="suggest-name-btn" class="btn btn-secondary" style="white-space: nowrap;">
                         建议名称
                     </button>
@@ -709,8 +709,8 @@
             descGroup.setAttribute('data-parameter-type', 'string');
             descGroup.innerHTML = `
                 <label>策略描述</label>
-                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                    <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的" style="flex: 1;"></textarea>
+                <div class="flex-start">
+                    <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的" class="flex-1"></textarea>
                     <button type="button" id="regenerate-description-btn" class="btn btn-secondary" style="white-space: nowrap; align-self: flex-start;">
                         重新生成描述
                     </button>
@@ -1205,9 +1205,9 @@
             // 表头
             const thead = document.createElement('thead');
             thead.innerHTML = `
-                <tr style="background: #f5f5f5; border-bottom: 1px solid #ddd;">
-                    <th style="padding: 10px; text-align: left; font-weight: 500;">时间(小时)</th>
-                    <th style="padding: 10px; text-align: left; font-weight: 500;">速度(km/h)</th>
+                <tr class="table-row-alt">
+                    <th class="table-cell-medium">时间(小时)</th>
+                    <th class="table-cell-medium">速度(km/h)</th>
                     <th style="padding: 10px; text-align: center; width: 80px;">操作</th>
                 </tr>
             `;
@@ -1252,13 +1252,13 @@
             row.innerHTML = `
                 <td class="p-8">
                     <input type="number" class="step-time" min="0" max="24" step="0.5"
-                           placeholder="如: 7" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;" />
+                           placeholder="如: 7" class="input-field-standard" />
                 </td>
                 <td class="p-8">
                     <input type="number" class="step-speed" min="0" step="1"
-                           placeholder="如: 60" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;" />
+                           placeholder="如: 60" class="input-field-standard" />
                 </td>
-                <td style="padding: 8px; text-align: center;">
+                <td class="table-cell-center">
                     <button type="button" class="delete-row" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">删除</button>
                 </td>
             `;
@@ -1300,12 +1300,12 @@
 
             const thead = document.createElement('thead');
             thead.innerHTML = `
-                <tr style="background: #f5f5f5; border-bottom: 1px solid #ddd;">
+                <tr class="table-row-alt">
                     <th class="table-cell-basic">开始(h)</th>
                     <th class="table-cell-basic">结束(h)</th>
                     <th class="table-cell-basic">状态</th>
                     <th class="table-cell-basic">允许车型</th>
-                    <th style="padding: 10px; text-align: center; width: 70px; font-size: 12px;">操作</th>
+                    <th class="table-cell-fixed-center">操作</th>
                 </tr>
             `;
             table.appendChild(thead);
@@ -1368,8 +1368,8 @@
                         <option value="bus">客车</option>
                     </select>
                 </td>
-                <td style="padding: 8px; text-align: center;">
-                    <button type="button" class="delete-row" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+                <td class="table-cell-center">
+                    <button type="button" class="delete-row" class="btn-error">删除</button>
                 </td>
             `;
 
@@ -1410,12 +1410,12 @@
 
             const thead = document.createElement('thead');
             thead.innerHTML = `
-                <tr style="background: #f5f5f5; border-bottom: 1px solid #ddd;">
+                <tr class="table-row-alt">
                     <th class="table-cell-basic">开始(h)</th>
                     <th class="table-cell-basic">结束(h)</th>
                     <th class="table-cell-basic">流量(veh/h)</th>
                     <th class="table-cell-basic">目标速(km/h)</th>
-                    <th style="padding: 10px; text-align: center; width: 70px; font-size: 12px;">操作</th>
+                    <th class="table-cell-fixed-center">操作</th>
                 </tr>
             `;
             table.appendChild(thead);
@@ -1472,8 +1472,8 @@
                     <input type="number" class="interval-speed" min="0" step="1"
                            placeholder="60" class="input-field" />
                 </td>
-                <td style="padding: 8px; text-align: center;">
-                    <button type="button" class="delete-row" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+                <td class="table-cell-center">
+                    <button type="button" class="delete-row" class="btn-error">删除</button>
                 </td>
             `;
 
@@ -3479,7 +3479,7 @@
             const paginationEl = document.getElementById('strategies-pagination');
 
             try {
-                containerEl.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">加载中...</p>';
+                containerEl.innerHTML = '<p class="text-center-large">加载中...</p>';
 
                 // 构建查询参数 (T072, T073)
                 const searchQuery = document.getElementById('strategy-search')?.value || '';
@@ -3526,13 +3526,13 @@
             const container = document.getElementById('strategies-list-container');
 
             if (instances.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 40px 20px;">暂无符合条件的策略实例</p>';
+                container.innerHTML = '<p class="text-center-large">暂无符合条件的策略实例</p>';
                 return;
             }
 
             // 构建表格 HTML (T075)
             let html = `
-                <table style="width: 100%; border-collapse: collapse;">
+                <table class="table-full">
                     <thead>
                         <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
                             <th class="table-cell-head-data">策略名称</th>
@@ -3605,16 +3605,16 @@
 
             // 上一页按钮
             if (page > 1) {
-                html += `<button onclick="fetchStrategyInstances(${page - 1}, ${pageSize})" style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;">← 上一页</button>`;
+                html += `<button onclick="fetchStrategyInstances(${page - 1}, ${pageSize})" class="btn-secondary">← 上一页</button>`;
             } else {
-                html += `<button disabled style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;">← 上一页</button>`;
+                html += `<button disabled class="btn-secondary-disabled">← 上一页</button>`;
             }
 
             // 下一页按钮
             if (page < totalPages) {
-                html += `<button onclick="fetchStrategyInstances(${page + 1}, ${pageSize})" style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;">下一页 →</button>`;
+                html += `<button onclick="fetchStrategyInstances(${page + 1}, ${pageSize})" class="btn-secondary">下一页 →</button>`;
             } else {
-                html += `<button disabled style="padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;">下一页 →</button>`;
+                html += `<button disabled class="btn-secondary-disabled">下一页 →</button>`;
             }
 
             paginationEl.innerHTML = html;
@@ -3626,7 +3626,7 @@
             const modalContent = modal.querySelector('.strategy-detail-content div');
 
             try {
-                modalContent.innerHTML = '<p style="text-align: center; color: #7f8c8d;">加载中...</p>';
+                modalContent.innerHTML = '<p class="text-center-hint">加载中...</p>';
                 modal.style.display = 'flex';
 
                 const response = await fetch(`/api/v1/control/strategy-instances/${strategyId}`);
@@ -3639,22 +3639,22 @@
 
                 // 构建详情内容 HTML (T076)
                 let detailHtml = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
-                        <h2 style="margin: 0; color: #2c3e50;">${strategy.strategy_name}</h2>
-                        <button onclick="closeStrategyModal()" style="padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 1rem;">✕</button>
+                    <div class="flex-row-between">
+                        <h2 class="m-0 text-primary">${strategy.strategy_name}</h2>
+                        <button onclick="closeStrategyModal()" class="btn-secondary-large">✕</button>
                     </div>
 
                     <!-- 基本信息 -->
                     <div class="container-light">
                         <h3 class="text-primary mt-0">基本信息</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="grid-2col">
                             <div>
                                 <p class="hint-text-small">策略ID</p>
-                                <p style="margin: 5px 0; color: #2c3e50; font-family: monospace;">${strategy.strategy_id}</p>
+                                <p class="text-primary-mono">${strategy.strategy_id}</p>
                             </div>
                             <div>
                                 <p class="hint-text-small">策略类型</p>
-                                <p style="margin: 5px 0; color: #2c3e50; font-weight: 500;">
+                                <p class="text-primary-medium">
                                     <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${{'VSS': '#3498db', 'DHS': '#2ecc71', 'TEC': '#e74c3c'}[strategy.strategy_type] || '#95a5a6'}; color: white;">
                                         ${strategy.strategy_type}
                                     </span>
@@ -3674,11 +3674,11 @@
                     <!-- 参数配置 -->
                     <div class="container-light">
                         <h3 class="text-primary mt-0">参数配置</h3>
-                        <table style="width: 100%; border-collapse: collapse;">
+                        <table class="table-full">
                             <thead>
                                 <tr style="background: #ecf0f1; border-bottom: 1px solid #bdc3c7;">
-                                    <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;">参数名</th>
-                                    <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;">参数值</th>
+                                    <th class="table-cell-bold-short">参数名</th>
+                                    <th class="table-cell-bold-short">参数值</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -3703,13 +3703,13 @@
                     <div class="container-light">
                         <h3 class="text-primary mt-0">影响路段 (共 ${strategy.affected_edges.length} 条)</h3>
                         <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px;">
-                            <table style="width: 100%; border-collapse: collapse;">
+                            <table class="table-full">
                                 <thead>
                                     <tr style="background: #ecf0f1; border-bottom: 1px solid #bdc3c7; position: sticky; top: 0;">
-                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">路段ID</th>
-                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">路线</th>
-                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">里程范围</th>
-                                        <th style="padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;">长度(m)</th>
+                                        <th class="table-cell-bold">路段ID</th>
+                                        <th class="table-cell-bold">路线</th>
+                                        <th class="table-cell-bold">里程范围</th>
+                                        <th class="table-cell-bold">长度(m)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -3720,8 +3720,8 @@
                         <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: white;' : 'background: #fbfcfd;'}">
                             <td style="padding: 8px; color: #7f8c8d; font-family: monospace; font-size: 0.9rem;">${edge.edge_id}</td>
                             <td style="padding: 8px; color: #2c3e50; font-size: 0.9rem;">${edge.route_code || '-'}</td>
-                            <td style="padding: 8px; color: #7f8c8d; font-size: 0.9rem;">${edge.stake_range || '-'}</td>
-                            <td style="padding: 8px; color: #7f8c8d; font-size: 0.9rem;">${edge.length ? edge.length.toFixed(2) : '-'}</td>
+                            <td class="secondary-text-padded">${edge.stake_range || '-'}</td>
+                            <td class="secondary-text-padded">${edge.length ? edge.length.toFixed(2) : '-'}</td>
                         </tr>
                     `;
                 });
@@ -3733,9 +3733,9 @@
                     </div>
 
                     <!-- 元数据 -->
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                    <div class="container-background">
                         <h3 class="text-primary mt-0">元数据</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                        <div class="grid-2col-small">
                             <div>
                                 <p class="hint-text">创建时间</p>
                                 <p class="info-text">${new Date(strategy.metadata.created_at).toLocaleString('zh-CN')}</p>
@@ -3756,7 +3756,7 @@
 
             } catch (error) {
                 console.error('Error fetching strategy detail:', error);
-                modalContent.innerHTML = '<p style="text-align: center; color: #e74c3c;">加载失败: ' + error.message + '</p>';
+                modalContent.innerHTML = '<p class="text-center-error">加载失败: ' + error.message + '</p>';
             }
         }
 
@@ -3785,7 +3785,7 @@
             const modalContent = modal.querySelector('.template-detail-content div');
 
             try {
-                modalContent.innerHTML = '<p style="text-align: center; color: #7f8c8d;">加载中...</p>';
+                modalContent.innerHTML = '<p class="text-center-hint">加载中...</p>';
                 modal.style.display = 'flex';
 
                 const response = await fetch(`/api/v1/control/templates/${templateId}`);
@@ -3822,22 +3822,22 @@
 
                 // 构建详情内容 HTML
                 let detailHtml = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;">
-                        <h2 style="margin: 0; color: #2c3e50;">${template.template_name}</h2>
-                        <button onclick="closeTemplateModal()" style="padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 1rem;">✕</button>
+                    <div class="flex-row-between">
+                        <h2 class="m-0 text-primary">${template.template_name}</h2>
+                        <button onclick="closeTemplateModal()" class="btn-secondary-large">✕</button>
                     </div>
 
                     <!-- 基本信息 -->
                     <div class="container-light">
                         <h3 class="text-primary mt-0">基本信息</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="grid-2col">
                             <div>
                                 <p class="hint-text-small">模板ID</p>
-                                <p style="margin: 5px 0; color: #2c3e50; font-family: monospace;">${template.template_id}</p>
+                                <p class="text-primary-mono">${template.template_id}</p>
                             </div>
                             <div>
                                 <p class="hint-text-small">策略类型</p>
-                                <p style="margin: 5px 0; color: #2c3e50; font-weight: 500;">
+                                <p class="text-primary-medium">
                                     <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${badgeColors[template.strategy_type] || '#95a5a6'}; color: white;">
                                         ${strategyNames[template.strategy_type]}
                                     </span>
@@ -3898,18 +3898,18 @@
                                     <td style="padding: 3px 0; font-family: monospace; color: #2c3e50;">${param.parameter_name}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 3px 0;">默认值:</td>
+                                    <td class="py-1">默认值:</td>
                                     <td style="padding: 3px 0; font-family: monospace; color: #2c3e50; word-break: break-all;">${defaultValueStr}</td>
                                 </tr>
                                 ${param.unit ? `
                                 <tr>
-                                    <td style="padding: 3px 0;">单位:</td>
-                                    <td style="padding: 3px 0; color: #2c3e50;">${param.unit}</td>
+                                    <td class="py-1">单位:</td>
+                                    <td class="py-1 text-primary">${param.unit}</td>
                                 </tr>
                                 ` : ''}
                                 <tr>
-                                    <td style="padding: 3px 0;">约束条件:</td>
-                                    <td style="padding: 3px 0; color: #2c3e50;">${constraintsStr}</td>
+                                    <td class="py-1">约束条件:</td>
+                                    <td class="py-1 text-primary">${constraintsStr}</td>
                                 </tr>
                             </table>
                         </div>
@@ -3921,9 +3921,9 @@
                     </div>
 
                     <!-- 时间戳 -->
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                    <div class="container-background">
                         <h3 class="text-primary mt-0">时间戳</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;">
+                        <div class="grid-2col-small">
                             <div>
                                 <p class="hint-text">创建时间</p>
                                 <p class="info-text">${new Date(template.created_at).toLocaleString('zh-CN')}</p>
@@ -3950,7 +3950,7 @@
 
             } catch (error) {
                 console.error('Error fetching template detail:', error);
-                modalContent.innerHTML = '<p style="text-align: center; color: #e74c3c;">加载失败: ' + error.message + '</p>';
+                modalContent.innerHTML = '<p class="text-center-error">加载失败: ' + error.message + '</p>';
             }
         }
 

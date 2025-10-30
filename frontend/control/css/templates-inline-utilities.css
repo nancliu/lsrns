@@ -308,12 +308,207 @@
 
 /* ==================== 响应式布局补充 ==================== */
 
+/* ==================== Phase 2b 补充样式 ==================== */
+
+/* 中等频率样式 (2-4 次出现) */
+
+.w-90 { width: 90%; }
+.border-collapse-full { width: 100%; border-collapse: collapse; }
+.table-full { width: 100%; border-collapse: collapse; }
+
+/* 文本中心 + 颜色 */
+.text-center-hint {
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.text-center-large {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 40px 20px;
+}
+
+.text-center-error {
+    text-align: center;
+    color: #e74c3c;
+}
+
+/* 表格单元格扩展 */
+.table-cell-bold {
+    padding: 8px;
+    text-align: left;
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table-cell-bold-short {
+    padding: 8px;
+    text-align: left;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.table-cell-medium {
+    padding: 10px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.table-cell-fixed-center {
+    padding: 10px;
+    text-align: center;
+    width: 70px;
+    font-size: 12px;
+}
+
+.table-row-alt {
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+/* 输入框扩展 */
+.input-field-standard {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+/* 按钮扩展 */
+.btn-secondary-large {
+    padding: 6px 14px;
+    background: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-secondary {
+    padding: 6px 12px;
+    background: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary-disabled {
+    padding: 6px 12px;
+    background: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+.btn-error {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* 文本 + 颜色组合 */
+.secondary-text-padded {
+    padding: 8px;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.text-primary-medium {
+    margin: 5px 0;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.text-primary-mono {
+    margin: 5px 0;
+    color: #2c3e50;
+    font-family: monospace;
+}
+
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-md { font-size: 1rem; }
+
+.py-1 { padding-top: 3px; padding-bottom: 3px; }
+
+/* 模态框样式 */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal-content-container {
+    background: white;
+    border-radius: 8px;
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+/* 布局扩展 */
+.grid-2col-small {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    font-size: 0.9rem;
+}
+
+.flex-row-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.flex-start {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.container-background {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+/* ==================== 响应式布局补充 ==================== */
+
 @media (max-width: 768px) {
     .grid-2col {
         grid-template-columns: 1fr;
     }
 
+    .grid-2col-small {
+        grid-template-columns: 1fr;
+    }
+
     .grid-4col {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .w-90 {
+        width: 100%;
     }
 }

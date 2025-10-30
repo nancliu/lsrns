@@ -42,8 +42,51 @@ PHASE_2A_REPLACEMENTS = {
     'background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;': 'container-light',
 }
 
-# Phase 2b 和 2c 的样式映射 (待定义)
-PHASE_2B_REPLACEMENTS = {}
+# Phase 2b 样式映射 - 中等频率样式 (2-4 次出现)
+PHASE_2B_REPLACEMENTS = {
+    # 出现 4 次
+    'width: 100%; padding: 5px;': 'w-full p-5',
+    'text-align: center; color: #7f8c8d;': 'text-center-hint',
+
+    # 出现 3 次
+    'padding: 8px; text-align: left; color: #2c3e50; font-weight: 600; font-size: 0.9rem;': 'table-cell-bold',
+    'width: 100%; border-collapse: collapse;': 'table-full',
+    'text-align: center; color: #7f8c8d; padding: 40px 20px;': 'text-center-large',
+    'padding: 8px; text-align: center;': 'table-cell-center',
+    'padding: 8px 20px; font-size: 0.95rem;': 'p-8 px-12 font-95',
+    'padding: 3px 0;': 'py-1',
+    'font-size: 0.85rem; color: #7f8c8d;': 'text-xs text-secondary',
+    'display: none;': 'hidden',
+    'background: #f5f5f5; border-bottom: 1px solid #ddd;': 'table-row-alt',
+
+    # 出现 2 次
+    'width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;': 'input-field-standard',
+    'text-align: center; color: #e74c3c;': 'text-center-error',
+    'padding: 8px; text-align: left; color: #2c3e50; font-weight: 600;': 'table-cell-bold-short',
+    'padding: 8px; color: #7f8c8d; font-size: 0.9rem;': 'secondary-text-padded',
+    'padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 1rem;': 'btn-secondary-large',
+    'padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer;': 'btn-secondary',
+    'padding: 6px 12px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; color: #bdc3c7; cursor: not-allowed;': 'btn-secondary-disabled',
+    'padding: 3px 0; color: #2c3e50;': 'py-1 text-primary',
+    'padding: 25px;': 'p-25',
+    'padding: 10px; text-align: left; font-weight: 500;': 'table-cell-medium',
+    'padding: 10px; text-align: center; width: 70px; font-size: 12px;': 'table-cell-fixed-center',
+    'margin-bottom: 15px; color: #2c3e50;': 'mb-15 text-primary',
+    'margin: 5px 0; color: #2c3e50; font-weight: 500;': 'text-primary-medium',
+    'margin: 5px 0; color: #2c3e50; font-family: monospace;': 'text-primary-mono',
+    'margin: 0; color: #2c3e50;': 'm-0 text-primary',
+    'flex: 1;': 'flex-1',
+    'display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;': 'modal-overlay',
+    'display: grid; grid-template-columns: 1fr 1fr; gap: 15px;': 'grid-2col',
+    'display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.9rem;': 'grid-2col-small',
+    'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e9ecef;': 'flex-row-between',
+    'display: flex; gap: 10px; align-items: flex-start;': 'flex-start',
+    'background: white; border-radius: 8px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);': 'modal-content-container',
+    'background: #f8f9fa; padding: 15px; border-radius: 6px;': 'container-background',
+    'background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;': 'btn-error',
+}
+
+# Phase 2c 的样式映射 (待定义)
 PHASE_2C_REPLACEMENTS = {}
 
 
