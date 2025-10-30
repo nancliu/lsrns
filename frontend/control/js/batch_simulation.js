@@ -9,6 +9,29 @@
 
 const API_BASE = '/api/v1';
 
+// ========== 调试配置 ==========
+const DEBUG_PROGRESS = false; // 改为 true 来启用详细日志
+
+function debugLog(message, data = null) {
+    if (!DEBUG_PROGRESS) return;
+    console.log(message, data || '');
+}
+
+function debugLogObject(title, obj) {
+    if (!DEBUG_PROGRESS) return;
+    console.log(`=== ${title} ===`);
+    console.log(obj);
+}
+
+// ========== 全局状态 ==========
+const STATUS_MAP = {
+    'pending': '等待启动（请点击下方"启动仿真"按钮）',
+    'running': '运行中...',
+    'completed': '已完成',
+    'failed': '失败',
+    'cancelled': '已取消'
+};
+
 // 全局状态
 let currentBatchId = null;
 let progressPollInterval = null;
@@ -233,16 +256,7 @@ async function startBatchExecution() {
 
 function updateBatchInfo(batch) {
     document.getElementById('batchTitle').textContent = `批次: ${batch.batch_id}`;
-
-    // 根据状态显示不同的提示
-    const statusMap = {
-        'pending': '等待启动（请点击下方"启动仿真"按钮）',
-        'running': '运行中...',
-        'completed': '已完成',
-        'failed': '失败',
-        'cancelled': '已取消'
-    };
-    const statusText = statusMap[batch.status] || batch.status || statusMap['pending'];
+    const statusText = STATUS_MAP[batch.status] || batch.status || STATUS_MAP['pending'];
     document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
 }
 
@@ -281,47 +295,18 @@ async function updateProgress() {
 
         const data = await response.json();
 
-        // 调试日志：检查API返回的数据结构
-        console.log('=== API Progress Response ===');
-        console.log('Status:', data.status);
-        console.log('Running tasks count:', data.running_tasks);
-        console.log('Total tasks:', data.total_tasks);
-        console.log('Completed tasks:', data.completed_tasks);
-        console.log('Has live_time_series:', !!data.live_time_series);
-        console.log('live_time_series object:', data.live_time_series);  // ✅ 新增：打印完整对象
-        if (data.live_time_series) {
-            console.log('  - time_points:', data.live_time_series.time_points);
-            console.log('  - time_points length:', data.live_time_series.time_points?.length || 0);
-            console.log('  - total_running:', data.live_time_series.total_running);
-            console.log('  - total_running length:', data.live_time_series.total_running?.length || 0);
-            console.log('  - task_count:', data.live_time_series.task_count);
-            console.log('  - last_update:', data.live_time_series.last_update);
-        } else {
-            console.warn('⚠️ live_time_series is null or undefined!');  // ✅ 新增：警告
-        }
-        console.log('Tasks with live_status:');
-        data.tasks.forEach((task, idx) => {
-            if (task.status === 'running') {
-                console.log(`  Task ${idx} (${task.task_id}):`, {
-                    has_live_status: !!task.live_status,
-                    plan_id: task.plan_id,
-                    seed: task.seed,
-                    simulation_id: task.simulation_id,
-                    running_vehicles: task.live_status?.running_vehicles,
-                    progress: task.progress
-                });
-            }
+        // 调试日志（仅在 DEBUG_PROGRESS 启用时输出）
+        debugLogObject('API Progress Response', {
+            status: data.status,
+            running_tasks: data.running_tasks,
+            total_tasks: data.total_tasks,
+            completed_tasks: data.completed_tasks,
+            has_live_time_series: !!data.live_time_series,
+            live_time_series: data.live_time_series
         });
 
-        // 更新批次信息（使用statusMap保持一致性）
-        const statusMap = {
-            'pending': '等待启动（请点击下方"启动仿真"按钮）',
-            'running': '运行中...',
-            'completed': '已完成',
-            'failed': '失败',
-            'cancelled': '已取消'
-        };
-        const statusText = statusMap[data.status] || data.status;
+        // 更新批次信息
+        const statusText = STATUS_MAP[data.status] || data.status;
         document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
 
         // 更新任务统计信息
@@ -359,7 +344,7 @@ async function updateProgress() {
         // 计算并显示详细的任务进度
         const runningTasks = data.tasks.filter(t => t.status === 'running');
         const taskProgressInfo = runningTasks.map(t => `${t.task_id}:${t.progress}%`).join(', ');
-        console.log(`Batch progress: ${progressPct}% | Completed: ${data.completed_tasks}/${data.total_tasks} | Running: [${taskProgressInfo}]`);
+        debugLog(`Batch progress: ${progressPct}% | Running: [${taskProgressInfo}]`);
 
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
@@ -390,8 +375,7 @@ async function updateProgress() {
 
             // ✅ 修复：不再自动跳转到结果视图
             // 用户可以在进度视图查看最终的曲线图，然后手动点击"结果"tab
-            console.log('仿真完成！曲线已更新，可在进度视图查看最终结果');
-            console.log('点击上方"结果"tab查看详细对比分析');
+            console.info('✓ 仿真完成！曲线已更新，可在进度视图查看最终结果');
 
             // ✅ 显示完成提示（可选）
             const estimatedCompletionDiv = document.getElementById('estimatedCompletion');
@@ -516,9 +500,7 @@ function formatDuration(seconds) {
 let liveCurveChartInstance = null;
 
 function renderLiveCurve(liveTimeSeries) {
-    console.log('=== renderLiveCurve called ===');
-    console.log('liveTimeSeries:', liveTimeSeries);
-    console.log('liveCurveVisible state:', liveCurveVisible);
+    debugLogObject('renderLiveCurve', { liveTimeSeries, liveCurveVisible });
 
     const controlBar = document.getElementById('liveCurveControlBar');
     const section = document.getElementById('liveCurveSection');
@@ -529,7 +511,7 @@ function renderLiveCurve(liveTimeSeries) {
     const hasData = liveTimeSeries && liveTimeSeries.time_points && liveTimeSeries.time_points.length > 0;
 
     if (hasData) {
-        console.log('Showing live curve section with', liveTimeSeries.time_points.length, 'data points');
+        debugLog('Showing live curve section with', liveTimeSeries.time_points.length, 'data points');
         // 有数据时，始终显示控制栏，根据用户的toggle状态显示或隐藏图表
         if (controlBar) controlBar.style.display = 'block';
         if (section) section.style.display = liveCurveVisible ? 'block' : 'none';
@@ -538,7 +520,7 @@ function renderLiveCurve(liveTimeSeries) {
             toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
         }
     } else {
-        console.log('No live time series data');
+        debugLog('No live time series data');
         // 无数据时，始终显示控制栏（允许用户切换），根据toggle状态显示提示或隐藏
         if (controlBar) controlBar.style.display = 'block';
         if (section) {
@@ -651,7 +633,7 @@ function renderLiveCurve(liveTimeSeries) {
 // 切换动态在网车辆曲线的显示/隐藏
 function toggleLiveCurveVisibility() {
     liveCurveVisible = !liveCurveVisible;
-    console.log('Toggle live curve visibility to:', liveCurveVisible);
+    debugLog('Toggle live curve visibility to:', liveCurveVisible);
 
     const section = document.getElementById('liveCurveSection');
     const toggleBtn = document.getElementById('toggleLiveCurveBtn');
@@ -665,8 +647,6 @@ function toggleLiveCurveVisibility() {
     if (toggleBtn) {
         toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
     }
-
-    console.log('Chart section display:', liveCurveVisible ? 'block' : 'none');
 }
 
 function getStatusIcon(status) {
@@ -944,8 +924,8 @@ function renderPeakMetrics(metrics) {
 async function exportResults() {
     if (!currentBatchId) return;
 
-    showSuccess('结果导出功能开发中...');
-    // TODO: 实现结果导出为CSV/Excel
+    showError('导出功能暂未实现，敬请期待！(计划在 v0.9.1 中实现)');
+    // TODO: v0.9.1 中实现 CSV 导出
 }
 
 // ========== 导航到优化页面 ==========
