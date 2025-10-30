@@ -964,7 +964,7 @@ async function loadBatchHistory() {
         });
         if (status) params.append('status', status);
 
-        const response = await fetch(`${API_BASE}/control/batch-optimization/batches?${params}`);
+        const response = await fetch(`${API_BASE}/control/optimization/batches?${params}`);
         if (!response.ok) throw new Error('Failed to load batch history');
 
         const data = await response.json();
@@ -1018,7 +1018,7 @@ async function deleteBatchHistory(batchId) {
     if (!confirm('确认删除该批次吗？此操作不可撤销。')) return;
 
     try {
-        const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}`, {
+        const response = await fetch(`${API_BASE}/control/optimization/batch/${batchId}`, {
             method: 'DELETE'
         });
         if (!response.ok) throw new Error('Failed to delete batch');

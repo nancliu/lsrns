@@ -266,7 +266,7 @@ async def delete_batch(batch_id: str):
         raise HTTPException(status_code=500, detail=f"删除批次失败: {str(e)}")
 
 
-@router.get("/batch-optimization/batches")
+@router.get("/batches")
 async def list_batches(
     case_id: str,
     status: Optional[str] = None,
@@ -293,7 +293,7 @@ async def list_batches(
         raise HTTPException(status_code=500, detail=f"获取批次列表失败: {str(e)}")
 
 
-@router.get("/batch-optimization/batches/{batch_id}/detail")
+@router.get("/batches/{batch_id}/detail")
 async def get_batch_detail(batch_id: str):
     """
     获取批次详细信息
