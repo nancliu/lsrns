@@ -86,8 +86,115 @@ PHASE_2B_REPLACEMENTS = {
     'background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;': 'btn-error',
 }
 
-# Phase 2c 的样式映射 (待定义)
-PHASE_2C_REPLACEMENTS = {}
+# Phase 2c 样式映射 - 低频样式 (1 次出现) - 仅纯 CSS，不含动态表达式
+PHASE_2C_REPLACEMENTS = {
+    # 背景和边框样式
+    'background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;': 'btn-error-compact',
+    'background: #ebf5fb; border-left: 4px solid #3498db; padding: 15px; margin-bottom: 20px; border-radius: 4px; display: none;': 'alert-info-hidden',
+    'background: #ecf0f1; border-bottom: 1px solid #bdc3c7;': 'toolbar-bg',
+    'display: none; background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;': 'hint-hidden',
+    'display: none; background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-bottom: 10px; border-radius: 4px;': 'warning-hidden',
+    'background: #f8f9fa;': 'bg-light-gray',
+    'margin-top: 10px; padding: 10px; background: white; border-radius: 4px; font-size: 0.9rem;': 'card-small',
+    'background: #f8f9fa; border-bottom: 2px solid #e9ecef;': 'divider-gray',
+    'padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; margin-right: 10px;': 'btn-primary-md',
+    'padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem;': 'btn-secondary-md',
+    'background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin-top: 20px;': 'card-outlined',
+    'padding: 2px 8px; background: #ecf0f1; border-radius: 4px; font-size: 0.8rem; color: #7f8c8d; font-family: monospace;': 'tag-code',
+    'padding: 4px 10px; margin: 0 2px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;': 'btn-small-blue',
+    'padding: 4px 10px; margin: 0 2px; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;': 'btn-small-purple',
+    'padding: 4px 10px; margin: 0 2px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;': 'btn-small-red',
+    'padding: 4px 10px; margin: 0 2px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;': 'btn-small-orange',
+    'background: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 15px;': 'container-light-large',
+    'padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;': 'input-button-compact',
+    'padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;': 'btn-primary-sm',
+    'background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);': 'card-shadowed',
+    'background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;': 'card-flex-center',
+
+    # Flex 和 Grid 布局
+    'white-space: nowrap; align-self: flex-start;': 'nowrap-flex-start',
+    'display: flex; gap: 10px; margin-bottom: 15px; align-items: center;': 'flex-row-gap',
+    'display: flex; justify-content: space-between; align-items: center;': 'flex-row-between',
+    'display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;': 'flex-row-between-start',
+    'flex: 1; min-width: 250px;': 'flex-auto-min',
+    'margin-top: 15px; justify-content: flex-start;': 'flex-start-top',
+    'margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px;': 'flex-center-gap',
+    'display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px;': 'grid-4col',
+    'display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;': 'grid-2col-gap',
+    'display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px;': 'grid-4col-gap',
+    'grid-column: 1 / -1;': 'grid-full-width',
+    'text-align: center; color: #7f8c8d; grid-column: 1 / -1;': 'grid-center-full',
+
+    # 边距样式
+    'margin-bottom: 25px;': 'mb-25',
+    'margin-left: 10px;': 'ml-10',
+    'margin-left: 15px; font-size: 0.85rem;': 'ml-15-sm',
+    'margin-left: 20px;': 'ml-20',
+    'margin-right: 10px; font-weight: 600;': 'mr-10-bold',
+    'margin-right: 8px;': 'mr-8',
+    'margin-top: 15px;': 'mt-15',
+    'margin-top: 20px; text-align: right;': 'mt-20-right',
+    'margin-top: 30px;': 'mt-30',
+
+    # 填充和尺寸样式
+    'width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; min-height: 60px; box-sizing: border-box;': 'textarea-full',
+    'width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;': 'input-field-md',
+    'padding: 10px; text-align: center; width: 80px;': 'cell-fixed-80',
+    'padding: 12px;': 'p-12',
+    'padding: 12px; text-align: center;': 'p-12-center',
+    'padding: 3px 0; border-bottom: 1px solid #f0f0f0;': 'py-xs-border',
+    'padding: 3px 0; width: 120px;': 'py-xs-w120',
+    'padding: 5px 15px; font-size: 0.9rem;': 'px-15-sm',
+    'padding: 6px 15px; font-size: 0.9rem;': 'px-15-sm2',
+    'padding: 8px; min-width: 100px;': 'p-8-minw100',
+
+    # 位置样式
+    'background: #ecf0f1; border-bottom: 1px solid #bdc3c7; position: sticky; top: 0;': 'sticky-header',
+    'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; cursor: default;': 'overlay-full-0',
+    'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; cursor: default; pointer-events: none;': 'overlay-full-1',
+
+    # 文本样式
+    'white-space: nowrap;': 'nowrap',
+    'border-bottom: 1px solid #e9ecef;': 'border-bottom-light',
+    'display: inline-block;': 'inline-block',
+    'display: none; width: 100%; border-collapse: collapse;': 'table-full-hidden',
+    'font-size: 1.2rem;': 'font-lg',
+    'max-height: 300px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px;': 'scroll-container-300',
+    'max-height: 400px; overflow-y: auto;': 'scroll-container-400',
+    'overflow-x: auto;': 'overflow-x-auto',
+    'width: 100%; font-size: 0.9rem; color: #7f8c8d;': 'text-full-sm-gray',
+    'color: #2c3e50;': 'text-dark',
+    'color: #2c3e50; font-size: 1rem;': 'text-dark-md',
+    'color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;': 'heading-dark-lg',
+    'color: #3498db; font-size: 1.2rem;': 'text-blue-lg',
+    'color: #7f8c8d;': 'text-gray',
+    'color: #95a5a6; font-size: 0.85rem; margin-left: 5px;': 'text-light-xs',
+    'color: #e74c3c;': 'text-red',
+    'color: #e74c3c; font-weight: bold; margin-left: 5px;': 'text-red-bold-ml',
+    'font-size: 0.85rem; color: #7f8c8d; margin-left: 10px;': 'text-xs-gray-ml',
+    'font-size: 1.1rem; color: #2c3e50; margin-left: 10px;': 'text-md-dark-ml',
+    'margin-bottom: 10px; color: #2c3e50;': 'mb-10-dark',
+    'margin-left: auto; font-size: 0.9rem; color: #7f8c8d;': 'ml-auto-sm-gray',
+    'margin: 5px 0; color: #2c3e50; line-height: 1.6;': 'my-5-dark-leading',
+    'padding: 12px; color: #2c3e50; font-weight: 500;': 'p-12-dark-medium',
+    'padding: 12px; color: #7f8c8d;': 'p-12-gray',
+    'padding: 12px; color: #7f8c8d; font-size: 0.9rem;': 'p-12-gray-sm',
+    'padding: 12px; color: #7f8c8d; text-align: center;': 'p-12-gray-center',
+    'padding: 12px; text-align: center; font-weight: 600; color: #2c3e50;': 'p-12-center-bold-dark',
+    'padding: 3px 0; font-family: monospace; color: #2c3e50;': 'py-xs-code-dark',
+    'padding: 3px 0; font-family: monospace; color: #2c3e50; word-break: break-all;': 'py-xs-code-dark-break',
+    'padding: 8px; color: #2c3e50; font-size: 0.9rem;': 'p-8-dark-sm',
+    'padding: 8px; color: #2c3e50; font-weight: 500;': 'p-8-dark-medium',
+    'padding: 8px; color: #7f8c8d; font-family: monospace; font-size: 0.9rem;': 'p-8-gray-code-sm',
+    'padding: 8px; color: #7f8c8d; font-family: monospace; word-break: break-all;': 'p-8-gray-code-break',
+    'text-align: center; color: #e74c3c; padding: 40px 20px;': 'text-center-red-lg',
+    'text-align: center; padding: 30px; color: #7f8c8d;': 'text-center-gray-pad',
+
+    # 其他复合样式
+    'border: 2px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 20px;': 'bordered-card',
+    'margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;': 'badge-compact',
+    'padding: 5px 15px; font-size: 0.9rem; margin-left: 10px;': 'px-15-sm-ml',
+}
 
 
 class StyleReplacer:

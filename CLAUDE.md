@@ -494,6 +494,168 @@ Detailed analysis and strategy recommendations:
 | P1       | strategy_real_vss_g4202_003 | G4202 | K32.51         | VSS+DHS | Speed +174%~229% |
 | P1       | strategy_real_vss_g5_002    | G5    | K1768          | VSS     | Speed +121%      |
 
+## Frontend Development Standards
+
+### CSS and HTML Separation
+
+All frontend pages MUST follow strict separation of concerns:
+
+**HTML Requirements**:
+- Semantic HTML structure only (no inline styles)
+- Use semantic tags (`<header>`, `<nav>`, `<main>`, `<footer>`, etc.)
+- No `style=""` attributes in HTML files
+- Meaningful `class` and `id` attributes for styling hooks
+- Location: `frontend/control/` or appropriate module directory
+
+**CSS Requirements**:
+- All styling rules in separate `.css` files
+- Organized by component or page section
+- Class-based selectors (prefer classes over IDs)
+- Store in `frontend/control/css/` directory
+- Naming: `[page-or-component]-name.css`
+
+**CSS Organization Example**:
+- `templates-base.css` - Base styles and reset
+- `templates-layout.css` - Layout and grid
+- `templates-forms.css` - Form styles
+- `templates-results.css` - Results display
+- `templates-inline-utilities.css` - Utility classes
+- `edge_selector.css` - Component-specific styles
+
+### JavaScript Function Standards (Single Responsibility Principle)
+
+All JavaScript functions MUST follow SRP:
+
+**Constraints**:
+- **Purpose**: Each function has ONE clear responsibility
+- **Length**: Maximum 30 lines
+- **Parameters**: Maximum 5
+- **Nesting**: Maximum 3 levels
+- **Naming**: Descriptive camelCase reflecting the single responsibility
+  - Good: `updateRouteDropdown()`, `validateFormInput()`, `fetchSimulationStatus()`
+  - Bad: `handleChange()`, `process()`, `doStuff()`
+
+**Function Categories**:
+1. **Event Handlers**: One handler per event, delegates to action functions
+   ```javascript
+   document.getElementById('btn').onclick = () => performAction();
+   ```
+
+2. **Data Fetchers**: One function per API endpoint
+   ```javascript
+   async function fetchSimulationResults() { ... }
+   async function loadCaseMetadata() { ... }
+   ```
+
+3. **DOM Manipulators**: One function per UI update task
+   ```javascript
+   function updateProgressBar(percent) { ... }
+   function renderResultsTable(data) { ... }
+   ```
+
+4. **Validators**: One function per validation rule
+   ```javascript
+   function validateSpeedRange(speed) { ... }
+   function validateTimeFormat(time) { ... }
+   ```
+
+5. **Formatters**: One function per format conversion
+   ```javascript
+   function formatTimestamp(date) { ... }
+   function formatSpeedValue(speed) { ... }
+   ```
+
+**Best Practices**:
+- Use early returns for error handling
+- Avoid nested callbacks; use Promise chains or async/await
+- Keep functions pure when possible (avoid side effects)
+- Test each function independently
+- Document complex functions with clear comments
+
+**Example - Before (BAD)**:
+```javascript
+function handleFormSubmit(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  if (!data.speed || data.speed < 0 || data.speed > 120) {
+    alert('Invalid speed');
+    return;
+  }
+
+  fetch('/api/update', { method: 'POST', body: JSON.stringify(data) })
+    .then(r => r.json())
+    .then(result => {
+      document.getElementById('output').innerHTML = `
+        <div class="result">
+          <p>Speed: ${result.speed} km/h</p>
+          <p>Time: ${new Date(result.timestamp).toLocaleString()}</p>
+        </div>
+      `;
+    })
+    .catch(err => console.error(err));
+}
+```
+
+**Example - After (GOOD)**:
+```javascript
+// Separate validation
+function validateSpeedInput(speed) {
+  return speed > 0 && speed <= 120;
+}
+
+// Separate API call
+async function updateSimulationSpeed(data) {
+  const response = await fetch('/api/update', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+// Separate formatting
+function formatResultDisplay(result) {
+  const timestamp = new Date(result.timestamp).toLocaleString();
+  return `<div class="result">
+    <p>Speed: ${result.speed} km/h</p>
+    <p>Time: ${timestamp}</p>
+  </div>`;
+}
+
+// Separate DOM update
+function renderResult(html) {
+  document.getElementById('output').innerHTML = html;
+}
+
+// Event handler delegates to specific functions
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData);
+
+  if (!validateSpeedInput(data.speed)) {
+    alert('Invalid speed');
+    return;
+  }
+
+  try {
+    const result = await updateSimulationSpeed(data);
+    const html = formatResultDisplay(result);
+    renderResult(html);
+  } catch (err) {
+    console.error('Error updating simulation:', err);
+  }
+}
+```
+
+### Module Organization
+
+- **One Responsibility Per File**: Each JavaScript file handles one distinct feature
+- **Avoid God Files**: Files >300 lines should be split into smaller modules
+- **Clear Exports**: Export only necessary functions
+- **Dependency Management**: Minimize cross-file dependencies
+
 ## Code Standards from Cursor Rules
 
 ### Function/Method Limits
@@ -580,6 +742,12 @@ Detailed analysis and strategy recommendations:
     - Temporary test files → `tests/` or `test-results/`
     - Generated code → appropriate `api/`, `shared/`, or `frontend/` subdirectory
     - Never leave unorganized files in the root directory
+13. **Frontend - Don't** include inline styles in HTML files (use `style=""` attributes) - all styles MUST be in separate CSS files
+14. **Frontend - Don't** create functions that do multiple things - violates Single Responsibility Principle
+15. **Frontend - Don't** write functions longer than 30 lines - split into smaller, focused functions
+16. **Frontend - Don't** use vague function names like `handle()`, `process()`, `doStuff()` - names MUST clearly describe the single responsibility
+17. **Frontend - Don't** nest callbacks more than 3 levels deep - use Promise chains or async/await instead
+18. **Frontend - Don't** mix event handling, data fetching, validation, and DOM manipulation in one function - separate by responsibility
 
 ### Best Practices
 

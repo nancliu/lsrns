@@ -371,6 +371,73 @@ notifications/spec.md
 ...
 ```
 
+## Frontend Development Standards
+
+### CSS and HTML Separation
+
+All frontend pages MUST follow strict separation of concerns:
+
+- **HTML Files** (`*.html`):
+  - Contain semantic HTML structure only
+  - Use semantic tags (`<header>`, `<nav>`, `<main>`, `<footer>`, etc.)
+  - Include no inline styles (no `style=""` attributes)
+  - Use meaningful `class` and `id` attributes for styling hooks
+  - Store in `frontend/control/` or appropriate module directory
+
+- **CSS Files** (`*.css`):
+  - Contain all styling rules
+  - Organized by component or page section
+  - Use class-based selectors (prefer classes over IDs)
+  - No styling should exist in HTML files
+  - Store in `frontend/control/css/` directory
+  - Follow naming convention: `[page-or-component]-name.css`
+
+- **CSS Organization**:
+  - `templates-base.css` - Base styles and reset
+  - `templates-layout.css` - Layout and grid styles
+  - `templates-forms.css` - Form-specific styles
+  - `templates-results.css` - Results display styles
+  - `templates-inline-utilities.css` - Utility classes
+  - Component-specific CSS files for modular styles
+
+### JavaScript Function Standards
+
+All JavaScript functions MUST follow the Single Responsibility Principle (SRP):
+
+- **Function Purpose**: Each function has ONE clear responsibility
+- **Function Length**: Maximum 30 lines per function
+- **Function Parameters**: Maximum 5 parameters
+- **Nesting Depth**: Maximum 3 levels of nesting
+- **Naming Convention**: Use descriptive camelCase names that indicate the single responsibility
+  - Good: `updateRouteDropdown()`, `validateFormInput()`, `fetchSimulationStatus()`
+  - Bad: `handleChange()`, `process()`, `doStuff()`
+
+- **Function Categories**:
+  - **Event Handlers**: One handler per event, delegates to specific action functions
+    - Example: `document.getElementById('btn').onclick = () => performAction();`
+  - **Data Fetchers**: One function per API endpoint or data source
+    - Example: `fetchSimulationResults()`, `loadCaseMetadata()`
+  - **DOM Manipulators**: One function per UI update task
+    - Example: `updateProgressBar()`, `renderResultsTable()`
+  - **Validators**: One function per validation rule
+    - Example: `validateSpeedRange()`, `validateTimeFormat()`
+  - **Formatters**: One function per format conversion
+    - Example: `formatTimestamp()`, `formatSpeedValue()`
+
+- **Best Practices**:
+  - Use early returns for error handling
+  - Avoid nested callbacks; use Promise chains or async/await
+  - Keep functions pure when possible (avoid side effects)
+  - Test each function independently
+  - Document complex functions with clear comments
+
+### Module Organization
+
+- **One Responsibility Per File**: Each JavaScript file handles one distinct feature or component
+- **Avoid God Files**: Files >300 lines should be split into smaller modules
+- **Clear Exports**: Export only necessary functions and variables
+- **Dependency Management**: Minimize cross-file dependencies
+
 ## Best Practices
 
 ### Simplicity First
