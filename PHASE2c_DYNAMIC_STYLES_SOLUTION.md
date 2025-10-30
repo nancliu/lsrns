@@ -350,4 +350,16 @@ function initializeDynamicStyles() {
 
 **版本**: v0.9.2 → v0.9.3
 **预计完成**: 30-40 分钟
-**状态**: 🟡 待实施
+**实际完成**: 30 分钟 ✅
+**状态**: 🟢 **已完成** (2025-10-30 18:30)
+
+### 完成证明
+
+- ✅ Commit: 41f2369
+- ✅ Message: CSS分离Phase 2c-Extended完成 - 6个动态样式CSS类名化处理
+- ✅ 所有 6 个动态样式已按 Option 1 方案处理
+- ✅ CSS 类定义已添加到 templates-inline-utilities.css
+- ✅ HTML 模板已修改 (6 处位置)
+- ✅ JavaScript 辅助函数已添加
+- ✅ 单元测试通过 (103 passing)
+- ✅ 语法检查通过
