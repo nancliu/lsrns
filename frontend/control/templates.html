@@ -1650,8 +1650,25 @@
         }
 
         // 更新配置摘要（步骤3）
-        function updateConfigSummary() {
-            console.log('[updateConfigSummary] Called');
+        // ==================== Phase 1: updateConfigSummary() 重构 ====================
+        // Task 1.1-1.3: 基础摘要更新函数
+
+        /**
+         * 更新模板信息摘要
+         * @param {Object} template - 选中的策略模板对象
+         * @throws {Error} 如果元素不存在（仅在 EdgeDisplayTable 模式下不报错）
+         */
+        function updateTemplateSummary(template) {
+            if (!template) {
+                console.warn('[updateTemplateSummary] 模板为空');
+                return;
+            }
+
+            const elem = document.getElementById('summary-template');
+            if (!elem) {
+                console.warn('[updateTemplateSummary] 元素未找到 (EdgeDisplayTable 模式下这是正常的)');
+                return;
+            }
 
             const strategyNames = {
                 'VSS': '可变限速',
@@ -1659,38 +1676,981 @@
                 'TEC': '收费站管控'
             };
 
-            // 更新模板信息（如果元素存在）
-            if (selectedTemplate) {
-                const summaryTemplate = document.getElementById('summary-template');
-                if (summaryTemplate) {
-                    summaryTemplate.innerHTML = `
-                        <strong>${selectedTemplate.template_name}</strong>
-                        <span class="strategy-badge badge-${selectedTemplate.strategy_type}" style="margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;">${strategyNames[selectedTemplate.strategy_type]}</span>
+            elem.innerHTML = `
+                <strong>${template.template_name}</strong>
+                <span class="strategy-badge badge-${template.strategy_type}" style="margin-left: 10px; padding: 3px 10px; border-radius: 10px; font-size: 0.85rem;">
+                    ${strategyNames[template.strategy_type]}
+                </span>
+            `;
+
+            console.log('[updateTemplateSummary] 完成');
+        }
+
+        /**
+         * 更新路段数量摘要
+         * @param {Array<string>} edges - 已选择的路段列表
+         */
+        function updateEdgeSummary(edges) {
+            if (!edges) {
+                console.warn('[updateEdgeSummary] 路段列表为空');
+                return;
+            }
+
+            const elem = document.getElementById('summary-edges');
+            if (!elem) {
+                console.warn('[updateEdgeSummary] 元素未找到');
+                return;
+            }
+
+            elem.innerHTML = `<strong style="color: #3498db; font-size: 1.2rem;">${edges.length}</strong> 条路段`;
+
+            console.log('[updateEdgeSummary] 完成, 路段数:', edges.length);
+        }
+
+        /**
+         * 更新路段列表显示
+         * @param {Array<string>} edges - 已选择的路段列表
+         */
+        function updateEdgeList(edges) {
+            if (!edges) {
+                console.warn('[updateEdgeList] 路段列表为空');
+                return;
+            }
+
+            const elem = document.getElementById('summary-edge-list');
+            if (!elem) {
+                console.warn('[updateEdgeList] 元素未找到');
+                return;
+            }
+
+            if (edges.length === 0) {
+                elem.innerHTML = '<span style="color: #e74c3c;">⚠️ 警告：未选择任何路段！请返回步骤2选择路段。</span>';
+            } else {
+                elem.innerHTML = edges.map(edge =>
+                    `<div style="padding: 3px 0; border-bottom: 1px solid #f0f0f0;">${edge}</div>`
+                ).join('');
+            }
+
+            console.log('[updateEdgeList] 完成, 显示路段数:', edges.length);
+        }
+
+        /**
+         * 更新配置摘要（协调函数）- Phase 1 重构主入口
+         * 职责：协调各个摘要更新函数和参数渲染
+         * @param {Object} template - 策略模板对象（可选，默认使用 selectedTemplate）
+         * @param {Array<string>} edges - 已选择的路段列表（可选，默认使用 selectedEdges）
+         */
+        function updateConfigSummary(template = null, edges = null) {
+            console.log('[updateConfigSummary] 开始执行 (Phase 1 重构版本)');
+
+            try {
+                // 使用传入的参数或全局变量
+                const tmpl = template || window.selectedTemplate;
+                const edgs = edges || window.selectedEdges;
+
+                // 1. 更新摘要信息（各自独立）
+                updateTemplateSummary(tmpl);
+                updateEdgeSummary(edgs);
+                updateEdgeList(edgs);
+
+                // 2. 【新增 Phase 1 Day 3】渲染参数表单
+                if (tmpl && tmpl.parameters_schema && tmpl.parameters_schema.length > 0) {
+                    const paramsContainer = document.getElementById('params-container');
+                    if (paramsContainer) {
+                        // 清空旧的参数表单
+                        paramsContainer.innerHTML = '';
+
+                        // 渲染新的参数表单
+                        renderParametersSection(paramsContainer, tmpl);
+
+                        // 绑定参数变化监听器
+                        attachParameterListeners(paramsContainer, tmpl);
+
+                        console.log('[updateConfigSummary] 参数表单已渲染和绑定');
+                    }
+                }
+
+                console.log('[updateConfigSummary] 完成');
+            } catch (error) {
+                console.error('[updateConfigSummary] 错误:', error);
+                throw error;
+            }
+        }
+
+        // ==================== Phase 1: 参数控件工厂函数 ====================
+        // Task 1.4-1.10: 为各种参数类型创建对应的 HTML 控件
+
+        /**
+         * 创建字符串输入控件
+         * @param {Object} param - 参数定义对象
+         * @param {string} param.parameter_name - 参数名
+         * @param {string} param.description - 参数描述（作为 label）
+         * @param {string} param.example - 示例值（作为 placeholder）
+         * @param {boolean} param.required - 是否必填
+         * @returns {HTMLElement} 包含 label 和 input 的 div 容器
+         */
+        function createStringControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+
+            // 创建 label
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'display: block; margin-bottom: 5px; font-weight: 500;';
+
+            // 标记必填项
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            // 创建 input
+            const input = document.createElement('input');
+            input.id = `param-${param.parameter_name}`;
+            input.type = 'text';
+            input.placeholder = param.example || '请输入...';
+            input.style.cssText = `
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+                box-sizing: border-box;
+            `;
+
+            if (param.required) {
+                input.required = true;
+            }
+
+            container.appendChild(label);
+            container.appendChild(input);
+
+            return container;
+        }
+
+        /**
+         * 创建数字输入控件
+         * @param {Object} param - 参数定义对象
+         * @returns {HTMLElement} 包含 label 和 input 的 div 容器
+         */
+        function createNumberControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'display: block; margin-bottom: 5px; font-weight: 500;';
+
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            const input = document.createElement('input');
+            input.id = `param-${param.parameter_name}`;
+            input.type = 'number';
+
+            // 浮点数设置小数点
+            if (param.parameter_type === 'float') {
+                input.step = '0.01';
+            }
+
+            input.placeholder = param.example || '0';
+            input.style.cssText = `
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                box-sizing: border-box;
+            `;
+
+            if (param.required) {
+                input.required = true;
+            }
+
+            container.appendChild(label);
+            container.appendChild(input);
+
+            return container;
+        }
+
+        /**
+         * 创建下拉选择控件
+         * @param {Object} param - 参数定义对象
+         * @param {Array} param.options - 选项数组 [{value, label}, ...]
+         * @returns {HTMLElement} 选择控件
+         */
+        function createSelectControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'display: block; margin-bottom: 5px; font-weight: 500;';
+
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            const select = document.createElement('select');
+            select.id = `param-${param.parameter_name}`;
+            select.style.cssText = `
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                box-sizing: border-box;
+            `;
+
+            // 添加空选项（如果非必填）
+            if (!param.required) {
+                const emptyOpt = document.createElement('option');
+                emptyOpt.value = '';
+                emptyOpt.textContent = '--- 请选择 ---';
+                select.appendChild(emptyOpt);
+            }
+
+            // 添加参数选项
+            if (param.options && Array.isArray(param.options)) {
+                param.options.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.textContent = option.label || option.value;
+                    select.appendChild(opt);
+                });
+            }
+
+            if (param.required) {
+                select.required = true;
+            }
+
+            container.appendChild(label);
+            container.appendChild(select);
+
+            return container;
+        }
+
+        /**
+         * 创建 Step Array 控件（时间-速度表）
+         * 用于 VSS 策略的时间段配置
+         * @param {Object} param - 参数定义对象
+         * @returns {HTMLElement} 表格控件
+         */
+        function createStepArrayControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+            container.setAttribute('data-parameter-name', param.parameter_name);
+            container.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+
+            // 标题
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'font-weight: 500; margin-bottom: 5px;';
+
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            // 表格
+            const table = document.createElement('table');
+            table.style.cssText = `
+                width: 100%;
+                border-collapse: collapse;
+                border: 1px solid #ddd;
+                margin: 10px 0;
+            `;
+
+            // 表头
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr style="background: #f5f5f5; border-bottom: 1px solid #ddd;">
+                    <th style="padding: 10px; text-align: left; font-weight: 500;">时间(小时)</th>
+                    <th style="padding: 10px; text-align: left; font-weight: 500;">速度(km/h)</th>
+                    <th style="padding: 10px; text-align: center; width: 80px;">操作</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            // 表体
+            const tbody = document.createElement('tbody');
+            tbody.className = 'steps-tbody';
+            table.appendChild(tbody);
+
+            // 添加行按钮
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = '+ 添加时间段';
+            addBtn.style.cssText = `
+                padding: 8px 12px;
+                background: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+            addBtn.onclick = () => addStepRow(tbody);
+
+            container.appendChild(label);
+            container.appendChild(table);
+            container.appendChild(addBtn);
+
+            return container;
+        }
+
+        /**
+         * 为 Step Array 表格添加新行
+         * @param {HTMLTableSectionElement} tbody - 表体元素
+         */
+        function addStepRow(tbody) {
+            const row = document.createElement('tr');
+            row.className = 'step-row';
+            row.style.borderBottom = '1px solid #ddd';
+
+            row.innerHTML = `
+                <td style="padding: 8px;">
+                    <input type="number" class="step-time" min="0" max="24" step="0.5"
+                           placeholder="如: 7" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px;">
+                    <input type="number" class="step-speed" min="0" step="1"
+                           placeholder="如: 60" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <button type="button" class="delete-row" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">删除</button>
+                </td>
+            `;
+
+            row.querySelector('.delete-row').onclick = () => row.remove();
+            tbody.appendChild(row);
+        }
+
+        /**
+         * 创建 DHS Interval Array 控件
+         * 用于 DHS 策略的时间段和车型配置
+         * @param {Object} param - 参数定义对象
+         * @returns {HTMLElement} 表格控件
+         */
+        function createDHSIntervalControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+            container.setAttribute('data-parameter-name', param.parameter_name);
+
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'display: block; margin-bottom: 10px; font-weight: 500;';
+
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            // 创建表格
+            const table = document.createElement('table');
+            table.style.cssText = `
+                width: 100%;
+                border-collapse: collapse;
+                border: 1px solid #ddd;
+                margin: 10px 0;
+            `;
+
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr style="background: #f5f5f5; border-bottom: 1px solid #ddd;">
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">开始(h)</th>
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">结束(h)</th>
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">状态</th>
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">允许车型</th>
+                    <th style="padding: 10px; text-align: center; width: 70px; font-size: 12px;">操作</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            tbody.className = 'dhs-intervals-tbody';
+            table.appendChild(tbody);
+
+            // 添加行按钮
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = '+ 添加间隔';
+            addBtn.style.cssText = `
+                padding: 8px 12px;
+                background: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-top: 10px;
+                font-size: 14px;
+            `;
+            addBtn.onclick = () => addDHSIntervalRow(tbody);
+
+            container.appendChild(label);
+            container.appendChild(table);
+            container.appendChild(addBtn);
+
+            return container;
+        }
+
+        /**
+         * 为 DHS 间隔表添加新行
+         * @param {HTMLTableSectionElement} tbody - 表体元素
+         */
+        function addDHSIntervalRow(tbody) {
+            const row = document.createElement('tr');
+            row.className = 'dhs-interval-row';
+            row.style.borderBottom = '1px solid #ddd';
+
+            row.innerHTML = `
+                <td style="padding: 8px;">
+                    <input type="number" class="dhs-interval-begin" min="0" max="24" step="0.5"
+                           placeholder="7" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px;">
+                    <input type="number" class="dhs-interval-end" min="0" max="24" step="0.5"
+                           placeholder="9" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px;">
+                    <select class="dhs-interval-status" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;">
+                        <option value="open">开放</option>
+                        <option value="closed">关闭</option>
+                    </select>
+                </td>
+                <td style="padding: 8px;">
+                    <select class="dhs-interval-vehicles" multiple style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; min-height: 60px; box-sizing: border-box;">
+                        <option value="passenger">乘用车</option>
+                        <option value="truck">货车</option>
+                        <option value="bus">客车</option>
+                    </select>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <button type="button" class="delete-row" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+                </td>
+            `;
+
+            row.querySelector('.delete-row').onclick = () => row.remove();
+            tbody.appendChild(row);
+        }
+
+        /**
+         * 创建 Flow Interval Array 控件
+         * 用于 TEC 策略的流量控制配置
+         * @param {Object} param - 参数定义对象
+         * @returns {HTMLElement} 表格控件
+         */
+        function createFlowIntervalControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+            container.setAttribute('data-parameter-name', param.parameter_name);
+
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'display: block; margin-bottom: 10px; font-weight: 500;';
+
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            // 创建表格
+            const table = document.createElement('table');
+            table.style.cssText = `
+                width: 100%;
+                border-collapse: collapse;
+                border: 1px solid #ddd;
+                margin: 10px 0;
+            `;
+
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr style="background: #f5f5f5; border-bottom: 1px solid #ddd;">
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">开始(h)</th>
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">结束(h)</th>
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">流量(veh/h)</th>
+                    <th style="padding: 10px; text-align: left; font-size: 12px;">目标速(km/h)</th>
+                    <th style="padding: 10px; text-align: center; width: 70px; font-size: 12px;">操作</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            tbody.className = 'intervals-tbody';
+            table.appendChild(tbody);
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.textContent = '+ 添加间隔';
+            addBtn.style.cssText = `
+                padding: 8px 12px;
+                background: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-top: 10px;
+                font-size: 14px;
+            `;
+            addBtn.onclick = () => addFlowIntervalRow(tbody);
+
+            container.appendChild(label);
+            container.appendChild(table);
+            container.appendChild(addBtn);
+
+            return container;
+        }
+
+        /**
+         * 为流量间隔表添加新行
+         * @param {HTMLTableSectionElement} tbody - 表体元素
+         */
+        function addFlowIntervalRow(tbody) {
+            const row = document.createElement('tr');
+            row.className = 'interval-row';
+            row.style.borderBottom = '1px solid #ddd';
+
+            row.innerHTML = `
+                <td style="padding: 8px;">
+                    <input type="number" class="interval-begin" min="0" max="24" step="0.5"
+                           placeholder="7" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px;">
+                    <input type="number" class="interval-end" min="0" max="24" step="0.5"
+                           placeholder="9" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px;">
+                    <input type="number" class="interval-flow" min="0" step="10"
+                           placeholder="400" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px;">
+                    <input type="number" class="interval-speed" min="0" step="1"
+                           placeholder="60" style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; box-sizing: border-box;" />
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <button type="button" class="delete-row" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除</button>
+                </td>
+            `;
+
+            row.querySelector('.delete-row').onclick = () => row.remove();
+            tbody.appendChild(row);
+        }
+
+        /**
+         * 创建车型多选控件
+         * 用于选择允许或禁止的车型
+         * @param {Object} param - 参数定义对象
+         * @returns {HTMLElement} 多选控件
+         */
+        function createVehicleTypeControl(param) {
+            const container = document.createElement('div');
+            container.className = 'param-control-group';
+
+            const label = document.createElement('label');
+            label.textContent = param.description;
+            label.style.cssText = 'display: block; margin-bottom: 5px; font-weight: 500;';
+
+            if (param.required) {
+                const required = document.createElement('span');
+                required.textContent = ' *';
+                required.style.color = 'red';
+                label.appendChild(required);
+            }
+
+            const select = document.createElement('select');
+            select.id = `param-${param.parameter_name}`;
+            select.multiple = true;
+            select.style.cssText = `
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                min-height: 80px;
+                box-sizing: border-box;
+            `;
+
+            // 常见车型列表
+            const vehicleTypes = [
+                { value: 'passenger_small', label: '小型乘用车' },
+                { value: 'passenger_medium', label: '中型乘用车' },
+                { value: 'passenger_large', label: '大型乘用车' },
+                { value: 'truck_small', label: '小货车' },
+                { value: 'truck_large', label: '大货车' },
+                { value: 'bus', label: '客车' },
+                { value: 'special_small', label: '小型特种车' },
+                { value: 'special_large', label: '大型特种车' }
+            ];
+
+            vehicleTypes.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle.value;
+                option.textContent = vehicle.label;
+                select.appendChild(option);
+            });
+
+            if (param.required) {
+                select.required = true;
+            }
+
+            container.appendChild(label);
+            container.appendChild(select);
+
+            // 添加帮助文本
+            const help = document.createElement('small');
+            help.textContent = '按 Ctrl (或 Cmd) 键多选';
+            help.style.cssText = 'display: block; color: #7f8c8d; margin-top: 5px; font-size: 12px;';
+            container.appendChild(help);
+
+            return container;
+        }
+
+        // ==================== Phase 1: 参数渲染协调函数 ====================
+        // Task 1.11-1.14: 参数表单的渲染、监听和验证
+
+        /**
+         * 渲染单个参数控件（工厂模式）
+         * 根据参数类型选择合适的控件创建函数
+         * @param {Object} param - 参数定义对象
+         * @returns {HTMLElement} 参数控件容器
+         */
+        function renderParameterControl(param) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'param-control-wrapper';
+            wrapper.setAttribute('data-parameter-name', param.parameter_name);
+            wrapper.style.cssText = `
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 6px;
+                border: 1px solid #e9ecef;
+            `;
+
+            let control;
+
+            // 根据参数类型选择控件
+            switch (param.parameter_type) {
+                case 'string':
+                    control = createStringControl(param);
+                    break;
+                case 'integer':
+                case 'float':
+                    control = createNumberControl(param);
+                    break;
+                case 'select':
+                    control = createSelectControl(param);
+                    break;
+                case 'step_array':
+                    control = createStepArrayControl(param);
+                    break;
+                case 'dhs_interval_array':
+                    control = createDHSIntervalControl(param);
+                    break;
+                case 'tec_interval_array':
+                case 'flow_interval_array':
+                    control = createFlowIntervalControl(param);
+                    break;
+                case 'array':
+                    // 特殊处理：车型多选
+                    if (['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types']
+                        .includes(param.parameter_name)) {
+                        control = createVehicleTypeControl(param);
+                    } else {
+                        control = createStringControl(param);
+                    }
+                    break;
+                default:
+                    console.warn(`[renderParameterControl] 未知参数类型: ${param.parameter_type}`);
+                    control = createStringControl(param);
+            }
+
+            wrapper.appendChild(control);
+            return wrapper;
+        }
+
+        /**
+         * 渲染参数表单区域（完整的参数配置界面）
+         * @param {HTMLElement} container - 容器元素
+         * @param {Object} template - 策略模板对象
+         */
+        async function renderParametersSection(container, template) {
+            if (!template || !template.parameters_schema) {
+                console.warn('[renderParametersSection] 模板或参数 schema 缺失');
+                return;
+            }
+
+            // 清空容器
+            container.innerHTML = '';
+
+            // 添加参数标题
+            const title = document.createElement('h4');
+            title.textContent = '参数配置';
+            title.style.cssText = `
+                margin-bottom: 15px;
+                color: #2c3e50;
+                font-size: 1rem;
+                border-bottom: 2px solid #3498db;
+                padding-bottom: 10px;
+            `;
+            container.appendChild(title);
+
+            // 创建参数表单
+            const form = document.createElement('form');
+            form.className = 'parameters-form';
+            form.style.cssText = `
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            `;
+
+            // 为每个参数创建控件
+            template.parameters_schema.forEach(param => {
+                try {
+                    const control = renderParameterControl(param);
+                    form.appendChild(control);
+                } catch (error) {
+                    console.error(`[renderParametersSection] 参数控件创建失败: ${param.parameter_name}`, error);
+
+                    // 显示错误信息
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'padding: 10px; background: #ffe0e0; color: #c00; border-radius: 4px;';
+                    errorDiv.textContent = `❌ 参数 "${param.description}" 加载失败`;
+                    form.appendChild(errorDiv);
+                }
+            });
+
+            container.appendChild(form);
+
+            // 绑定参数变化监听器
+            attachParameterListeners(container, template);
+
+            console.log('[renderParametersSection] 完成, 参数数:', template.parameters_schema.length);
+        }
+
+        /**
+         * 为参数表单绑定变化监听器
+         * 负责实时验证和反馈
+         * @param {HTMLElement} container - 参数容器
+         * @param {Object} template - 模板对象
+         */
+        function attachParameterListeners(container, template) {
+            // 监听参数变化事件
+            container.addEventListener('change', (event) => {
+                const paramWrapper = event.target.closest('[data-parameter-name]');
+                if (!paramWrapper) return;
+
+                const paramName = paramWrapper.getAttribute('data-parameter-name');
+                const param = template.parameters_schema.find(p => p.parameter_name === paramName);
+
+                if (!param) {
+                    console.warn(`[attachParameterListeners] 参数未找到: ${paramName}`);
+                    return;
+                }
+
+                try {
+                    // 验证参数值
+                    validateParameterValue(event.target, param);
+                } catch (error) {
+                    console.error(`[attachParameterListeners] 验证失败: ${paramName}`, error);
+                }
+            });
+
+            console.log('[attachParameterListeners] 完成');
+        }
+
+        /**
+         * 验证单个参数值
+         * @param {HTMLElement} input - 输入元素
+         * @param {Object} param - 参数定义
+         * @returns {boolean} 是否验证通过
+         */
+        function validateParameterValue(input, param) {
+            let isValid = true;
+            let error = null;
+
+            // 必填项验证
+            if (param.required && !input.value) {
+                isValid = false;
+                error = `${param.description} 是必填项`;
+            }
+            // 整数验证
+            else if (param.parameter_type === 'integer') {
+                const val = parseInt(input.value);
+                if (isNaN(val)) {
+                    isValid = false;
+                    error = `${param.description} 必须是整数`;
+                }
+            }
+            // 浮点数验证
+            else if (param.parameter_type === 'float') {
+                const val = parseFloat(input.value);
+                if (isNaN(val)) {
+                    isValid = false;
+                    error = `${param.description} 必须是数字`;
+                }
+            }
+
+            // 更新错误显示
+            const wrapper = input.closest('[data-parameter-name]');
+            if (wrapper) {
+                // 移除旧的错误信息
+                const oldError = wrapper.querySelector('.error-message');
+                if (oldError) {
+                    oldError.remove();
+                }
+
+                // 显示新的错误信息
+                if (!isValid) {
+                    const errorEl = document.createElement('div');
+                    errorEl.className = 'error-message';
+                    errorEl.style.cssText = `
+                        color: #e74c3c;
+                        font-size: 0.9rem;
+                        margin-top: 5px;
+                        padding: 5px 8px;
+                        background: #ffebee;
+                        border-radius: 3px;
                     `;
-                } else {
-                    console.warn('[updateConfigSummary] summary-template element not found (this is OK if using EdgeDisplayTable)');
+                    errorEl.textContent = `⚠️ ${error}`;
+                    wrapper.appendChild(errorEl);
                 }
             }
 
-            // 更新路段信息（如果元素存在）
-            const summaryEdges = document.getElementById('summary-edges');
-            if (summaryEdges) {
-                summaryEdges.innerHTML = `<strong style="color: #3498db; font-size: 1.2rem;">${selectedEdges.length}</strong> 条路段`;
+            return isValid;
+        }
+
+        // ==================== Phase 1 Day 3: 参数收集和验证函数 ====================
+        // Task: 为数据提交准备参数收集、验证和提交函数
+
+        /**
+         * 从表单收集所有参数值
+         * @param {string} containerId - 参数容器的 DOM ID
+         * @returns {Object} 参数名-值映射对象
+         */
+        function collectParameterValues(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn('[collectParameterValues] 容器未找到: ' + containerId);
+                return {};
             }
 
-            // 更新路段列表（如果元素存在）
-            const summaryEdgeList = document.getElementById('summary-edge-list');
-            if (summaryEdgeList) {
-                if (selectedEdges.length === 0) {
-                    summaryEdgeList.innerHTML = '<span style="color: #e74c3c;">⚠️ 警告：未选择任何路段！请返回步骤2选择路段。</span>';
-                } else {
-                    summaryEdgeList.innerHTML = selectedEdges.map(edge =>
-                        `<div style="padding: 3px 0; border-bottom: 1px solid #f0f0f0;">${edge}</div>`
-                    ).join('');
+            const values = {};
+            const controls = container.querySelectorAll('[data-parameter-name]');
+
+            controls.forEach(control => {
+                const paramName = control.getAttribute('data-parameter-name');
+                const input = control.querySelector('input, select, textarea');
+
+                if (input && paramName) {
+                    if (input.type === 'checkbox') {
+                        // 复选框：收集所有选中的值
+                        const checkboxes = control.querySelectorAll('input[type="checkbox"]:checked');
+                        values[paramName] = Array.from(checkboxes).map(cb => cb.value);
+                    } else if (input.type === 'number') {
+                        // 数字：转换为数字类型
+                        values[paramName] = input.value ? parseFloat(input.value) : null;
+                    } else {
+                        // 其他类型：直接获取值
+                        values[paramName] = input.value;
+                    }
                 }
+            });
+
+            console.log('[collectParameterValues] 收集参数:', values);
+            return values;
+        }
+
+        /**
+         * 验证所有参数值
+         * @param {string} containerId - 参数容器的 DOM ID
+         * @returns {Object} { valid: boolean, errors: Object }
+         */
+        function validateAllParameters(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                return { valid: false, errors: { container: '容器未找到' } };
             }
 
-            console.log('[updateConfigSummary] Completed');
+            const errors = {};
+            const controls = container.querySelectorAll('[data-parameter-name]');
+
+            controls.forEach(control => {
+                const paramName = control.getAttribute('data-parameter-name');
+                const input = control.querySelector('input, select, textarea');
+                const paramDef = control.getAttribute('data-parameter-def');
+
+                if (input && paramName) {
+                    // 解析参数定义
+                    let paramObj = { parameter_name: paramName, required: input.required };
+                    if (paramDef) {
+                        try {
+                            paramObj = Object.assign(paramObj, JSON.parse(paramDef));
+                        } catch (e) {
+                            console.warn('[validateAllParameters] 参数定义解析失败:', paramDef);
+                        }
+                    }
+
+                    // 执行验证
+                    const isValid = validateParameterValue(input, paramObj);
+
+                    if (!isValid) {
+                        errors[paramName] = `参数 ${paramName} 验证失败`;
+                    }
+                }
+            });
+
+            const valid = Object.keys(errors).length === 0;
+            console.log(`[validateAllParameters] 验证完成: ${valid ? '✅ 通过' : '❌ 失败'}`, errors);
+            return { valid, errors };
+        }
+
+        /**
+         * 准备策略提交数据
+         * @param {string} templateId - 模板 ID
+         * @param {Array<string>} edgeIds - 路段 ID 列表
+         * @param {string} containerId - 参数容器 ID
+         * @returns {Object} 提交数据对象或 null（验证失败时）
+         */
+        function prepareStrategySubmission(templateId, edgeIds, containerId) {
+            console.log('[prepareStrategySubmission] 开始准备提交数据');
+
+            // Step 1: 验证基础数据
+            if (!templateId || !edgeIds || edgeIds.length === 0) {
+                console.error('[prepareStrategySubmission] ❌ 缺少必要的模板或路段信息');
+                return null;
+            }
+
+            // Step 2: 验证参数
+            const validation = validateAllParameters(containerId);
+            if (!validation.valid) {
+                console.error('[prepareStrategySubmission] ❌ 参数验证失败:', validation.errors);
+                return null;
+            }
+
+            // Step 3: 收集参数值
+            const parameters = collectParameterValues(containerId);
+
+            // Step 4: 构建提交对象
+            const submission = {
+                template_id: templateId,
+                edges: edgeIds,
+                parameters: parameters,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('[prepareStrategySubmission] ✅ 提交数据已准备:', submission);
+            return submission;
         }
 
         // ==================== Edge Display Table Component (Phase 2) ====================
@@ -2914,231 +3874,369 @@
             });
         }
 
-        // 创建策略实例 (集成 Phase 1C strategy_manager.js)
-        async function createStrategy() {
+        // ==================== Phase 1 Day 4-5: createStrategy() 重构 ====================
+        // Task: 重构 createStrategy() 为 9 个单一职责函数
+
+        /**
+         * 收集基础策略信息
+         * @returns {Object} { templateObj, templateId, strategyName, edgeIds }
+         * @throws {Error} 缺少必要信息时抛出
+         */
+        function collectBasicStrategyInfo() {
             if (!selectedTemplate) {
-                alert('请先选择策略模板');
-                return;
+                throw new Error('请先选择策略模板');
             }
 
-            // 收集参数
-            const strategyName = document.getElementById('param-strategy-name').value;
+            const strategyNameInput = document.getElementById('param-strategy-name');
+            const strategyName = strategyNameInput ? strategyNameInput.value.trim() : '';
 
             if (!strategyName) {
-                alert('请输入策略名称');
-                return;
+                throw new Error('请输入策略名称');
             }
 
+            if (!selectedEdges || selectedEdges.length === 0) {
+                throw new Error('请先选择影响的路段');
+            }
+
+            return {
+                templateObj: selectedTemplate,
+                templateId: selectedTemplate.template_id,
+                strategyName: strategyName,
+                edgeIds: selectedEdges
+            };
+        }
+
+        /**
+         * 从表格提取数组参数
+         * @param {string} paramName - 参数名
+         * @param {string} paramType - 参数类型
+         * @returns {Array} 提取的数据数组
+         */
+        function extractTableParameters(paramName, paramType) {
+            if (paramType === 'step_array') {
+                const tbody = document.querySelector(`[data-parameter-name="${paramName}"] .steps-tbody`);
+                if (!tbody) {
+                    console.error(`[extractTableParameters] tbody not found for step_array: ${paramName}`);
+                    return [];
+                }
+
+                const rows = tbody.querySelectorAll('.step-row');
+                return Array.from(rows).map(row => ({
+                    time_hours: parseFloat(row.querySelector('.step-time').value),
+                    speed_kmh: parseFloat(row.querySelector('.step-speed').value)
+                }));
+            }
+
+            if (paramType === 'dhs_interval_array') {
+                let tbody = document.querySelector(`[data-parameter-name="${paramName}"] .dhs-intervals-tbody`);
+                if (!tbody) {
+                    tbody = document.querySelector(`.dhs-intervals-tbody[data-parameter-name="${paramName}"]`);
+                }
+
+                if (!tbody) {
+                    console.error(`[extractTableParameters] tbody not found for dhs_interval_array: ${paramName}`);
+                    return [];
+                }
+
+                const rows = tbody.querySelectorAll('.dhs-interval-row');
+                return Array.from(rows).map(row => {
+                    const vehiclesSelect = row.querySelector('.dhs-interval-vehicles');
+                    const selectedOptions = vehiclesSelect ?
+                        Array.from(vehiclesSelect.selectedOptions).map(opt => opt.value) : [];
+
+                    return {
+                        begin_hours: parseFloat(row.querySelector('.dhs-interval-begin').value),
+                        end_hours: parseFloat(row.querySelector('.dhs-interval-end').value),
+                        status: row.querySelector('.dhs-interval-status').value,
+                        allowed_vehicle_types: selectedOptions
+                    };
+                });
+            }
+
+            if (paramType === 'tec_interval_array' || paramType === 'flow_interval_array') {
+                const tbody = document.querySelector(`[data-parameter-name="${paramName}"] .intervals-tbody`);
+                if (!tbody) {
+                    console.error(`[extractTableParameters] tbody not found for ${paramType}: ${paramName}`);
+                    return [];
+                }
+
+                const rows = tbody.querySelectorAll('.interval-row');
+                return Array.from(rows).map(row => ({
+                    begin_hours: parseFloat(row.querySelector('.interval-begin').value),
+                    end_hours: parseFloat(row.querySelector('.interval-end').value),
+                    vehsPerHour: parseFloat(row.querySelector('.interval-flow').value),
+                    target_speed: parseFloat(row.querySelector('.interval-speed').value)
+                }));
+            }
+
+            return [];
+        }
+
+        /**
+         * 收集所有参数值
+         * @param {Object} template - 策略模板
+         * @returns {Object} 参数名-值映射
+         */
+        function collectParameterValues(template) {
             const configuredParams = {};
-            selectedTemplate.parameters_schema.forEach(param => {
-                // 特殊处理：affected_edges 参数使用步骤2选择的路段
-                if (param.parameter_name === 'affected_edges' || param.parameter_name === 'affected_segments' || param.parameter_name === 'entrance_ids') {
+
+            if (!template.parameters_schema || template.parameters_schema.length === 0) {
+                return configuredParams;
+            }
+
+            template.parameters_schema.forEach(param => {
+                // 特殊处理：受影响的路段
+                if (['affected_edges', 'affected_segments', 'entrance_ids'].includes(param.parameter_name)) {
                     configuredParams[param.parameter_name] = selectedEdges;
                     return;
                 }
 
-                // 特殊处理：step_array, dhs_interval_array, flow_interval_array 使用新的交互式控件（不依赖 input 元素）
-                if (param.parameter_type === 'step_array') {
-                    // 从表格中提取 speed_steps
-                    console.log('[createStrategy] Extracting step_array for:', param.parameter_name);
-                    const tbody = document.querySelector(`[data-parameter-name="${param.parameter_name}"] .steps-tbody`);
-                    console.log('[createStrategy] Found tbody:', tbody);
+                // 表格类型参数
+                if (['step_array', 'dhs_interval_array', 'tec_interval_array', 'flow_interval_array']
+                    .includes(param.parameter_type)) {
+                    const tableData = extractTableParameters(param.parameter_name, param.parameter_type);
 
-                    if (tbody) {
-                        const rows = tbody.querySelectorAll('.step-row');
-                        console.log('[createStrategy] Found rows:', rows.length);
-
-                        // ✅ FIX: Skip optional array parameters with no rows
-                        if (!param.required && rows.length === 0) {
-                            console.log('[createStrategy] Skipping optional step_array with no rows:', param.parameter_name);
-                            return;
-                        }
-
-                        const value = Array.from(rows).map(row => ({
-                            time_hours: parseFloat(row.querySelector('.step-time').value),
-                            speed_kmh: parseFloat(row.querySelector('.step-speed').value)
-                        }));
-                        console.log('[createStrategy] Extracted value:', value);
-                        console.log('[createStrategy] Setting parameter:', param.parameter_name, '=', value);
-                        configuredParams[param.parameter_name] = value;
-                    } else {
-                        console.error('[createStrategy] tbody not found for step_array!');
-                        alert(`无法找到参数 "${param.parameter_name}" 的配置表格`);
-                    }
-                    return;
-                }
-
-                if (param.parameter_type === 'dhs_interval_array') {
-                    // 从表格中提取 DHS intervals
-                    // 尝试多种选择器（因为可能使用不同的父元素结构）
-                    let tbody = document.querySelector(`[data-parameter-name="${param.parameter_name}"] .dhs-intervals-tbody`);
-                    if (!tbody) {
-                        tbody = document.querySelector(`.dhs-intervals-tbody[data-parameter-name="${param.parameter_name}"]`);
-                    }
-
-                    if (tbody) {
-                        const rows = tbody.querySelectorAll('.dhs-interval-row');
-
-                        // ✅ FIX: Skip optional array parameters with no rows
-                        if (!param.required && rows.length === 0) {
-                            console.log('[createStrategy] Skipping optional dhs_interval_array with no rows:', param.parameter_name);
-                            return;
-                        }
-
-                        const value = Array.from(rows).map(row => {
-                            const vehiclesSelect = row.querySelector('.dhs-interval-vehicles');
-                            const selectedOptions = Array.from(vehiclesSelect.selectedOptions).map(opt => opt.value);
-
-                            return {
-                                begin_hours: parseFloat(row.querySelector('.dhs-interval-begin').value),
-                                end_hours: parseFloat(row.querySelector('.dhs-interval-end').value),
-                                status: row.querySelector('.dhs-interval-status').value,
-                                allowed_vehicle_types: selectedOptions
-                            };
-                        });
-                        configuredParams[param.parameter_name] = value;
-                    } else {
-                        console.error('[createStrategy] tbody not found for dhs_interval_array!', param.parameter_name);
-                    }
-                    return;
-                }
-
-                if (param.parameter_type === 'tec_interval_array' || param.parameter_type === 'flow_interval_array') {
-                    // 从表格中提取 TEC flow intervals
-                    const tbody = document.querySelector(`[data-parameter-name="${param.parameter_name}"] .intervals-tbody`);
-                    if (tbody) {
-                        const rows = tbody.querySelectorAll('.interval-row');
-
-                        // ✅ FIX: Skip optional array parameters with no rows
-                        if (!param.required && rows.length === 0) {
-                            console.log('[createStrategy] Skipping optional flow_interval_array with no rows:', param.parameter_name);
-                            return;
-                        }
-
-                        const value = Array.from(rows).map(row => ({
-                            begin_hours: parseFloat(row.querySelector('.interval-begin').value),
-                            end_hours: parseFloat(row.querySelector('.interval-end').value),
-                            vehsPerHour: parseFloat(row.querySelector('.interval-flow').value),
-                            target_speed: parseFloat(row.querySelector('.interval-speed').value)
-                        }));
-                        configuredParams[param.parameter_name] = value;
-                    } else {
-                        console.error('[createStrategy] tbody not found for flow_interval_array!');
-                    }
-                    return;
-                }
-
-                // 对于其他参数类型，需要有 input 元素
-                const input = document.getElementById(`param-${param.parameter_name}`);
-                if (input) {
-                    let value = input.value;
-
-                    // ✅ FIX: Skip optional parameters with empty values
-                    if (!param.required && (value === '' || value === null || value === undefined)) {
-                        console.log('[createStrategy] Skipping optional parameter with empty value:', param.parameter_name);
+                    // 跳过空的可选参数
+                    if (!param.required && tableData.length === 0) {
+                        console.log(`[collectParameterValues] 跳过空的可选参数: ${param.parameter_name}`);
                         return;
                     }
 
-                    if (param.parameter_type === 'integer') {
-                        value = parseInt(value);
-                    } else if (param.parameter_type === 'float') {
-                        value = parseFloat(value);
-                    } else if (param.parameter_type === 'boolean') {
-                        value = value === 'true';
-                    } else if (param.parameter_type === 'array') {
-                        // 特殊处理：车型多选框参数
-                        const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
-                        if (vehicleTypeParams.includes(param.parameter_name)) {
-                            // 从多选框获取选中的值
-                            const selectedOptions = Array.from(input.selectedOptions);
-                            value = selectedOptions.map(opt => opt.value);
+                    if (tableData.length > 0 || param.required) {
+                        configuredParams[param.parameter_name] = tableData;
+                    }
+                    return;
+                }
 
-                            // ✅ FIX: Skip optional array parameters with empty selection
-                            if (!param.required && value.length === 0) {
-                                console.log('[createStrategy] Skipping optional array parameter with empty selection:', param.parameter_name);
-                                return;
+                // 其他参数类型
+                const input = document.getElementById(`param-${param.parameter_name}`);
+                if (!input) {
+                    if (param.required) {
+                        console.warn(`[collectParameterValues] 必填参数未找到输入框: ${param.parameter_name}`);
+                    }
+                    return;
+                }
+
+                let value = input.value;
+
+                // 跳过空的可选参数
+                if (!param.required && (value === '' || value === null || value === undefined)) {
+                    console.log(`[collectParameterValues] 跳过空的可选参数: ${param.parameter_name}`);
+                    return;
+                }
+
+                // 类型转换
+                if (param.parameter_type === 'integer') {
+                    value = parseInt(value);
+                } else if (param.parameter_type === 'float') {
+                    value = parseFloat(value);
+                } else if (param.parameter_type === 'boolean') {
+                    value = value === 'true';
+                } else if (param.parameter_type === 'array') {
+                    // 车型多选框
+                    const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
+                    if (vehicleTypeParams.includes(param.parameter_name)) {
+                        const selectedOptions = Array.from(input.selectedOptions || []);
+                        value = selectedOptions.map(opt => opt.value);
+
+                        if (!param.required && value.length === 0) {
+                            console.log(`[collectParameterValues] 跳过空的可选数组参数: ${param.parameter_name}`);
+                            return;
+                        }
+                    } else {
+                        // JSON 数组
+                        try {
+                            value = JSON.parse(value);
+                            if (!Array.isArray(value)) {
+                                throw new Error('必须是数组格式');
                             }
-                        } else {
-                            // 其他 array 参数：解析 JSON
-                            try {
-                                value = JSON.parse(value);
-                                if (!Array.isArray(value)) {
-                                    throw new Error('必须是数组格式');
-                                }
-                            } catch (error) {
-                                alert(`参数 "${param.description}" 格式错误：${error.message}\n请输入有效的JSON数组，例如: [[7,9],[17,19]] 或 [60,80,100]`);
-                                throw error;
-                            }
+                        } catch (error) {
+                            throw new Error(`参数 "${param.description}" 格式错误: ${error.message}`);
                         }
                     }
-                    console.log('[createStrategy] Setting parameter:', param.parameter_name, '=', value);
-                    configuredParams[param.parameter_name] = value;
+                }
+
+                configuredParams[param.parameter_name] = value;
+            });
+
+            return configuredParams;
+        }
+
+        /**
+         * 验证策略创建输入
+         * @param {Object} input - 输入对象 { templateObj, strategyName, edgeIds }
+         * @returns {Object} { valid: boolean, errors: Array }
+         */
+        function validateStrategyInput(input) {
+            const errors = [];
+
+            if (!input.templateObj) {
+                errors.push('未选择策略模板');
+            }
+
+            if (!input.strategyName || input.strategyName.trim().length === 0) {
+                errors.push('策略名称不能为空');
+            }
+
+            if (!input.edgeIds || input.edgeIds.length === 0) {
+                errors.push('必须选择至少一条影响的路段');
+            }
+
+            return {
+                valid: errors.length === 0,
+                errors: errors
+            };
+        }
+
+        /**
+         * 验证所有参数
+         * @param {Object} parameters - 参数对象
+         * @param {Array} schema - 参数定义 schema
+         * @returns {Object} { valid: boolean, errors: Object }
+         */
+        function validateStrategyParameters(parameters, schema) {
+            const errors = {};
+
+            if (!schema || schema.length === 0) {
+                return { valid: true, errors: {} };
+            }
+
+            schema.forEach(paramDef => {
+                const paramValue = parameters[paramDef.parameter_name];
+
+                // 验证必填参数
+                if (paramDef.required) {
+                    if (paramValue === undefined || paramValue === null || paramValue === '') {
+                        errors[paramDef.parameter_name] = `${paramDef.description} 是必填项`;
+                    } else if (Array.isArray(paramValue) && paramValue.length === 0) {
+                        errors[paramDef.parameter_name] = `${paramDef.description} 不能为空`;
+                    }
+                }
+
+                // 验证参数类型
+                if (paramValue !== undefined && paramValue !== null) {
+                    if (paramDef.parameter_type === 'integer' && !Number.isInteger(paramValue)) {
+                        errors[paramDef.parameter_name] = `${paramDef.description} 必须是整数`;
+                    } else if (paramDef.parameter_type === 'float' && typeof paramValue !== 'number') {
+                        errors[paramDef.parameter_name] = `${paramDef.description} 必须是数字`;
+                    } else if (paramDef.parameter_type === 'array' && !Array.isArray(paramValue)) {
+                        errors[paramDef.parameter_name] = `${paramDef.description} 必须是数组`;
+                    }
                 }
             });
 
-            console.log('[createStrategy] Final configuredParams:', configuredParams);
+            return {
+                valid: Object.keys(errors).length === 0,
+                errors: errors
+            };
+        }
 
-            // 使用 StrategyManager 调用API创建策略
-            if (window.strategyManager) {
-                // 更新 strategyManager 的状态
-                window.strategyManager.selectedTemplate = selectedTemplate;
-                window.strategyManager.selectedEdges = selectedEdges;
+        /**
+         * 构建策略提交的 API 负载
+         * @param {Object} template - 策略模板
+         * @param {Object} parameters - 参数对象
+         * @param {Array<string>} edgeIds - 路段 ID 列表
+         * @param {string} strategyName - 策略名称
+         * @returns {Object} API 请求体
+         */
+        function buildStrategyPayload(template, parameters, edgeIds, strategyName) {
+            return {
+                strategy_name: strategyName,
+                template_id: template.template_id,
+                parameters: parameters,
+                affected_edges: edgeIds
+            };
+        }
 
-                // 临时设置表单数据（模拟表单填写）
-                const tempFormData = {
-                    strategy_name: strategyName,
-                    parameters: configuredParams
-                };
+        /**
+         * 提交策略到 API
+         * @param {Object} payload - 提交数据
+         * @returns {Promise<Object>} API 响应
+         * @throws {Error} API 错误
+         */
+        async function submitStrategyToAPI(payload) {
+            console.log('[submitStrategyToAPI] 提交策略:', payload);
 
-                // 构建 API 请求
-                const payload = {
-                    strategy_name: strategyName,
-                    template_id: selectedTemplate.template_id,
-                    parameters: configuredParams,
-                    affected_edges: selectedEdges
-                };
+            const response = await fetch('/api/v1/control/strategy-instances/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
 
-                try {
-                    console.log('Creating strategy via API:', payload);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}`);
+            }
 
-                    const response = await fetch('/api/v1/control/strategy-instances/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
+            return await response.json();
+        }
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.detail || `HTTP ${response.status}`);
-                    }
+        /**
+         * 处理策略创建响应
+         * @param {Object} result - API 响应结果
+         */
+        function handleStrategyCreationResponse(result) {
+            console.log('[handleStrategyCreationResponse] 策略创建成功:', result);
 
-                    const result = await response.json();
-                    console.log('Strategy created successfully:', result);
+            alert(`策略创建成功！\n策略ID: ${result.strategy_id}`);
 
-                    alert(`策略创建成功！\n策略ID: ${result.strategy_id}`);
+            // 刷新策略列表
+            if (typeof fetchStrategyInstances === 'function') {
+                fetchStrategyInstances();
+            }
 
-                    // 刷新策略实例列表
-                    fetchStrategyInstances();
+            // 重置表单
+            if (typeof resetForm === 'function') {
+                resetForm();
+            }
+        }
 
-                    // 重置表单
-                    resetForm();
+        // 创建策略实例 (集成 Phase 1C strategy_manager.js) - 重构版本
+        async function createStrategy() {
+            try {
+                console.log('[createStrategy] 开始创建策略流程');
 
-                } catch (error) {
-                    console.error('Error creating strategy:', error);
-                    alert(`创建失败: ${error.message}`);
+                // Step 1: 收集基础信息
+                const basicInfo = collectBasicStrategyInfo();
+                console.log('[createStrategy] 基础信息:', basicInfo);
+
+                // Step 2: 验证输入
+                const inputValidation = validateStrategyInput(basicInfo);
+                if (!inputValidation.valid) {
+                    throw new Error(inputValidation.errors.join('; '));
                 }
-            } else {
-                // Fallback: 如果 strategy_manager.js 没有加载
-                console.log('Creating strategy (fallback mode):', {
-                    template_id: selectedTemplate.template_id,
-                    strategy_name: strategyName,
-                    configured_params: configuredParams,
-                    selected_edges: selectedEdges
-                });
 
-                alert('策略管理器模块未加载，请刷新页面重试');
+                // Step 3: 收集参数值
+                const parameters = collectParameterValues(basicInfo.templateObj);
+                console.log('[createStrategy] 收集的参数:', parameters);
+
+                // Step 4: 验证参数
+                const paramValidation = validateStrategyParameters(parameters, basicInfo.templateObj.parameters_schema);
+                if (!paramValidation.valid) {
+                    const errorMessages = Object.values(paramValidation.errors).join('; ');
+                    throw new Error(`参数验证失败: ${errorMessages}`);
+                }
+
+                // Step 5: 构建请求负载
+                const payload = buildStrategyPayload(
+                    basicInfo.templateObj,
+                    parameters,
+                    basicInfo.edgeIds,
+                    basicInfo.strategyName
+                );
+                console.log('[createStrategy] API 请求体:', payload);
+
+                // Step 6: 提交 API
+                const result = await submitStrategyToAPI(payload);
+
+                // Step 7: 处理响应
+                handleStrategyCreationResponse(result);
+
+            } catch (error) {
+                console.error('[createStrategy] 错误:', error);
+                alert(`创建失败: ${error.message}`);
             }
         }
 

@@ -1,14 +1,17 @@
 <!-- OPENSPEC:START -->
+
 # OpenSpec Instructions
 
 These instructions are for AI assistants working in this project.
 
 Always open `@/openspec/AGENTS.md` when the request:
+
 - Mentions planning or proposals (words like proposal, spec, change, plan)
 - Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
 - Sounds ambiguous and you need the authoritative spec before coding
 
 Use `@/openspec/AGENTS.md` to learn:
+
 - How to create and apply change proposals
 - Spec format and conventions
 - Project structure and guidelines
@@ -78,6 +81,7 @@ npx playwright test --headed
 ```
 
 **Environment Requirements**:
+
 - Python tests: Requires `od_project` conda environment (Python 3.10+)
 - Playwright tests: Requires Node.js and Playwright installed (already configured in `od_project` environment)
 - **Never run tests in conda base environment**
@@ -195,19 +199,20 @@ shared/
 ### Adding New Features
 
 1. **Determine Layer**:
+
    - Core logic/algorithm? → Add to `shared/`
    - Business workflow? → Add to `api/services/`
    - HTTP endpoint? → Add to `api/routes/`
-
 2. **Service Development Order**:
+
    ```
    shared/ (core logic)
    → api/models/ (request/response models)
    → api/services/ (business logic)
    → api/routes/ (HTTP endpoints)
    ```
-
 3. **Example - Adding New Analysis Type**:
+
    - Create analyzer in `shared/analysis_tools/new_analysis.py`
    - Create service in `api/services/new_analysis_service.py`
    - Add models in `api/models/requests/` and `api/models/responses/`
@@ -232,17 +237,18 @@ shared/
 The system supports a two-step simulation model introduced in v0.9.0:
 
 1. **Prepare** (`POST /api/v1/simulation/prepare_simulation/`)
+
    - Generates `simulation.sumocfg` and directory structure
    - Sets status to `pending`
    - Returns `config_file_abs` for external use
    - Allows manual configuration inspection/modification
-
 2. **Start** (`POST /api/v1/simulation/start_simulation/`)
+
    - Starts background simulation using `simulation_id`
    - Updates status to `running`
    - Enables progress polling
-
 3. **Legacy One-Step** (`POST /api/v1/simulation/run_simulation/`)
+
    - Internally calls prepare → start
    - Maintained for backward compatibility
 
@@ -255,6 +261,7 @@ The system supports a two-step simulation model introduced in v0.9.0:
 ### Vehicle Type Configuration
 
 Vehicle types are defined in `templates/config_templates/vehicle_templates/vehicle_types.json`:
+
 - Supports: passenger_small, truck_large, special_small, special_large, etc.
 - Parameters: accel, decel, length, maxSpeed, color, vClass, carFollowModel
 - Dynamically generates vType definitions in rou.xml
@@ -265,15 +272,16 @@ Vehicle types are defined in `templates/config_templates/vehicle_templates/vehic
 **Important**: Analysis workflows do NOT create/update case or simulation metadata.
 
 1. **Case Level** (`cases/{case_id}/metadata.json`)
+
    - Fields: case_id, created_at, updated_at, status, description
    - Updated by: case creation, simulation start/complete
-
 2. **Simulation Index** (`cases/{case_id}/simulations/simulations_index.json`)
+
    - Lists all simulations for a case
    - Fields: simulation_id, simulation_name, simulation_type, status, timestamps
    - Updated by: simulation create/start/complete/delete
-
 3. **Simulation Metadata** (`cases/{case_id}/simulations/{sim_id}/simulation_metadata.json`)
+
    - Fields: simulation_id, case_id, simulation_type, status, timestamps, input_files
    - `input_files` populated from case metadata at creation
    - Analysis workflows MUST NOT modify this file or `simulation_type`
@@ -311,6 +319,7 @@ cases/{case_id}/
 ### Configuration
 
 **Database credentials are already configured in system environment variables:**
+
 ```env
 DB_NAME=sdzg
 DB_USER=ln
@@ -320,11 +329,13 @@ DB_PORT=5432
 ```
 
 **Important**:
+
 - Environment variables are set at OS level (no `.env` file needed)
 - PostgreSQL client tools (psql) can be used directly without explicit password parameters
 - Python code uses `shared/data_access/db_config.py` to read these environment variables
 
 **Example psql usage:**
+
 ```bash
 # Direct access (credentials from environment)
 psql -h 10.149.235.123 -U ln -d sdzg -c "SELECT COUNT(*) FROM baseline.baseflow_pattern_gantry"
@@ -356,6 +367,7 @@ psql -h 10.149.235.123 -U ln -d sdzg -c "\dt baseline.*"
 **Performance Issue (Fixed 2025-10-22)**: Route selection causing 5+ second delay
 
 **Root Causes Identified**:
+
 1. **Frontend**: Unnecessary `updateDirectionOptions()` API call on every route selection
    - Called `GET /api/v1/control/edges/query` with complex 3-table JOIN
    - Added 2-4 seconds delay just to populate direction dropdown
@@ -366,13 +378,14 @@ psql -h 10.149.235.123 -U ln -d sdzg -c "\dt baseline.*"
 **Solutions Applied**:
 
 1. **Frontend Optimization** (`frontend/control/js/edge_selector_embedded.js`):
+
    - Removed dynamic direction query from `updateDirectionOptions()`
    - Implemented static route classification based on network topology:
      - **Ring expressways** (SA2, G4202): Show clockwise/counterclockwise
      - **Linear highways** (other routes): Show upstream/downstream
    - Instant response (0ms) with correct direction options per route type
-
 2. **Database Indexes** (`database/migrations/004_add_edge_query_indexes.sql`):
+
    - `idx_sim_network_edges_route_code` - For route filtering
    - `idx_sim_network_edges_section_code` - For section grouping
    - `idx_sim_network_edges_route_section` - Composite index for common query pattern
@@ -381,11 +394,13 @@ psql -h 10.149.235.123 -U ln -d sdzg -c "\dt baseline.*"
    - `idx_point_gantry_route_stake` - For gantry range queries
 
 **Performance Improvement**:
+
 - **Before**: 5-10 seconds total (2-4s frontend delay + 3-6s database query)
 - **After**: <500ms total (<100ms frontend + <400ms database with indexes)
 - **User Experience**: Near-instant section dropdown population
 
 **Future Optimizations** (if needed):
+
 1. Migrate `edge_query.py` functions to use `get_pooled_connection()` from `connection.py`
 2. Add query result caching (Redis or in-memory LRU cache)
 3. Add database query monitoring/logging for slow queries (>2s threshold)
@@ -409,20 +424,22 @@ The system supports traffic control strategies based on real baseline data analy
 **Routes Analyzed**: G4202 (成都绕城高速), G5 (京昆高速四川段)
 
 **Key Findings**:
+
 1. **Severe Congestion Identified**:
+
    - G4202 K52.4: 15.14 km/h (morning peak) - Extreme congestion
    - G4202 K42.32: 15.65 km/h (evening peak, 478 veh/hr) - Extreme congestion
    - G5 K1820.15: 17.97 km/h (evening peak) - Extreme congestion
    - G4202 K32.51: 18.22 km/h (morning peak, 489 veh/hr) - Extreme congestion
-
 2. **Actual DHS (Dynamic Hard Shoulder) Segments on G4202**:
+
    - **Segment 1**: K38.2 - K36.9 (Counterclockwise, 1.47 km, 4 edges)
    - **Segment 2**: K36.9 - K32.968 (Counterclockwise, 3.69 km, 12 edges) - **Covers K32.51 congestion point**
    - **Segment 3**: K51.8 - K43.3 (Counterclockwise, 8.78 km, 18 edges) - **Covers K42.32 & K42.35 congestion points**
    - **Segment 4**: K25.1 - K33.9 (Clockwise, 15.59 km, 36 edges) - Longest segment
    - **Total**: 29.53 km, 70 edges
-
 3. **Strategy Validation**:
+
    - ✅ Our baseline data analysis **accurately identified** the same congestion points already covered by actual DHS segments
    - ✅ K42.32 and K32.51 (identified as TOP congestion points) are covered by existing DHS segments 2 & 3
    - ✅ This validates that **baseline data-driven congestion identification is reliable**
@@ -432,10 +449,12 @@ The system supports traffic control strategies based on real baseline data analy
 **Location**: `control_data/strategies/`
 
 **File Format**:
+
 - Individual strategies: `strategy_*.json` or `strat_*.json`
 - Index file: `strategies_index.json`
 
 **Key Fields**:
+
 ```json
 {
   "strategy_id": "strategy_real_vss_g4202_001",
@@ -460,19 +479,20 @@ The system supports traffic control strategies based on real baseline data analy
 ### Documentation
 
 Detailed analysis and strategy recommendations:
+
 - **Main Document**: `docs/真实数据分析与策略建议_G4202_G5综合.md`
 - **Methodology Guide**: `docs/真实策略生成指南.md`
 - **API Endpoints**: `/api/v1/control/strategies/instances`
 
 ### Implementation Priority
 
-| Priority | Strategy | Route | Target Segment | Type | Expected Effect |
-|----------|----------|-------|----------------|------|-----------------|
-| P0 | strategy_real_vss_g4202_001 | G4202 | K52.4 | VSS | Speed +230% |
-| P0 | strategy_real_vss_g4202_002 | G4202 | K42.32 | VSS+DHS | Speed +220%~283% |
-| P0 | strategy_real_vss_g5_001 | G5 | K1820 | VSS+DHS | Speed +123%~178% |
-| P1 | strategy_real_vss_g4202_003 | G4202 | K32.51 | VSS+DHS | Speed +174%~229% |
-| P1 | strategy_real_vss_g5_002 | G5 | K1768 | VSS | Speed +121% |
+| Priority | Strategy                    | Route | Target Segment | Type    | Expected Effect  |
+| -------- | --------------------------- | ----- | -------------- | ------- | ---------------- |
+| P0       | strategy_real_vss_g4202_001 | G4202 | K52.4          | VSS     | Speed +230%      |
+| P0       | strategy_real_vss_g4202_002 | G4202 | K42.32         | VSS+DHS | Speed +220%~283% |
+| P0       | strategy_real_vss_g5_001    | G5    | K1820          | VSS+DHS | Speed +123%~178% |
+| P1       | strategy_real_vss_g4202_003 | G4202 | K32.51         | VSS+DHS | Speed +174%~229% |
+| P1       | strategy_real_vss_g5_002    | G5    | K1768          | VSS     | Speed +121%      |
 
 ## Code Standards from Cursor Rules
 
@@ -621,6 +641,7 @@ The system requires SUMO (Simulation of Urban MObility) to be installed:
 - If environment doesn't exist, create it: `mamba create -n od_project python=3.10`
 
 **Testing Environment**:
+
 - Playwright is already configured in `od_project` environment
 - All E2E tests require `od_project` to be active
 - Python unit tests also require `od_project` environment
@@ -643,6 +664,7 @@ The system requires SUMO (Simulation of Urban MObility) to be installed:
 ## Project Context
 
 This is a traffic simulation project. Comments, variable names, and documentation are primarily in Chinese. The system:
+
 - Processes real-world OD (Origin-Destination) data from a PostgreSQL database
 - Uses SUMO for microscopic/mesoscopic traffic simulation
 - Compares simulation results against real gantry observation data
