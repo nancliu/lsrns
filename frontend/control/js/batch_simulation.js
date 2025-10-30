@@ -38,6 +38,23 @@ let progressPollInterval = null;
 let currentView = 'config'; // config, progress, results
 let liveCurveVisible = true; // 动态曲线显示状态（默认显示）
 
+// ========== CSS 动态样式辅助函数 (Phase 2c-Extended) ==========
+
+/**
+ * 策略类型转换为徽章 CSS 类名
+ * 用于替代内联 style 属性中的动态颜色
+ * @param {string} type - 策略类型 (VSS, DHS, TEC)
+ * @returns {string} - 对应的 CSS 类名 (badge-vss, badge-dhs, badge-tec, badge-default)
+ */
+function strategyTypeToClass(type) {
+    const classMap = {
+        'VSS': 'badge-vss',
+        'DHS': 'badge-dhs',
+        'TEC': 'badge-tec'
+    };
+    return classMap[type] || 'badge-default';
+}
+
 // ========== 初始化 ==========
 
 document.addEventListener('DOMContentLoaded', async () => {

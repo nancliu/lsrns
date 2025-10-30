@@ -3560,13 +3560,19 @@
                     'TEC': '#e74c3c'
                 };
 
+                const badgeClasses = {
+                    'VSS': 'badge-vss',
+                    'DHS': 'badge-dhs',
+                    'TEC': 'badge-tec'
+                };
+
                 const createdDate = new Date(instance.created_at).toLocaleString('zh-CN');
 
                 html += `
-                    <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: #fafbfc;' : ''}">
+                    <tr class="table-row-border ${index % 2 === 0 ? 'table-row-alternate' : ''}">
                         <td class="p-12-dark-medium">${instance.strategy_name}</td>
                         <td class="p-12">
-                            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${badgeColors[strategyType] || '#95a5a6'}; color: white;">
+                            <span class="badge-base ${badgeClasses[strategyType] || 'badge-default'}">
                                 ${strategyNames[strategyType]}
                             </span>
                         </td>
@@ -3655,7 +3661,7 @@
                             <div>
                                 <p class="hint-text-small">策略类型</p>
                                 <p class="text-primary-medium">
-                                    <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${{'VSS': '#3498db', 'DHS': '#2ecc71', 'TEC': '#e74c3c'}[strategy.strategy_type] || '#95a5a6'}; color: white;">
+                                    <span class="badge-base ${strategyTypeToClass(strategy.strategy_type)}">
                                         ${strategy.strategy_type}
                                     </span>
                                 </p>
@@ -3717,7 +3723,7 @@
 
                 strategy.affected_edges.forEach((edge, index) => {
                     detailHtml += `
-                        <tr style="border-bottom: 1px solid #e9ecef; ${index % 2 === 0 ? 'background: white;' : 'background: #fbfcfd;'}">
+                        <tr class="table-row-border ${index % 2 === 0 ? 'table-row-alternate-white' : 'table-row-alternate-light'}">
                             <td class="p-8-gray-code-sm">${edge.edge_id}</td>
                             <td class="p-8-dark-sm">${edge.route_code || '-'}</td>
                             <td class="secondary-text-padded">${edge.stake_range || '-'}</td>
@@ -3811,6 +3817,12 @@
                     'TEC': '#e74c3c'
                 };
 
+                const badgeClasses = {
+                    'VSS': 'badge-vss',
+                    'DHS': 'badge-dhs',
+                    'TEC': 'badge-tec'
+                };
+
                 // 参数类型映射
                 const paramTypeNames = {
                     'integer': '整数',
@@ -3838,7 +3850,7 @@
                             <div>
                                 <p class="hint-text-small">策略类型</p>
                                 <p class="text-primary-medium">
-                                    <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; background: ${badgeColors[template.strategy_type] || '#95a5a6'}; color: white;">
+                                    <span class="badge-base ${badgeClasses[template.strategy_type] || 'badge-default'}">
                                         ${strategyNames[template.strategy_type]}
                                     </span>
                                 </p>
@@ -3882,7 +3894,7 @@
                     const constraintsStr = constraintsHtml.length > 0 ? constraintsHtml.join(' | ') : '-';
 
                     detailHtml += `
-                        <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 4px; border-left: 3px solid ${param.required ? '#e74c3c' : '#95a5a6'};">
+                        <div class="param-card ${param.required ? 'param-card-required' : 'param-card-optional'}">
                             <div class="flex-row-between-start">
                                 <div>
                                     <strong class="text-dark-md">${param.description}</strong>

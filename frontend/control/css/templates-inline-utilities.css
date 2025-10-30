@@ -868,6 +868,68 @@
 
 /* ==================== 响应式布局补充 ==================== */
 
+/* ==================== Phase 2c-Extended: 动态样式处理 ==================== */
+
+/* 表格行样式 */
+.table-row-border {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.table-row-alternate {
+    background: #fafbfc;
+}
+
+.table-row-alternate-white {
+    background: white;
+}
+
+.table-row-alternate-light {
+    background: #fbfcfd;
+}
+
+/* 徽章样式 */
+.badge-base {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: white;
+}
+
+.badge-vss {
+    background: #3498db;
+}
+
+.badge-dhs {
+    background: #2ecc71;
+}
+
+.badge-tec {
+    background: #e74c3c;
+}
+
+.badge-default {
+    background: #95a5a6;
+}
+
+/* 参数卡片样式 */
+.param-card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.param-card-required {
+    border-left: 3px solid #e74c3c;
+}
+
+.param-card-optional {
+    border-left: 3px solid #95a5a6;
+}
+
+/* ==================== 响应式布局补充 ==================== */
+
 @media (max-width: 768px) {
     .grid-2col {
         grid-template-columns: 1fr;
