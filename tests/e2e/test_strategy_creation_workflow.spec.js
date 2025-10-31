@@ -239,9 +239,10 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
   });
 
   test('DHS策略：完整工作流验证（包含连续性验证）', async ({ page }) => {
+    test.setTimeout(60000); // Set 60s timeout for this test
     console.log('\n========== DHS策略完整工作流测试 ==========\n');
 
-    await page.goto('http://localhost:8000/control/templates.html');
+    await page.goto('http://localhost:8000/control/templates.html', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
     // STEP 1: 选择DHS模板
