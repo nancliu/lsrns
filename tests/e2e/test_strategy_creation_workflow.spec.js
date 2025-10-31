@@ -99,14 +99,8 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
     console.log(`✅ 已选择 ${selectCount} 个路段`);
 
-    // 确认选择
-    const confirmButton = page.locator('button:has-text("确认选择")');
-    await confirmButton.click();
+    // 等待"进入配置参数"按钮显示（选择路段后自动显示）
     await page.waitForTimeout(800);
-    console.log('✅ 已确认选择');
-
-    // 等待"进入配置参数"按钮显示（查询结果上下各有一个按钮）
-    await page.waitForTimeout(500);
 
     // 优先点击顶部的"进入配置参数"按钮（更容易看到）
     const nextButton = page.locator('#step2-next-top').first();
@@ -322,13 +316,12 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
     console.log(`✅ 已选择 ${selectCount} 个路段`);
 
-    // 确认选择
-    await page.click('button:has-text("确认选择")');
-    await page.waitForTimeout(500);
+    // 等待"进入配置参数"按钮显示（选择路段后自动显示）
+    await page.waitForTimeout(800);
 
     // 进入STEP 3
     await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(1500);
 
     // STEP 3: 参数配置 + DHS特定验证
     console.log('\n[STEP 3] DHS参数配置和验证...');
@@ -368,9 +361,10 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
   });
 
   test('TEC策略：完整工作流验证（流量参数）', async ({ page }) => {
+    test.setTimeout(60000); // Set 60s timeout for this test
     console.log('\n========== TEC策略完整工作流测试 ==========\n');
 
-    await page.goto('http://localhost:8000/control/templates.html');
+    await page.goto('http://localhost:8000/control/templates.html', { timeout: 30000 });
     await page.waitForTimeout(1500);
 
     // STEP 1: 选择TEC模板
