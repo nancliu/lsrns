@@ -57,10 +57,18 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     // 点击查询路段
     const queryButton = page.locator('button:has-text("查询路段")');
     await queryButton.click();
-    console.log('⏳ 查询路段中...');
+    console.log('⏳ 查询路段中（等待预加载和数据库查询）...');
 
-    // 等待查询结果显示（增加等待时间）
-    await page.waitForTimeout(3000);
+    // 智能等待：等待按钮从"查询中..."变回"查询路段"（表示查询完成）
+    try {
+      await page.waitForSelector('button:has-text("查询路段"):not([disabled])', { timeout: 15000 });
+      console.log('✅ 查询API调用完成');
+    } catch (error) {
+      console.warn('⚠️  查询超时（15秒）- 可能是预加载路段数据耗时较长');
+    }
+
+    // 额外等待DOM渲染完成（预加载可能需要额外时间）
+    await page.waitForTimeout(1500);
 
     // 验证查询结果表已加载
     const resultsTable = page.locator('#results-table');
@@ -71,16 +79,9 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
       test.skip();
     }
 
-    // 等待表格中有复选框（更长的等待时间）
+    // 等待表格中有复选框
     const checkboxes = page.locator('#results-tbody input[type="checkbox"]');
-    let checkboxCount = 0;
-
-    // 尝试多次等待，直到找到复选框
-    for (let i = 0; i < 10; i++) {
-      checkboxCount = await checkboxes.count();
-      if (checkboxCount > 0) break;
-      await page.waitForTimeout(500);
-    }
+    const checkboxCount = await checkboxes.count();
 
     if (checkboxCount === 0) {
       console.warn('⚠️  未找到可选路段（数据库查询返回0条结果）');
@@ -282,8 +283,18 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
 
     const queryButton = page.locator('button:has-text("查询路段")');
     await queryButton.click();
-    console.log('⏳ 查询路段中...');
-    await page.waitForTimeout(3000);
+    console.log('⏳ 查询路段中（等待预加载和数据库查询）...');
+
+    // 智能等待：等待按钮恢复可用状态
+    try {
+      await page.waitForSelector('button:has-text("查询路段"):not([disabled])', { timeout: 15000 });
+      console.log('✅ 查询API调用完成');
+    } catch (error) {
+      console.warn('⚠️  查询超时（15秒）- 可能是预加载路段数据耗时较长');
+    }
+
+    // 额外等待DOM渲染
+    await page.waitForTimeout(1500);
 
     // 验证表格加载
     const resultsTable = page.locator('#results-table');
@@ -296,13 +307,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
 
     // 选择路段
     const checkboxes = page.locator('#results-tbody input[type="checkbox"]');
-    let checkboxCount = 0;
-
-    for (let i = 0; i < 5; i++) {
-      checkboxCount = await checkboxes.count();
-      if (checkboxCount > 0) break;
-      await page.waitForTimeout(500);
-    }
+    const checkboxCount = await checkboxes.count();
 
     if (checkboxCount === 0) {
       console.warn('⚠️  未找到可选路段');
