@@ -5,9 +5,22 @@
 
 ---
 
+## Quick Reference - Production Edge IDs
+
+**These edges already exist in your production database:**
+
+| Purpose | Edge IDs | Usage |
+|---------|----------|-------|
+| **VSS/DHS Tests** | `-2680`, `-690`, `-5016`, `-10000` | Select 1 or more for route segment testing |
+| **TEC Tests** | `-13042` | Entrance edge for TEC strategy testing |
+
+**No data insertion needed** - Just verify these edges exist in `dim.sim_network_edges` table.
+
+---
+
 ## Overview
 
-The E2E tests for strategy creation workflow require specific database records to execute successfully. This document provides SQL scripts and instructions for setting up test data.
+The E2E tests for strategy creation workflow require specific database records to execute successfully. This document provides verification queries for existing production data.
 
 ---
 
@@ -44,13 +57,31 @@ Based on actual manual testing procedure:
 - Lane count: ≥ 4 (for DHS validation)
 - Complete metadata
 
-#### SQL Script - Sample VSS/DHS Edge Data
+#### SQL Script - Actual Edge Data (From Production Database)
+
+**Note**: These are actual edge IDs from your production database. Use these for E2E testing.
 
 ```sql
--- Insert sample edge data for G4202 route, stake 33-44 km
--- Note: Adjust edge_id values to match your network topology
+-- Verify these edges exist in your database
+-- If they exist, E2E tests will pass immediately without additional setup
 
-INSERT INTO dim.sim_network_edges (
+-- Sample edges for VSS/DHS tests (use 1 or more)
+SELECT
+    edge_id,
+    route_code,
+    section_code,
+    CONCAT('K', start_stake::int, '+', LPAD(((start_stake % 1) * 1000)::int::text, 3, '0')) AS start_stake_formatted,
+    CONCAT('K', end_stake::int, '+', LPAD(((end_stake % 1) * 1000)::int::text, 3, '0')) AS end_stake_formatted,
+    length_m,
+    num_lanes,
+    direction,
+    node_type
+FROM dim.sim_network_edges
+WHERE edge_id IN ('-2680', '-690', '-5016', '-10000')
+ORDER BY start_stake;
+
+-- Sample entrance edge for TEC tests
+SELECT
     edge_id,
     route_code,
     section_code,
@@ -59,45 +90,9 @@ INSERT INTO dim.sim_network_edges (
     length_m,
     num_lanes,
     direction,
-    node_type,
-    demonstration_id
-) VALUES
-    -- Edge 1: K33+000 - K33+500
-    ('-8700', 'G4202', '001', 33.0, 33.5, 500, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 2: K33+500 - K34+000
-    ('-8701', 'G4202', '001', 33.5, 34.0, 500, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 3: K34+000 - K35+000
-    ('-8702', 'G4202', '001', 34.0, 35.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 4: K35+000 - K36+000
-    ('-8703', 'G4202', '001', 35.0, 36.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 5: K36+000 - K37+000
-    ('-8704', 'G4202', '001', 36.0, 37.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 6: K37+000 - K38+000
-    ('-8705', 'G4202', '001', 37.0, 38.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 7: K38+000 - K39+000
-    ('-8706', 'G4202', '001', 38.0, 39.0, 1000, 5, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 8: K39+000 - K40+000
-    ('-8707', 'G4202', '001', 39.0, 40.0, 1000, 5, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 9: K40+000 - K41+000
-    ('-8708', 'G4202', '001', 40.0, 41.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 10: K41+000 - K42+000
-    ('-8709', 'G4202', '001', 41.0, 42.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 11: K42+000 - K43+000
-    ('-8710', 'G4202', '001', 42.0, 43.0, 1000, 4, 'counterclockwise', 'normal', NULL),
-
-    -- Edge 12: K43+000 - K44+000
-    ('-8711', 'G4202', '001', 43.0, 44.0, 1000, 4, 'counterclockwise', 'normal', NULL)
-ON CONFLICT (edge_id) DO NOTHING;
+    node_type
+FROM dim.sim_network_edges
+WHERE edge_id = '-13042';
 ```
 
 **Verification Query**:
@@ -128,13 +123,15 @@ ORDER BY start_stake;
 - Associated with toll stations
 - Proper edge type classification
 
-#### SQL Script - Sample TEC Entrance Data
+#### Actual TEC Entrance Edge
+
+**Production Edge ID**: `-13042`
+
+This entrance edge is already in your database and ready for TEC strategy testing.
 
 ```sql
--- Insert sample entrance edge data for TEC tests
--- Entrance for 成温收费站 (Chengwen Toll Station)
-
-INSERT INTO dim.sim_network_edges (
+-- Verify the entrance edge exists and check its properties
+SELECT
     edge_id,
     route_code,
     section_code,
@@ -145,18 +142,18 @@ INSERT INTO dim.sim_network_edges (
     direction,
     node_type,
     demonstration_id
-) VALUES
-    -- Entrance 1: 成温收费站入口
-    ('-9001', 'G4202', '002', 10.0, 10.2, 200, 3, 'entrance', 'toll_entrance', NULL),
-
-    -- Entrance 2: 锦江收费站入口
-    ('-9002', 'G4202', '003', 20.0, 20.3, 300, 3, 'entrance', 'toll_entrance', NULL)
-ON CONFLICT (edge_id) DO NOTHING;
+FROM dim.sim_network_edges
+WHERE edge_id = '-13042';
 ```
 
-**Verification Query**:
+**Expected Result**:
+- Should return 1 row with entrance edge properties
+- If no results: contact database admin to verify edge_id -13042 exists
+- `node_type` should indicate this is an entrance (e.g., 'toll_entrance', 'entrance', or similar)
+
+**Alternative Query** (if specific entrance unknown):
 ```sql
--- Verify entrance data
+-- Find all available entrance edges on G4202 route
 SELECT
     edge_id,
     route_code,
@@ -167,9 +164,10 @@ SELECT
     direction,
     node_type
 FROM dim.sim_network_edges
-WHERE node_type = 'toll_entrance'
-   OR direction = 'entrance'
-ORDER BY route_code, start_stake;
+WHERE route_code = 'G4202'
+  AND (node_type ILIKE '%entrance%' OR direction ILIKE '%entrance%')
+ORDER BY start_stake
+LIMIT 5;
 ```
 
 ---
