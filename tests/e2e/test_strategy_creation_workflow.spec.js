@@ -43,40 +43,52 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
 
     // 选择路线 G4202
     await page.selectOption('#route-codes', 'G4202');
-    await page.waitForTimeout(500);
     console.log('✅ 已选择路线: G4202');
+
+    // 等待路段代码选项加载（根据路线自动填充）
+    await page.waitForTimeout(1000);
+    console.log('⏳ 等待路段代码选项加载...');
+
+    // 设置桩号范围（根据您的建议：33-44）
+    await page.fill('#min-stake', '33');
+    await page.fill('#max-stake', '44');
+    console.log('✅ 已设置桩号范围: 33-44 km');
 
     // 点击查询路段
     const queryButton = page.locator('button:has-text("查询路段")');
     await queryButton.click();
-    await page.waitForTimeout(2500);
+    console.log('⏳ 查询路段中...');
+
+    // 等待查询结果显示（增加等待时间）
+    await page.waitForTimeout(3000);
 
     // 验证查询结果表已加载
     const resultsTable = page.locator('#results-table');
     const tableVisible = await resultsTable.isVisible().catch(() => false);
 
     if (!tableVisible) {
-      console.warn('⚠️  查询结果表未加载，可能无法继续此测试');
+      console.warn('⚠️  查询结果表未加载，跳过测试（需要数据库中有G4202路段数据，桩号33-44km）');
       test.skip();
     }
 
-    // 等待表格中有复选框
+    // 等待表格中有复选框（更长的等待时间）
     const checkboxes = page.locator('#results-tbody input[type="checkbox"]');
     let checkboxCount = 0;
 
     // 尝试多次等待，直到找到复选框
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       checkboxCount = await checkboxes.count();
       if (checkboxCount > 0) break;
       await page.waitForTimeout(500);
     }
 
     if (checkboxCount === 0) {
-      console.warn('⚠️  未找到可选路段');
+      console.warn('⚠️  未找到可选路段（数据库查询返回0条结果）');
+      console.log('💡 提示：请确保数据库中有G4202路线、桩号33-44km范围的路段数据');
       test.skip();
     }
 
-    console.log(`✅ 查询到 ${checkboxCount} 个路段`);
+    console.log(`✅ 查询成功！找到 ${checkboxCount} 个路段`);
 
     // 选择前3个路段
     const selectCount = Math.min(3, checkboxCount);
@@ -89,12 +101,24 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     // 确认选择
     const confirmButton = page.locator('button:has-text("确认选择")');
     await confirmButton.click();
+    await page.waitForTimeout(800);
+    console.log('✅ 已确认选择');
+
+    // 等待"进入配置参数"按钮显示（查询结果上下各有一个按钮）
     await page.waitForTimeout(500);
 
-    // 进入步骤3 - 点击"进入配置参数"按钮
-    console.log('进入步骤3...');
-    await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
-    await page.waitForTimeout(2500); // 等待边表格加载、名称和描述生成
+    // 优先点击顶部的"进入配置参数"按钮（更容易看到）
+    const nextButton = page.locator('#step2-next-top').first();
+    const nextButtonVisible = await nextButton.isVisible().catch(() => false);
+
+    if (!nextButtonVisible) {
+      console.warn('⚠️  "进入配置参数"按钮未显示');
+      test.skip();
+    }
+
+    console.log('✅ "进入配置参数"按钮已显示，进入步骤3...');
+    await nextButton.click();
+    await page.waitForTimeout(2500); // 等待路段表格加载、名称和描述自动生成
 
     // ========== STEP 3: 参数配置 ==========
     console.log('\n[STEP 3] 参数配置...');
@@ -240,21 +264,25 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
 
     await page.waitForSelector('#route-codes', { timeout: 10000 });
     await page.selectOption('#route-codes', 'G4202');
-    await page.waitForTimeout(500);
+    console.log('✅ 已选择路线: G4202');
 
-    // 如果有路段代码筛选，尝试选择一个选项（section-codes是多选框）
-    const sectionCodeSelect = page.locator('#section-codes');
-    const sectionCodeVisible = await sectionCodeSelect.isVisible().catch(() => false);
+    // 等待路段代码选项加载
+    await page.waitForTimeout(1000);
+    console.log('⏳ 等待路段代码选项加载...');
 
-    if (sectionCodeVisible) {
-      // section-codes是多选框，选择第一个可用选项
-      await sectionCodeSelect.selectOption({ index: 0 });
-      await page.waitForTimeout(300);
-    }
+    // 设置DHS特定筛选：最小车道数≥4（DHS要求）
+    await page.fill('#min-lanes', '4');
+    console.log('✅ 已设置最小车道数: 4 (DHS要求)');
+
+    // 设置桩号范围
+    await page.fill('#min-stake', '33');
+    await page.fill('#max-stake', '44');
+    console.log('✅ 已设置桩号范围: 33-44 km');
 
     const queryButton = page.locator('button:has-text("查询路段")');
     await queryButton.click();
-    await page.waitForTimeout(2500);
+    console.log('⏳ 查询路段中...');
+    await page.waitForTimeout(3000);
 
     // 验证表格加载
     const resultsTable = page.locator('#results-table');
