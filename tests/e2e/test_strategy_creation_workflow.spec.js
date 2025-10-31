@@ -242,12 +242,13 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.selectOption('#route-codes', 'G4202');
     await page.waitForTimeout(500);
 
-    // 如果有路段代码筛选，尝试选择一个范围
-    const sectionCodeInput = page.locator('#section-codes');
-    const sectionCodeVisible = await sectionCodeInput.isVisible().catch(() => false);
+    // 如果有路段代码筛选，尝试选择一个选项（section-codes是多选框）
+    const sectionCodeSelect = page.locator('#section-codes');
+    const sectionCodeVisible = await sectionCodeSelect.isVisible().catch(() => false);
 
     if (sectionCodeVisible) {
-      await sectionCodeInput.fill('001');
+      // section-codes是多选框，选择第一个可用选项
+      await sectionCodeSelect.selectOption({ index: 0 });
       await page.waitForTimeout(300);
     }
 
