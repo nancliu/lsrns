@@ -7,7 +7,7 @@
 /* ==================== Top Bar ==================== */
 
 .top-bar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-info) 0%, #764ba2 100%);
     color: white;
     padding: 15px 30px;
     display: flex;
@@ -48,7 +48,7 @@
 
 .sidebar {
     width: 200px;
-    background: #2c3e50;
+    background: var(--color-dark);
     color: white;
     padding: 20px 0;
     overflow-y: auto;
@@ -65,21 +65,21 @@
 .sidebar-nav a {
     display: block;
     padding: 15px 30px;
-    color: #ecf0f1;
+    color: var(--color-light-border);
     text-decoration: none;
     transition: all 0.3s;
     border-left: 3px solid transparent;
 }
 
 .sidebar-nav a:hover {
-    background: #34495e;
-    border-left-color: #3498db;
+    background: var(--color-dark-hover);
+    border-left-color: var(--color-primary);
 }
 
 .sidebar-nav a.active {
-    background: #34495e;
-    border-left-color: #3498db;
-    color: #3498db;
+    background: var(--color-dark-hover);
+    border-left-color: var(--color-primary);
+    color: var(--color-primary);
     font-weight: 600;
 }
 
@@ -97,12 +97,12 @@
 
 .content-header h2 {
     font-size: 2rem;
-    color: #2c3e50;
+    color: var(--color-dark);
     margin-bottom: 10px;
 }
 
 .content-subtitle {
-    color: #7f8c8d;
+    color: var(--color-secondary-hover);
     font-size: 1.1rem;
 }
 
@@ -128,8 +128,8 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #ecf0f1;
-    color: #7f8c8d;
+    background: var(--color-light-border);
+    color: var(--color-secondary-hover);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -138,30 +138,60 @@
 }
 
 .step.active .step-number {
-    background: #3498db;
+    background: var(--color-primary);
     color: white;
 }
 
 .step.completed .step-number {
-    background: #2ecc71;
+    background: var(--color-success);
     color: white;
 }
 
 .step-label {
     margin-left: 10px;
     font-size: 0.95rem;
-    color: #7f8c8d;
+    color: var(--color-secondary-hover);
 }
 
 .step.active .step-label {
-    color: #2c3e50;
+    color: var(--color-dark);
     font-weight: 600;
 }
 
 .step-arrow {
     margin: 0 20px;
-    color: #bdc3c7;
+    color: var(--color-gray-200);
     font-size: 1.5rem;
+}
+
+/* ==================== Workflow Area ==================== */
+
+.workflow-area {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 3px solid var(--color-border-light);
+}
+
+.strategies-area {
+    margin-top: 30px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    color: var(--color-dark);
+    margin-bottom: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.section-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: var(--color-primary);
+    margin-right: 12px;
 }
 
 /* ==================== Step Content ==================== */
@@ -176,9 +206,9 @@
 
 .step-content h3 {
     font-size: 1.3rem;
-    color: #2c3e50;
+    color: var(--color-dark);
     margin-bottom: 15px;
-    border-left: 4px solid #3498db;
+    border-left: 4px solid var(--color-primary);
     padding-left: 15px;
 }
 
@@ -186,11 +216,11 @@
 
 .edge-selector-container {
     min-height: 300px;
-    border: 2px dashed #bdc3c7;
+    border: 2px dashed var(--color-gray-200);
     border-radius: 8px;
     padding: 20px;
     text-align: center;
-    color: #7f8c8d;
+    color: var(--color-secondary-hover);
 }
 
 .edge-selector-placeholder {

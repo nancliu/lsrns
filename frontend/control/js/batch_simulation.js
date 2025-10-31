@@ -55,6 +55,30 @@ function strategyTypeToClass(type) {
     return classMap[type] || 'badge-default';
 }
 
+/**
+ * 显示元素（使用CSS类）
+ * @param {string} elementId - 元素ID
+ */
+function showElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.classList.add('active');
+        element.style.display = ''; // 清除内联样式
+    }
+}
+
+/**
+ * 隐藏元素（使用CSS类）
+ * @param {string} elementId - 元素ID
+ */
+function hideElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.classList.remove('active');
+        element.style.display = 'none'; // 保持隐藏
+    }
+}
+
 // ========== 初始化 ==========
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -217,7 +241,7 @@ async function createBatch() {
 
     try {
         // 创建批次
-        const createResponse = await fetch(`${API_BASE}/control/optimization/batch`, {
+        const createResponse = await fetch(`${API_BASE}/control/batch-optimization/batch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -238,8 +262,8 @@ async function createBatch() {
 
         // 切换到进度视图 (批次已创建,等待启动)
         updateBatchInfo(batch);
-        document.getElementById('startBatchBtn').style.display = 'inline-block';
-        document.getElementById('cancelBatchBtn').style.display = 'none';
+        showElement('startBatchBtn');
+        hideElement('cancelBatchBtn');
         switchView('progress');
 
         // 显示提示，引导用户点击启动按钮
@@ -256,7 +280,7 @@ async function startBatchExecution() {
 
     try {
         const startResponse = await fetch(
-            `${API_BASE}/control/optimization/batch/${currentBatchId}/start`,
+            `${API_BASE}/control/batch-optimization/batch/${currentBatchId}/start`,
             { method: 'POST' }
         );
 
@@ -265,8 +289,8 @@ async function startBatchExecution() {
         }
 
         // 隐藏启动按钮,显示取消按钮
-        document.getElementById('startBatchBtn').style.display = 'none';
-        document.getElementById('cancelBatchBtn').style.display = 'inline-block';
+        hideElement('startBatchBtn');
+        showElement('cancelBatchBtn');
 
         // 开始轮询进度
         startProgressPolling();
@@ -305,7 +329,7 @@ async function updateProgress() {
     try {
         // 添加时间戳参数来破坏浏览器缓存，确保获取最新数据
         const response = await fetch(
-            `${API_BASE}/control/optimization/batch/${currentBatchId}/progress?t=${Date.now()}`,
+            `${API_BASE}/control/batch-optimization/batch/${currentBatchId}/progress?t=${Date.now()}`,
             {
                 headers: {
                     'Cache-Control': 'no-cache',
@@ -335,7 +359,7 @@ async function updateProgress() {
         // 更新任务统计信息
         const taskStatsDiv = document.getElementById('taskStats');
         if (taskStatsDiv && data.status !== 'pending') {
-            taskStatsDiv.style.display = 'block';
+            showElement('taskStats');
             document.getElementById('totalTasks').textContent = data.total_tasks || 0;
             document.getElementById('completedTasks').textContent = data.completed_tasks || 0;
             document.getElementById('runningTasks').textContent = data.running_tasks || 0;
@@ -394,7 +418,7 @@ async function updateProgress() {
         // 如果完成，停止轮询（不再自动跳转，让用户查看曲线）
         if (data.status === 'completed') {
             stopProgressPolling();
-            document.getElementById('cancelBatchBtn').style.display = 'none';
+            hideElement('cancelBatchBtn');
 
             // ✅ 修复：不再自动跳转到结果视图
             // 用户可以在进度视图查看最终的曲线图，然后手动点击"结果"tab
@@ -410,7 +434,7 @@ async function updateProgress() {
             }
         } else if (data.status === 'failed' || data.status === 'cancelled') {
             stopProgressPolling();
-            document.getElementById('cancelBatchBtn').style.display = 'none';
+            hideElement('cancelBatchBtn');
         }
 
     } catch (error) {
@@ -536,8 +560,12 @@ function renderLiveCurve(liveTimeSeries) {
     if (hasData) {
         debugLog('Showing live curve section with', liveTimeSeries.time_points.length, 'data points');
         // 有数据时，始终显示控制栏，根据用户的toggle状态显示或隐藏图表
-        if (controlBar) controlBar.style.display = 'block';
-        if (section) section.style.display = liveCurveVisible ? 'block' : 'none';
+        showElement('liveCurveControlBar');
+        if (liveCurveVisible) {
+            showElement('liveCurveSection');
+        } else {
+            hideElement('liveCurveSection');
+        }
         // 更新按钮文本
         if (toggleBtn) {
             toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
@@ -545,9 +573,11 @@ function renderLiveCurve(liveTimeSeries) {
     } else {
         debugLog('No live time series data');
         // 无数据时，始终显示控制栏（允许用户切换），根据toggle状态显示提示或隐藏
-        if (controlBar) controlBar.style.display = 'block';
-        if (section) {
-            section.style.display = liveCurveVisible ? 'block' : 'none';
+        showElement('liveCurveControlBar');
+        if (liveCurveVisible) {
+            showElement('liveCurveSection');
+        } else {
+            hideElement('liveCurveSection');
         }
         // 无数据时按钮允许用户显示空的图表区域
         if (toggleBtn) {
@@ -658,12 +688,13 @@ function toggleLiveCurveVisibility() {
     liveCurveVisible = !liveCurveVisible;
     debugLog('Toggle live curve visibility to:', liveCurveVisible);
 
-    const section = document.getElementById('liveCurveSection');
     const toggleBtn = document.getElementById('toggleLiveCurveBtn');
 
     // 更新chart section显示状态
-    if (section) {
-        section.style.display = liveCurveVisible ? 'block' : 'none';
+    if (liveCurveVisible) {
+        showElement('liveCurveSection');
+    } else {
+        hideElement('liveCurveSection');
     }
 
     // 更新按钮文本
@@ -697,7 +728,7 @@ async function cancelBatch() {
 
     try {
         const response = await fetch(
-            `${API_BASE}/control/optimization/batch/${currentBatchId}`,
+            `${API_BASE}/control/batch-optimization/batch/${currentBatchId}`,
             { method: 'DELETE' }
         );
 
@@ -721,7 +752,7 @@ async function loadResults() {
     try {
         // 请求包含时序数据的结果
         const response = await fetch(
-            `${API_BASE}/control/optimization/batch/${currentBatchId}/results?include_time_series=true`
+            `${API_BASE}/control/batch-optimization/batch/${currentBatchId}/results?include_time_series=true`
         );
 
         if (!response.ok) throw new Error('Failed to load results');
@@ -981,7 +1012,7 @@ async function loadBatchHistory() {
         });
         if (status) params.append('status', status);
 
-        const response = await fetch(`${API_BASE}/control/optimization/batches?${params}`);
+        const response = await fetch(`${API_BASE}/control/batch-optimization/batches?${params}`);
         if (!response.ok) throw new Error('Failed to load batch history');
 
         const data = await response.json();
@@ -1035,7 +1066,7 @@ async function deleteBatchHistory(batchId) {
     if (!confirm('确认删除该批次吗？此操作不可撤销。')) return;
 
     try {
-        const response = await fetch(`${API_BASE}/control/optimization/batch/${batchId}`, {
+        const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}`, {
             method: 'DELETE'
         });
         if (!response.ok) throw new Error('Failed to delete batch');

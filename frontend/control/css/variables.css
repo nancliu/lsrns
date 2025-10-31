@@ -1,0 +1,165 @@
+/**
+ * variables.css
+ * CSS 设计令牌 - 颜色、间距、字体、阴影等全局变量
+ * v1.0
+ *
+ * 说明：
+ * - 本文件定义了整个系统使用的所有 CSS 变量
+ * - 通过 CSS 自定义属性(CSS Variables)实现，兼容性：IE 11+ 不支持（需要 PostCSS 降级）
+ * - 所有硬编码值应统一为这些变量
+ * - 修改配色方案只需要修改本文件
+ */
+
+:root {
+    /* ==================== 颜色主题 ==================== */
+
+    /* 品牌色 */
+    --color-primary: #3498db;           /* 蓝色 - 主要操作 (27-35 次使用) */
+    --color-primary-hover: #2980b9;     /* 蓝色深色 - Hover状态 */
+    --color-primary-light: #ebf5fb;     /* 蓝色浅色 - 背景 */
+
+    --color-secondary: #95a5a6;         /* 灰色 - 次要操作 */
+    --color-secondary-hover: #7f8c8d;   /* 灰色深色 - Hover状态 (35 次使用) */
+
+    /* 状态色 */
+    --color-success: #2ecc71;           /* 绿色 - 成功状态 */
+    --color-danger: #e74c3c;            /* 红色 - 危险/错误 (16 次使用) */
+    --color-warning: #f39c12;           /* 橙色 - 警告 */
+    --color-info: #3498db;              /* 蓝色 - 信息 */
+
+    /* 渐变色 */
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    /* 深色 */
+    --color-dark: #2c3e50;              /* 深色/标题 (38 次使用最多) */
+    --color-dark-hover: #34495e;        /* 深色悬停 (5 次使用) */
+    --color-dark-bg: #1a252f;           /* 深灰背景 */
+
+    /* 浅色 */
+    --color-light: #f5f7fa;             /* 主背景 */
+    --color-light-border: #ecf0f1;      /* 浅色文本/边框 (19 次使用) */
+    --color-light-hover: #f8f9fa;       /* 浅色悬停背景 (14 次使用) */
+
+    /* 灰色系 */
+    --color-gray-50: #f9fafb;           /* 最浅灰 (5 次使用) */
+    --color-gray-100: #f3f4f6;          /* 浅灰 */
+    --color-gray-200: #e5e7eb;          /* 浅灰深 (5 次使用) */
+    --color-gray-300: #d1d5db;          /* 中灰 */
+    --color-gray-500: #6b7280;          /* 中深灰 (3 次) */
+    --color-gray-600: #4b5563;          /* 深灰 */
+    --color-gray-700: #374151;          /* 更深灰 */
+    --color-gray-800: #1f2937;          /* 最深灰 */
+
+    /* 文本色 */
+    --color-text-primary: #333;         /* 主文本 */
+    --color-text-secondary: #666;       /* 副文本 */
+    --color-text-light: #999;           /* 浅文本 */
+    --color-text-muted: #7f8c8d;        /* 淡化文本 */
+    --color-text-white: #fff;           /* 白文本 */
+
+    /* 边框色 */
+    --color-border: #ddd;               /* 边框 */
+    --color-border-light: #e9ecef;      /* 浅色边框 (9 次使用) */
+
+    /* 告警/验证色 */
+    --color-alert-bg: #fff3cd;          /* 警告背景 (3 次) */
+    --color-error-bg: #f8d7da;          /* 错误背景 (3 次) */
+
+    /* ==================== 间距（间距缩放比例） ==================== */
+
+    /* 基础间距单位 */
+    --spacing-xs: 3px;                  /* 极小 */
+    --spacing-sm: 4px;                  /* 很小 */
+    --spacing-3: 5px;
+    --spacing-base: 8px;                /* 基础 */
+    --spacing-6: 6px;
+    --spacing-10: 10px;
+    --spacing-12: 12px;                 /* 常用中等 */
+    --spacing-14: 14px;
+    --spacing-15: 15px;                 /* 常用 */
+    --spacing-20: 20px;                 /* 常用大 */
+    --spacing-25: 25px;
+    --spacing-30: 30px;                 /* 主要间距 */
+    --spacing-40: 40px;
+
+    /* ==================== 字体系统 ==================== */
+
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-family-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+
+    /* 字体大小 */
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 14px;
+    --font-size-md: 1rem;               /* 16px */
+    --font-size-lg: 1.1rem;
+    --font-size-xl: 1.2rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 2rem;
+
+    /* 字体权重 */
+    --font-weight-normal: normal;
+    --font-weight-500: 500;
+    --font-weight-600: 600;
+    --font-weight-bold: 700;
+
+    /* 行高 */
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.6;
+    --line-height-loose: 1.8;
+
+    /* ==================== 圆角系统 ==================== */
+
+    --radius-sm: 3px;                   /* 细微圆角 */
+    --radius-base: 4px;                 /* 基础圆角 */
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 15px;
+    --radius-3xl: 20px;
+    --radius-full: 9999px;              /* 完全圆角 */
+
+    /* ==================== 阴影系统 ==================== */
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-base: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.2);
+    --shadow-xl: 0 12px 24px rgba(0,0,0,0.25);
+
+    /* ==================== 过渡/动画 ==================== */
+
+    --transition-fast: 0.15s;           /* 快速过渡 */
+    --transition-base: 0.3s;            /* 标准过渡 */
+    --transition-slow: 0.5s;            /* 慢速过渡 */
+
+    --easing-in-out: ease-in-out;
+    --easing-out: ease-out;
+
+    /* ==================== 尺寸 ==================== */
+
+    --size-sidebar-width: 200px;        /* 侧边栏宽度 */
+    --size-top-bar-height: auto;        /* 顶栏高度 */
+    --size-button-height: 40px;         /* 按钮高度 */
+
+    /* ==================== Z-index 堆叠顺序 ==================== */
+
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-fixed: 300;
+    --z-modal-backdrop: 400;
+    --z-modal: 500;
+    --z-tooltip: 600;
+}
+
+/* ==================== 深色模式 (Future) ==================== */
+/*
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-light: #1a1a1a;
+        --color-text-primary: #e5e5e5;
+        --color-text-secondary: #999;
+        --color-border: #333;
+    }
+}
+*/

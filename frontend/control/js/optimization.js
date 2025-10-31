@@ -49,7 +49,7 @@ async function showBatchSelector() {
 
 async function loadBatchesList() {
     try {
-        // TODO: 实现 GET /api/v1/control/optimization/batches API
+        // TODO: 实现 GET /api/v1/control/batch-optimization/batches API
         // 暂时显示提示
         const container = document.getElementById('batchSelectorContainer');
         container.innerHTML = `
@@ -75,7 +75,7 @@ async function loadBatchResults(batchId) {
 
         // 加载结果数据（包含时序数据）
         const response = await fetch(
-            `${API_BASE}/control/optimization/batch/${batchId}/results?include_time_series=true`
+            `${API_BASE}/control/batch-optimization/batch/${batchId}/results?include_time_series=true`
         );
 
         if (!response.ok) {

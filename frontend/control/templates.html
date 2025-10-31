@@ -8,11 +8,13 @@
     <meta http-equiv="Expires" content="0">
     <title>策略管理 - 交通管控仿真优化系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <!-- CSS Files (v0.9.1 - v0.9.2) -->
+    <!-- CSS Files (v0.9.3 - CSS Variables & Optimization) -->
+    <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/templates-base.css">
     <link rel="stylesheet" href="css/templates-layout.css">
     <link rel="stylesheet" href="css/templates-forms.css">
     <link rel="stylesheet" href="css/templates-results.css">
+    <link rel="stylesheet" href="css/templates-edge-selector.css">
     <link rel="stylesheet" href="css/templates-inline-utilities.css">
 
     <!-- 引入时间轴相关模块 -->
@@ -66,133 +68,142 @@
                 </div>
             </div>
 
-            <!-- 步骤1: 选择策略模板 -->
-            <div class="step-content" id="step1-content">
+            <!-- 策略创建工作流区域 -->
+            <div class="workflow-area">
+                <h2 class="section-title">创建新策略</h2>
+
+                <!-- 步骤1: 选择策略模板 -->
+                <div class="step-content" id="step1-content">
                 <h3>步骤1：选择策略模板</h3>
                 <div id="templates-container" class="templates-grid"></div>
                 <div id="loading" class="loading">加载中...</div>
-                <div id="error" class="error" class="hidden"></div>
+                <div id="error" class="error hidden"></div>
             </div>
 
             <!-- 步骤2: 选择路段 (默认隐藏) -->
-            <div class="step-content" id="step2-content" class="hidden">
+            <div class="step-content hidden" id="step2-content">
                 <h3>步骤2：选择管控路段</h3>
 
                 <!-- 已选模板信息卡片 -->
-                <div id="selected-template-info" class="selected-template-info" class="alert-info-hidden">
+                <div id="selected-template-info" class="selected-template-info alert-info-hidden">
                     <div class="flex-row-between">
                         <div>
                             <strong class="text-dark">已选模板：</strong>
                             <span id="info-template-name" class="text-md-dark-ml"></span>
-                            <span id="info-strategy-badge" class="strategy-badge" class="ml-10"></span>
+                            <span id="info-strategy-badge"></span>
                         </div>
-                        <button class="btn btn-secondary" onclick="changeTemplate()" class="px-15-sm2">更换模板</button>
+                        <button onclick="changeTemplate()">更换模板</button>
                     </div>
                     <div id="info-filter-hint" class="card-small"></div>
                 </div>
 
                 <!-- 嵌入式路段选择器 -->
-                <div class="edge-selector-embedded" class="bordered-card">
+                <div>
                     <!-- 筛选面板 -->
-                    <div class="filter-panel" class="container-light-large">
-                        <h4 class="mb-15 text-primary">筛选条件</h4>
+                    <div class="filter-panel">
+                        <h4>筛选条件</h4>
 
                         <!-- 第一行：层级筛选（路线、路段） -->
-                        <div class="grid-2col-gap">
-                            <div class="form-group">
-                                <label for="route-codes" class="label-text">路线代码</label>
-                                <select id="route-codes" multiple size="4" class="w-full p-5">
-                                    <option value="">加载中...</option>
-                                </select>
-                                <span class="form-hint" class="text-xs text-secondary">支持多选 (Ctrl+点击)</span>
-                            </div>
+                        <div class="filter-row">
+                            <div class="grid-2col-gap">
+                                <div class="form-group">
+                                    <label for="route-codes">路线代码</label>
+                                    <select id="route-codes" name="route_code" multiple>
+                                        <option value="">加载中...</option>
+                                    </select>
+                                    <span>支持多选 (Ctrl+点击)</span>
+                                </div>
 
-                            <div class="form-group">
-                                <label for="section-codes" class="label-text">路段代码</label>
-                                <select id="section-codes" multiple size="4" class="w-full p-5">
-                                    <option value="">请先选择路线</option>
-                                </select>
-                                <span class="form-hint" class="text-xs text-secondary">根据路线自动过滤</span>
+                                <div class="form-group">
+                                    <label for="section-codes">路段代码</label>
+                                    <select id="section-codes" name="section_code" multiple>
+                                        <option value="">请先选择路线</option>
+                                    </select>
+                                    <span>根据路线自动过滤</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- 第二行：数值范围筛选 -->
-                        <div class="grid-4col-gap">
-                            <div class="form-group">
-                                <label for="min-stake" class="label-text">最小桩号 (km)</label>
-                                <input type="number" id="min-stake" min="0" step="0.1" placeholder="0.0" class="w-full p-8">
-                            </div>
+                        <div class="filter-row">
+                            <div class="grid-4col-gap">
+                                <div class="form-group">
+                                    <label for="min-stake">最小桩号 (km)</label>
+                                    <input type="number" id="min-stake" name="min_stake" min="0" step="0.1" placeholder="0.0">
+                                </div>
 
-                            <div class="form-group">
-                                <label for="max-stake" class="label-text">最大桩号 (km)</label>
-                                <input type="number" id="max-stake" min="0" step="0.1" placeholder="100.0" class="w-full p-8">
-                            </div>
+                                <div class="form-group">
+                                    <label for="max-stake">最大桩号 (km)</label>
+                                    <input type="number" id="max-stake" name="max_stake" min="0" step="0.1" placeholder="100.0">
+                                </div>
 
-                            <div class="form-group">
-                                <label for="min-length" class="label-text">最小长度 (m)</label>
-                                <input type="number" id="min-length" min="1" step="1" placeholder="500" class="w-full p-8">
-                            </div>
+                                <div class="form-group">
+                                    <label for="min-length">最小长度 (m)</label>
+                                    <input type="number" id="min-length" name="min_length" min="1" step="1" placeholder="500">
+                                </div>
 
-                            <div class="form-group">
-                                <label for="max-length" class="label-text">最大长度 (m)</label>
-                                <input type="number" id="max-length" min="1" step="1" placeholder="2000" class="w-full p-8">
-                            </div>
-                        </div>
-
-                        <!-- 第三行：特征筛选 -->
-                        <div class="grid-4col">
-                            <div class="form-group">
-                                <label for="min-lanes" class="label-text">最小车道数</label>
-                                <input type="number" id="min-lanes" min="1" step="1" placeholder="3" class="w-full p-8">
-                                <span class="form-hint" class="text-xs text-secondary">DHS≥4</span>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="route-direction" class="label-text">行驶方向</label>
-                                <select id="route-direction" class="w-full p-8">
-                                    <option value="">全部</option>
-                                    <option value="upstream">上行</option>
-                                    <option value="downstream">下行</option>
-                                    <option value="clockwise">顺时针</option>
-                                    <option value="counterclockwise">逆时针</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="node-types" class="label-text">节点类型</label>
-                                <select id="node-types" multiple size="4" class="w-full p-5">
-                                    <option value="normal">普通路段</option>
-                                    <option value="diverging">分流</option>
-                                    <option value="merging">汇流</option>
-                                    <option value="lane_increase">车道增加</option>
-                                    <option value="lane_decrease">车道减少</option>
-                                    <option value="entrance">入口</option>
-                                    <option value="exit">出口</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="demonstration-ids" class="label-text">示范段</label>
-                                <select id="demonstration-ids" multiple size="3" class="w-full p-5">
-                                    <option value="">加载中...</option>
-                                </select>
+                                <div class="form-group">
+                                    <label for="max-length">最大长度 (m)</label>
+                                    <input type="number" id="max-length" name="max_length" min="1" step="1" placeholder="2000">
+                                </div>
                             </div>
                         </div>
 
-                        <!-- 门架筛选 -->
-                        <div class="mt-15">
-                            <div class="form-group" class="inline-block">
-                                <label for="with-gantry" class="mr-10-bold">包含门架:</label>
-                                <select id="with-gantry" class="p-8-minw100">
-                                    <option value="false">否</option>
-                                    <option value="true">是</option>
-                                </select>
-                                <span class="form-hint" class="text-xs-gray-ml">仅返回有门架观测数据的路段</span>
+                        <!-- 第三行：特征筛选 + 门架筛选 -->
+                        <div class="filter-row">
+                            <div class="grid-5col-gap">
+                                <div class="form-group">
+                                    <label for="min-lanes">最小车道数</label>
+                                    <input type="number" id="min-lanes" name="min_lanes" min="1" step="1" placeholder="3">
+                                    <span>DHS≥4</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="route-direction">行驶方向</label>
+                                    <select id="route-direction" name="direction">
+                                        <option value="">全部</option>
+                                        <option value="upstream">上行</option>
+                                        <option value="downstream">下行</option>
+                                        <option value="clockwise">顺时针</option>
+                                        <option value="counterclockwise">逆时针</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="node-types">节点类型</label>
+                                    <select id="node-types" name="node_types" multiple>
+                                        <option value="normal">普通路段</option>
+                                        <option value="diverging">分流</option>
+                                        <option value="merging">汇流</option>
+                                        <option value="lane_increase">车道增加</option>
+                                        <option value="lane_decrease">车道减少</option>
+                                        <option value="entrance">入口</option>
+                                        <option value="exit">出口</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="demonstration-ids">示范段</label>
+                                    <select id="demonstration-ids" name="demonstration_ids" multiple>
+                                        <option value="">加载中...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="with-gantry">包含门架</label>
+                                    <select id="with-gantry" name="with_gantry">
+                                        <option value="false">否</option>
+                                        <option value="true">是</option>
+                                    </select>
+                                    <span>有观测数据</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="action-buttons" class="flex-start-top">
+                        <!-- 查询按钮区域 -->
+                        <div class="query-actions">
                             <button class="btn btn-secondary" onclick="resetFilters()">重置筛选</button>
+                            <button class="btn btn-secondary" onclick="refreshSectionCache()" title="如果路段数据已更新，点击刷新缓存">🔄 刷新路段缓存</button>
                             <button class="btn btn-primary" onclick="queryEdges()" id="query-btn">查询路段</button>
                         </div>
                     </div>
@@ -200,25 +211,30 @@
                     <!-- 结果面板 -->
                     <div class="results-panel">
                         <h4 class="mb-10-dark">查询结果</h4>
-                        <div id="results-info" class="results-info" class="hint-hidden">
+                        <div id="results-info">
                             <div>
                                 <strong>查询结果：</strong><span id="result-count">0</span> 条
                                 <span class="ml-20">已选择: <span id="selected-count">0</span> 条</span>
                             </div>
                             <div>
-                                <button class="btn btn-secondary" class="px-15-sm" onclick="selectAll()">全选</button>
-                                <button class="btn btn-secondary" class="px-15-sm-ml" onclick="deselectAll()">取消全选</button>
+                                <button onclick="selectAll()">全选</button>
+                                <button onclick="deselectAll()">取消全选</button>
                             </div>
                         </div>
 
-                        <div id="warning-message" class="warning-message" class="warning-hidden"></div>
+                        <div id="warning-message"></div>
 
                         <div id="results-container">
-                            <div class="empty" class="text-center-gray-pad">请设置筛选条件并点击"查询路段"</div>
+                            <div>请设置筛选条件并点击"查询路段"</div>
+                        </div>
+
+                        <!-- [FIX] 表格上方的进入配置参数按钮 -->
+                        <div class="step-navigation" id="step2-top-actions" style="display: none; margin-bottom: 15px;">
+                            <button class="btn btn-primary" onclick="nextStep()" id="step2-next-top">进入配置参数</button>
                         </div>
 
                         <div class="overflow-x-auto">
-                            <table id="results-table" class="results-table" class="table-full-hidden">
+                            <table id="results-table">
                                 <thead>
                                     <tr class="bg-light-gray">
                                         <th class="p-10"><input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAll()"></th>
@@ -239,22 +255,27 @@
                         </div>
                     </div>
 
-                    <!-- 网络可视化面板 (Phase 1B - US4) -->
-                    <div class="viz-panel" class="card-outlined">
-                        <h4 class="mb-15 text-primary">网络可视化</h4>
-                        <div class="viz-controls" class="flex-row-gap">
-                            <button class="btn btn-primary" onclick="loadVisualization()" class="p-8 px-12 font-95">加载网络地图</button>
-                            <button class="btn btn-secondary" onclick="resetView()" class="p-8 px-12 font-95">重置视图</button>
-                            <button class="btn btn-secondary" onclick="clearVizSelection()" class="p-8 px-12 font-95">清除可视化选择</button>
+                    <!-- [FIX] 表格下方的步骤导航按钮 - 改为"进入配置参数" -->
+                    <div class="step-navigation" id="step2-bottom-actions">
+                        <button class="btn btn-primary" onclick="nextStep()" id="step2-next-bottom" style="display: none;">进入配置参数</button>
+                    </div>
 
-                            <div class="viz-info" class="ml-auto-sm-gray">
+                    <!-- 网络可视化面板 (Phase 1B - US4) -->
+                    <div class="viz-panel">
+                        <h4>网络可视化</h4>
+                        <div class="viz-controls">
+                            <button class="btn btn-view" onclick="loadVisualization()">加载网络地图</button>
+                            <button class="btn btn-edit" onclick="resetView()">重置视图</button>
+                            <button class="btn btn-delete" onclick="clearVizSelection()">清除选择</button>
+
+                            <div class="viz-info">
                                 <span>可视化选中: <strong id="viz-selected-count">0</strong> 条路段</span>
-                                <span class="ml-15-sm">
+                                <span class="viz-hint">
                                     💡 提示: 鼠标滚轮缩放，拖动平移，点击路段选择
                                 </span>
                             </div>
                         </div>
-                        <div id="network-viz-container" style="position: relative; width: 100%; height: 500px; background: #f5f7fa; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                        <div id="network-viz-container" class="viz-canvas-container">
                             <!-- 网络层 (底层，静态渲染) -->
                             <canvas id="network-canvas" class="overlay-full-0"></canvas>
                             <!-- Hover层 (中层，交互效果) -->
@@ -263,34 +284,13 @@
                             <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; display: none;">正在加载网络几何数据...</div>
                             <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; display: none;"></div>
                             <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 250px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10;">点击"加载网络地图"按钮可视化路网结构</div>
-
-                            <!-- 浮动的下一步按钮（地图右上角） -->
-                            <button
-                                id="floating-next-btn"
-                                class="btn btn-primary"
-                                onclick="nextStep()"
-                                style="position: absolute; top: 15px; right: 15px; z-index: 20;
-                                       padding: 12px 30px; font-size: 1.1rem; font-weight: 600;
-                                       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                       border: none; border-radius: 6px; color: white; cursor: pointer;
-                                       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                                       transition: all 0.3s ease;
-                                       display: flex; align-items: center; gap: 8px;">
-                                <span>下一步</span>
-                                <span class="font-lg">→</span>
-                            </button>
                         </div>
                     </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn btn-secondary" onclick="previousStep()">上一步</button>
-                    <button class="btn btn-primary" onclick="nextStep()" id="step2-next">下一步</button>
                 </div>
             </div>
 
             <!-- 步骤3: 配置参数 (默认隐藏) -->
-            <div class="step-content" id="step3-content" class="hidden">
+            <div class="step-content hidden" id="step3-content">
                 <h3>步骤3：配置策略参数</h3>
 
                 <!-- 已选路段详细信息展示 (Phase 2: Task 2.1-2.4) -->
@@ -308,13 +308,19 @@
                     <button class="btn btn-primary" id="save-strategy-btn" onclick="createStrategy()">生成策略实例</button>
                 </div>
             </div>
+            </div>
+            <!-- 工作流区域结束 -->
 
-            <!-- 已创建的策略实例列表 (US2) -->
-            <div class="strategies-list" class="mt-30">
-                <h3>已创建的策略实例</h3>
+            <!-- 策略实例列表区域 -->
+            <div class="strategies-area">
+                <h2 class="section-title">已创建的策略实例</h2>
+
+                <div class="strategies-list">
+
+
 
                 <!-- 搜索和筛选区 (T072, T073) -->
-                <div class="strategies-controls" class="card-flex-center">
+                <div class="strategies-controls">
                     <!-- 搜索框 -->
                     <div class="flex-auto-min">
                         <input
@@ -341,6 +347,19 @@
                         </select>
                     </div>
 
+                    <!-- 模板筛选 -->
+                    <div>
+                        <label class="mr-8">模板:</label>
+                        <select
+                            id="template-filter"
+                            class="input-button-compact"
+                            onchange="filterStrategyList()"
+                        >
+                            <option value="">全部</option>
+                            <!-- 动态生成模板选项 -->
+                        </select>
+                    </div>
+
                     <!-- 刷新按钮 -->
                     <button onclick="fetchStrategyInstances()" class="btn-primary-sm">刷新</button>
                 </div>
@@ -351,27 +370,34 @@
                 </div>
 
                 <!-- 分页控制 (T071) -->
-                <div class="strategies-pagination" id="strategies-pagination" class="flex-center-gap">
+                <div id="strategies-pagination">
                     <!-- 由 fetchStrategyInstances() 动态生成 -->
                 </div>
+                </div>
+                <!-- strategies-list 结束 -->
             </div>
+            <!-- strategies-area 结束 -->
 
             <!-- 策略详情模态框 (T074, T076) -->
             <div id="strategy-detail-modal" class="modal-overlay">
-                <div class="strategy-detail-content" class="modal-content-container">
-                    <div class="p-25">
-                        <!-- 详情内容由 viewStrategyDetail() 动态生成 -->
-                        <p class="text-center-hint">加载中...</p>
+                <div class="modal-content-container">
+                    <div class="strategy-detail-content">
+                        <div class="p-25">
+                            <!-- 详情内容由 viewStrategyDetail() 动态生成 -->
+                            <p class="text-center-hint">加载中...</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 模板详情模态框 (NEW) -->
             <div id="template-detail-modal" class="modal-overlay">
-                <div class="template-detail-content" class="modal-content-container">
-                    <div class="p-25">
-                        <!-- 详情内容由 viewTemplateDetail() 动态生成 -->
-                        <p class="text-center-hint">加载中...</p>
+                <div class="modal-content-container">
+                    <div class="template-detail-content">
+                        <div class="p-25">
+                            <!-- 详情内容由 viewTemplateDetail() 动态生成 -->
+                            <p class="text-center-hint">加载中...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -388,6 +414,7 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
+            updateStepDisplay(); // 初始化步骤显示状态
             fetchTemplates();
             fetchStrategyInstances();
         });
@@ -433,6 +460,7 @@
                 });
 
                 renderTemplateCards(templates);
+                populateTemplateFilter(); // 填充模板筛选器
                 loadingEl.style.display = 'none';
 
             } catch (error) {
@@ -694,7 +722,7 @@
                 <label>策略名称 *</label>
                 <div class="flex-start">
                     <input type="text" id="param-strategy-name" required placeholder="例如: 早高峰G4202可变限速策略" class="flex-1">
-                    <button type="button" id="suggest-name-btn" class="btn btn-secondary" class="nowrap">
+                    <button type="button" id="suggest-name-btn">
                         建议名称
                     </button>
                 </div>
@@ -711,7 +739,7 @@
                 <label>策略描述</label>
                 <div class="flex-start">
                     <textarea id="param-strategy-description" rows="3" placeholder="可选：描述该策略的应用场景和目的" class="flex-1"></textarea>
-                    <button type="button" id="regenerate-description-btn" class="btn btn-secondary" class="nowrap-flex-start">
+                    <button type="button" id="regenerate-description-btn">
                         重新生成描述
                     </button>
                 </div>
@@ -910,7 +938,7 @@
 
             elem.innerHTML = `
                 <strong>${template.template_name}</strong>
-                <span class="strategy-badge badge-${template.strategy_type}" class="badge-compact">
+                <span>
                     ${strategyNames[template.strategy_type]}
                 </span>
             `;
@@ -1259,7 +1287,7 @@
                            placeholder="如: 60" class="input-field-standard" />
                 </td>
                 <td class="table-cell-center">
-                    <button type="button" class="delete-row" class="btn-error-compact">删除</button>
+                    <button type="button" class="delete-row btn btn-delete btn-small">删除</button>
                 </td>
             `;
 
@@ -1356,20 +1384,20 @@
                            placeholder="9" class="input-field" />
                 </td>
                 <td class="p-8">
-                    <select class="dhs-interval-status" class="input-field">
+                    <select>
                         <option value="open">开放</option>
                         <option value="closed">关闭</option>
                     </select>
                 </td>
                 <td class="p-8">
-                    <select class="dhs-interval-vehicles" multiple class="textarea-full">
+                    <select multiple>
                         <option value="passenger">乘用车</option>
                         <option value="truck">货车</option>
                         <option value="bus">客车</option>
                     </select>
                 </td>
                 <td class="table-cell-center">
-                    <button type="button" class="delete-row" class="btn-error">删除</button>
+                    <button type="button" class="delete-row btn btn-delete btn-small">删除</button>
                 </td>
             `;
 
@@ -1473,7 +1501,7 @@
                            placeholder="60" class="input-field" />
                 </td>
                 <td class="table-cell-center">
-                    <button type="button" class="delete-row" class="btn-error">删除</button>
+                    <button type="button" class="delete-row btn btn-delete btn-small">删除</button>
                 </td>
             `;
 
@@ -3484,6 +3512,7 @@
                 // 构建查询参数 (T072, T073)
                 const searchQuery = document.getElementById('strategy-search')?.value || '';
                 const typeFilter = document.getElementById('strategy-type-filter')?.value || '';
+                const templateFilter = document.getElementById('template-filter')?.value || '';
 
                 const params = new URLSearchParams({
                     page: page,
@@ -3492,8 +3521,17 @@
 
                 if (searchQuery) params.append('search', searchQuery);
                 if (typeFilter) params.append('strategy_type', typeFilter);
+                if (templateFilter) params.append('template_name', templateFilter);
 
-                const response = await fetch(`/api/v1/control/strategy-instances/?${params.toString()}`);
+                const apiUrl = `/api/v1/control/strategy-instances/?${params.toString()}`;
+                console.log('[fetchStrategyInstances] 请求参数:', {
+                    searchQuery,
+                    typeFilter,
+                    templateFilter,
+                    apiUrl
+                });
+
+                const response = await fetch(apiUrl);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -3516,8 +3554,50 @@
             }
         }
 
+        // 填充模板筛选器选项
+        function populateTemplateFilter() {
+            const templateFilterEl = document.getElementById('template-filter');
+            if (!templateFilterEl || !templates || templates.length === 0) {
+                console.warn('[populateTemplateFilter] 无法填充模板筛选器:', {
+                    hasElement: !!templateFilterEl,
+                    hasTemplates: !!templates,
+                    templateCount: templates?.length || 0
+                });
+                return;
+            }
+
+            // 提取唯一的模板名称
+            const uniqueTemplates = [...new Set(templates.map(t => t.template_name))];
+
+            console.log('[populateTemplateFilter] 填充模板选项:', {
+                totalTemplates: templates.length,
+                uniqueTemplates: uniqueTemplates
+            });
+
+            // 清空现有选项（保留"全部"）
+            templateFilterEl.innerHTML = '<option value="">全部</option>';
+
+            // 添加模板选项
+            uniqueTemplates.forEach(templateName => {
+                const option = document.createElement('option');
+                option.value = templateName;
+                option.textContent = templateName;
+                templateFilterEl.appendChild(option);
+            });
+        }
+
         // T072, T073: 筛选策略列表（客户端过滤）
         function filterStrategyList() {
+            const searchQuery = document.getElementById('strategy-search')?.value || '';
+            const typeFilter = document.getElementById('strategy-type-filter')?.value || '';
+            const templateFilter = document.getElementById('template-filter')?.value || '';
+
+            console.log('[filterStrategyList] 筛选参数:', {
+                searchQuery,
+                typeFilter,
+                templateFilter
+            });
+
             fetchStrategyInstances(1, pageSize);
         }
 
@@ -3532,15 +3612,15 @@
 
             // 构建表格 HTML (T075)
             let html = `
-                <table class="table-full">
+                <table class="strategies-table">
                     <thead>
-                        <tr class="divider-gray">
-                            <th class="table-cell-head-data">策略名称</th>
-                            <th class="table-cell-head-data">类型</th>
-                            <th class="table-cell-head-data">模板</th>
-                            <th class="table-cell-head-data">路段数</th>
-                            <th class="table-cell-head-data">创建时间</th>
-                            <th class="p-12-center-bold-dark">操作</th>
+                        <tr>
+                            <th class="col-name">策略名称</th>
+                            <th class="col-type">类型</th>
+                            <th class="col-template">模板</th>
+                            <th class="col-count">路段数</th>
+                            <th class="col-time">创建时间</th>
+                            <th class="col-actions">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -3548,42 +3628,50 @@
 
             instances.forEach((instance, index) => {
                 const strategyType = instance.strategy_type;
-                const strategyNames = {
-                    'VSS': '可变限速',
-                    'DHS': '动态硬路肩',
-                    'TEC': '收费站管控'
+
+                // 策略类型配置（参考模板卡片样式）
+                const strategyConfig = {
+                    'VSS': { name: '可变限速', class: 'badge-vss' },
+                    'DHS': { name: '动态硬路肩', class: 'badge-dhs' },
+                    'TEC': { name: '收费站管控', class: 'badge-tec' }
                 };
 
-                const badgeColors = {
-                    'VSS': '#3498db',
-                    'DHS': '#2ecc71',
-                    'TEC': '#e74c3c'
-                };
+                const config = strategyConfig[strategyType] || { name: strategyType, class: 'badge-default' };
 
-                const badgeClasses = {
-                    'VSS': 'badge-vss',
-                    'DHS': 'badge-dhs',
-                    'TEC': 'badge-tec'
-                };
-
-                const createdDate = new Date(instance.created_at).toLocaleString('zh-CN');
+                // [FIX] Handle created_at safely with fallback
+                let createdDate = '未知';
+                if (instance.created_at) {
+                    try {
+                        const dateObj = new Date(instance.created_at);
+                        if (!isNaN(dateObj.getTime())) {
+                            createdDate = dateObj.toLocaleString('zh-CN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('[renderStrategyInstances] Date parsing error:', e, instance.created_at);
+                        createdDate = instance.created_at; // Fallback to raw value
+                    }
+                }
 
                 html += `
-                    <tr class="table-row-border ${index % 2 === 0 ? 'table-row-alternate' : ''}">
-                        <td class="p-12-dark-medium">${instance.strategy_name}</td>
-                        <td class="p-12">
-                            <span class="badge-base ${badgeClasses[strategyType] || 'badge-default'}">
-                                ${strategyNames[strategyType]}
-                            </span>
+                    <tr>
+                        <td class="col-name">${instance.strategy_name}</td>
+                        <td class="col-type">
+                            <span class="strategy-badge ${config.class}">${config.name}</span>
                         </td>
-                        <td class="p-12-gray">${instance.template_name}</td>
-                        <td class="p-12-gray-center">${instance.edges_count}</td>
-                        <td class="p-12-gray-sm">${createdDate}</td>
-                        <td class="p-12-center">
-                            <button onclick="viewStrategyDetail('${instance.strategy_id}')" class="btn-small-blue">查看</button>
-                            <button onclick="editStrategy('${instance.strategy_id}')" class="btn-small-orange">编辑</button>
-                            <button onclick="copyStrategy('${instance.strategy_id}', '${instance.strategy_name}')" class="btn-small-purple">复制</button>
-                            <button onclick="deleteStrategy('${instance.strategy_id}', '${instance.strategy_name}')" class="btn-small-red">删除</button>
+                        <td class="col-template">${instance.template_name}</td>
+                        <td class="col-count">${instance.edges_count}</td>
+                        <td class="col-time">${createdDate}</td>
+                        <td class="col-actions">
+                            <button onclick="viewStrategyDetail('${instance.strategy_id}')" class="btn btn-view btn-small">查看</button>
+                            <button onclick="editStrategy('${instance.strategy_id}')" class="btn btn-edit btn-small">编辑</button>
+                            <button onclick="copyStrategy('${instance.strategy_id}', '${instance.strategy_name}')" class="btn btn-copy btn-small">复制</button>
+                            <button onclick="deleteStrategy('${instance.strategy_id}', '${instance.strategy_name}')" class="btn btn-delete btn-small">删除</button>
                         </td>
                     </tr>
                 `;
@@ -3645,10 +3733,8 @@
 
                 // 构建详情内容 HTML (T076)
                 let detailHtml = `
-                    <div class="flex-row-between">
-                        <h2 class="m-0 text-primary">${strategy.strategy_name}</h2>
-                        <button onclick="closeStrategyModal()" class="btn-secondary-large">✕</button>
-                    </div>
+                    <button onclick="closeStrategyModal()" class="btn-close" title="关闭">✕</button>
+                    <h2 class="text-primary">${strategy.strategy_name}</h2>
 
                     <!-- 基本信息 -->
                     <div class="container-light">
@@ -3834,10 +3920,8 @@
 
                 // 构建详情内容 HTML
                 let detailHtml = `
-                    <div class="flex-row-between">
-                        <h2 class="m-0 text-primary">${template.template_name}</h2>
-                        <button onclick="closeTemplateModal()" class="btn-secondary-large">✕</button>
-                    </div>
+                    <button onclick="closeTemplateModal()" class="btn-close" title="关闭">✕</button>
+                    <h2 class="text-primary">${template.template_name}</h2>
 
                     <!-- 基本信息 -->
                     <div class="container-light">

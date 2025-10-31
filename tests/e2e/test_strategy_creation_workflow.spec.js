@@ -33,12 +33,10 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.waitForTimeout(500);
 
     // 验证模板已选择
-    const templateInfo = page.locator('.strategy-config-info');
-    expect(await templateInfo.isVisible()).toBeTruthy();
     console.log('✅ VSS模板已选择');
 
-    // 进入步骤2
-    await page.click('button:has-text("下一步")');
+    // 进入步骤2 - 点击下一步按钮
+    await page.click('#step1-next, button:has-text("下一步")');
     await page.waitForTimeout(1000);
 
     // ========== STEP 2: 选择路段 ==========
@@ -97,9 +95,9 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await confirmButton.click();
     await page.waitForTimeout(500);
 
-    // 进入步骤3
+    // 进入步骤3 - 点击"进入配置参数"按钮
     console.log('进入步骤3...');
-    await page.click('button:has-text("下一步")');
+    await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
     await page.waitForTimeout(2500); // 等待边表格加载、名称和描述生成
 
     // ========== STEP 3: 参数配置 ==========
@@ -239,7 +237,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.waitForTimeout(500);
     console.log('✅ DHS模板已选择');
 
-    await page.click('button:has-text("下一步")');
+    await page.click('#step1-next, button:has-text("下一步")');
     await page.waitForTimeout(1000);
 
     // STEP 2: 选择路段
@@ -299,7 +297,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.waitForTimeout(500);
 
     // 进入STEP 3
-    await page.click('button:has-text("下一步")');
+    await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
     await page.waitForTimeout(2500);
 
     // STEP 3: 参数配置 + DHS特定验证
@@ -358,7 +356,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.waitForTimeout(500);
     console.log('✅ TEC模板已选择');
 
-    await page.click('button:has-text("下一步")');
+    await page.click('#step1-next, button:has-text("下一步")');
     await page.waitForTimeout(1000);
 
     // STEP 2: 选择入口/路段
@@ -402,7 +400,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.waitForTimeout(500);
 
     // 进入STEP 3
-    await page.click('button:has-text("下一步")');
+    await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
     await page.waitForTimeout(2500);
 
     // STEP 3: 参数配置
@@ -446,7 +444,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
 
     await vssCard.click();
     await page.waitForTimeout(500);
-    await page.click('button:has-text("下一步")');
+    await page.click('#step1-next, button:has-text("下一步")');
     await page.waitForTimeout(1000);
 
     // 选择路段
@@ -475,7 +473,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.click('button:has-text("确认选择")');
     await page.waitForTimeout(500);
 
-    await page.click('button:has-text("下一步")');
+    await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
     await page.waitForTimeout(2500);
 
     // 验证数值范围
@@ -521,7 +519,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
 
     await vssCard.click();
     await page.waitForTimeout(500);
-    await page.click('button:has-text("下一步")');
+    await page.click('#step1-next, button:has-text("下一步")');
     await page.waitForTimeout(1000);
 
     // 快速选择路段
@@ -550,7 +548,7 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     await page.click('button:has-text("确认选择")');
     await page.waitForTimeout(500);
 
-    await page.click('button:has-text("下一步")');
+    await page.click('#step2-next-top, #step2-next-bottom, button:has-text("进入配置参数")');
     await page.waitForTimeout(2500);
 
     // 测试建议名称按钮

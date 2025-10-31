@@ -8,6 +8,9 @@
     <meta http-equiv="Expires" content="0">
     <title>批量仿真 - 交通管控仿真优化系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/templates-base.css">
+    <link rel="stylesheet" href="css/templates-layout.css">
     <link rel="stylesheet" href="css/simulations.css">
     <!-- Chart.js for visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -96,22 +99,22 @@
                     <p id="batchStatus">状态: 等待启动</p>
 
                     <!-- 任务统计信息 -->
-                    <div id="taskStats" style="margin: 10px 0; display: none; background: #f0f8ff; padding: 10px; border-radius: 6px;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 0.9em;">
-                            <div>
+                    <div id="taskStats" class="task-stats">
+                        <div class="task-stats-grid">
+                            <div class="stat-item">
                                 <strong>总任务数:</strong> <span id="totalTasks">0</span>
                             </div>
-                            <div style="color: #27ae60;">
+                            <div class="stat-item stat-completed">
                                 <strong>已完成:</strong> <span id="completedTasks">0</span>
                             </div>
-                            <div style="color: #3498db;">
+                            <div class="stat-item stat-running">
                                 <strong>运行中:</strong> <span id="runningTasks">0</span>
                             </div>
-                            <div style="color: #e74c3c;">
+                            <div class="stat-item stat-failed">
                                 <strong>失败:</strong> <span id="failedTasks">0</span>
                             </div>
                         </div>
-                        <div id="estimatedCompletion" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #d4e4f7; font-size: 0.95em; color: #2c3e50;">
+                        <div id="estimatedCompletion" class="estimated-completion">
                             <!-- 预计完成时间将动态填充 -->
                         </div>
                     </div>
@@ -130,19 +133,19 @@
                 </div>
 
                 <!-- 动态在网车辆曲线控制栏 -->
-                <div id="liveCurveControlBar" style="display: none; margin-top: 20px; padding: 10px 15px; background: #f0f8ff; border-radius: 8px; border: 1px solid #d4e4f7; display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="margin: 0; color: #2c3e50;">实时在网车辆数</h4>
-                    <button id="toggleLiveCurveBtn" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.9rem;">隐藏曲线</button>
+                <div id="liveCurveControlBar" class="live-curve-control-bar">
+                    <h4 class="live-curve-title">实时在网车辆数</h4>
+                    <button id="toggleLiveCurveBtn" class="btn btn-secondary btn-sm">隐藏曲线</button>
                 </div>
 
                 <!-- 动态在网车辆曲线图表 -->
-                <div id="liveCurveSection" style="display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <canvas id="liveCurveChart" style="max-height: 300px;"></canvas>
+                <div id="liveCurveSection" class="live-curve-section">
+                    <canvas id="liveCurveChart" class="live-curve-chart"></canvas>
                 </div>
 
                 <div class="btn-group">
                     <button class="btn btn-primary" id="startBatchBtn">启动仿真</button>
-                    <button class="btn btn-danger" id="cancelBatchBtn" style="display: none;">取消批量仿真</button>
+                    <button class="btn btn-danger" id="cancelBatchBtn">取消批量仿真</button>
                 </div>
             </div>
 

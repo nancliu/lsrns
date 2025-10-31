@@ -1,8 +1,28 @@
 /**
  * templates-forms.css
  * 表单样式 - 参数配置、模板选择、表格控件
- * v0.9.1
+ * v0.9.2 - Added styles for expanded strategy name and description fields
  */
+
+/* ==================== Strategy Name and Description Fields ==================== */
+
+/* Expand strategy name field for longer names */
+.strategy-name-field {
+    width: 100% !important;
+    min-width: 300px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Multi-line description field with proper spacing */
+.description-field {
+    width: 100% !important;
+    min-height: 80px;
+    resize: vertical;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 12px;
+}
 
 /* ==================== Template Selection Grid ==================== */
 
@@ -14,8 +34,8 @@
 }
 
 .template-card {
-    background: #f8f9fa;
-    border: 2px solid #e9ecef;
+    background: var(--color-light-hover);
+    border: 2px solid var(--color-border-light);
     border-radius: 8px;
     padding: 20px;
     cursor: pointer;
@@ -24,12 +44,12 @@
 }
 
 .template-card:hover {
-    border-color: #3498db;
+    border-color: var(--color-primary);
     box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
 }
 
 .template-card.selected {
-    border-color: #3498db;
+    border-color: var(--color-primary);
     background: #ebf5fb;
 }
 
@@ -42,12 +62,12 @@
 
 .template-title {
     font-size: 1.1rem;
-    color: #2c3e50;
+    color: var(--color-dark);
     font-weight: 600;
 }
 
 .template-description {
-    color: #7f8c8d;
+    color: var(--color-secondary-hover);
     font-size: 0.9rem;
     line-height: 1.5;
 }
@@ -71,15 +91,15 @@
     background: white;
     cursor: pointer;
     font-size: 0.85rem;
-    color: #7f8c8d;
+    color: var(--color-secondary-hover);
     transition: all 0.3s;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .template-action-btn:hover {
-    background: #3498db;
+    background: var(--color-primary);
     color: white;
-    border-color: #3498db;
+    border-color: var(--color-primary);
     box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
 }
 
@@ -110,7 +130,7 @@
 }
 
 .steps-table thead {
-    background: #f9fafb;
+    background: var(--color-gray-50);
 }
 
 .steps-table th {
@@ -132,7 +152,7 @@
 }
 
 .steps-table tbody tr:hover {
-    background: #f9fafb;
+    background: var(--color-gray-50);
 }
 
 /* ==================== Step Input Styles ==================== */
@@ -211,7 +231,7 @@
 .parameter-timeline {
     position: relative;
     height: 120px;
-    background: #f9fafb;
+    background: var(--color-gray-50);
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     margin-bottom: 16px;
@@ -223,7 +243,7 @@
     align-items: center;
     justify-content: center;
     height: 120px;
-    background: #f9fafb;
+    background: var(--color-gray-50);
     border: 2px dashed #d1d5db;
     border-radius: 6px;
 }
@@ -245,7 +265,7 @@
     color: #6b7280;
     margin-top: 12px;
     padding: 8px 12px;
-    background: #f9fafb;
+    background: var(--color-gray-50);
     border-left: 3px solid #3b82f6;
     border-radius: 4px;
 }

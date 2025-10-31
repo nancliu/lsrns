@@ -1,164 +1,50 @@
-/* Simulations Page Styles */
+/**
+ * Simulations Page Styles
+ * v0.9.3 - CSS Variables Optimization
+ *
+ * 注意：基础布局样式（reset, body, top-bar, sidebar, main-container）
+ * 已在 templates-layout.css 中定义，此文件仅包含 simulations 特定样式
+ */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-    background: #f5f7fa;
-    color: #333;
-    line-height: 1.6;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* 顶栏 */
-.top-bar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.top-bar h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-.back-btn {
-    background: rgba(255,255,255,0.2);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.3);
-    padding: 8px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.3s;
-}
-
-.back-btn:hover {
-    background: rgba(255,255,255,0.3);
-}
-
-/* 主容器 */
-.main-container {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-/* 左侧导航栏 */
-.sidebar {
-    width: 200px;
-    background: #2c3e50;
-    color: white;
-    padding: 20px 0;
-    overflow-y: auto;
-}
-
-.sidebar-nav {
-    list-style: none;
-}
-
-.sidebar-nav li {
-    margin: 0;
-}
-
-.sidebar-nav a {
-    display: block;
-    padding: 15px 30px;
-    color: #ecf0f1;
-    text-decoration: none;
-    transition: all 0.3s;
-    border-left: 3px solid transparent;
-}
-
-.sidebar-nav a:hover {
-    background: #34495e;
-    border-left-color: #3498db;
-}
-
-.sidebar-nav a.active {
-    background: #34495e;
-    border-left-color: #3498db;
-    color: #3498db;
-    font-weight: 600;
-}
-
-/* 主内容区 */
-.content-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 30px;
-}
-
-.content-header {
-    margin-bottom: 30px;
-}
-
-.content-header h2 {
-    font-size: 2rem;
-    color: #2c3e50;
-    margin-bottom: 10px;
-}
-
-.content-subtitle {
-    color: #7f8c8d;
-    font-size: 1.1rem;
-}
-
-.view {
-    display: none;
-}
-
-.view.active {
-    display: block;
-}
+/* ==================== Simulations 特定样式 ==================== */
 
 /* 配置视图 */
 .config-section {
     background: white;
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-20);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-base);
+    margin-bottom: var(--spacing-20);
 }
 
 .config-section h3 {
-    margin-bottom: 20px;
-    color: #2c3e50;
-    border-bottom: 2px solid #667eea;
-    padding-bottom: 10px;
-    font-size: 1.2rem;
-    font-weight: 600;
+    margin-bottom: var(--spacing-20);
+    color: var(--color-dark);
+    border-bottom: 2px solid var(--color-info);
+    padding-bottom: var(--spacing-10);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-600);
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-20);
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    color: #2c3e50;
-    font-weight: 500;
+    margin-bottom: var(--spacing-3);
+    color: var(--color-dark);
+    font-weight: var(--font-weight-500);
 }
 
 .form-group select,
 .form-group input,
 .form-group textarea {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: var(--spacing-10);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    font-size: var(--font-size-base);
 }
 
 .form-group textarea {
@@ -166,19 +52,20 @@ body {
     min-height: 80px;
 }
 
+/* 计划项 */
 .plan-item {
-    padding: 10px;
-    border: 1px solid #ecf0f1;
-    border-radius: 4px;
-    margin-bottom: 8px;
+    padding: var(--spacing-10);
+    border: 1px solid var(--color-light-border);
+    border-radius: var(--radius-base);
+    margin-bottom: var(--spacing-base);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
     display: flex;
     align-items: center;
 }
 
 .plan-item:hover {
-    background: #f8f9fa;
+    background: var(--color-light-hover);
 }
 
 .plan-item.selected {
@@ -188,7 +75,7 @@ body {
 
 .plan-item input[type="checkbox"] {
     width: auto;
-    margin-right: 10px;
+    margin-right: var(--spacing-10);
 }
 
 .plan-item label {
@@ -197,38 +84,40 @@ body {
     cursor: pointer;
 }
 
+/* 估算框 */
 .estimate-box {
     background: #e8f4f8;
-    padding: 20px;
-    border-radius: 4px;
-    border-left: 4px solid #3498db;
-    margin-top: 20px;
+    padding: var(--spacing-20);
+    border-radius: var(--radius-base);
+    border-left: 4px solid var(--color-primary);
+    margin-top: var(--spacing-20);
 }
 
 .estimate-box p {
-    margin: 5px 0;
-    color: #2c3e50;
+    margin: var(--spacing-3) 0;
+    color: var(--color-dark);
 }
 
+/* 按钮组 */
 .btn-group {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-10);
     justify-content: flex-end;
-    margin-top: 30px;
+    margin-top: var(--spacing-30);
 }
 
 .btn {
-    padding: 10px 20px;
+    padding: var(--spacing-10) var(--spacing-20);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-base);
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s;
+    font-size: var(--font-size-base);
+    transition: all var(--transition-base);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--gradient-primary);
+    color: var(--color-text-white);
 }
 
 .btn-primary:hover {
@@ -237,17 +126,17 @@ body {
 }
 
 .btn-secondary {
-    background: #95a5a6;
-    color: white;
+    background: var(--color-secondary);
+    color: var(--color-text-white);
 }
 
 .btn-secondary:hover {
-    background: #7f8c8d;
+    background: var(--color-secondary-hover);
 }
 
 .btn-danger {
-    background: #e74c3c;
-    color: white;
+    background: var(--color-danger);
+    color: var(--color-text-white);
 }
 
 .btn-danger:hover {
@@ -255,70 +144,119 @@ body {
 }
 
 .btn-success {
-    background: #27ae60;
-    color: white;
+    background: var(--color-success);
+    color: var(--color-text-white);
 }
 
 /* 进度视图 */
 .progress-header {
     background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
+    padding: var(--spacing-30);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-20);
+}
+
+/* 任务统计信息 */
+.task-stats {
+    display: none;
+    margin: var(--spacing-10) 0;
+    background: #f0f8ff;
+    padding: var(--spacing-10);
+    border-radius: var(--radius-md);
+}
+
+.task-stats.active {
+    display: block;
+}
+
+.task-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-10);
+    font-size: 0.9em;
+}
+
+.stat-item {
+    padding: var(--spacing-6);
+}
+
+.stat-item strong {
+    color: var(--color-dark);
+}
+
+.stat-completed {
+    color: var(--color-success);
+}
+
+.stat-running {
+    color: var(--color-primary);
+}
+
+.stat-failed {
+    color: var(--color-danger);
+}
+
+.estimated-completion {
+    margin-top: var(--spacing-base);
+    padding-top: var(--spacing-base);
+    border-top: 1px solid #d4e4f7;
+    font-size: 0.95em;
+    color: var(--color-dark);
 }
 
 .progress-bar-container {
     width: 100%;
     height: 30px;
-    background: #ecf0f1;
-    border-radius: 15px;
+    background: var(--color-light-border);
+    border-radius: var(--radius-2xl);
     overflow: hidden;
-    margin: 20px 0;
-    border: 1px solid #bdc3c7;  /* 添加边框，使容器更明显 */
+    margin: var(--spacing-20) 0;
+    border: 1px solid var(--color-gray-200);
 }
 
 .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-success) 100%);
     width: 0%;
-    transition: width 0.5s;
+    transition: width var(--transition-slow);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: bold;
+    color: var(--color-text-white);
+    font-weight: var(--font-weight-bold);
 }
 
+/* 任务容器 */
 .tasks-container {
     background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: var(--spacing-30);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .plan-tasks {
-    margin-bottom: 30px;
+    margin-bottom: var(--spacing-30);
 }
 
 .plan-tasks h4 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ecf0f1;
+    color: var(--color-dark);
+    margin-bottom: var(--spacing-15);
+    padding-bottom: var(--spacing-10);
+    border-bottom: 1px solid var(--color-light-border);
 }
 
 .task-item {
-    padding: 10px 15px;
-    margin: 8px 0;
-    border-radius: 4px;
+    padding: var(--spacing-10) var(--spacing-15);
+    margin: var(--spacing-base) 0;
+    border-radius: var(--radius-base);
     display: flex;
     align-items: center;
 }
 
 .task-icon {
-    margin-right: 10px;
-    font-weight: bold;
+    margin-right: var(--spacing-10);
+    font-weight: var(--font-weight-bold);
 }
 
 .task-completed {
@@ -327,144 +265,199 @@ body {
 }
 
 .task-running {
-    background: #fff3cd;
+    background: var(--color-alert-bg);
     color: #f39c12;
 }
 
 .task-pending {
-    background: #f8f9fa;
-    color: #7f8c8d;
+    background: var(--color-light-hover);
+    color: var(--color-secondary-hover);
 }
 
 .task-failed {
-    background: #f8d7da;
+    background: var(--color-error-bg);
     color: #c0392b;
+}
+
+/* 动态在网车辆曲线 */
+.live-curve-control-bar {
+    display: none;
+    margin-top: var(--spacing-20);
+    padding: var(--spacing-10) var(--spacing-15);
+    background: #f0f8ff;
+    border-radius: var(--radius-lg);
+    border: 1px solid #d4e4f7;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.live-curve-control-bar.active {
+    display: flex;
+}
+
+.live-curve-title {
+    margin: 0;
+    color: var(--color-dark);
+    font-size: var(--font-size-base);
+}
+
+.live-curve-section {
+    display: none;
+    margin-top: var(--spacing-10);
+    padding: var(--spacing-15);
+    background: var(--color-light-hover);
+    border-radius: var(--radius-lg);
+}
+
+.live-curve-section.active {
+    display: block;
+}
+
+.live-curve-chart {
+    max-height: 300px;
+    width: 100%;
+}
+
+.btn-sm {
+    padding: 5px var(--spacing-15);
+    font-size: 0.9rem;
 }
 
 /* 结果视图 */
 .results-container {
     background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: var(--spacing-30);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .results-container h3 {
-    color: #2c3e50;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #3498db;
+    color: var(--color-dark);
+    margin-bottom: var(--spacing-20);
+    padding-bottom: var(--spacing-10);
+    border-bottom: 2px solid var(--color-primary);
 }
 
 .results-container table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: var(--spacing-20);
 }
 
 .results-container th,
 .results-container td {
-    padding: 12px;
+    padding: var(--spacing-12);
     text-align: left;
-    border-bottom: 1px solid #ecf0f1;
+    border-bottom: 1px solid var(--color-light-border);
 }
 
 .results-container th {
-    background: #34495e;
-    color: white;
-    font-weight: 600;
+    background: var(--color-dark-hover);
+    color: var(--color-text-white);
+    font-weight: var(--font-weight-600);
 }
 
 .results-container tr:hover {
-    background: #f8f9fa;
+    background: var(--color-light-hover);
 }
 
+/* 加载和空状态 */
 .loading {
     text-align: center;
-    padding: 40px;
-    color: #7f8c8d;
+    padding: var(--spacing-40);
+    color: var(--color-secondary-hover);
 }
 
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
-    color: #7f8c8d;
+    padding: 60px var(--spacing-20);
+    color: var(--color-secondary-hover);
 }
 
 .empty-state h3 {
-    margin-bottom: 10px;
-    color: #95a5a6;
+    margin-bottom: var(--spacing-10);
+    color: var(--color-secondary);
 }
 
-/* View Tabs */
+/* 视图切换 */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+/* 视图标签 */
 .view-tabs {
     display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #ecf0f1;
+    gap: var(--spacing-10);
+    margin-bottom: var(--spacing-30);
+    border-bottom: 2px solid var(--color-light-border);
 }
 
 .view-tab {
-    padding: 12px 24px;
+    padding: var(--spacing-12) 24px;
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
     cursor: pointer;
-    font-size: 1rem;
-    color: #7f8c8d;
-    transition: all 0.3s;
+    font-size: var(--font-size-md);
+    color: var(--color-secondary-hover);
+    transition: all var(--transition-base);
 }
 
 .view-tab:hover {
-    color: #667eea;
+    color: var(--color-info);
 }
 
 .view-tab.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
-    font-weight: 600;
+    color: var(--color-info);
+    border-bottom-color: var(--color-info);
+    font-weight: var(--font-weight-600);
 }
 
 /* 批次历史样式 */
 .history-filters {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    margin-bottom: var(--spacing-20);
+    padding: var(--spacing-15);
+    background: var(--color-light-hover);
+    border-radius: var(--radius-md);
 }
 
 .filter-group {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-10);
     align-items: center;
 }
 
 .filter-group label {
-    font-weight: 500;
+    font-weight: var(--font-weight-500);
     white-space: nowrap;
 }
 
 .filter-group select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: var(--spacing-base) var(--spacing-12);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
     font-size: 0.95rem;
     background: white;
 }
 
+/* 批次历史列表 */
 .batch-history-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
+    gap: var(--spacing-15);
 }
 
 .batch-history-card {
     background: white;
-    border: 1px solid #ecf0f1;
-    border-radius: 8px;
-    padding: 15px;
+    border: 1px solid var(--color-light-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-15);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s;
+    transition: all var(--transition-base);
 }
 
 .batch-history-card:hover {
@@ -476,28 +469,29 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #ecf0f1;
+    margin-bottom: var(--spacing-12);
+    padding-bottom: var(--spacing-12);
+    border-bottom: 1px solid var(--color-light-border);
 }
 
 .batch-card-header h4 {
     margin: 0;
     font-size: 0.95rem;
-    color: #2c3e50;
-    font-family: 'Courier New', monospace;
+    color: var(--color-dark);
+    font-family: var(--font-family-mono);
 }
 
+/* 批次状态徽章 */
 .batch-status {
-    padding: 4px 10px;
-    border-radius: 4px;
+    padding: var(--spacing-sm) var(--spacing-10);
+    border-radius: var(--radius-base);
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: var(--font-weight-500);
     white-space: nowrap;
 }
 
 .batch-status.pending {
-    background: #fff3cd;
+    background: var(--color-alert-bg);
     color: #856404;
 }
 
@@ -512,12 +506,12 @@ body {
 }
 
 .batch-status.cancelled {
-    background: #f8d7da;
+    background: var(--color-error-bg);
     color: #721c24;
 }
 
 .batch-status.failed {
-    background: #f8d7da;
+    background: var(--color-error-bg);
     color: #721c24;
 }
 
@@ -526,53 +520,55 @@ body {
     color: #383d41;
 }
 
+/* 批次卡片信息 */
 .batch-card-info {
-    margin-bottom: 12px;
+    margin-bottom: var(--spacing-12);
     font-size: 0.9rem;
 }
 
 .batch-card-info p {
-    margin: 6px 0;
+    margin: var(--spacing-6) 0;
     color: #555;
     display: flex;
     justify-content: space-between;
 }
 
 .batch-card-info strong {
-    color: #2c3e50;
+    color: var(--color-dark);
 }
 
+/* 批次卡片操作 */
 .batch-card-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--spacing-base);
     flex-wrap: wrap;
 }
 
 .btn-small {
-    padding: 6px 12px;
+    padding: var(--spacing-6) var(--spacing-12);
     font-size: 0.85rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     background: white;
-    color: #667eea;
-    border-radius: 4px;
+    color: var(--color-info);
+    border-radius: var(--radius-base);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
     flex: 1;
     min-width: 70px;
 }
 
 .btn-small:hover {
-    background: #667eea;
-    color: white;
-    border-color: #667eea;
+    background: var(--color-info);
+    color: var(--color-text-white);
+    border-color: var(--color-info);
 }
 
 .btn-small.btn-danger {
-    color: #e74c3c;
-    border-color: #e74c3c;
+    color: var(--color-danger);
+    border-color: var(--color-danger);
 }
 
 .btn-small.btn-danger:hover {
-    background: #e74c3c;
-    color: white;
+    background: var(--color-danger);
+    color: var(--color-text-white);
 }

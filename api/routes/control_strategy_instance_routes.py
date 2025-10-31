@@ -104,6 +104,7 @@ async def list_strategies(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search by strategy name"),
     strategy_type: Optional[str] = Query(None, description="Filter by type (VSS/DHS/TEC)"),
+    template_name: Optional[str] = Query(None, description="Filter by template name"),
 ) -> StrategyListResponse:
     """
     List strategies with pagination and filtering.
@@ -113,13 +114,14 @@ async def list_strategies(
     - `page_size`: Items per page (default: 20, max: 100)
     - `search`: Optional search string for strategy name
     - `strategy_type`: Optional filter by type (VSS, DHS, TEC)
+    - `template_name`: Optional filter by template name
 
     **Response**: Paginated list with total count
     """
     try:
         service = get_strategy_service()
         response = service.list_strategies(
-            page=page, page_size=page_size, search=search, strategy_type=strategy_type
+            page=page, page_size=page_size, search=search, strategy_type=strategy_type, template_name=template_name
         )
         return response
 

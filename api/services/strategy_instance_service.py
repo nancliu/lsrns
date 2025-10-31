@@ -411,6 +411,7 @@ class StrategyInstanceService:
         page_size: int = 20,
         search: Optional[str] = None,
         strategy_type: Optional[str] = None,
+        template_name: Optional[str] = None,
     ) -> StrategyListResponse:
         """
         List strategies with pagination and filtering.
@@ -420,6 +421,7 @@ class StrategyInstanceService:
             page_size: Items per page
             search: Optional search string for strategy name
             strategy_type: Optional filter by strategy type
+            template_name: Optional filter by template name
 
         Returns:
             StrategyListResponse with paginated results
@@ -441,6 +443,9 @@ class StrategyInstanceService:
 
         if strategy_type:
             filtered = [s for s in filtered if s["strategy_type"] == strategy_type]
+
+        if template_name:
+            filtered = [s for s in filtered if s.get("template_name") == template_name]
 
         total_count = len(filtered)
 
@@ -474,6 +479,7 @@ class StrategyInstanceService:
                 "page_size": page_size,
                 "search": search,
                 "strategy_type": strategy_type,
+                "template_name": template_name,
                 "duration_seconds": round(duration, 3),
             },
         )

@@ -31,6 +31,8 @@
     low: '#10b981'        // <200 vph - 绿色（顺畅）
   };
 
+  const SIMPLE_INTERVAL_COLOR = '#3b82f6';  // 简单时间区间 - 蓝色
+
   // ==================== 工具函数 ====================
 
   /**
@@ -79,7 +81,7 @@
   /**
    * 根据区间和类型获取颜色
    * @param {Object} interval - 区间对象
-   * @param {string} type - 策略类型 ('speed' | 'dhs' | 'flow')
+   * @param {string} type - 策略类型 ('speed' | 'dhs' | 'flow' | 'simple_interval')
    * @returns {string} 十六进制颜色值
    */
   function getColorForValue(interval, type) {
@@ -90,6 +92,8 @@
         return getDHSColor(interval.status);
       case 'flow':
         return getFlowColor(interval.flow_vph);
+      case 'simple_interval':
+        return SIMPLE_INTERVAL_COLOR; // 统一蓝色
       default:
         return '#6b7280'; // 默认灰色
     }
@@ -98,7 +102,7 @@
   /**
    * 根据区间和类型获取标签文本
    * @param {Object} interval - 区间对象
-   * @param {string} type - 策略类型 ('speed' | 'dhs' | 'flow')
+   * @param {string} type - 策略类型 ('speed' | 'dhs' | 'flow' | 'simple_interval')
    * @returns {string} 标签文本
    */
   function getSlotLabel(interval, type) {
@@ -109,6 +113,11 @@
         return interval.status === 'OPEN' ? '开启' : '关闭';
       case 'flow':
         return `${interval.flow_vph} 车/时`;
+      case 'simple_interval':
+        // 显示时间范围
+        const start = Math.floor(interval.start);
+        const end = Math.floor(interval.start + interval.width);
+        return `${start}:00-${end}:00`;
       default:
         return '';
     }

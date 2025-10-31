@@ -7,6 +7,13 @@
 
 // Edge selector namespace to avoid variable conflicts
 const EdgeSelector = {
+    // Cache configuration
+    CACHE_CONFIG: {
+        KEY: 'edge_selector_sections_cache',
+        VERSION: 'v1.0',
+        TTL: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
+
     // Internal state
     state: {
         edgeSelectionSet: new Set(),
@@ -14,6 +21,8 @@ const EdgeSelector = {
         isLoading: false,
         availableRoutes: [],
         availableSections: [],
+        // Cached sections by route (for performance)
+        sectionsByRoute: new Map(),
         // Pagination state
         currentPage: 1,
         pageSize: 50,
@@ -21,21 +30,102 @@ const EdgeSelector = {
     },
 
     /**
+     * Load sections from localStorage cache
+     */
+    loadFromCache() {
+        try {
+            const cacheStr = localStorage.getItem(this.CACHE_CONFIG.KEY);
+            if (!cacheStr) {
+                console.log('[EdgeSelector] No cache found');
+                return null;
+            }
+
+            const cache = JSON.parse(cacheStr);
+
+            // Check version
+            if (cache.version !== this.CACHE_CONFIG.VERSION) {
+                console.log('[EdgeSelector] Cache version mismatch, ignoring');
+                localStorage.removeItem(this.CACHE_CONFIG.KEY);
+                return null;
+            }
+
+            // Check TTL
+            const age = Date.now() - cache.timestamp;
+            if (age > this.CACHE_CONFIG.TTL) {
+                console.log(`[EdgeSelector] Cache expired (${(age / 86400000).toFixed(1)} days old)`);
+                localStorage.removeItem(this.CACHE_CONFIG.KEY);
+                return null;
+            }
+
+            console.log(`[EdgeSelector] ✅ Cache loaded (age: ${(age / 3600000).toFixed(1)} hours)`);
+            return cache.data;
+        } catch (error) {
+            console.error('[EdgeSelector] Error loading cache:', error);
+            localStorage.removeItem(this.CACHE_CONFIG.KEY);
+            return null;
+        }
+    },
+
+    /**
+     * Save sections to localStorage cache
+     */
+    saveToCache(data) {
+        try {
+            const cache = {
+                version: this.CACHE_CONFIG.VERSION,
+                timestamp: Date.now(),
+                data: data
+            };
+
+            localStorage.setItem(this.CACHE_CONFIG.KEY, JSON.stringify(cache));
+
+            const sizeKB = (JSON.stringify(cache).length / 1024).toFixed(1);
+            console.log(`[EdgeSelector] ✅ Cache saved (${sizeKB} KB)`);
+        } catch (error) {
+            console.error('[EdgeSelector] Error saving cache:', error);
+            // Quota exceeded or other error - ignore and continue
+        }
+    },
+
+    /**
+     * Clear cache (call this to force refresh)
+     */
+    clearCache() {
+        localStorage.removeItem(this.CACHE_CONFIG.KEY);
+        console.log('[EdgeSelector] Cache cleared');
+    },
+
+    /**
      * Initialize edge selector
      */
     async init() {
         try {
-            // Load metadata in parallel
-            await Promise.all([
-                this.loadRoutes(),
-                this.loadDemonstrations()
-            ]);
+            // Step 1: Load routes first (sections depend on route list)
+            await this.loadRoutes();
+
+            // Step 2: Try to load sections from cache
+            const cachedData = this.loadFromCache();
+            if (cachedData) {
+                // Use cached data
+                for (const [routeCode, sections] of Object.entries(cachedData)) {
+                    this.state.sectionsByRoute.set(routeCode, sections);
+                }
+                console.log('[EdgeSelector] Using cached sections');
+            } else {
+                // Load from API and cache
+                await this.loadAllSections();
+            }
+
+            // Step 3: Load demonstrations in parallel
+            await this.loadDemonstrations();
 
             // Set up event listeners
             const routeSelect = document.getElementById('route-codes');
             if (routeSelect) {
                 routeSelect.addEventListener('change', () => this.onRouteChange());
             }
+
+            console.log('[EdgeSelector] Initialization complete');
         } catch (error) {
             console.error('Error initializing edge selector:', error);
         }
@@ -70,9 +160,87 @@ const EdgeSelector = {
     },
 
     /**
-     * Handle route selection change
+     * Preload all sections for all routes (PERFORMANCE OPTIMIZATION V2)
+     *
+     * Strategy: Batch API call instead of N individual requests
+     * - Single request: /api/v1/control/edges/all-sections
+     * - Fallback: Individual requests if batch API unavailable
      */
-    async onRouteChange() {
+    async loadAllSections() {
+        try {
+            console.log('[EdgeSelector] Preloading sections for all routes...');
+            const startTime = performance.now();
+
+            // Try batch API first (much faster)
+            try {
+                const response = await fetch('/api/v1/control/edges/all-sections');
+                if (response.ok) {
+                    const data = await response.json();
+                    // data format: { route_code: [sections], ... }
+                    for (const [routeCode, sections] of Object.entries(data)) {
+                        this.state.sectionsByRoute.set(routeCode, sections);
+                    }
+
+                    const duration = performance.now() - startTime;
+                    const totalSections = Object.values(data).reduce((sum, arr) => sum + arr.length, 0);
+                    console.log(`[EdgeSelector] ✅ Batch preload completed in ${duration.toFixed(0)}ms (${totalSections} sections)`);
+
+                    // Save to cache
+                    this.saveToCache(data);
+
+                    return;
+                }
+            } catch (error) {
+                console.warn('[EdgeSelector] Batch API unavailable, falling back to individual requests');
+            }
+
+            // Fallback: Individual requests with detailed timing
+            const routeCount = this.state.availableRoutes.length;
+            console.log(`[EdgeSelector] Loading ${routeCount} routes individually...`);
+
+            const promises = this.state.availableRoutes.map(async (routeInfo, index) => {
+                const routeStartTime = performance.now();
+                try {
+                    const response = await fetch(`/api/v1/control/edges/sections?route_code=${routeInfo.route_code}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const sections = await response.json();
+                    this.state.sectionsByRoute.set(routeInfo.route_code, sections);
+
+                    const routeDuration = performance.now() - routeStartTime;
+                    console.log(`[EdgeSelector] [${index + 1}/${routeCount}] ${routeInfo.route_code}: ${sections.length} sections in ${routeDuration.toFixed(0)}ms`);
+
+                    return { route: routeInfo.route_code, count: sections.length, duration: routeDuration };
+                } catch (error) {
+                    console.error(`[EdgeSelector] ❌ Failed to load ${routeInfo.route_code}:`, error);
+                    this.state.sectionsByRoute.set(routeInfo.route_code, []);
+                    return { route: routeInfo.route_code, count: 0, error: true };
+                }
+            });
+
+            const results = await Promise.all(promises);
+            const duration = performance.now() - startTime;
+
+            const totalSections = results.reduce((sum, r) => sum + r.count, 0);
+            const avgDuration = results.reduce((sum, r) => sum + (r.duration || 0), 0) / results.length;
+
+            console.log(`[EdgeSelector] ✅ Individual preload completed in ${duration.toFixed(0)}ms (avg: ${avgDuration.toFixed(0)}ms per route, ${totalSections} total sections)`);
+
+            // Save to cache
+            const cacheData = {};
+            for (const [routeCode, sections] of this.state.sectionsByRoute.entries()) {
+                cacheData[routeCode] = sections;
+            }
+            this.saveToCache(cacheData);
+
+        } catch (error) {
+            console.error('[EdgeSelector] ❌ Error preloading sections:', error);
+        }
+    },
+
+    /**
+     * Handle route selection change (OPTIMIZED with cache)
+     */
+    onRouteChange() {
         const routeSelect = document.getElementById('route-codes');
         const sectionSelect = document.getElementById('section-codes');
         if (!routeSelect || !sectionSelect) return;
@@ -85,35 +253,29 @@ const EdgeSelector = {
             return;
         }
 
-        try {
-            sectionSelect.innerHTML = '<option value="">加载中...</option>';
-            const allSections = [];
-
-            for (const routeCode of selectedRoutes) {
-                const response = await fetch(`/api/v1/control/edges/sections?route_code=${routeCode}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const sections = await response.json();
-                allSections.push(...sections);
+        // Use cached data - no API call needed!
+        const allSections = [];
+        for (const routeCode of selectedRoutes) {
+            const cachedSections = this.state.sectionsByRoute.get(routeCode);
+            if (cachedSections) {
+                allSections.push(...cachedSections);
             }
-
-            sectionSelect.innerHTML = '';
-            allSections.forEach(sectionInfo => {
-                const option = document.createElement('option');
-                option.value = sectionInfo.section_code;
-                option.textContent = `${sectionInfo.section_code} (${sectionInfo.stake_range}, ${sectionInfo.edge_count} 路段)`;
-                sectionSelect.appendChild(option);
-            });
-
-            if (allSections.length === 0) {
-                sectionSelect.innerHTML = '<option value="">无可用路段</option>';
-            }
-
-            // Update direction options based on selected routes
-            this.updateDirectionOptions(selectedRoutes);
-        } catch (error) {
-            console.error('Error loading sections:', error);
-            sectionSelect.innerHTML = '<option value="">加载失败</option>';
         }
+
+        sectionSelect.innerHTML = '';
+        allSections.forEach(sectionInfo => {
+            const option = document.createElement('option');
+            option.value = sectionInfo.section_code;
+            option.textContent = `${sectionInfo.section_code} (${sectionInfo.stake_range}, ${sectionInfo.edge_count} 路段)`;
+            sectionSelect.appendChild(option);
+        });
+
+        if (allSections.length === 0) {
+            sectionSelect.innerHTML = '<option value="">无可用路段</option>';
+        }
+
+        // Update direction options based on selected routes
+        this.updateDirectionOptions(selectedRoutes);
     },
 
     /**
@@ -600,6 +762,24 @@ const EdgeSelector = {
                 selectAllCheckbox.indeterminate = true;
             }
         }
+
+        // [FIX] Show/hide "进入配置参数" buttons based on edge selection
+        const topActionsBtn = document.getElementById('step2-top-actions');
+        const bottomActionsBtn = document.getElementById('step2-bottom-actions');
+        const hasSelection = this.state.edgeSelectionSet.size > 0;
+
+        if (topActionsBtn) {
+            topActionsBtn.style.display = hasSelection ? 'flex' : 'none';
+        }
+        if (bottomActionsBtn) {
+            // Update button visibility (button itself should be visible when there's selection)
+            const nextBtn = document.getElementById('step2-next-bottom');
+            if (nextBtn) {
+                nextBtn.style.display = hasSelection ? 'block' : 'none';
+            }
+        }
+
+        console.log('[EdgeSelector] updateSelectedCount: selected=' + this.state.edgeSelectionSet.size + ', buttons=' + (hasSelection ? 'shown' : 'hidden'));
     },
 
     /**
@@ -827,6 +1007,14 @@ function queryEdges() {
 
 function resetFilters() {
     EdgeSelector.resetFilters();
+}
+
+function refreshSectionCache() {
+    if (confirm('确定要刷新路段缓存吗？将重新加载所有路段数据。')) {
+        EdgeSelector.clearCache();
+        alert('缓存已清除，页面将刷新以重新加载数据...');
+        location.reload();
+    }
 }
 
 function selectAll() {

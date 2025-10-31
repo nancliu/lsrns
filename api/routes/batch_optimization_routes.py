@@ -20,7 +20,7 @@ from api.models.control.responses.batch_response import (
 logger = logging.getLogger(__name__)
 
 # 创建路由器
-router = APIRouter(prefix="/control/optimization", tags=["Batch Optimization"])
+router = APIRouter(prefix="/control/batch-optimization", tags=["Batch Optimization"])
 
 # 初始化服务
 batch_service = BatchOptimizationService()

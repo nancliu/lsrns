@@ -88,6 +88,30 @@
 - 中流量 (200-399 vph) 为橙色 (#f59e0b)
 - 高流量 (≥400 vph) 为红色 (#ef4444)
 
+#### 场景：将 TEC 车型限制时间区间渲染为时间轴
+
+**给定** 一个带有简单时间区间的 TEC 车型限制策略：
+
+```json
+[
+  {"begin_hours": 0, "end_hours": 7},
+  {"begin_hours": 7, "end_hours": 9},
+  {"begin_hours": 9, "end_hours": 17},
+  {"begin_hours": 17, "end_hours": 19},
+  {"begin_hours": 19, "end_hours": 24}
+]
+```
+
+**当** 渲染时间轴时
+
+**那么** 时间轴应该显示：
+
+- 所有区间使用统一的蓝色 (#3b82f6)
+- 每个段根据 begin_hours 和 end_hours 定位
+- 标签显示时间范围（如 "7:00-9:00"）
+
+**并且** 不显示额外的参数值（因为此类型仅包含时间信息）
+
 ---
 
 ### Requirement: 时间轴必须包含小时标记
@@ -397,6 +421,16 @@ interface FlowInterval {
   end_hours: number;       // 1-24
   flow_vph: number;        // 每小时车辆数
   speed_kmh?: number;      // 可选目标速度
+}
+```
+
+**TEC 简单时间区间**（车型限制）：
+
+```typescript
+interface TECInterval {
+  begin_hours: number;     // 0-23
+  end_hours: number;       // 1-24
+  // 注意：无其他参数，仅定义时间范围
 }
 ```
 

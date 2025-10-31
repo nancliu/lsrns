@@ -131,6 +131,17 @@ async function generateFormFromTemplate(templateId) {
       if (paramControl) {
         formHtml.appendChild(paramControl);
       }
+
+      // [FIX] Inject unified vehicle type control after restriction_mode
+      if (paramSchema.parameter_name === 'restriction_mode') {
+        const hasVehicleTypeParams = parametersSchema.some(p =>
+          p.parameter_name === 'disallow_vehicle_types' || p.parameter_name === 'allowed_vehicle_types'
+        );
+        if (hasVehicleTypeParams) {
+          const unifiedControl = renderUnifiedVehicleTypeControl(template);
+          formHtml.appendChild(unifiedControl);
+        }
+      }
     }
 
     // Add buttons
@@ -185,6 +196,20 @@ function renderParameterControl(paramSchema, templateId) {
   const required = paramSchema.required || false;
   const defaultValue = paramSchema.default_value || paramSchema.defaultValue;
 
+  // [FIX] Hide entrance_edges parameter - redundant with Step 2 edge selector
+  // The value will be auto-filled from selectedEdges when creating strategy instance
+  if (paramName === 'entrance_edges') {
+    console.log('[renderParameterControl] Skipping entrance_edges parameter (auto-filled from edge selector)');
+    return null; // Don't render this parameter
+  }
+
+  // [FIX] Hide disallow_vehicle_types and allowed_vehicle_types - they will be replaced by a unified control
+  // linked to restriction_mode
+  if (paramName === 'disallow_vehicle_types' || paramName === 'allowed_vehicle_types') {
+    console.log(`[renderParameterControl] Skipping ${paramName} (handled by unified vehicle type control)`);
+    return null;
+  }
+
   // Container for the parameter
   const container = document.createElement("div");
   container.className = "form-group";
@@ -235,6 +260,9 @@ function renderParameterControl(paramSchema, templateId) {
       break;
     case "flow_interval_array":
       control = renderFlowIntervalControl(paramName, paramSchema);
+      break;
+    case "tec_interval_array":
+      control = renderTECIntervalControl(paramName, paramSchema);
       break;
     case "edge_array":
       control = renderEdgeArrayControl(paramName, paramSchema);
@@ -477,6 +505,13 @@ function renderEnumControl(paramName, schema) {
   }
 
   control.addEventListener("change", () => validateParameterOnChange(control, schema));
+
+  // [FIX] Special handling for restriction_mode - add change listener to update vehicle type control
+  if (paramName === 'restriction_mode') {
+    control.addEventListener('change', (e) => {
+      updateVehicleTypeControlForRestrictionMode(e.target.value);
+    });
+  }
 
   return control;
 }
@@ -1173,6 +1208,234 @@ function updateFlowTimelineFromTable(tbody) {
 const debouncedUpdateFlowTimelineFromTable = debounce(updateFlowTimelineFromTable, 300);
 
 /**
+ * Render tec_interval_array control for TEC vehicle restriction strategies.
+ * Simplified version - only time intervals (begin_hours, end_hours), no additional parameters.
+ * Includes timeline visualization above the table.
+ *
+ * @param {string} paramName - Parameter name
+ * @param {object} schema - Parameter schema
+ * @returns {HTMLElement} - Container with timeline and table
+ */
+function renderTECIntervalControl(paramName, schema) {
+  const container = document.createElement("div");
+  container.className = "tec-interval-control-enhanced";
+  container.dataset.parameterName = paramName;
+
+  const defaultIntervals = schema.default_value || [];
+  const intervalStructure = schema.interval_structure || {};
+
+  // Add timeline visualization
+  if (window.TimelineVisualizer) {
+    try {
+      // Add timeline description
+      const description = document.createElement("div");
+      description.className = "timeline-description";
+      description.textContent = schema.description || "车型限制时间区间列表";
+      container.appendChild(description);
+
+      // Use default values, or provide example intervals if none
+      const intervalsForDisplay = defaultIntervals.length > 0 ? defaultIntervals : [
+        { begin_hours: 7, end_hours: 9 },
+        { begin_hours: 17, end_hours: 19 }
+      ];
+
+      // Render timeline with simple_interval type
+      const timeline = window.TimelineVisualizer.renderTimeline(
+        paramName,
+        intervalsForDisplay,
+        { type: 'simple_interval' }
+      );
+      container.appendChild(timeline);
+    } catch (err) {
+      console.warn('[renderTECIntervalControl] Failed to render timeline:', err);
+      // Continue rendering table even if timeline fails
+    }
+  }
+
+  // Create table for TEC intervals
+  const table = document.createElement("table");
+  table.className = "intervals-table";
+
+  // Header
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  const beginHeader = document.createElement("th");
+  beginHeader.textContent = "开始时间 (小时)";
+  const endHeader = document.createElement("th");
+  endHeader.textContent = "结束时间 (小时)";
+  const actionHeader = document.createElement("th");
+  actionHeader.textContent = "操作";
+
+  headerRow.appendChild(beginHeader);
+  headerRow.appendChild(endHeader);
+  headerRow.appendChild(actionHeader);
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Body
+  const tbody = document.createElement("tbody");
+  tbody.className = "tec-intervals-tbody";
+  tbody.dataset.parameterName = paramName;
+
+  // Add default intervals
+  defaultIntervals.forEach((interval) => {
+    const beginHours = interval.begin_hours !== undefined ? interval.begin_hours : 0;
+    const endHours = interval.end_hours !== undefined ? interval.end_hours : 1;
+    addTECIntervalRow(tbody, paramName, beginHours, endHours);
+  });
+
+  // If no default intervals, add one empty row
+  if (defaultIntervals.length === 0) {
+    addTECIntervalRow(tbody, paramName, 7, 9);
+  }
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  // Add button
+  const buttonDiv = document.createElement("div");
+  buttonDiv.className = "interval-buttons";
+
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.className = "btn btn-add-interval";
+  addBtn.textContent = "+ 添加时间区间";
+  addBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    addTECIntervalRow(tbody, paramName, 0, 1);
+    // Update timeline after adding row
+    updateTECTimelineFromTable(tbody);
+  });
+
+  buttonDiv.appendChild(addBtn);
+  container.appendChild(buttonDiv);
+
+  // [FIX] Use hint from schema if available, instead of hardcoded hint
+  // This avoids duplicate hints and uses the more comprehensive template-defined hint
+  if (schema.hint || schema.config_hint) {
+    const hint = document.createElement("div");
+    hint.className = "config-hint";
+    hint.textContent = schema.hint || schema.config_hint;
+    container.appendChild(hint);
+  }
+
+  return container;
+}
+
+/**
+ * Add a TEC interval row to the table.
+ *
+ * @param {HTMLElement} tbody - Table body element
+ * @param {string} paramName - Parameter name
+ * @param {number} beginHours - Start time in hours
+ * @param {number} endHours - End time in hours
+ */
+function addTECIntervalRow(tbody, paramName, beginHours, endHours) {
+  const row = document.createElement("tr");
+  row.className = "tec-interval-row";
+
+  // Begin time
+  const beginCell = document.createElement("td");
+  const beginInput = document.createElement("input");
+  beginInput.type = "number";
+  beginInput.className = "tec-interval-begin";
+  beginInput.min = "0";
+  beginInput.max = "24";
+  beginInput.step = "0.5";
+  beginInput.value = beginHours || 0;
+  beginCell.appendChild(beginInput);
+  row.appendChild(beginCell);
+
+  // End time
+  const endCell = document.createElement("td");
+  const endInput = document.createElement("input");
+  endInput.type = "number";
+  endInput.className = "tec-interval-end";
+  endInput.min = "0";
+  endInput.max = "24";
+  endInput.step = "0.5";
+  endInput.value = endHours || 1;
+  endCell.appendChild(endInput);
+  row.appendChild(endCell);
+
+  // Action (Delete button)
+  const actionCell = document.createElement("td");
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "btn btn-delete-row";
+  deleteBtn.textContent = "删除";
+  deleteBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    row.remove();
+    // Update timeline after deleting row
+    updateTECTimelineFromTable(tbody);
+  });
+  actionCell.appendChild(deleteBtn);
+  row.appendChild(actionCell);
+
+  // Add change listeners to update timeline
+  beginInput.addEventListener("input", debounce(() => {
+    updateTECTimelineFromTable(tbody);
+  }, 300));
+
+  endInput.addEventListener("input", debounce(() => {
+    updateTECTimelineFromTable(tbody);
+  }, 300));
+
+  tbody.appendChild(row);
+}
+
+/**
+ * Update TEC timeline visualization from table data.
+ *
+ * @param {HTMLElement} tbody - Table body element
+ */
+function updateTECTimelineFromTable(tbody) {
+  // Find timeline element in parent container
+  const container = tbody.closest('.tec-interval-control-enhanced');
+  if (!container) return;
+
+  const timelineElement = container.querySelector('.parameter-timeline');
+  if (!timelineElement || !window.TimelineVisualizer) return;
+
+  // Collect intervals from table
+  const intervals = [];
+  const rows = tbody.querySelectorAll('.tec-interval-row');
+
+  rows.forEach(row => {
+    const beginInput = row.querySelector('.tec-interval-begin');
+    const endInput = row.querySelector('.tec-interval-end');
+
+    if (beginInput && endInput) {
+      const beginHours = parseFloat(beginInput.value) || 0;
+      const endHours = parseFloat(endInput.value) || 0;
+
+      // Only add valid intervals
+      if (endHours > beginHours && beginHours >= 0 && endHours <= 24) {
+        intervals.push({
+          begin_hours: beginHours,
+          end_hours: endHours
+        });
+      }
+    }
+  });
+
+  // Update timeline
+  try {
+    const paramName = tbody.dataset.parameterName;
+    window.TimelineVisualizer.updateTimeline(
+      timelineElement,
+      paramName,
+      intervals,
+      { type: 'simple_interval' }
+    );
+  } catch (err) {
+    console.warn('[updateTECTimelineFromTable] Failed to update timeline:', err);
+  }
+}
+
+/**
  * Render edge_array control.
  */
 function renderEdgeArrayControl(paramName, schema) {
@@ -1239,14 +1502,36 @@ function addEdgeInputRow(edgesList, paramName, edgeId) {
  * Render string control.
  */
 function renderStringControl(paramName, schema) {
-  const control = document.createElement("input");
-  control.type = "text";
-  control.id = `param-${paramName}`;
-  control.name = paramName;
-  control.className = "form-control";
+  // [FIX] Use textarea for description fields to provide more space
+  const isDescriptionField = paramName.includes('description') || paramName.includes('desc');
 
-  if (schema.default_value !== undefined) {
-    control.value = schema.default_value;
+  let control;
+  if (isDescriptionField) {
+    control = document.createElement("textarea");
+    control.id = `param-${paramName}`;
+    control.name = paramName;
+    control.className = "form-control description-field";
+    control.rows = 3; // Default 3 rows for descriptions
+    control.placeholder = "请输入策略描述...";
+
+    if (schema.default_value !== undefined) {
+      control.value = schema.default_value;
+    }
+  } else {
+    control = document.createElement("input");
+    control.type = "text";
+    control.id = `param-${paramName}`;
+    control.name = paramName;
+    control.className = "form-control";
+
+    // [FIX] Add special class for strategy_name to expand width
+    if (paramName === 'strategy_name') {
+      control.className += " strategy-name-field";
+    }
+
+    if (schema.default_value !== undefined) {
+      control.value = schema.default_value;
+    }
   }
 
   control.addEventListener("change", () => validateParameterOnChange(control, schema));
@@ -1841,16 +2126,138 @@ function showNotification(message, type) {
   }, 3000);
 }
 
+/**
+ * [FIX] Render unified vehicle type control for TEC vehicle restriction
+ * This control changes its meaning based on restriction_mode:
+ * - disallow_mode: Shows "禁止进入的车辆类型"
+ * - allow_mode: Shows "允许进入的车辆类型"
+ *
+ * @param {Object} templateData - Template data containing disallow/allowed schemas
+ * @returns {HTMLElement} Container with unified vehicle type control
+ */
+function renderUnifiedVehicleTypeControl(templateData) {
+  const container = document.createElement("div");
+  container.className = "form-group unified-vehicle-type-control";
+  container.id = "unified-vehicle-type-container";
+
+  // Find the restriction_mode default value
+  const restrictionModeParam = templateData.parameters_schema.find(p => p.parameter_name === 'restriction_mode');
+  const initialMode = restrictionModeParam?.default_value || 'disallow_mode';
+
+  // Find the vehicle type schemas
+  const disallowParam = templateData.parameters_schema.find(p => p.parameter_name === 'disallow_vehicle_types');
+  const allowParam = templateData.parameters_schema.find(p => p.parameter_name === 'allowed_vehicle_types');
+
+  // Label (will be updated dynamically)
+  const label = document.createElement("label");
+  label.id = "vehicle-type-label";
+  label.htmlFor = "param-vehicle_types";
+  label.textContent = initialMode === 'disallow_mode' ? '禁止进入的车辆类型' : '允许进入的车辆类型';
+  container.appendChild(label);
+
+  // Description (will be updated dynamically)
+  const description = document.createElement("small");
+  description.className = "description";
+  description.id = "vehicle-type-description";
+  const currentParam = initialMode === 'disallow_mode' ? disallowParam : allowParam;
+  description.textContent = currentParam?.description || '';
+  container.appendChild(description);
+
+  // Checkbox group for vehicle types
+  const checkboxContainer = document.createElement("div");
+  checkboxContainer.className = "enum-array-control";
+  checkboxContainer.id = "vehicle-type-checkboxes";
+
+  const enumValues = disallowParam?.enum_values || allowParam?.enum_values || [];
+  const defaultValues = initialMode === 'disallow_mode'
+    ? (disallowParam?.default_value || [])
+    : (allowParam?.default_value || []);
+
+  enumValues.forEach(enumVal => {
+    const checkboxDiv = document.createElement("div");
+    checkboxDiv.className = "checkbox-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.name = "vehicle_types"; // Unified name, will be converted on submit
+    checkbox.value = typeof enumVal === "string" ? enumVal : enumVal.value;
+    checkbox.className = "enum-checkbox";
+    checkbox.id = `vehicle-type-${checkbox.value}`;
+
+    // Check default values
+    if (defaultValues.includes(checkbox.value)) {
+      checkbox.checked = true;
+    }
+
+    const checkboxLabel = document.createElement("label");
+    checkboxLabel.htmlFor = checkbox.id;
+    checkboxLabel.textContent = typeof enumVal === "string" ? enumVal : (enumVal.label || enumVal.value);
+
+    checkboxDiv.appendChild(checkbox);
+    checkboxDiv.appendChild(checkboxLabel);
+    checkboxContainer.appendChild(checkboxDiv);
+  });
+
+  container.appendChild(checkboxContainer);
+
+  // Hint (will be updated dynamically)
+  const hint = document.createElement("span");
+  hint.className = "config-hint";
+  hint.id = "vehicle-type-hint";
+  hint.textContent = initialMode === 'disallow_mode'
+    ? '选中的车型将被禁止进入，其他车型可自由通行'
+    : '仅选中的车型允许进入，其他车型被禁止';
+  container.appendChild(hint);
+
+  return container;
+}
+
+/**
+ * [FIX] Update vehicle type control when restriction mode changes
+ * @param {string} mode - 'disallow_mode' or 'allow_mode'
+ */
+function updateVehicleTypeControlForRestrictionMode(mode) {
+  const label = document.getElementById('vehicle-type-label');
+  const description = document.getElementById('vehicle-type-description');
+  const hint = document.getElementById('vehicle-type-hint');
+  const checkboxes = document.querySelectorAll('input[name="vehicle_types"]');
+
+  if (!label || !hint) return; // Control not found
+
+  if (mode === 'disallow_mode') {
+    label.textContent = '禁止进入的车辆类型';
+    hint.textContent = '选中的车型将被禁止进入，其他车型可自由通行';
+    if (description) {
+      description.textContent = '禁止进入的车辆类型（仅在禁止模式下使用）';
+    }
+    // Optionally clear selections when mode changes
+    checkboxes.forEach(cb => cb.checked = false);
+  } else if (mode === 'allow_mode') {
+    label.textContent = '允许进入的车辆类型';
+    hint.textContent = '仅选中的车型允许进入，其他车型被禁止';
+    if (description) {
+      description.textContent = '允许进入的车辆类型（仅在允许模式下使用）';
+    }
+    // Optionally clear selections when mode changes
+    checkboxes.forEach(cb => cb.checked = false);
+  }
+
+  console.log(`[updateVehicleTypeControlForRestrictionMode] Updated for mode: ${mode}`);
+}
+
 // Export functions for use in other modules
 window.generateFormFromTemplate = generateFormFromTemplate;
 window.validateFormParameters = validateFormParameters;
 window.generateXMLPreview = generateXMLPreview;
 window.extractFormParameters = extractFormParameters;
+window.renderUnifiedVehicleTypeControl = renderUnifiedVehicleTypeControl;
+window.updateVehicleTypeControlForRestrictionMode = updateVehicleTypeControlForRestrictionMode;
 
 // Export individual render functions for use in templates.html
 window.renderStepArrayControl = renderStepArrayControl;
 window.renderDHSIntervalControl = renderDHSIntervalControl;
 window.renderFlowIntervalControl = renderFlowIntervalControl;
+window.renderTECIntervalControl = renderTECIntervalControl;
 
 // Export row addition functions for use in strategy_manager.js
 window.addStepRow = addStepRow;

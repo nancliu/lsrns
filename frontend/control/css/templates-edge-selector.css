@@ -1,0 +1,594 @@
+/**
+ * 策略管理 - 步骤2: 选择管控路段样式
+ *
+ * 专门用于路段选择器的样式定义
+ * 包含: 筛选面板、表单控件、结果面板、已选模板信息卡片
+ */
+
+/* ==================== 已选模板信息卡片 ==================== */
+
+.selected-template-info {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-left: 4px solid var(--color-primary);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 25px;
+}
+
+.selected-template-info strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-dark);
+}
+
+.selected-template-info .text-md-dark-ml {
+    font-size: 15px;
+    margin-left: 8px;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.selected-template-info button {
+    background: white;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.selected-template-info button:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.selected-template-info .card-small {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+/* ==================== 筛选面板容器 ==================== */
+
+.filter-panel {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+}
+
+.filter-panel h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 20px;
+}
+
+/* 筛选条件分组标题 */
+.filter-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-primary-light);
+}
+
+/* 筛选行间距 */
+.filter-row {
+    margin-bottom: 20px;
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+/* ==================== 表单控件样式 ==================== */
+
+/* 表单分组 */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* 表单标签 */
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-dark);
+}
+
+/* 表单提示文本 */
+.form-group span {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+/* 输入框统一样式 */
+.form-group input[type="number"],
+.form-group select {
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.form-group input[type="number"]:focus,
+.form-group select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* 多选框特殊样式 */
+.form-group select[multiple] {
+    min-height: 100px;
+    padding: 5px;
+}
+
+.form-group select[multiple] option {
+    padding: 5px 8px;
+    border-radius: 2px;
+}
+
+.form-group select[multiple] option:hover {
+    background: var(--color-primary-light);
+}
+
+/* 单行选择框 */
+.form-group select:not([multiple]) {
+    cursor: pointer;
+}
+
+/* ==================== Grid 布局（补充缺失的 gap 版本）==================== */
+
+.grid-2col-gap {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-15);
+}
+
+.grid-5col-gap {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--spacing-15);
+}
+
+/* ==================== 门架筛选行 ==================== */
+
+.gantry-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid var(--color-border-light);
+}
+
+.gantry-filter-row label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-right: 10px;
+}
+
+.gantry-filter-row select {
+    padding: 6px 10px;
+    min-width: 100px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.gantry-filter-row span {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+/* ==================== 查询按钮区域 ==================== */
+
+.query-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border-light);
+}
+
+.query-actions .btn {
+    font-size: 14px;
+    padding: 10px 25px;
+    min-width: 120px;
+}
+
+.query-actions .btn-primary {
+    min-width: 150px;
+    font-size: 15px;
+    padding: 10px 30px;
+    font-weight: 600;
+}
+
+/* ==================== 结果面板 ==================== */
+
+.results-panel {
+    background: white;
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 25px;
+}
+
+/* 结果面板标题 */
+.results-panel h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ==================== 结果信息栏 ==================== */
+
+#results-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #e9ecef;
+}
+
+#results-info > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+#results-info strong {
+    color: var(--color-dark);
+    font-size: 14px;
+}
+
+#results-info span {
+    color: var(--color-text);
+    font-size: 14px;
+}
+
+#result-count,
+#selected-count {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* 结果信息栏按钮组 */
+#results-info > div:last-child {
+    display: flex;
+    gap: 10px;
+}
+
+#results-info button {
+    padding: 6px 15px;
+    font-size: 13px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background: white;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#results-info button:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* ==================== 警告消息 ==================== */
+
+#warning-message {
+    padding: 12px 16px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    font-size: 13px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+#warning-message.show {
+    display: block;
+}
+
+/* ==================== 结果容器 ==================== */
+
+#results-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    background: white;
+}
+
+/* 空状态提示 */
+#results-container > div {
+    padding: 40px;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+}
+
+/* ==================== 结果表格 ==================== */
+
+#results-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+/* 表头固定 */
+#results-container thead {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
+}
+
+#results-container th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-dark);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+#results-container td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+#results-container tbody tr {
+    transition: background-color 0.15s;
+}
+
+#results-container tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* 选中行高亮 */
+#results-container tbody tr.selected {
+    background: #e3f2fd;
+}
+
+/* 复选框列 */
+#results-container td:first-child,
+#results-container th:first-child {
+    width: 50px;
+    text-align: center;
+}
+
+#results-container input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* 列宽分配 */
+#results-container th:nth-child(2), /* Edge ID */
+#results-container td:nth-child(2) {
+    width: 15%;
+}
+
+#results-container th:nth-child(3), /* 路线 */
+#results-container td:nth-child(3) {
+    width: 12%;
+}
+
+#results-container th:nth-child(4), /* 桩号 */
+#results-container td:nth-child(4) {
+    width: 15%;
+}
+
+#results-container th:nth-child(5), /* 长度 */
+#results-container td:nth-child(5) {
+    width: 10%;
+    text-align: right;
+}
+
+#results-container th:nth-child(6), /* 车道数 */
+#results-container td:nth-child(6) {
+    width: 8%;
+    text-align: center;
+}
+
+#results-container th:nth-child(7), /* 方向 */
+#results-container td:nth-child(7) {
+    width: 10%;
+}
+
+#results-container th:nth-child(8), /* 门架 */
+#results-container td:nth-child(8) {
+    width: 8%;
+    text-align: center;
+}
+
+/* 门架标记 */
+.gantry-indicator {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.gantry-indicator.yes {
+    background: #d4edda;
+    color: #155724;
+}
+
+.gantry-indicator.no {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* ==================== 步骤导航按钮 ==================== */
+
+.step-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 25px 0;
+    padding: 15px 0;
+    border-top: 1px solid var(--color-border-light);
+}
+
+.step-navigation .btn {
+    min-width: 120px;
+    padding: 10px 25px;
+}
+
+/* ==================== 网络可视化面板 ==================== */
+
+.viz-panel {
+    background: white;
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 25px;
+}
+
+.viz-panel h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+/* 可视化控制区 */
+.viz-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.viz-controls .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+.viz-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.viz-info span {
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.viz-info strong {
+    color: var(--color-primary);
+    font-size: 14px;
+}
+
+.viz-hint {
+    font-size: 12px !important;
+    color: var(--color-text-secondary) !important;
+}
+
+/* 可视化画布容器 */
+.viz-canvas-container {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background: #f5f7fa;
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* ==================== 响应式适配 ==================== */
+
+@media (max-width: 1024px) {
+    .grid-5col-gap {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .grid-4col-gap,
+    .grid-4col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .filter-panel,
+    .results-panel {
+        padding: 20px 15px;
+    }
+
+    .grid-5col-gap,
+    .grid-4col-gap,
+    .grid-4col,
+    .grid-2col-gap,
+    .grid-2col {
+        grid-template-columns: 1fr;
+    }
+
+    #results-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    #results-container {
+        overflow-x: auto;
+    }
+
+    #results-container table {
+        min-width: 800px;
+    }
+}
+
+@media (max-width: 480px) {
+    .selected-template-info {
+        padding: 15px;
+    }
+
+    .filter-panel h4,
+    .results-panel h4 {
+        font-size: 14px;
+    }
+
+    .query-actions {
+        flex-direction: column;
+    }
+
+    .query-actions .btn {
+        width: 100%;
+    }
+}
