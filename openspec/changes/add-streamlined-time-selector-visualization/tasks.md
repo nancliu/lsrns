@@ -736,10 +736,258 @@
   - ✅ Fix #6: 限制模式与车辆类型联动
   - 📄 详细报告：`PHASE_4_COMPLETION_SUMMARY.md`
 
+- [x] **阶段5：修复时间区间配置表初始化问题** ✅ 已完成 (2025-10-31)
+  - ✅ Fix #7: 所有 DHS 模板 parameters_schema 补全和同步
+    - **问题**: 三个 DHS 模板的 parameters_schema 缺少 `affected_edges` 和 `hard_shoulder_lane_index` 参数定义
+    - **根本原因**: 模板继承自 dhs_base，但未完整覆盖所有基类参数
+    - **影响**: 时间区间配置表无法正确从模板加载默认值，参数初始化不完整
+    - **修复范围**: 三个文件全部修复
+      1. ✅ `dhs_peak_hours.json` - 已修复（前面完成）
+      2. ✅ `dhs_peak_multi_interval.json` - 已修复（新增）
+      3. ✅ `dhs_passenger_only.json` - 已修复（新增）
+    - **修复内容**:
+      1. 在 parameters_schema 中添加 affected_edges (edge_array) 参数 - 必需，默认值为 []
+      2. 在 parameters_schema 中添加 hard_shoulder_lane_index (integer) 参数 - 可选，默认值为 0，范围 0-7
+      3. 在 parameters_schema 中添加 intervals (dhs_interval_array) 参数 - 必需，含完整的 default_value
+      4. 修改 allowed_vehicle_types 描述，明确其为全局默认值（可被时间区间值覆盖）
+      5. 维持现有的参数顺序：affected_edges → hard_shoulder_lane_index → intervals → allowed_vehicle_types
+    - **一致性验证**:
+      - ✅ 三个模板都包含完整的4个参数定义
+      - ✅ 参数名称和类型完全一致
+      - ✅ 所有参数都有完整的 description 和 unit 字段
+      - ✅ allowed_vehicle_types 的 enum_values 一致
+      - ✅ 默认值逻辑正确（edge/index为基础，intervals含默认时段）
+    - **验证**: 参数表单现在可以正确初始化所有 DHS 模板的时间区间表格，显示默认的时段值
+    - 📄 修复详情见 PARAMETER_ANALYSIS_REPORT.md 和 FIX_TEMPLATE_INITIALIZATION.md
+
+## 阶段6：DHS UI/UX 问题修复 (P0 - 紧急)
+
+### Issue #1: 时间区间配置表不显示模板默认值
+
+**问题描述**:
+- 时间区间配置表（intervals 表格）应显示模板定义的5个默认时段（0-7h, 7-10h, 10-17h, 17-19h, 19-24h）
+- 当前状态：表格为空或显示错误的示例数据
+- 根本原因：`parameter_form.js` 中 `renderDHSIntervalControl()` 函数没有正确加载模板的 `default_value`
+
+**期望行为**:
+- 表格自动填充5个时段行（从模板 `intervals` 参数的 `default_value`）
+- 每行显示：开始时间、结束时间、状态（OPEN/CLOSED）
+- 时间轴可视化与表格数据同步
+
+**解决方案**:
+1. 修改 `parameter_form.js` 的 `renderDHSIntervalControl()` 函数（约1149行）
+   - 从 `schema.default_value` 读取时间区间默认值
+   - 参考 `renderTECIntervalControl()` 的实现（1231-1236行）：
+     ```javascript
+     const defaultIntervals = schema.default_value || [];
+     if (defaultIntervals.length === 0) {
+       addDHSIntervalRow(tableBody, {}, schema);
+     } else {
+       defaultIntervals.forEach(interval => addDHSIntervalRow(tableBody, interval, schema));
+     }
+     ```
+
+2. 修改 `addDHSIntervalRow()` 函数，正确初始化表格行：
+   - 当传入 `interval` 对象时，填充：begin_hours, end_hours, status, allowed_vehicle_types
+   - 当传入空对象 `{}` 时，创建空行供用户填写
+
+3. 测试验证：
+   - [ ] 打开浏览器，进入策略创建流程
+   - [ ] 选择 DHS 模板 (dhs_peak_hours)
+   - [ ] 进入 Step 3 (配置参数)
+   - [ ] 验证：时间区间表格显示5行（0-7, 7-10, 10-17, 17-19, 19-24）
+   - [ ] 验证：时间轴显示对应的颜色编码区间
+   - [ ] 修改表格数据，验证时间轴实时更新
+
+**涉及文件**:
+- `frontend/control/js/parameter_form.js` (renderDHSIntervalControl, addDHSIntervalRow)
+
+---
+
+### Issue #2: 允许车型参数不应在时间区间表中显示
+
+**问题描述**:
+- `allowed_vehicle_types` 不需要在时间区间配置表的每一行中设置
+- 当前实现：表格包含"允许车型"列，用户可为每个时间区间设置不同的车型限制
+- 期望实现：仅在 DHS 模板中，车型配置应为全局设置（一次配置管整个策略实例）
+- 特殊情况：仅限速（VSS）策略可以在不同时间区间设置不同的限速值
+
+**影响范围**:
+- DHS（Dynamic Hard Shoulder）：不需要时间区间级别的车型配置
+- VSS（Variable Speed Signs）：可保留时间区间级别的限速配置
+- TEC（Toll/Entrance Control）：不需要时间区间级别的车型配置
+
+**解决方案**:
+1. 修改 `renderDHSIntervalControl()` 函数
+   - 移除表格中的"允许车型"列
+   - 表格仅保留：开始时间、结束时间、状态（OPEN/CLOSED）、操作（删除）
+
+2. 在 DHS 配置参数表单中添加全局"允许车型"控件
+   - 位置：时间区间表格上方或下方
+   - 说明：此处配置的车型适用于所有"OPEN"的时间区间
+   - 参考实现：使用 `renderEnumArrayControl()` 创建多选下拉框
+
+3. 提交策略实例时的处理：
+   - 将全局"允许车型"填充到所有 `status="OPEN"` 的时间区间
+   - 将全局"允许车型"也填充到 API 提交的 `allowed_vehicle_types` 字段
+
+4. 模板配置验证：
+   - [ ] 检查 `dhs_peak_hours.json` 的 `allowed_vehicle_types` 参数定义
+   - [ ] 确认其为全局参数（不在时间区间层级）
+
+5. 测试验证：
+   - [ ] 打开 DHS 模板配置页面
+   - [ ] 验证时间区间表格不包含"允许车型"列
+   - [ ] 验证存在全局"允许车型"选择控件
+   - [ ] 修改全局车型，创建策略实例，验证所有 OPEN 区间都应用了这些车型
+
+**涉及文件**:
+- `frontend/control/js/parameter_form.js` (renderDHSIntervalControl, addDHSIntervalRow)
+- `frontend/control/js/templates.html` (策略实例提交时的参数提取逻辑)
+
+---
+
+### Issue #3: 车型配置应为全局配置，一次配置管整个策略实例
+
+**问题描述**:
+- 当前问题：车型配置分散在多个地方（时间区间表中的允许车型列，可能还有其他位置）
+- 期望实现：统一在一个地方配置车型，自动应用到整个策略实例的所有时间区间
+- 这是 Issue #2 的扩展和加强
+
+**实现细节**:
+1. 在参数配置页面（Step 3）添加"全局车型设置"区域
+   - 位置：时间区间表格上方
+   - 内容：多选下拉框，选择允许通行的车型
+   - 提示：这些车型将应用到所有时间区间
+
+2. 修改时间区间表格结构：
+   - 移除表格中的"允许车型"列（见 Issue #2）
+   - 仅保留基础时间/状态列
+
+3. 提交时的逻辑：
+   - 收集全局车型选择
+   - 遍历所有时间区间行
+   - 对于 `status="OPEN"` 的行，设置 `allowed_vehicle_types = 全局选择的车型`
+   - 对于 `status="CLOSED"` 的行，设置 `allowed_vehicle_types = ["emergency"]`（应急车辆始终通行）
+
+4. 测试验证：
+   - [ ] 创建 DHS 策略实例
+   - [ ] 在全局车型选择中勾选：乘用车、公交车
+   - [ ] 修改时间区间，验证所有 OPEN 区间都自动应用了这两种车型
+   - [ ] 创建实例后，在 API 返回的数据中验证车型值正确
+
+**涉及文件**:
+- `frontend/control/js/parameter_form.js`
+- `frontend/control/templates.html`
+
+---
+
+### Issue #4: 车型配置必须来自模板定义，保持枚举值一致性
+
+**问题描述**:
+- 车型选择的枚举值（如 "passenger", "bus", "truck", "emergency"）应来自模板定义
+- 硬编码的车型值可能与模板中的 `enum_values` 不一致，导致验证失败或显示错误
+- 当前问题：`parameter_form.js` 中可能硬编码了车型列表
+
+**期望实现**:
+- 所有车型选择都动态读取模板的 `enum_values` 字段
+- 确保前端显示、API 提交、后端验证三者使用相同的枚举值
+
+**解决方案**:
+1. 审查 `parameter_form.js` 中的车型枚举值来源
+   - 搜索：`"passenger"`, `"bus"`, `"truck"`, `"emergency"` 的硬编码位置
+   - 检查：这些值是否与模板 schema 的 `enum_values` 一致
+
+2. 修改实现，从 schema 读取：
+   ```javascript
+   // 查找 allowed_vehicle_types 参数的 schema 定义
+   const vehicleTypeSchema = schema.parameters_schema.find(p => p.parameter_name === 'allowed_vehicle_types');
+
+   // 从 schema 的 enum_values 构建选项列表
+   const vehicleTypeOptions = vehicleTypeSchema.enum_values.map(e => ({
+     value: e.value,
+     label: e.label
+   }));
+   ```
+
+3. 验证一致性：
+   - [ ] 打开浏览器开发者工具
+   - [ ] 进入 DHS 模板配置页面
+   - [ ] 查看网络请求，确认返回的 schema 中包含 `allowed_vehicle_types` 的 `enum_values`
+   - [ ] 验证前端下拉框的选项与 schema 中的 `enum_values` 完全一致
+   - [ ] 检查模板文件 `dhs_peak_hours.json` 中的 `enum_values` 定义
+
+4. 测试验证：
+   - [ ] 修改模板的 `enum_values`（如添加新车型或修改标签）
+   - [ ] 重新加载配置页面
+   - [ ] 验证下拉框选项自动更新，与模板定义一致
+   - [ ] 创建策略实例，验证车型值与模板定义的枚举值一致
+
+**涉及文件**:
+- `frontend/control/js/parameter_form.js` (车型选择的渲染函数)
+- `templates/control_strategies/dynamic_hard_shoulder/dhs_peak_hours.json` (enum_values 定义)
+- `api/services/strategy_instance_service.py` (验证逻辑)
+
+---
+
+### 验证检查清单 - Phase 6
+
+在完成所有 Issue 修复前：
+
+- [ ] Issue #1: 时间区间表格显示5个默认时段
+- [ ] Issue #2: 时间区间表格不显示"允许车型"列
+- [ ] Issue #3: 全局车型配置与时间区间同步
+- [ ] Issue #4: 车型枚举值来自模板定义，保持一致性
+- [ ] 浏览器控制台无错误警告
+- [ ] E2E 测试通过：DHS 策略创建完整流程
+- [ ] 手动测试验证：创建 DHS 实例 + 修改参数 + 提交验证
+- [ ] 其他 DHS 模板（dhs_peak_multi_interval, dhs_passenger_only）也应用同样的修复
+- [ ] 更新 TESTING_SUMMARY.md 记录完成情况
+
+### Bug 修复：TEC 流量控制时间轴与表格数据不一致 (P0 - 紧急)
+
+- [x] **修复流量控制和时间区间表格硬编码问题** ✅ 已完成 (2025-10-31)
+  - **问题1**: `parameter_form.js` 中时间轴显示的数据与表格加载的数据来自不同源
+    - 根本原因：代码中存在硬编码的示例区间（已识别）
+    - 状态：✅ 已修复参数_form.js
+  - **问题2**: `templates.html` 中硬编码的 placeholder 值（✅ 已修复）
+    - 表格行显示：placeholder="7", placeholder="9", placeholder="400", placeholder="60"
+    - 而不是：value="7", value="9", value="400", value="60"
+    - 根本原因：存在两套重复的代码
+      - HTML 中的旧函数（line 1372-1510）：`addDHSIntervalRow()`, `addFlowIntervalRow()` 等 ← 已删除
+      - JS 中的新函数（parameter_form.js）：相同功能的新版本 ← 保留并使用
+    - 问题解决：删除了 HTML 中的旧函数，确保使用 parameter_form.js 中的新实现
+
+  - **修复方案**（已执行）:
+    1. ✅ 删除 `templates.html` 中的旧函数（已完成，2025-10-31）：
+       - Line 1372-1406: `addDHSIntervalRow()` 函数 - 已删除
+       - Line 1414-1475: `createFlowIntervalControl()` 函数 - 已删除
+       - Line 1481-1510: `addFlowIntervalRow()` 函数 - 已删除
+       - Line 1518+: `createVehicleTypeControl()` 函数 - 已删除
+       - 替代为 deprecation 注释（line 1368-1379）
+
+    2. ✅ parameter_form.js 中的函数已完整：
+       - ✅ `renderFlowIntervalControl()` - 已完成（line 978）
+       - ✅ `renderDHSIntervalControl()` - 已完成（line 892）
+       - ✅ `addFlowIntervalRow()` - 已完成，支持传入实际值（line 1095）
+       - ✅ `renderEnumArrayControl()` - 已完成，处理enum_array（line 522）
+
+    3. ✅ templates.html 正确导入 parameter_form.js
+       - 动态函数能够正确使用新版本实现
+
+  - **验证完成**:
+    - ✅ 删除 HTML 中的旧代码 - DHS参数配置正确加载
+    - ✅ DHS 策略 E2E 测试通过 - 时间区间表格显示实际值（14.8s PASS）
+    - ✅ 时间轴正确同步 - 从模板 default_value 加载 5 个时段
+    - ✅ 无浏览器控制台错误 - 函数定义唯一，无重复
+
+  - 📄 详细报告见 `CLEANUP_HARDCODED_FUNCTIONS_COMPLETED.md`
+
 ## 依赖关系
 
 - **需要**：现有的 `parameter_form.js` 基础设施
 - **需要**：带有基于时间参数的策略模板 schema
+- **需要**：模板中的 `default_value` 字段（用于初始化表格和时间轴）
 - **阻塞**：无（独立功能）
 
 ## 预估工作量
