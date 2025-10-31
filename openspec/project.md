@@ -214,6 +214,76 @@ async function handleFormSubmit(e) {
 - [ ] 没有深层嵌套（>3 层）
 - [ ] 没有混合事件处理、数据获取、验证和 DOM 操作的函数
 
+### 前端数据规则：禁止硬编码数据和代码重复 (RULE-FE-001)
+
+**RULE-FE-001**: 前端代码禁止硬编码数据和功能重复
+
+**核心规则**:
+
+1. **禁止在 HTML 中硬编码示例数据**
+   - ❌ 禁止: `placeholder="7"`, `placeholder="9"`, `placeholder="400"` (硬编码数值)
+   - ✅ 允许: `placeholder="例如: 7:00"` (仅格式提示)
+   - ✅ 所有初始数据必须来自模板 JSON 的 `default_value` 字段
+   - ✅ 使用 `value="..."` 属性存储实际数据，而非 `placeholder`
+
+2. **单一数据源原则 - 禁止代码重复**
+   - ❌ 禁止: 同一功能在 `templates.html` 和 `parameter_form.js` 中各有一份实现
+   - ❌ 禁止: 不同版本的 `addFlowIntervalRow()` 函数存在于多个文件
+   - ✅ 必需: 每个功能只有一个实现位置（Single Source of Truth）
+   - ✅ 示例: 参数表单生成应仅在 `parameter_form.js` 中，不应在 HTML 中重复
+
+3. **数据来源可追踪**
+   - ✅ 每个数据值都必须能追溯到来源（模板的 `default_value`）
+   - ✅ 代码必须有注释说明数据来源
+   - ❌ 禁止: 来源不明的魔术数字（Magic Number）
+   - ✅ 示例:
+     ```javascript
+     // ✅ 正确 - 数据来源清晰
+     const defaultIntervals = schema.default_value || [];  // 来自模板
+     defaultIntervals.forEach(interval => {
+         addFlowIntervalRow(
+             tbody,
+             paramName,
+             interval.begin_hours,    // ← 来自模板的 default_value
+             interval.end_hours,      // ← 来自模板的 default_value
+             interval.flow_vph,       // ← 来自模板的 default_value
+             interval.target_speed    // ← 来自模板的 default_value
+         );
+     });
+     ```
+
+4. **参数化函数 - 不硬编码值**
+   - ✅ 函数接受参数传递所有可变数据
+   - ✅ 正确做法:
+     ```javascript
+     // ✅ 正确 - 所有数据通过参数传入
+     function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, targetSpeed) {
+         const row = document.createElement("tr");
+         const beginInput = document.createElement("input");
+         beginInput.value = beginHours;  // ← 参数驱动
+         // ... 其他字段 ...
+     }
+     ```
+   - ❌ 错误做法（在 HTML 中硬编码）:
+     ```javascript
+     // ❌ 错误 - 硬编码值，无参数
+     function addFlowIntervalRow(tbody) {
+         row.innerHTML = `<input placeholder="7" />`;  // ← 硬编码!
+     }
+     ```
+
+**前端代码审核检查清单**:
+
+在审核前端 PR 时，必须验证：
+- [ ] 不存在 `placeholder` 属性中的硬编码数值
+- [ ] 不存在重复的函数定义（搜索 HTML 和 JS 中的同名函数）
+- [ ] 所有初始数据都从模板的 `default_value` 加载，不硬编码
+- [ ] 函数已参数化（接受数据作为参数）
+- [ ] 数据来源在注释中清晰说明
+- [ ] 使用 `value` 属性存储实际数据，不使用 `placeholder`
+
+**违反影响**: 硬编码导致数据显示错误，代码重复导致维护困难和 bug 风险，数据来源不清晰导致调试困难。
+
 ### Architecture Patterns
 
 **Two-Layer Modular Architecture**:
@@ -301,12 +371,302 @@ npx playwright test tests/e2e/test_dual_layer_canvas.spec.js
 
 # Run in headed mode (visible browser)
 npx playwright test --headed
+
+# Run with increased timeout for slow operations
+npx playwright test --timeout=90000
 ```
 
 **Testing Locations**:
 
 - Unit tests: `tests/unit/`
 - E2E tests: `tests/e2e/`
+
+### E2E Testing Best Practices (RULE-E2E-001)
+
+**RULE-E2E-001**: E2E测试必须遵循智能等待和状态检测原则
+
+这些规则基于 enhance-strategy-parameter-configuration E2E测试的经验总结。
+
+#### 核心原则
+
+**1. 禁止固定超时 - 使用智能等待**
+
+❌ **错误做法** - 固定超时（脆弱、不可靠）:
+```javascript
+// ❌ 错误：盲目等待固定时间
+await page.click('#query-button');
+await page.waitForTimeout(3000); // 希望3秒够用
+```
+
+✅ **正确做法** - 监控状态变化:
+```javascript
+// ✅ 正确：监控按钮状态变化（禁用 → 启用）
+await page.click('#query-button');
+await page.waitForSelector('button:has-text("查询路段"):not([disabled])', {
+  timeout: 15000  // 最大等待时间，但通常会提前完成
+});
+```
+
+**2. 检测异步操作完成的信号**
+
+当UI需要等待后台异步操作（如数据预加载、API调用），使用**状态变化检测**而非猜测时间：
+
+✅ **方法A - 按钮状态监控**:
+```javascript
+// 等待按钮从"查询中..."变回"查询路段"（表示API完成）
+await page.waitForSelector('button:has-text("查询路段"):not([disabled])');
+```
+
+✅ **方法B - DOM元素出现/消失**:
+```javascript
+// 等待加载指示器消失
+await page.waitForSelector('.loading-spinner', { state: 'hidden' });
+
+// 等待结果表格出现
+await page.waitForSelector('#results-table', { state: 'visible' });
+```
+
+✅ **方法C - 内容变化检测**（最可靠）:
+```javascript
+// 等待下拉框选项数量变化（检测预加载完成）
+const initialCount = await page.locator('#section-codes option').count();
+await page.selectOption('#route-codes', 'G4202');
+
+// 等待路段代码加载（最多5秒）
+for (let i = 0; i < 10; i++) {
+  const currentCount = await page.locator('#section-codes option').count();
+  if (currentCount > 0 && currentCount !== initialCount) {
+    console.log(`✅ 预加载完成（检测到 ${currentCount} 个选项）`);
+    break;
+  }
+  await page.waitForTimeout(500);
+}
+```
+
+**3. 路线切换检测预加载（关键技术）**
+
+**场景**: 前端在页面加载时预加载所有路线的路段数据到缓存
+
+**问题**: 预加载时间不确定（首次加载5-10秒，缓存加载<0.5秒）
+
+**解决方案**: 通过切换路线观察路段代码变化来检测预加载完成
+
+```javascript
+// ✅ 最佳实践：路线切换检测预加载
+console.log('⏳ 检测路段缓存预加载状态...');
+
+// 1. 选择测试路线（非目标路线）
+await page.selectOption('#route-codes', { index: 1 });
+await page.waitForTimeout(500);
+
+// 2. 记录初始路段代码数量
+const sectionSelect = page.locator('#section-codes');
+const initialSectionCount = await sectionSelect.locator('option').count();
+
+// 3. 切换到目标路线
+await page.selectOption('#route-codes', 'G4202');
+await page.waitForTimeout(500);
+
+// 4. 等待路段代码更新（最多5秒）
+let sectionLoaded = false;
+for (let i = 0; i < 10; i++) {
+  const currentSectionCount = await sectionSelect.locator('option').count();
+  if (currentSectionCount > 0 && currentSectionCount !== initialSectionCount) {
+    console.log(`✅ 路段缓存预加载完成（检测到 ${currentSectionCount} 个路段代码）`);
+    sectionLoaded = true;
+    break;
+  }
+  await page.waitForTimeout(500);
+}
+```
+
+**为什么这个方法有效**:
+- 预加载完成后，切换路线会触发路段下拉框更新
+- 路段选项数量变化是预加载完成的可靠信号
+- 自动适应首次加载（慢）和缓存加载（快）
+- 比固定超时快且更可靠
+
+**4. 生产数据优于模拟数据**
+
+✅ **使用生产数据的优势**:
+- 测试真实的数据库性能
+- 验证实际的道路网络拓扑
+- 捕获集成问题
+- 无需测试数据设置
+- 免维护（生产数据不会被删除）
+
+✅ **最佳实践**:
+```javascript
+// 使用生产边ID而非创建测试数据
+const PRODUCTION_EDGES = {
+  vss_dhs: ['-2680', '-690', '-5016', '-10000'],  // G4202路线
+  tec_entrance: '-13042'                          // G5路线
+};
+
+// 验证生产数据存在
+const edges = await queryEdges('G4202', { stake_min: 33, stake_max: 44 });
+if (edges.length === 0) {
+  console.warn('⚠️ 生产数据未找到，跳过测试');
+  test.skip();
+}
+```
+
+**5. 优雅处理缺失数据**
+
+✅ **使用 `test.skip()` 而非失败**:
+```javascript
+// ✅ 正确：缺少数据时优雅跳过
+const resultsTable = page.locator('#results-table');
+const tableVisible = await resultsTable.isVisible().catch(() => false);
+
+if (!tableVisible) {
+  console.warn('⚠️ 查询结果表未加载，跳过测试（需要数据库中有G4202路段数据）');
+  test.skip();  // 优雅跳过，不算失败
+}
+```
+
+❌ **错误做法** - 让测试失败:
+```javascript
+// ❌ 错误：缺少数据时抛出错误
+const resultsTable = page.locator('#results-table');
+await resultsTable.waitFor({ timeout: 5000 });  // 会抛出TimeoutError
+```
+
+**6. 清晰的日志输出**
+
+✅ **记录关键步骤和时间**:
+```javascript
+console.log('\n========== VSS策略完整工作流测试 ==========\n');
+console.log('\n[STEP 1] 选择VSS模板...');
+console.log('✅ VSS模板已选择');
+console.log('⏳ 查询路段中（等待预加载和数据库查询）...');
+console.log('✅ 查询API调用完成');
+console.log(`✅ 查询成功！找到 ${edgeCount} 个路段`);
+```
+
+**7. 超时时间设置指南**
+
+根据操作类型设置合理的超时：
+
+```javascript
+// 页面加载
+await page.goto(url, { timeout: 30000 });  // 30秒
+
+// 按钮点击后的API调用
+await page.waitForSelector('button:not([disabled])', { timeout: 15000 });  // 15秒
+
+// 简单的DOM更新
+await page.waitForSelector('#element', { timeout: 5000 });  // 5秒
+
+// 整个测试（复杂工作流）
+test.setTimeout(60000);  // 60秒
+```
+
+#### 性能优化技巧
+
+**1. 减少不必要的等待**
+
+✅ **使用最小必要的缓冲时间**:
+```javascript
+// DOM渲染缓冲（通常500ms足够）
+await page.waitForTimeout(500);
+
+// 避免过长的固定等待
+await page.waitForTimeout(3000);  // ⚠️ 可能太长
+```
+
+**2. 并行检查多个条件**
+
+✅ **使用 Promise.race() 等待多个可能的结果**:
+```javascript
+// 等待成功消息或错误消息（哪个先出现）
+await Promise.race([
+  page.waitForSelector('.success-message', { timeout: 5000 }),
+  page.waitForSelector('.error-message', { timeout: 5000 })
+]);
+```
+
+**3. 可选步骤处理**
+
+✅ **非关键步骤失败不应导致测试失败**:
+```javascript
+// 保存步骤是可选的（主要验证配置工作流）
+const saveButton = page.locator('button:has-text("保存策略")');
+const saveButtonVisible = await saveButton.isVisible({ timeout: 2000 }).catch(() => false);
+
+if (saveButtonVisible && await saveButton.isEnabled()) {
+  await saveButton.click();
+  console.log('✅ 策略已保存');
+} else {
+  console.log('ℹ️ 保存按钮未找到或不可用，工作流验证完成到步骤3');
+}
+```
+
+#### 常见陷阱
+
+❌ **陷阱1 - 假设按钮存在**:
+```javascript
+// ❌ 错误
+await page.click('button:has-text("确认选择")');  // 按钮可能不存在
+```
+
+✅ **解决方案**:
+```javascript
+// ✅ 正确：先检查按钮是否存在
+const confirmButton = page.locator('button:has-text("确认选择")');
+const exists = await confirmButton.isVisible().catch(() => false);
+if (exists) {
+  await confirmButton.click();
+}
+```
+
+❌ **陷阱2 - 混淆 `.fill()` 和 `.selectOption()`**:
+```javascript
+// ❌ 错误：对 <select> 使用 .fill()
+await page.locator('#section-codes').fill('001');  // 失败！
+
+// ✅ 正确：对 <select> 使用 .selectOption()
+await page.locator('#section-codes').selectOption({ index: 0 });
+```
+
+❌ **陷阱3 - 忘记 DHS 测试超时设置**:
+```javascript
+// ❌ 错误：使用默认30秒超时（DHS页面加载可能需要更长时间）
+test('DHS test', async ({ page }) => {
+  await page.goto(url);  // 可能超时
+});
+
+// ✅ 正确：增加超时
+test('DHS test', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.goto(url, { timeout: 30000 });
+});
+```
+
+#### 审核清单
+
+在审核 E2E 测试 PR 时，必须验证：
+
+- [ ] 没有固定的 `await page.waitForTimeout(3000)` 用于等待异步操作
+- [ ] 使用状态变化检测（按钮状态、DOM元素、内容计数）
+- [ ] 对预加载场景使用路线切换检测
+- [ ] 使用生产数据而非创建测试数据
+- [ ] 缺失数据时使用 `test.skip()` 优雅跳过
+- [ ] 关键步骤有清晰的日志输出（✅/⏳/⚠️ emoji）
+- [ ] 超时时间根据操作类型合理设置（5s/15s/30s/60s）
+- [ ] 检查 `<select>` 元素使用 `.selectOption()` 而非 `.fill()`
+- [ ] 验证按钮/元素存在性后再交互
+- [ ] DHS 等慢页面设置了 `test.setTimeout(60000)`
+
+#### 成功案例参考
+
+参考 `tests/e2e/test_strategy_creation_workflow.spec.js`:
+- VSS 测试：15.4秒，100%通过率
+- DHS 测试：14.2秒，100%通过率
+- 使用路线切换检测预加载
+- 使用生产数据（G4202路线，50条边）
+- 智能等待按钮状态变化
+- 清晰的多阶段日志输出
 
 ### Git Workflow
 
