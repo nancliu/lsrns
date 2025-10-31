@@ -41,13 +41,45 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     // 等待路由选择器加载
     await page.waitForSelector('#route-codes', { timeout: 10000 });
 
-    // 选择路线 G4202
-    await page.selectOption('#route-codes', 'G4202');
-    console.log('✅ 已选择路线: G4202');
+    // 检测路段缓存预加载是否完成（通过切换路线观察路段代码变化）
+    console.log('⏳ 检测路段缓存预加载状态...');
 
-    // 等待路段代码选项加载（根据路线自动填充）
-    await page.waitForTimeout(1000);
-    console.log('⏳ 等待路段代码选项加载...');
+    // 1. 先选择一个测试路线（非目标路线）
+    const routeOptions = await page.locator('#route-codes option').count();
+    if (routeOptions > 1) {
+      await page.selectOption('#route-codes', { index: 1 }); // 选择第一个非空选项
+      await page.waitForTimeout(500);
+
+      // 2. 检查路段代码下拉框是否有选项
+      const sectionSelect = page.locator('#section-codes');
+      const initialSectionCount = await sectionSelect.locator('option').count();
+
+      // 3. 切换到目标路线G4202
+      await page.selectOption('#route-codes', 'G4202');
+      await page.waitForTimeout(500);
+
+      // 4. 等待路段代码更新（最多5秒）
+      let sectionLoaded = false;
+      for (let i = 0; i < 10; i++) {
+        const currentSectionCount = await sectionSelect.locator('option').count();
+        if (currentSectionCount > 0 && currentSectionCount !== initialSectionCount) {
+          console.log(`✅ 路段缓存预加载完成（检测到 ${currentSectionCount} 个路段代码）`);
+          sectionLoaded = true;
+          break;
+        }
+        await page.waitForTimeout(500);
+      }
+
+      if (!sectionLoaded) {
+        console.warn('⚠️  路段代码未加载，可能预加载较慢，继续执行...');
+      }
+    } else {
+      // 直接选择G4202
+      await page.selectOption('#route-codes', 'G4202');
+      await page.waitForTimeout(1000);
+    }
+
+    console.log('✅ 已选择路线: G4202');
 
     // 设置桩号范围（根据您的建议：33-44）
     await page.fill('#min-stake', '33');
@@ -259,12 +291,41 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     console.log('\n[STEP 2] 选择路段...');
 
     await page.waitForSelector('#route-codes', { timeout: 10000 });
-    await page.selectOption('#route-codes', 'G4202');
-    console.log('✅ 已选择路线: G4202');
 
-    // 等待路段代码选项加载
-    await page.waitForTimeout(1000);
-    console.log('⏳ 等待路段代码选项加载...');
+    // 检测路段缓存预加载是否完成（通过切换路线观察路段代码变化）
+    console.log('⏳ 检测路段缓存预加载状态...');
+
+    const routeOptions = await page.locator('#route-codes option').count();
+    if (routeOptions > 1) {
+      await page.selectOption('#route-codes', { index: 1 });
+      await page.waitForTimeout(500);
+
+      const sectionSelect = page.locator('#section-codes');
+      const initialSectionCount = await sectionSelect.locator('option').count();
+
+      await page.selectOption('#route-codes', 'G4202');
+      await page.waitForTimeout(500);
+
+      let sectionLoaded = false;
+      for (let i = 0; i < 10; i++) {
+        const currentSectionCount = await sectionSelect.locator('option').count();
+        if (currentSectionCount > 0 && currentSectionCount !== initialSectionCount) {
+          console.log(`✅ 路段缓存预加载完成（检测到 ${currentSectionCount} 个路段代码）`);
+          sectionLoaded = true;
+          break;
+        }
+        await page.waitForTimeout(500);
+      }
+
+      if (!sectionLoaded) {
+        console.warn('⚠️  路段代码未加载，可能预加载较慢，继续执行...');
+      }
+    } else {
+      await page.selectOption('#route-codes', 'G4202');
+      await page.waitForTimeout(1000);
+    }
+
+    console.log('✅ 已选择路线: G4202');
 
     // 设置DHS特定筛选：最小车道数≥4（DHS要求）
     await page.fill('#min-lanes', '4');
