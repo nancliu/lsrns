@@ -30,14 +30,10 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
 
     await vssCard.click();
-    await page.waitForTimeout(500);
-
-    // 验证模板已选择
     console.log('✅ VSS模板已选择');
 
-    // 进入步骤2 - 点击下一步按钮
-    await page.click('#step1-next, button:has-text("下一步")');
-    await page.waitForTimeout(1000);
+    // 等待自动跳转到步骤2（选择模板后自动跳转）
+    await page.waitForTimeout(500);
 
     // ========== STEP 2: 选择路段 ==========
     console.log('\n[STEP 2] 选择路段...');
@@ -234,11 +230,10 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
 
     await dhsCard.click();
-    await page.waitForTimeout(500);
     console.log('✅ DHS模板已选择');
 
-    await page.click('#step1-next, button:has-text("下一步")');
-    await page.waitForTimeout(1000);
+    // 等待自动跳转到步骤2
+    await page.waitForTimeout(500);
 
     // STEP 2: 选择路段
     console.log('\n[STEP 2] 选择路段...');
@@ -353,11 +348,10 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
 
     await tecCard.click();
-    await page.waitForTimeout(500);
     console.log('✅ TEC模板已选择');
 
-    await page.click('#step1-next, button:has-text("下一步")');
-    await page.waitForTimeout(1000);
+    // 等待自动跳转到步骤2
+    await page.waitForTimeout(500);
 
     // STEP 2: 选择入口/路段
     console.log('\n[STEP 2] 选择入口...');
@@ -443,9 +437,9 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
 
     await vssCard.click();
+
+    // 等待自动跳转到步骤2
     await page.waitForTimeout(500);
-    await page.click('#step1-next, button:has-text("下一步")');
-    await page.waitForTimeout(1000);
 
     // 选择路段
     await page.waitForSelector('#route-codes', { timeout: 10000 });
@@ -518,9 +512,9 @@ test.describe('策略创建工作流 - 完整端到端测试', () => {
     }
 
     await vssCard.click();
+
+    // 等待自动跳转到步骤2
     await page.waitForTimeout(500);
-    await page.click('#step1-next, button:has-text("下一步")');
-    await page.waitForTimeout(1000);
 
     // 快速选择路段
     await page.waitForSelector('#route-codes', { timeout: 10000 });
