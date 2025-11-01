@@ -1,0 +1,312 @@
+# 实施任务清单：策略参数配置前端重构
+
+## 阶段 1：准备与设计 (4h)
+
+- [ ] **Task 1.1**: 创建 E2E 测试基线
+  - 运行现有策略创建测试，记录当前行为
+  - 截图当前 UI 状态（VSS、TEC、DHS）
+  - 验证：所有现有测试通过
+  - 文件：`tests/e2e/baseline_strategy_creation.md`
+
+- [ ] **Task 1.2**: CSS 变量扩展
+  - 在 `frontend/control/css/variables.css` 添加表单相关变量
+  - 定义：`--form-spacing-*`, `--input-width-*`, `--button-min-width`
+  - 验证：无语法错误，其他页面不受影响
+  - 文件：`frontend/control/css/variables.css`
+
+- [ ] **Task 1.3**: 文档化当前数据流
+  - 记录 Step 2 → Step 3 的数据传递方式
+  - 记录当前参数提取逻辑 (`extractFormParameters`)
+  - 验证：文档准确反映代码
+  - 文件：`docs/frontend_analysis/parameter_form_data_flow.md`
+
+## 阶段 2：代码重构（无功能变更） (12h)
+
+- [ ] **Task 2.1**: 合并时间轴更新函数
+  - 创建 `updateTimeline(tbody, config)` 统一函数（参数化配置）
+  - 创建 `TIMELINE_CONFIGS` 预设配置对象（vss, dhs, tec_simple）
+  - 创建 `updateTimelineByType(tbody, type)` 简化调用函数
+  - 删除 4 个旧函数：`updateTimelineFromTable`, `updateDHSTimelineFromTable`, `updateFlowTimelineFromTable`, `updateTECTimelineFromTable`
+  - 替换所有旧函数调用点为 `updateTimelineByType(tbody, 'vss'|'dhs'|'tec_simple')`
+  - 运行 E2E 测试验证 VSS、DHS、TEC 时间轴更新正常
+  - 验证：时间轴更新功能无回归，保持 `TimelineVisualizer.updateTimeline()` 不变
+  - 参考：`TIMELINE_CLARIFICATION.md` 中的合并方案
+  - 文件：`frontend/control/js/parameter_form.js:39-95`
+
+- [ ] **Task 2.2**: 合并行添加函数
+  - 创建 `addRow(tbody, config)` 统一函数
+  - 创建辅助函数 `getColumnsForRowType()`, `createCell()`
+  - 替换 `addDHSIntervalRow`, `addFlowIntervalRow`, `addTECIntervalRow`
+  - 运行 E2E 测试验证
+  - 验证：表格行添加功能无回归
+  - 文件：`frontend/control/js/parameter_form.js:834-1400`
+
+- [ ] **Task 2.3**: 提取验证函数
+  - 创建 `validators` 对象（`timeOrder`, `timeRange`, `speedRange`）
+  - 创建 `showError(input, message)` 和 `clearError(input)`
+  - 替换分散的验证逻辑
+  - 验证：验证逻辑功能一致
+  - 文件：`frontend/control/js/parameter_form.js` 顶部新增区域
+
+- [ ] **Task 2.4**: 代码分区注释
+  - 添加明确的区域注释（工具、加载、渲染等）
+  - 调整函数顺序按区域分组
+  - 更新函数 JSDoc 注释
+  - 验证：代码可读性提升，无语法错误
+  - 文件：`frontend/control/js/parameter_form.js`
+
+## 阶段 3：UI 布局改进 (8h)
+
+- [ ] **Task 3.1**: 修复策略名称/描述布局
+  - 在 `templates-forms.css` 添加 `.flex-start` 样式规则
+  - 设置按钮 `flex-shrink: 0` 和 `min-width`
+  - 添加响应式规则（768px 断点）
+  - 验证：桌面和移动端布局正常
+  - 文件：`frontend/control/css/templates-forms.css`
+
+- [ ] **Task 3.2**: 统一参数表单间距
+  - 为所有 `.form-group` 使用统一的 `margin-bottom`
+  - 为表格添加统一的 `margin-top` 和 `padding`
+  - 调整时间轴与表格的间距
+  - 验证：VSS、TEC、DHS 间距一致
+  - 文件：`frontend/control/css/templates-forms.css`
+
+- [ ] **Task 3.3**: 添加响应式设计
+  - 为窄屏（<768px）添加媒体查询
+  - 按钮容器改为垂直布局
+  - 表格横向滚动
+  - 验证：移动设备模拟测试通过
+  - 文件：`frontend/control/css/templates-forms.css`
+
+- [ ] **Task 3.4**: 修复表格列宽
+  - 为时间列、速度列、操作列设定固定宽度
+  - 使用 `table-layout: fixed` 确保列宽一致
+  - 验证：所有策略类型表格列宽一致
+  - 文件：`frontend/control/css/templates-forms.css`
+
+## 阶段 4：模板默认值加载 (6h)
+
+- [ ] **Task 4.1**: 创建 `initializeDefaultValues()` 函数
+  - 实现基础类型初始化（number, string, enum）
+  - 实现数组类型初始化（step_array, interval_array）
+  - 添加错误处理和日志
+  - 验证：单元测试通过
+  - 文件：`frontend/control/js/parameter_form.js`
+
+- [ ] **Task 4.2**: 集成到 `generateFormFromTemplate()`
+  - 在表单生成后调用 `initializeDefaultValues()`
+  - 传递 `param.default_value` 和 `param.parameter_type`
+  - 处理 `default_value` 为 null 的情况
+  - 验证：表单打开时显示初始数据
+  - 文件：`frontend/control/js/parameter_form.js:105-184`
+
+- [ ] **Task 4.3**: 修复参数约束显示
+  - 确保必填字段显示红色 `*`
+  - 在 Hint 中显示范围和单位
+  - 从 `schema.constraints` 动态生成提示
+  - 验证：所有约束信息正确显示
+  - 文件：`frontend/control/js/parameter_form.js:766-850`
+
+## 阶段 5：时间语义明确化 (4h)
+
+- [ ] **Task 5.1**: 更新 VSS 表格列标签
+  - 列标签改为：`时间(小时)` | `限速(km/h)` | `操作`
+  - 添加 Hint：`时刻表示，例如 7 表示 7:00 开始`
+  - 验证：UI 标签清晰
+  - 文件：`frontend/control/js/parameter_form.js:577-658`
+
+- [ ] **Task 5.2**: 更新 TEC/DHS 表格列标签
+  - 列标签改为：`开始时间(小时)` | `结束时间(小时)` | `[状态/流量]` | `操作`
+  - 添加 Hint：`时段表示，例如 7-9 表示 7:00-9:00`
+  - 验证：UI 标签清晰
+  - 文件：`frontend/control/js/parameter_form.js:734-825, 991-1080`
+
+- [ ] **Task 5.3**: 调整时间轴可视化
+  - VSS 使用点状标记（`type: 'point'`）
+  - TEC/DHS 使用段状着色（`type: 'segment'`）
+  - 更新 `TimelineVisualizer.updateTimeline()` 调用
+  - 验证：时间轴视觉符合语义
+  - 文件：`frontend/control/js/timeline_visualizer.js` (如需修改)
+
+## 阶段 6：车型配置分离 (6h)
+
+- [ ] **Task 6.1**: 从 DHS/TEC 表格移除车型列
+  - 修改 `renderDHSIntervalControl()` 移除 `allowed_vehicle_types` 列
+  - 修改 `renderTECIntervalControl()` 移除车型相关列
+  - 更新 `addRow()` 配置移除车型字段
+  - 验证：表格中无车型列
+  - 文件：`frontend/control/js/parameter_form.js:720-1400`
+
+- [ ] **Task 6.2**: 创建全局车型配置区域
+  - 提取 [parameter_form.js:2142-2217] 的车型UI
+  - 移到表单顶部（策略名称/描述之后）
+  - 确保在所有策略类型中显示
+  - 验证：车型配置区域独立显示
+  - 文件：`frontend/control/js/parameter_form.js`
+
+- [ ] **Task 6.3**: 动态标签和提示
+  - 检测 `allowed_vehicle_types` 或 `disallow_vehicle_types`
+  - 动态设置标签：`允许的车型` vs `禁止的车型`
+  - 动态设置 Hint：`仅这些车型...` vs `这些车型禁止...`
+  - 验证：标签和提示符合参数类型
+  - 文件：`frontend/control/js/parameter_form.js:2142-2217`
+
+- [ ] **Task 6.4**: 更新提交逻辑
+  - 修改 `extractFormParameters()` 根据参数名转换车型数据
+  - `allowed_vehicle_types` → 勾选的车型
+  - `disallow_vehicle_types` → 勾选的车型
+  - 验证：策略实例 JSON 正确
+  - 文件：`frontend/control/js/parameter_form.js:2217-2250`
+
+## 阶段 7：路段来源统一 (4h)
+
+- [ ] **Task 7.1**: 隐藏旧的 `affected_edges` 输入框
+  - 在 `generateFormFromTemplate()` 中跳过这些参数
+  - 添加注释说明从 Step 2 获取
+  - 验证：Step 3 不显示路段输入框
+  - 文件：`frontend/control/js/parameter_form.js:750-850` (templates.html:753 已存在)
+
+- [ ] **Task 7.2**: 显示 Step 2 路段只读列表
+  - 从 `sessionStorage` 获取 `strategy_selected_edges`
+  - 创建只读表格显示路段信息
+  - 表格列：Edge ID、路线、路段代码、桩号、方向
+  - 验证：路段列表正确显示
+  - 文件：`frontend/control/js/parameter_form.js`, `frontend/control/templates.html`
+
+- [ ] **Task 7.3**: 添加"返回修改路段"按钮
+  - 在路段列表下方添加按钮
+  - 点击返回 Step 2
+  - 验证：按钮功能正常
+  - 文件：`frontend/control/templates.html`
+
+## 阶段 8：验证和提示改进 (4h)
+
+- [ ] **Task 8.1**: 实现时间顺序验证
+  - 在 `endInput` blur 事件绑定 `validators.timeOrder`
+  - 显示错误提示：`showError(input, message)`
+  - 添加视觉错误状态（红色边框）
+  - 验证：输入非法顺序时显示错误
+  - 文件：`frontend/control/js/parameter_form.js`
+
+- [ ] **Task 8.2**: 实现数值范围验证
+  - 绑定 `validators.timeRange` 和 `validators.speedRange`
+  - 从 schema 读取 min/max 值
+  - 显示错误提示
+  - 验证：范围外输入显示错误
+  - 文件：`frontend/control/js/parameter_form.js`
+
+- [ ] **Task 8.3**: 添加删除确认对话框
+  - 在删除按钮 click 事件添加 `confirm()`
+  - 提示：`确定要删除这一行吗？`
+  - 用户取消时不删除
+  - 验证：删除前有确认
+  - 文件：`frontend/control/js/parameter_form.js`
+
+- [ ] **Task 8.4**: 优化 Hint 文本
+  - 分离参数级Hint（`generateParameterHint()`）
+  - 分离控制级Hint（`controlHints` 对象）
+  - 避免重复，使用 `·` 分隔
+  - 验证：Hint 清晰、不重复
+  - 文件：`frontend/control/js/parameter_form.js:658, 825, 1080`
+
+## 阶段 9：测试与文档 (8h)
+
+- [ ] **Task 9.1**: 更新 E2E 测试
+  - 更新策略创建测试以匹配新UI
+  - 添加验证测试（时间顺序、范围）
+  - 添加车型配置测试
+  - 验证：所有 E2E 测试通过
+  - 文件：`tests/e2e/test_strategy_creation_workflow.spec.js`
+
+- [ ] **Task 9.2**: 添加单元测试
+  - 测试 `validators` 函数
+  - 测试 `initializeDefaultValues()`
+  - 测试 `updateTimeline()` 和 `addRow()`
+  - 验证：代码覆盖率 >80%
+  - 文件：`tests/unit/frontend/test_parameter_form.js` (新建)
+
+- [ ] **Task 9.3**: 手动测试所有策略类型
+  - 创建 VSS 策略（时刻）
+  - 创建 TEC 策略（时段）
+  - 创建 DHS 策略（时段）
+  - 验证表单布局、默认值、车型、路段、时间轴
+  - 文档：`docs/frontend_analysis/manual_test_checklist.md`
+
+- [ ] **Task 9.4**: 更新前端重构进度文档
+  - 在 `REFACTORING_PROGRESS.md` 标记已完成任务
+  - 更新技术债务估算（应减少 ~200 行重复代码）
+  - 记录下一步计划
+  - 文件：`docs/frontend_analysis/REFACTORING_PROGRESS.md`
+
+- [ ] **Task 9.5**: 编写用户文档
+  - 更新策略创建指南
+  - 说明时间语义（时刻 vs 时段）
+  - 说明车型配置逻辑
+  - 文件：`docs/user_guides/strategy_creation_guide.md`
+
+## 阶段 10：验收与归档 (2h)
+
+- [ ] **Task 10.1**: 性能测试
+  - 测试大量路段（100+）加载性能
+  - 测试表格操作响应时间
+  - 验证：无明显性能退化
+  - 文档：性能基准
+
+- [ ] **Task 10.2**: 浏览器兼容性测试
+  - 测试 Chrome、Edge、Firefox
+  - 测试移动端 Safari（响应式）
+  - 验证：所有浏览器正常
+  - 文档：兼容性报告
+
+- [ ] **Task 10.3**: 代码审查
+  - 团队审查重构代码
+  - 检查函数长度、复杂度
+  - 确认符合 CLAUDE.md 标准
+  - 验证：审查通过
+
+- [ ] **Task 10.4**: 合并与部署
+  - 创建 PR：`refactor: 策略参数配置前端重构`
+  - 运行 CI/CD 流程
+  - 合并到 main 分支
+  - 验证：生产环境正常
+
+- [ ] **Task 10.5**: 归档变更
+  - 运行 `openspec archive refactor-strategy-parameter-configuration`
+  - 更新 specs（如有变更）
+  - 更新 project.md 记录重构
+  - 验证：归档完成
+
+## 依赖关系
+
+**并行任务**：
+- 阶段 1 所有任务可并行
+- 阶段 3 所有任务可并行
+- 阶段 9.1-9.3 可并行
+
+**顺序依赖**：
+- 阶段 2 必须在阶段 3-8 之前（重构为基础）
+- 阶段 4-8 可以部分并行但需要阶段 2 完成
+- 阶段 9 必须在阶段 2-8 全部完成后
+- 阶段 10 必须在阶段 9 完成后
+
+## 估算汇总
+
+- 阶段 1: 4h
+- 阶段 2: 12h
+- 阶段 3: 8h
+- 阶段 4: 6h
+- 阶段 5: 4h
+- 阶段 6: 6h
+- 阶段 7: 4h
+- 阶段 8: 4h
+- 阶段 9: 8h
+- 阶段 10: 2h
+
+**总计**: 58h (~7.5 工作日)
+
+## 备注
+
+- 每完成一个阶段，运行完整的 E2E 测试套件
+- 每个 Task 完成后提交独立 commit
+- 遇到阻塞问题立即记录并寻求帮助
+- 优先级：P0 任务优先，P1 任务其次

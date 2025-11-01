@@ -6,6 +6,26 @@
   "version": "2.1",
   "parameters_schema": [
     {
+      "parameter_name": "affected_edges",
+      "parameter_type": "edge_array",
+      "description": "受应急车道控制影响的路段edge ID列表（应形成连续区间）",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "edges (直接使用)"
+    },
+    {
+      "parameter_name": "hard_shoulder_lane_index",
+      "parameter_type": "integer",
+      "description": "应急车道索引（SUMO中索引0为最右侧车道，即硬路肩）",
+      "required": false,
+      "default_value": 0,
+      "min_value": 0,
+      "max_value": 7,
+      "unit": null,
+      "note": "SUMO车道编号：0=最右侧（硬路肩），递增向左。4车道公路中：0为硬路肩，3为最左侧车道"
+    },
+    {
       "parameter_name": "intervals",
       "parameter_type": "dhs_interval_array",
       "description": "5个及以上精确的时间段定义（最少5个），必须完整覆盖24小时（0-24），无缝隙或重叠",
@@ -19,7 +39,7 @@
     {
       "parameter_name": "allowed_vehicle_types",
       "parameter_type": "enum_array",
-      "description": "开放时允许的车辆类型（可根据特定interval调整）",
+      "description": "应急车道开放时允许通行的车辆类型（全局默认值，可被时间区间的值覆盖）",
       "required": false,
       "default_value": [
         "passenger",
@@ -46,7 +66,8 @@
           "label": "应急车"
         }
       ],
-      "sumo_mapping": "allow 属性"
+      "sumo_mapping": "allow 属性",
+      "note": "此参数定义应急车道开放时的默认允许车型。实际使用时，每个时间区间可设置自己的allowed_vehicle_types"
     }
   ],
   "creation_guidance": {

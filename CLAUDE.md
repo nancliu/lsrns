@@ -314,6 +314,72 @@ cases/{case_id}/
 - Relative paths for storage in metadata/config files
 - Convert Windows paths correctly for SUMO (it accepts Windows paths)
 
+## Project Root Directory Policy
+
+**RULE-ROOT-001**: The project root directory MUST remain clean and contain only essential project files.
+
+### Allowed Files in Root
+
+**Configuration & Documentation**:
+- `CLAUDE.md` - AI assistant development guide
+- `AGENTS.md` - OpenSpec agent instructions
+- `README.md` - Project documentation
+- `.gitignore`, `.env` - Git and environment configuration
+- `requirements.txt`, `package.json` - Dependency manifests
+
+**Build & Startup Scripts**:
+- `start_api.*` (bat, ps1, sh) - API server startup scripts
+- Build/deployment scripts (if applicable)
+
+### Prohibited in Root
+
+❌ **Intermediate artifacts** - Analysis reports, debug logs, temporary files
+❌ **Generated documentation** - Session summaries, completion reports, guides
+❌ **Test scripts** - Ad-hoc test files, debugging scripts
+❌ **Code files** - Python/JavaScript modules (belong in `api/`, `shared/`, `frontend/`)
+❌ **Log files** - Runtime logs, test outputs
+
+### File Organization Rules
+
+1. **Analysis & Documentation** → `docs/` with appropriate subdirectory:
+   - Session summaries → `docs/session-summaries/`
+   - Testing guides → `docs/testing/`
+   - Feature docs → `docs/features/`
+   - Development guides → `docs/development/`
+   - Refactoring notes → `docs/refactoring/`
+
+2. **Test Files** → `tests/` or `test-results/`:
+   - E2E test specs → `tests/e2e/`
+   - Unit tests → `tests/unit/`
+   - Test outputs → `test-results/`
+
+3. **Generated Code** → Module-specific directories:
+   - API code → `api/`
+   - Shared utilities → `shared/`
+   - Frontend code → `frontend/`
+
+4. **Temporary Files** → `.gitignore` and use appropriate temp directory:
+   - Logs → `logs/` (git-ignored)
+   - Debug outputs → `debug/` or `test-results/` (git-ignored)
+
+5. **Version Archives** → `archive/`
+
+### Enforcement
+
+- **Pre-commit**: Review root directory for new files
+- **Code review**: Check PR file tree for root-level additions
+- **CI/CD**: Automated check to reject commits with unauthorized root files
+- **Periodic cleanup**: Monthly review to move/delete misplaced files
+
+### Rationale
+
+Maintaining a clean root directory:
+- ✅ Improves project navigation and discoverability
+- ✅ Reduces cognitive load for developers
+- ✅ Prevents version control clutter
+- ✅ Enforces consistent file organization
+- ✅ Simplifies onboarding for new team members
+
 ## Database Access
 
 ### Configuration
@@ -362,48 +428,59 @@ psql -h 10.149.235.123 -U ln -d sdzg -c "\dt baseline.*"
 - **baseline**: Baseline traffic flow data (gantry patterns, OD patterns, toll square patterns)
 - Other schemas contain additional traffic data
 
-### Database Performance
+### Database Performance Optimization (2025-11-01)
 
-**Performance Issue (Fixed 2025-10-22)**: Route selection causing 5+ second delay
+**Current Status**: Phase 2 Complete ✅ (**90% improvement**, far exceeded 70% target)
 
-**Root Causes Identified**:
+**Original Issue**: Route segment query API taking 5.4 seconds
 
-1. **Frontend**: Unnecessary `updateDirectionOptions()` API call on every route selection
-   - Called `GET /api/v1/control/edges/query` with complex 3-table JOIN
-   - Added 2-4 seconds delay just to populate direction dropdown
-2. **Database**: Missing indexes on `dim.sim_network_edges` table (`route_code`, `section_code`)
-3. **Database**: Missing indexes on JOIN tables (`multiscale_node_units`, `point_gantry`)
-4. **Connection**: Using `open_db_connection()` (new connection each time) instead of pooling
+**Performance Phases**:
 
-**Solutions Applied**:
+#### Phase 1: Connection Pooling ✅ (Completed 2025-10-22)
+- Migrated from `open_db_connection()` to `get_pooled_connection()`
+- Created `PooledConnectionWrapper` adapter for SQLAlchemy-to-psycopg2 compatibility
+- **Improvement**: 150-200ms per query (eliminated TCP connection + authentication overhead)
+- **Files**: `shared/data_access/connection.py`, `shared/data_access/edge_query.py`
 
-1. **Frontend Optimization** (`frontend/control/js/edge_selector_embedded.js`):
+#### Phase 2: Separate Queries ✅ (Completed 2025-11-01) - SUPER EFFECTIVE!
+**New approach: Break 3-table JOIN into 3 simple queries + Python merging**
 
-   - Removed dynamic direction query from `updateDirectionOptions()`
-   - Implemented static route classification based on network topology:
-     - **Ring expressways** (SA2, G4202): Show clockwise/counterclockwise
-     - **Linear highways** (other routes): Show upstream/downstream
-   - Instant response (0ms) with correct direction options per route type
-2. **Database Indexes** (`database/migrations/004_add_edge_query_indexes.sql`):
+Implemented 3 new functions in `shared/data_access/edge_query.py`:
+1. `query_edges_base()` - Edge data filtering without JOIN (~500ms)
+2. `get_node_types_batch()` - Batch node type lookup (~20ms)
+3. `get_gantry_info_batch()` - Batch gantry query + Python matching (~19ms)
 
-   - `idx_sim_network_edges_route_code` - For route filtering
-   - `idx_sim_network_edges_section_code` - For section grouping
-   - `idx_sim_network_edges_route_section` - Composite index for common query pattern
-   - `idx_sim_network_edges_demonstration_id` - Partial index for demonstration queries
-   - `idx_multiscale_node_units_junction_id` - For JOIN optimization
-   - `idx_point_gantry_route_stake` - For gantry range queries
+**Results**:
+- Query response: 5440ms → **539ms** ✅
+- **Performance improvement: 90%** (exceeded 37% target by 2.5x!)
+- All E2E tests passing
+- Fully backward compatible
+- **Why so fast**: Eliminated complex JOIN execution plan, GROUP BY overhead, and DISTINCT operations
 
-**Performance Improvement**:
+#### Phase 3: Result Caching ⏳ (Planned)
+- Implement LRU cache with 5-minute TTL
+- Expected additional improvement: 60-80% (70% cache hit rate)
+- Expected final response: ~160ms (**97% total improvement**)
+- **Plan**: [DATABASE_OPTIMIZATION_PHASE3_PLAN.md](./DATABASE_OPTIMIZATION_PHASE3_PLAN.md)
 
-- **Before**: 5-10 seconds total (2-4s frontend delay + 3-6s database query)
-- **After**: <500ms total (<100ms frontend + <400ms database with indexes)
-- **User Experience**: Near-instant section dropdown population
+#### Phase 4: Index Optimization ⏳ (Optional)
+- Additional index tuning (marginal gains at this point)
+- Phase 2 performance already excellent
+- **Priority**: Low
 
-**Future Optimizations** (if needed):
+**Overall Performance Achievement**:
 
-1. Migrate `edge_query.py` functions to use `get_pooled_connection()` from `connection.py`
-2. Add query result caching (Redis or in-memory LRU cache)
-3. Add database query monitoring/logging for slow queries (>2s threshold)
+| Metric | Original | Phase 1 | Phase 2 | Target | Status |
+|--------|----------|---------|---------|--------|--------|
+| Query time | 5440ms | 5250ms | 539ms | <2000ms | ✅ Exceeded |
+| Improvement | 0% | 3% | 90% | 70% | ✅ Exceeded |
+| User experience | 5-10s | 5-10s | <600ms | Good | ✅ Excellent |
+
+**Documentation**:
+- [DATABASE_OPTIMIZATION_SUMMARY.md](./DATABASE_OPTIMIZATION_SUMMARY.md) - Overall strategy
+- [DATABASE_OPTIMIZATION_PHASE2_COMPLETE.md](./DATABASE_OPTIMIZATION_PHASE2_COMPLETE.md) - Phase 2 details
+- [PHASE2_SESSION_SUMMARY.md](./PHASE2_SESSION_SUMMARY.md) - Implementation summary
+- [DATABASE_OPTIMIZATION_PHASE3_PLAN.md](./DATABASE_OPTIMIZATION_PHASE3_PLAN.md) - Phase 3 plan
 
 ## Control Strategies - Real Data Analysis
 
@@ -655,6 +732,76 @@ async function handleFormSubmit(e) {
 - **Avoid God Files**: Files >300 lines should be split into smaller modules
 - **Clear Exports**: Export only necessary functions
 - **Dependency Management**: Minimize cross-file dependencies
+
+### Frontend Data Rules: No Hardcoded Data & No Duplicate Code
+
+**RULE-FE-001**: Frontend code MUST NOT hardcode data or duplicate functionality.
+
+**Core Rules**:
+
+1. **No Hardcoded Example Data in HTML**
+   - ❌ Prohibited: `placeholder="7"`, `placeholder="9"`, `placeholder="400"` (hardcoded values)
+   - ✅ Allowed: `placeholder="例如: 7:00"` (format hints only)
+   - ✅ All initial data MUST come from `schema.default_value` in template JSON
+   - ✅ Use `value="..."` attribute for actual data, not `placeholder`
+
+2. **Single Source of Truth - No Code Duplication**
+   - ❌ Prohibited: Same function implemented in both `templates.html` AND `parameter_form.js`
+   - ❌ Prohibited: Different versions of `addFlowIntervalRow()` in multiple files
+   - ✅ Required: Each functionality has ONE implementation location
+   - ✅ Example: Parameter form generation lives ONLY in `parameter_form.js`, not duplicated in HTML
+
+3. **Data Source Traceability**
+   - ✅ Every data value must be traceable to its origin (template `default_value`)
+   - ✅ Code MUST have comments explaining where data comes from
+   - ❌ Prohibited: Magic numbers with unknown origins
+   - Example:
+     ```javascript
+     // ✅ CORRECT - Data source is clear
+     const defaultIntervals = schema.default_value || [];  // From template
+     defaultIntervals.forEach(interval => {
+         addFlowIntervalRow(
+             tbody,
+             paramName,
+             interval.begin_hours,    // ← From template's default_value
+             interval.end_hours,      // ← From template's default_value
+             interval.flow_vph,       // ← From template's default_value
+             interval.target_speed    // ← From template's default_value
+         );
+     });
+     ```
+
+4. **Parameterized Functions - Not Hardcoded Values**
+   - ✅ Functions accept parameters for all variable data
+   - ✅ Example:
+     ```javascript
+     // ✅ CORRECT - All data comes from parameters
+     function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, targetSpeed) {
+         const row = document.createElement("tr");
+         const beginInput = document.createElement("input");
+         beginInput.value = beginHours;  // ← Parameter-driven
+         // ... rest of fields ...
+     }
+     ```
+   - ❌ Wrong approach (hardcoded in HTML template string):
+     ```javascript
+     // ❌ WRONG - Hardcoded values, no parameters
+     function addFlowIntervalRow(tbody) {
+         row.innerHTML = `<input placeholder="7" />`;  // ← Hardcoded!
+     }
+     ```
+
+**Code Review Checklist for Frontend**:
+
+Before approving frontend PRs, verify:
+- [ ] No hardcoded numeric values in `placeholder` attributes
+- [ ] No duplicate function definitions (search both HTML and JS)
+- [ ] All initial data loads from template's `default_value`, not hardcoded
+- [ ] Functions are parameterized (accept data as arguments)
+- [ ] Data source is documented in comments
+- [ ] Use `value` attribute for actual data, not `placeholder`
+
+**Impact**: Violations cause incorrect data display, maintenance issues, and inconsistent behavior across features.
 
 ## Code Standards from Cursor Rules
 

@@ -6,9 +6,83 @@
   "version": "2.1",
   "parameters_schema": [
     {
+      "parameter_name": "affected_edges",
+      "parameter_type": "edge_array",
+      "description": "受应急车道控制影响的路段edge ID列表（应形成连续区间）",
+      "required": true,
+      "default_value": [],
+      "unit": null,
+      "sumo_mapping": "edges (直接使用)"
+    },
+    {
+      "parameter_name": "hard_shoulder_lane_index",
+      "parameter_type": "integer",
+      "description": "应急车道索引（SUMO中索引0为最右侧车道，即硬路肩）",
+      "required": false,
+      "default_value": 0,
+      "min_value": 0,
+      "max_value": 7,
+      "unit": null,
+      "note": "SUMO车道编号：0=最右侧（硬路肩），递增向左。4车道公路中：0为硬路肩，3为最左侧车道"
+    },
+    {
+      "parameter_name": "intervals",
+      "parameter_type": "dhs_interval_array",
+      "description": "应急车道开放/关闭的时间区间列表（注意：必须覆盖完整24小时，不能有时间重叠或间隙）",
+      "required": true,
+      "default_value": [
+        {
+          "begin_hours": 0,
+          "end_hours": 7,
+          "status": "CLOSED",
+          "allowed_vehicle_types": ["emergency"]
+        },
+        {
+          "begin_hours": 7,
+          "end_hours": 10,
+          "status": "OPEN",
+          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+        },
+        {
+          "begin_hours": 10,
+          "end_hours": 17,
+          "status": "CLOSED",
+          "allowed_vehicle_types": ["emergency"]
+        },
+        {
+          "begin_hours": 17,
+          "end_hours": 19,
+          "status": "OPEN",
+          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+        },
+        {
+          "begin_hours": 19,
+          "end_hours": 24,
+          "status": "CLOSED",
+          "allowed_vehicle_types": ["emergency"]
+        }
+      ],
+      "unit": null,
+      "constraints": {
+        "min_intervals": 1,
+        "max_intervals": 10,
+        "coverage": "应覆盖完整的24小时"
+      },
+      "interval_structure": {
+        "begin_display_unit": "hours",
+        "begin_sumo_unit": "seconds",
+        "begin_conversion_factor": 3600,
+        "end_display_unit": "hours",
+        "end_sumo_unit": "seconds",
+        "end_conversion_factor": 3600
+      },
+      "sumo_element": "interval",
+      "sumo_child_element": "closingLaneReroute"
+    },
+    {
       "parameter_name": "allowed_vehicle_types",
       "parameter_type": "enum_array",
-      "description": "应急车道开放时允许通行的车辆类型",
+      "description": "应急车道开放时允许通行的车辆类型（全局默认值，可被时间区间的值覆盖）",
       "required": false,
       "default_value": ["passenger", "bus", "truck", "emergency"],
       "unit": null,
@@ -18,9 +92,10 @@
         {"value": "truck", "label": "货车"},
         {"value": "emergency", "label": "应急车"}
       ],
+      "note": "此参数定义应急车道开放时的默认允许车型。实际使用时，每个时间区间可设置自己的allowed_vehicle_types",
       "sumo_mapping": "allow 属性"
     }
   ],
   "created_at": "2025-10-19T00:00:00Z",
-  "updated_at": "2025-10-29T00:00:00Z"
+  "updated_at": "2025-10-31T14:00:00Z"
 }

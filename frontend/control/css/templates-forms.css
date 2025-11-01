@@ -327,3 +327,219 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ==================== Parameter Control Styles (Phase 5: CSS Consolidation) ==================== */
+
+/* Parameter Control Container */
+.param-control-group {
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.param-control-wrapper {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 16px;
+}
+
+/* Labels */
+.param-control-group label,
+.param-control-wrapper label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.param-control-group label .required,
+.param-control-wrapper label .required {
+    color: #e74c3c;
+    margin-left: 2px;
+}
+
+/* Input Fields */
+.param-control-group input[type="text"],
+.param-control-group input[type="number"],
+.param-control-group select,
+.param-control-group textarea,
+.param-control-wrapper input[type="text"],
+.param-control-wrapper input[type="number"],
+.param-control-wrapper select,
+.param-control-wrapper textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.input-field-standard {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Number Input Wrapper */
+.number-input-wrapper {
+    display: block;
+    width: 100%;
+}
+
+/* Table Controls */
+.param-table,
+.step-array-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    margin: 10px 0;
+}
+
+.param-table th,
+.param-table td,
+.step-array-table th,
+.step-array-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.param-table th,
+.step-array-table th {
+    background: #f0f0f0;
+    font-weight: 600;
+}
+
+.step-row {
+    border-bottom: 1px solid #ddd;
+}
+
+.step-row td {
+    padding: 8px;
+}
+
+/* Table Cell Utilities */
+.table-cell-basic {
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+.table-cell-center {
+    text-align: center;
+}
+
+.table-cell-fixed-center {
+    width: 100px;
+    text-align: center;
+}
+
+.table-row-alt {
+    background: #f0f0f0;
+}
+
+.p-8 {
+    padding: 8px;
+}
+
+/* Buttons */
+.btn-add-interval {
+    padding: 8px 12px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.btn-add-interval:hover {
+    background: #2980b9;
+}
+
+.btn-delete,
+.delete-row {
+    padding: 6px 12px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-delete:hover,
+.delete-row:hover {
+    background: #c0392b;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* Interval Buttons Container */
+.interval-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+/* Step Array Control Enhanced */
+.step-array-control-enhanced {
+    margin-bottom: 20px;
+}
+
+/* Timeline Description */
+.timeline-description {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #f9f9f9;
+    border-left: 3px solid #3498db;
+    border-radius: 4px;
+}
+
+/* Config Hint */
+.config-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .param-control-group,
+    .param-control-wrapper {
+        padding: 10px;
+    }
+
+    .param-table,
+    .step-array-table {
+        font-size: 12px;
+        overflow-x: auto;
+        display: block;
+    }
+
+    .param-table th,
+    .param-table td,
+    .step-array-table th,
+    .step-array-table td {
+        padding: 6px;
+    }
+
+    .btn-add-interval {
+        width: 100%;
+        padding: 10px;
+    }
+}

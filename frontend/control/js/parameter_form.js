@@ -991,20 +991,12 @@ function renderFlowIntervalControl(paramName, schema) {
       description.textContent = schema.description || "收费站流量控制时间区间列表";
       container.appendChild(description);
 
-      // 使用默认值，或提供示例区间（如果没有默认值）
-      const displayIntervals = defaultIntervals.length > 0 ? defaultIntervals : [
-        { begin_hours: 0, end_hours: 6, vehsPerHour: 600 },
-        { begin_hours: 6, end_hours: 10, vehsPerHour: 400 },
-        { begin_hours: 10, end_hours: 16, vehsPerHour: 500 },
-        { begin_hours: 16, end_hours: 20, vehsPerHour: 300 },
-        { begin_hours: 20, end_hours: 24, vehsPerHour: 600 }
-      ];
-
-      // 渲染时间轴（需要先转换数据格式）
-      const intervalsForTimeline = displayIntervals.map(interval => ({
+      // [FIXED] 统一数据格式：确保所有区间使用 flow_vph 字段
+      // 直接使用来自模板的 default_value，不硬编码任何示例数据
+      const intervalsForTimeline = defaultIntervals.map(interval => ({
         begin_hours: interval.begin_hours !== undefined ? interval.begin_hours : (interval.begin_seconds / 3600),
         end_hours: interval.end_hours !== undefined ? interval.end_hours : (interval.end_seconds / 3600),
-        flow_vph: interval.vehsPerHour || 480
+        flow_vph: interval.flow_vph || interval.vehsPerHour || 480
       }));
 
       const timeline = window.TimelineVisualizer.renderTimeline(
@@ -1050,10 +1042,12 @@ function renderFlowIntervalControl(paramName, schema) {
   tbody.className = "intervals-tbody";
   tbody.dataset.parameterName = paramName;
 
+  // [FIXED] 直接使用来自模板的 defaultIntervals（schema.default_value）
+  // 时间轴和表格共用同一个数据源，保持数据一致
   defaultIntervals.forEach((interval) => {
     const beginHours = interval.begin_hours !== undefined ? interval.begin_hours : (interval.begin_seconds / 3600);
     const endHours = interval.end_hours !== undefined ? interval.end_hours : (interval.end_seconds / 3600);
-    const flowRate = interval.vehsPerHour || 480;
+    const flowRate = interval.flow_vph || interval.vehsPerHour || 480;
     const targetSpeed = interval.target_speed || 15;
 
     addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, targetSpeed);

@@ -284,6 +284,79 @@ async function handleFormSubmit(e) {
 
 **违反影响**: 硬编码导致数据显示错误，代码重复导致维护困难和 bug 风险，数据来源不清晰导致调试困难。
 
+### Project Root Directory Policy
+
+**RULE-ROOT-001**: The project root directory MUST remain clean and contain only essential project files.
+
+#### Allowed Files in Root
+
+**Configuration & Documentation**:
+
+- `CLAUDE.md` - AI assistant development guide
+- `AGENTS.md` - OpenSpec agent instructions
+- `README.md` - Project documentation
+- `.gitignore`, `.env` - Git and environment configuration
+- `requirements.txt`, `package.json` - Dependency manifests
+
+**Build & Startup Scripts**:
+
+- `start_api.*` (bat, ps1, sh) - API server startup scripts
+- Build/deployment scripts (if applicable)
+
+#### Prohibited in Root
+
+❌ **Intermediate artifacts** - Analysis reports, debug logs, temporary files
+
+❌ **Generated documentation** - Session summaries, completion reports, guides
+
+❌ **Test scripts** - Ad-hoc test files, debugging scripts
+
+❌ **Code files** - Python/JavaScript modules (belong in `api/`, `shared/`, `frontend/`)
+
+❌ **Log files** - Runtime logs, test outputs
+
+#### File Organization Rules
+
+1. **Analysis & Documentation** → `docs/` with appropriate subdirectory:
+   - Session summaries → `docs/session-summaries/`
+   - Testing guides → `docs/testing/`
+   - Feature docs → `docs/features/`
+   - Development guides → `docs/development/`
+   - Refactoring notes → `docs/refactoring/`
+
+2. **Test Files** → `tests/` or `test-results/`:
+   - E2E test specs → `tests/e2e/`
+   - Unit tests → `tests/unit/`
+   - Test outputs → `test-results/`
+
+3. **Generated Code** → Module-specific directories:
+   - API code → `api/`
+   - Shared utilities → `shared/`
+   - Frontend code → `frontend/`
+
+4. **Temporary Files** → `.gitignore` and use appropriate temp directory:
+   - Logs → `logs/` (git-ignored)
+   - Debug outputs → `debug/` or `test-results/` (git-ignored)
+
+5. **Version Archives** → `archive/`
+
+#### Enforcement
+
+- **Pre-commit**: Review root directory for new files
+- **Code review**: Check PR file tree for root-level additions
+- **CI/CD**: Automated check to reject commits with unauthorized root files
+- **Periodic cleanup**: Monthly review to move/delete misplaced files
+
+#### Rationale
+
+Maintaining a clean root directory:
+
+- ✅ Improves project navigation and discoverability
+- ✅ Reduces cognitive load for developers
+- ✅ Prevents version control clutter
+- ✅ Enforces consistent file organization
+- ✅ Simplifies onboarding for new team members
+
 ### Architecture Patterns
 
 **Two-Layer Modular Architecture**:
