@@ -1228,15 +1228,12 @@ function renderDHSIntervalControl(paramName, schema) {
   endHeader.textContent = "结束时间 (小时)";
   const statusHeader = document.createElement("th");
   statusHeader.textContent = "状态";
-  const vehiclesHeader = document.createElement("th");
-  vehiclesHeader.textContent = "允许车型";
   const actionHeader = document.createElement("th");
   actionHeader.textContent = "操作";
 
   headerRow.appendChild(beginHeader);
   headerRow.appendChild(endHeader);
   headerRow.appendChild(statusHeader);
-  headerRow.appendChild(vehiclesHeader);
   headerRow.appendChild(actionHeader);
   thead.appendChild(headerRow);
   table.appendChild(thead);
@@ -1251,9 +1248,8 @@ function renderDHSIntervalControl(paramName, schema) {
     const beginHours = interval.begin_hours || 0;
     const endHours = interval.end_hours || 1;
     const status = interval.status || "CLOSED";
-    const allowedVehicles = interval.allowed_vehicle_types || ["emergency"];
 
-    addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, allowedVehicles, intervalStructure);
+    addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, intervalStructure);
   });
 
   table.appendChild(tbody);
@@ -1269,7 +1265,7 @@ function renderDHSIntervalControl(paramName, schema) {
   addBtn.textContent = "+ 添加时间区间";
   addBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    addDHSIntervalRow(tbody, paramName, 0, 1, "CLOSED", ["emergency"], intervalStructure);
+    addDHSIntervalRow(tbody, paramName, 0, 1, "CLOSED", intervalStructure);
     // [NEW] Update timeline after adding row
     updateTimelineByType(tbody, 'dhs');
   });
@@ -1288,8 +1284,14 @@ function renderDHSIntervalControl(paramName, schema) {
 
 /**
  * Add a DHS interval row to the table.
+ * @param {HTMLElement} tbody - Table body element
+ * @param {string} paramName - Parameter name
+ * @param {number} beginHours - Start time in hours
+ * @param {number} endHours - End time in hours
+ * @param {string} status - Interval status (OPEN/CLOSED)
+ * @param {Object} intervalStructure - Interval structure definition
  */
-function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, allowedVehicles, intervalStructure) {
+function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, intervalStructure) {
   const row = document.createElement("tr");
   row.className = "dhs-interval-row";
 
@@ -1323,36 +1325,6 @@ function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, allow
 
   statusCell.appendChild(statusSelect);
   row.appendChild(statusCell);
-
-  // Allowed vehicle types (multi-select dropdown)
-  const vehiclesCell = document.createElement("td");
-  const vehiclesSelect = document.createElement("select");
-  vehiclesSelect.className = "dhs-interval-vehicles";
-  vehiclesSelect.multiple = true;
-  vehiclesSelect.size = 4; // Show 4 options at once
-
-  // Standard vehicle type options
-  const vehicleOptions = [
-    { value: "passenger", label: "乘用车" },
-    { value: "bus", label: "公交车" },
-    { value: "truck", label: "货车" },
-    { value: "emergency", label: "应急车" },
-    { value: "authority", label: "执法车" }
-  ];
-
-  vehicleOptions.forEach(opt => {
-    const option = document.createElement("option");
-    option.value = opt.value;
-    option.textContent = opt.label;
-    // Select if in allowedVehicles array
-    if (Array.isArray(allowedVehicles) && allowedVehicles.includes(opt.value)) {
-      option.selected = true;
-    }
-    vehiclesSelect.appendChild(option);
-  });
-
-  vehiclesCell.appendChild(vehiclesSelect);
-  row.appendChild(vehiclesCell);
 
   // Remove button (using helper)
   const actionCell = document.createElement("td");
@@ -2440,6 +2412,22 @@ function extractFormParameters(form) {
       } else {
         console.warn('[extractFormParameters] step_array - tbody not found!');
       }
+    } else if (paramType === "dhs_interval_array") {
+      // Collect DHS interval rows (begin_hours, end_hours, status - NO vehicle types)
+      const tbody = group.querySelector(".dhs-intervals-tbody");
+      console.log('[extractFormParameters] dhs_interval_array - found tbody:', tbody);
+      if (tbody) {
+        const rows = tbody.querySelectorAll(".dhs-interval-row");
+        console.log('[extractFormParameters] dhs_interval_array - found rows:', rows.length);
+        value = Array.from(rows).map((row) => ({
+          begin_hours: parseFloat(row.querySelector(".dhs-interval-begin").value),
+          end_hours: parseFloat(row.querySelector(".dhs-interval-end").value),
+          status: row.querySelector(".dhs-interval-status").value || "CLOSED"
+        }));
+        console.log('[extractFormParameters] dhs_interval_array - extracted value:', value);
+      } else {
+        console.warn('[extractFormParameters] dhs_interval_array - tbody not found!');
+      }
     } else if (paramType === "flow_interval_array") {
       // Collect flow interval rows
       const tbody = group.querySelector(".intervals-tbody");
@@ -2450,6 +2438,21 @@ function extractFormParameters(form) {
           vehsPerHour: parseFloat(row.querySelector(".interval-flow").value),
           target_speed: parseFloat(row.querySelector(".interval-speed").value)
         }));
+      }
+    } else if (paramType === "tec_interval_array") {
+      // Collect TEC interval rows (begin_hours, end_hours only)
+      const tbody = group.querySelector(".tec-intervals-tbody");
+      console.log('[extractFormParameters] tec_interval_array - found tbody:', tbody);
+      if (tbody) {
+        const rows = tbody.querySelectorAll(".tec-interval-row");
+        console.log('[extractFormParameters] tec_interval_array - found rows:', rows.length);
+        value = Array.from(rows).map((row) => ({
+          begin_hours: parseFloat(row.querySelector(".tec-interval-begin").value),
+          end_hours: parseFloat(row.querySelector(".tec-interval-end").value)
+        }));
+        console.log('[extractFormParameters] tec_interval_array - extracted value:', value);
+      } else {
+        console.warn('[extractFormParameters] tec_interval_array - tbody not found!');
       }
     } else if (paramType === "edge_array") {
       // Collect edge inputs
@@ -2505,6 +2508,102 @@ function extractFormParameters(form) {
   }
 
   return parameters;
+}
+
+/**
+ * Render global vehicle type configuration control.
+ * This is for strategy-level vehicle type configuration (allowed or disallowed).
+ * Not for per-interval vehicle configuration.
+ *
+ * @param {Array} vehicleTypeParams - Array of vehicle type parameters from template schema
+ * @param {Object} template - Template object containing parameters_schema
+ * @returns {HTMLElement|null} Container with vehicle type control, or null if no vehicle params
+ */
+function renderGlobalVehicleTypeControl(vehicleTypeParams, template) {
+  if (!vehicleTypeParams || vehicleTypeParams.length === 0) return null;
+  if (!template || !template.parameters_schema) return null;
+
+  // Find the vehicle type parameter in the schema
+  const vehicleParam = template.parameters_schema.find(p =>
+    vehicleTypeParams.includes(p.parameter_name)
+  );
+
+  if (!vehicleParam) return null;
+
+  const container = document.createElement('div');
+  container.className = 'form-group vehicle-type-config-global';
+  container.dataset.parameterName = vehicleParam.parameter_name;
+  container.dataset.parameterType = vehicleParam.parameter_type;
+
+  // Determine label based on parameter name
+  let labelText = '车型限制';
+  let hintText = '选择适用的车型';
+
+  if (vehicleParam.parameter_name === 'allowed_vehicle_types') {
+    labelText = '允许的车型';
+    hintText = '仅选中的车型可使用此策略';
+  } else if (vehicleParam.parameter_name === 'disallow_vehicle_types' ||
+             vehicleParam.parameter_name === 'banned_vehicle_types') {
+    labelText = '禁止的车型';
+    hintText = '选中的车型禁止使用此策略';
+  } else if (vehicleParam.parameter_name === 'applicable_vehicle_types') {
+    labelText = '适用车型';
+    hintText = '此策略适用于选中的车型';
+  }
+
+  // Create label
+  const label = document.createElement('label');
+  label.textContent = labelText + (vehicleParam.required ? ' *' : '');
+  label.className = 'vehicle-type-label-global';
+  container.appendChild(label);
+
+  // Create vehicle type checkboxes
+  const checkboxContainer = document.createElement('div');
+  checkboxContainer.className = 'vehicle-checkboxes';
+
+  const vehicleOptions = [
+    { value: 'passenger', label: '小客车' },
+    { value: 'bus', label: '公交车' },
+    { value: 'truck', label: '货车' },
+    { value: 'emergency', label: '应急车' },
+    { value: 'authority', label: '执法车' }
+  ];
+
+  const defaultValues = vehicleParam.default_value || [];
+
+  vehicleOptions.forEach(opt => {
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'checkbox-wrapper';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.name = vehicleParam.parameter_name;
+    checkbox.value = opt.value;
+    checkbox.id = `vehicle-${vehicleParam.parameter_name}-${opt.value}`;
+    checkbox.className = 'vehicle-checkbox enum-checkbox';
+
+    if (Array.isArray(defaultValues) && defaultValues.includes(opt.value)) {
+      checkbox.checked = true;
+    }
+
+    const checkboxLabel = document.createElement('label');
+    checkboxLabel.htmlFor = checkbox.id;
+    checkboxLabel.textContent = opt.label;
+
+    checkboxDiv.appendChild(checkbox);
+    checkboxDiv.appendChild(checkboxLabel);
+    checkboxContainer.appendChild(checkboxDiv);
+  });
+
+  container.appendChild(checkboxContainer);
+
+  // Create hint
+  const hint = document.createElement('span');
+  hint.className = 'form-hint';
+  hint.textContent = hintText;
+  container.appendChild(hint);
+
+  return container;
 }
 
 /**
@@ -2652,6 +2751,7 @@ window.generateXMLPreview = generateXMLPreview;
 window.extractFormParameters = extractFormParameters;
 window.renderUnifiedVehicleTypeControl = renderUnifiedVehicleTypeControl;
 window.updateVehicleTypeControlForRestrictionMode = updateVehicleTypeControlForRestrictionMode;
+window.renderGlobalVehicleTypeControl = renderGlobalVehicleTypeControl;
 
 // Export individual render functions for use in templates.html
 window.renderStepArrayControl = renderStepArrayControl;

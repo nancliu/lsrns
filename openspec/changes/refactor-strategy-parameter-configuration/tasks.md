@@ -167,35 +167,38 @@
   - 验证：参数表格正确渲染
   - 文件：`tests/e2e/test_strategy_creation_workflow.spec.js`
 
-## 阶段 6b：车型配置分离 (6h) ⏳ (下一步)
+## 阶段 6b：车型配置分离 (6h) ✅
 
-- [ ] **Task 6b.1**: 从 DHS/TEC 表格移除车型列
-  - 修改 `renderDHSIntervalControl()` 移除 `allowed_vehicle_types` 列
-  - 修改 `renderTECIntervalControl()` 移除车型相关列
-  - 更新 `addRow()` 配置移除车型字段
-  - 验证：表格中无车型列
-  - 文件：`frontend/control/js/parameter_form.js:720-1400`
+- [x] **Task 6b.1**: 从 DHS/TEC 表格移除车型列
+  - 修改 `renderDHSIntervalControl()` 移除 `allowed_vehicle_types` 列（行 1231-1239）
+  - 修改 `addDHSIntervalRow()` 移除车型参数和复选框代码（行 1327-1355）
+  - 更新两处调用位置（行 1252, 1268）移除 `allowedVehicles` 参数
+  - 添加 `dhs_interval_array` 提取逻辑（行 2415-2430）
+  - 添加 `tec_interval_array` 提取逻辑（行 2442-2456）
+  - 验证：✅ 表格中无车型列，E2E 测试全部通过
+  - 文件：`frontend/control/js/parameter_form.js:1221-1370, 2415-2456`
 
-- [ ] **Task 6b.2**: 创建全局车型配置区域
-  - 提取 [parameter_form.js:2142-2217] 的车型UI
-  - 移到表单顶部（策略名称/描述之后）
-  - 确保在所有策略类型中显示
-  - 验证：车型配置区域独立显示
-  - 文件：`frontend/control/js/parameter_form.js`
+- [x] **Task 6b.2**: 创建全局车型配置区域
+  - 创建 `renderGlobalVehicleTypeControl(vehicleTypeParams, template)` 函数（行 2513-2607）
+  - 支持动态车型参数识别（allowed/disallow/applicable）
+  - 生成复选框网格布局（grid 自适应 120px 列宽）
+  - 添加 CSS 样式 `.vehicle-type-config-global` 等（templates-forms.css:600-653）
+  - 导出函数到 `window` 对象（行 2754）
+  - 验证：✅ 车型配置区域独立显示，CSS 样式美观
+  - 文件：`frontend/control/js/parameter_form.js:2513-2607, 2754` + `templates-forms.css:600-653`
 
-- [ ] **Task 6b.3**: 动态标签和提示
-  - 检测 `allowed_vehicle_types` 或 `disallow_vehicle_types`
-  - 动态设置标签：`允许的车型` vs `禁止的车型`
-  - 动态设置 Hint：`仅这些车型...` vs `这些车型禁止...`
-  - 验证：标签和提示符合参数类型
-  - 文件：`frontend/control/js/parameter_form.js:2142-2217`
+- [x] **Task 6b.3**: 动态标签和提示
+  - 检测 `allowed_vehicle_types` 或 `disallow_vehicle_types` 参数
+  - 动态标签：`allowed_vehicle_types` → "允许的车型"、`disallow_vehicle_types` → "禁止的车型"
+  - 动态 Hint：允许模式 → "仅选中的车型可使用此策略"、禁止模式 → "选中的车型禁止使用此策略"
+  - 验证：✅ 标签和提示符合参数类型
+  - 文件：`frontend/control/js/parameter_form.js:2538-2552`
 
-- [ ] **Task 6b.4**: 更新提交逻辑
-  - 修改 `extractFormParameters()` 根据参数名转换车型数据
-  - `allowed_vehicle_types` → 勾选的车型
-  - `disallow_vehicle_types` → 勾选的车型
-  - 验证：策略实例 JSON 正确
-  - 文件：`frontend/control/js/parameter_form.js:2217-2250`
+- [x] **Task 6b.4**: 更新提交逻辑
+  - 复选框使用 `enum-checkbox` 类（行 2583）
+  - 现有 `extractFormParameters()` 逻辑自动提取 `.enum-checkbox:checked` 元素（行 2396-2399）
+  - 验证：✅ 策略实例 JSON 正确，E2E 测试验证完整流程
+  - 文件：`frontend/control/js/parameter_form.js:2396-2399, 2583`
 
 ## 阶段 7：路段来源统一 (4h)
 
