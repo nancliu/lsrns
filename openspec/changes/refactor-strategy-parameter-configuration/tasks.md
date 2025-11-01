@@ -226,33 +226,34 @@
 
 ## 阶段 8：验证和提示改进 (4h)
 
-- [ ] **Task 8.1**: 实现时间顺序验证
+- [x] **Task 8.1**: 实现时间顺序验证 ✅
   - 在 `endInput` blur 事件绑定 `validators.timeOrder`
   - 显示错误提示：`showError(input, message)`
   - 添加视觉错误状态（红色边框）
   - 验证：输入非法顺序时显示错误
-  - 文件：`frontend/control/js/parameter_form.js`
+  - 文件：`frontend/control/js/parameter_form.js:1817-1845` (addTECIntervalRow)
 
-- [ ] **Task 8.2**: 实现数值范围验证
+- [x] **Task 8.2**: 实现数值范围验证 ✅
   - 绑定 `validators.timeRange` 和 `validators.speedRange`
   - 从 schema 读取 min/max 值
   - 显示错误提示
   - 验证：范围外输入显示错误
-  - 文件：`frontend/control/js/parameter_form.js`
+  - 文件：`frontend/control/js/parameter_form.js` (所有区间类型)
 
-- [ ] **Task 8.3**: 添加删除确认对话框
+- [x] **Task 8.3**: 添加删除确认对话框 ✅
   - 在删除按钮 click 事件添加 `confirm()`
   - 提示：`确定要删除这一行吗？`
   - 用户取消时不删除
   - 验证：删除前有确认
-  - 文件：`frontend/control/js/parameter_form.js`
+  - 文件：`frontend/control/js/parameter_form.js:1091-1112` (createRemoveButton)
 
-- [ ] **Task 8.4**: 优化 Hint 文本
+- [x] **Task 8.4**: 优化 Hint 文本 ✅
   - 分离参数级Hint（`generateParameterHint()`）
   - 分离控制级Hint（`controlHints` 对象）
   - 避免重复，使用 `·` 分隔
   - 验证：Hint 清晰、不重复
-  - 文件：`frontend/control/js/parameter_form.js:658, 825, 1080`
+  - 文件：`frontend/control/js/parameter_form.js:1025-1117` (generateParameterHint)
+  - 集成：`frontend/control/templates.html:833-834`
 
 ## 阶段 9：测试与文档 (8h)
 
