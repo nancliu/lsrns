@@ -772,10 +772,10 @@ function renderStepArrayControl(paramName, schema) {
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
-      // 添加时间轴说明文字
+      // 添加时间轴说明文字 - Task 5.1: 添加时刻语义提示
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = "时间-限速值序列，支持3-5个步骤实现严格控制和事件响应";
+      description.textContent = "时刻表示：例如 7 表示从 7:00 开始执行该限速，直到下一个时刻点";
       container.appendChild(description);
 
       // 使用默认值，或提供示例步骤（如果没有默认值）
@@ -803,15 +803,15 @@ function renderStepArrayControl(paramName, schema) {
   const table = document.createElement("table");
   table.className = "steps-table";
 
-  // Header
+  // Header - Task 5.1: 明确时刻语义
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
   const timeHeader = document.createElement("th");
-  timeHeader.textContent = `Time (${stepStructure.time_display_unit || 'hours'})`;
+  timeHeader.textContent = "时间(小时)";  // 时刻表示，例如 7 表示 7:00 开始
   const speedHeader = document.createElement("th");
-  speedHeader.textContent = `Speed (${stepStructure.speed_display_unit || 'km/h'})`;
+  speedHeader.textContent = "限速(km/h)";
   const actionHeader = document.createElement("th");
-  actionHeader.textContent = "Action";
+  actionHeader.textContent = "操作";
 
   headerRow.appendChild(timeHeader);
   headerRow.appendChild(speedHeader);
@@ -1186,10 +1186,10 @@ function renderDHSIntervalControl(paramName, schema) {
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
-      // 添加时间轴说明文字
+      // 添加时间轴说明文字 - Task 5.2: 添加时段语义提示
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = schema.description || "应急车道开放/关闭时间区间列表（注意：必须覆盖完整24小时）";
+      description.textContent = "时段表示：例如 7-9 表示 7:00-9:00 硬路肩开放（必须覆盖完整24小时）";
       container.appendChild(description);
 
       // 使用默认值，或提供示例区间（如果没有默认值）
@@ -1427,10 +1427,10 @@ function renderFlowIntervalControl(paramName, schema) {
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
-      // 添加时间轴说明文字
+      // 添加时间轴说明文字 - Task 5.2: 添加时段语义提示
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = schema.description || "收费站流量控制时间区间列表";
+      description.textContent = "时段表示：例如 7-9 表示 7:00-9:00 执行流量控制，限制流量和目标速度";
       container.appendChild(description);
 
       // [FIXED] 统一数据格式：确保所有区间使用 flow_vph 字段
@@ -1636,10 +1636,10 @@ function renderTECIntervalControl(paramName, schema) {
   // Add timeline visualization
   if (window.TimelineVisualizer) {
     try {
-      // Add timeline description
+      // Add timeline description - Task 5.2: 添加时段语义提示
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = schema.description || "车型限制时间区间列表";
+      description.textContent = "时段表示：例如 7-9 表示 7:00-9:00 执行车型限制/入口控制";
       container.appendChild(description);
 
       // Use default values, or provide example intervals if none

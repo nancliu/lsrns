@@ -24,6 +24,24 @@
     padding: 8px 12px;
 }
 
+/* Flex layout for name/description with buttons */
+.flex-start {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.flex-1 {
+    flex: 1;
+    min-width: 0;
+}
+
+.flex-start button {
+    flex-shrink: 0;
+    min-width: 100px;
+    white-space: nowrap;
+}
+
 /* ==================== Template Selection Grid ==================== */
 
 .templates-grid {
@@ -393,13 +411,14 @@
     width: 100%;
 }
 
-/* Table Controls */
+/* Table Controls - Unified spacing */
 .param-table,
 .step-array-table {
     width: 100%;
     border-collapse: collapse;
     border: 1px solid #ddd;
-    margin: 10px 0;
+    margin: 15px 0;  /* Consistent spacing - increased from 10px for uniformity */
+    table-layout: fixed;  /* Ensure consistent column widths */
 }
 
 .param-table th,
@@ -415,6 +434,29 @@
 .step-array-table th {
     background: #f0f0f0;
     font-weight: 600;
+}
+
+/* Fixed column widths for consistency */
+.param-table th:nth-child(1),
+.param-table td:nth-child(1),
+.step-array-table th:nth-child(1),
+.step-array-table td:nth-child(1) {
+    width: 20%;  /* Time column */
+}
+
+.param-table th:nth-child(2),
+.param-table td:nth-child(2),
+.step-array-table th:nth-child(2),
+.step-array-table td:nth-child(2) {
+    width: 25%;  /* Value/Speed column */
+}
+
+.param-table th:last-child,
+.param-table td:last-child,
+.step-array-table th:last-child,
+.step-array-table td:last-child {
+    width: 15%;  /* Action column */
+    text-align: center;
 }
 
 .step-row {
@@ -519,6 +561,17 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Stack button containers vertically on narrow screens */
+    .flex-start {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .flex-start button {
+        width: 100%;
+        min-width: auto;
+    }
+
     .param-control-group,
     .param-control-wrapper {
         padding: 10px;
