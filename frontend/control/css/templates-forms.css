@@ -651,3 +651,113 @@
     font-size: 12px;
     color: #0066cc;
 }
+
+/* ==================== Selected Edges Summary ==================== */
+
+.selected-edges-summary {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.selected-edges-title {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.selected-edges-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    margin-bottom: 12px;
+}
+
+.selected-edges-table thead {
+    background-color: #f9f9f9;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.selected-edges-table th {
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #555;
+    font-size: 13px;
+}
+
+.selected-edges-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+    color: #666;
+}
+
+.selected-edges-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.selected-edges-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.col-edge-id {
+    font-family: monospace;
+    width: 100px;
+}
+
+.col-route {
+    width: 80px;
+    font-weight: 500;
+}
+
+.col-road-code {
+    width: 100px;
+}
+
+.col-km-range {
+    width: 140px;
+    text-align: center;
+}
+
+.col-direction {
+    width: 80px;
+    text-align: center;
+}
+
+.selected-edges-summary .form-hint {
+    display: block;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #f0f0f0;
+    border-left: 3px solid #999;
+    font-size: 12px;
+    color: #666;
+}
+
+.return-to-step2-button-container {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #ddd;
+}
+
+.return-to-step2-button-container .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    background-color: #f5f5f5;
+    color: #666;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.return-to-step2-button-container .btn:hover {
+    background-color: #e8e8e8;
+    color: #333;
+    border-color: #999;
+}

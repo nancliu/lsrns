@@ -2745,6 +2745,112 @@ function updateVehicleTypeControlForRestrictionMode(mode) {
 }
 
 // Export functions for use in other modules
+/**
+ * Render a read-only display of selected edges from Step 2.
+ * Shows edges selected in Step 2 as a summary table in Step 3.
+ *
+ * @returns {HTMLElement|null} Container with selected edges table, or null if no edges selected
+ */
+function renderSelectedEdgesSummary() {
+  // Get selected edges from sessionStorage
+  const selectedEdgesJson = sessionStorage.getItem('strategy_selected_edges');
+  const selectedEdges = selectedEdgesJson ? JSON.parse(selectedEdgesJson) : [];
+
+  if (!selectedEdges || selectedEdges.length === 0) {
+    return null;
+  }
+
+  // Create container
+  const container = document.createElement('div');
+  container.className = 'form-group selected-edges-summary';
+  container.id = 'selected-edges-container';
+
+  // Create title with count
+  const title = document.createElement('label');
+  title.className = 'selected-edges-title';
+  title.textContent = `已选路段 (共 ${selectedEdges.length} 条)`;
+  container.appendChild(title);
+
+  // Create table
+  const table = document.createElement('table');
+  table.className = 'selected-edges-table';
+
+  // Table header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+
+  const headers = [
+    { text: 'Edge ID', className: 'col-edge-id' },
+    { text: '路线', className: 'col-route' },
+    { text: '路段代码', className: 'col-road-code' },
+    { text: '桩号范围', className: 'col-km-range' },
+    { text: '方向', className: 'col-direction' }
+  ];
+
+  headers.forEach(header => {
+    const th = document.createElement('th');
+    th.textContent = header.text;
+    th.className = header.className;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Table body
+  const tbody = document.createElement('tbody');
+  selectedEdges.forEach(edge => {
+    const row = document.createElement('tr');
+    row.className = 'selected-edge-row';
+
+    // Edge ID
+    const idCell = document.createElement('td');
+    idCell.className = 'col-edge-id';
+    idCell.textContent = edge.edge_id || '-';
+    row.appendChild(idCell);
+
+    // Route code
+    const routeCell = document.createElement('td');
+    routeCell.className = 'col-route';
+    routeCell.textContent = edge.route_code || '-';
+    row.appendChild(routeCell);
+
+    // Road code
+    const roadCell = document.createElement('td');
+    roadCell.className = 'col-road-code';
+    roadCell.textContent = edge.road_code || '-';
+    row.appendChild(roadCell);
+
+    // KM range
+    const kmCell = document.createElement('td');
+    kmCell.className = 'col-km-range';
+    const startKm = edge.start_km || 0;
+    const endKm = edge.end_km || 0;
+    kmCell.textContent = `K${startKm.toFixed(2)} - K${endKm.toFixed(2)}`;
+    row.appendChild(kmCell);
+
+    // Direction
+    const dirCell = document.createElement('td');
+    dirCell.className = 'col-direction';
+    dirCell.textContent = edge.direction || '-';
+    row.appendChild(dirCell);
+
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  // Add hint
+  const hint = document.createElement('span');
+  hint.className = 'form-hint';
+  hint.textContent = '这些是在步骤2中选择的路段。如需修改，请返回步骤2。';
+  container.appendChild(hint);
+
+  return container;
+}
+
+// Export functions for use in other modules
 window.generateFormFromTemplate = generateFormFromTemplate;
 window.validateFormParameters = validateFormParameters;
 window.generateXMLPreview = generateXMLPreview;
@@ -2752,6 +2858,7 @@ window.extractFormParameters = extractFormParameters;
 window.renderUnifiedVehicleTypeControl = renderUnifiedVehicleTypeControl;
 window.updateVehicleTypeControlForRestrictionMode = updateVehicleTypeControlForRestrictionMode;
 window.renderGlobalVehicleTypeControl = renderGlobalVehicleTypeControl;
+window.renderSelectedEdgesSummary = renderSelectedEdgesSummary;
 
 // Export individual render functions for use in templates.html
 window.renderStepArrayControl = renderStepArrayControl;

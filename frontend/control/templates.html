@@ -791,6 +791,31 @@
             `;
             form.appendChild(descGroup);
 
+            // Phase 7.2: 显示从 Step 2 选择的路段
+            const edgesSummary = window.renderSelectedEdgesSummary();
+            if (edgesSummary) {
+                form.appendChild(edgesSummary);
+
+                // Phase 7.3: 添加"返回修改路段"按钮
+                const returnButtonDiv = document.createElement('div');
+                returnButtonDiv.className = 'return-to-step2-button-container';
+                returnButtonDiv.innerHTML = `
+                    <button type="button" class="btn btn-secondary" id="return-to-step2-btn">
+                        返回修改路段
+                    </button>
+                `;
+                form.appendChild(returnButtonDiv);
+
+                // 绑定返回 Step 2 的按钮
+                const returnBtn = document.getElementById('return-to-step2-btn');
+                if (returnBtn) {
+                    returnBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        previousStep();
+                    });
+                }
+            }
+
             // 动态生成模板参数
             template.parameters_schema.forEach(param => {
                 // 跳过 affected_edges 参数（在步骤2已处理）

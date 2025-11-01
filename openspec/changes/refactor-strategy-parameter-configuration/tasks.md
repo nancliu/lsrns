@@ -200,26 +200,29 @@
   - 验证：✅ 策略实例 JSON 正确，E2E 测试验证完整流程
   - 文件：`frontend/control/js/parameter_form.js:2396-2399, 2583`
 
-## 阶段 7：路段来源统一 (4h)
+## 阶段 7：路段来源统一 (4h) ✅
 
-- [ ] **Task 7.1**: 隐藏旧的 `affected_edges` 输入框
-  - 在 `generateFormFromTemplate()` 中跳过这些参数
-  - 添加注释说明从 Step 2 获取
-  - 验证：Step 3 不显示路段输入框
-  - 文件：`frontend/control/js/parameter_form.js:750-850` (templates.html:753 已存在)
+- [x] **Task 7.1**: 隐藏旧的 `affected_edges` 输入框
+  - 已验证 `templates.html:796-798` 中已有跳过逻辑
+  - 参数名称：`affected_edges`、`affected_segments`、`entrance_ids` 被跳过
+  - 验证：✅ Step 3 不显示这些旧输入框
+  - 文件：`frontend/control/templates.html:796-798`
 
-- [ ] **Task 7.2**: 显示 Step 2 路段只读列表
+- [x] **Task 7.2**: 显示 Step 2 路段只读列表
+  - 创建 `renderSelectedEdgesSummary()` 函数（parameter_form.js:2754-2851）
   - 从 `sessionStorage` 获取 `strategy_selected_edges`
-  - 创建只读表格显示路段信息
-  - 表格列：Edge ID、路线、路段代码、桩号、方向
-  - 验证：路段列表正确显示
-  - 文件：`frontend/control/js/parameter_form.js`, `frontend/control/templates.html`
+  - 生成只读表格，列：Edge ID、路线、路段代码、桩号、方向
+  - 添加 CSS 样式 `.selected-edges-summary` 等（templates-forms.css:655-740）
+  - 集成到 `generateParamsForm()` (templates.html:794-798)
+  - 验证：✅ 路段列表正确显示
+  - 文件：`frontend/control/js/parameter_form.js:2754-2851, 2861` + `frontend/control/templates.html:794-798` + `templates-forms.css:655-740`
 
-- [ ] **Task 7.3**: 添加"返回修改路段"按钮
-  - 在路段列表下方添加按钮
-  - 点击返回 Step 2
-  - 验证：按钮功能正常
-  - 文件：`frontend/control/templates.html`
+- [x] **Task 7.3**: 添加"返回修改路段"按钮
+  - 在路段列表下方添加"返回修改路段"按钮（templates.html:799-817）
+  - 点击事件调用 `previousStep()` 返回 Step 2
+  - 添加 CSS 样式 `.return-to-step2-button-container` 等（templates-forms.css:742-763）
+  - 验证：✅ 按钮功能正常，E2E 测试全部通过
+  - 文件：`frontend/control/templates.html:799-817` + `templates-forms.css:742-763`
 
 ## 阶段 8：验证和提示改进 (4h)
 
