@@ -2,14 +2,30 @@
  * Parameter Form Generator for Strategy Templates (v2.0)
  *
  * Generates dynamic parameter forms from template schemas.
+ *
  * Features:
  * - Automatic form generation from parameter schemas
  * - Real-time validation with error/warning display
- * - Unit conversion (hours ↔ seconds, km/h ↔ m/s)
+ * - Unified timeline update system (4 types: VSS/DHS/Flow/TEC)
+ * - Reusable input creation helpers
+ * - Centralized validation logic
  * - XML preview generation with syntax highlighting
  * - Support for complex parameter types (arrays, time ranges, etc.)
  *
+ * Code Organization:
+ * 1. Utility Functions (debounce)
+ * 2. Timeline Update System (unified + deprecated legacy)
+ * 3. Validation Helpers (validators object + error display)
+ * 4. Row Creation Helpers (createTimeInput, createNumberInput, etc.)
+ * 5. Form Generation (generateFormFromTemplate)
+ * 6. Parameter Control Renderers (renderXxxControl functions)
+ * 7. Validation Functions (validateNumberRange, etc.)
+ * 8. Form Submission & Preview (extractFormParameters, generateXMLPreview)
+ * 9. UI Utilities (showNotification)
+ *
  * @module parameter_form
+ * @version 2.0
+ * @refactored 2025-11-01 - Phase 2 code refactoring (Tasks 2.1-2.4)
  */
 
 // ==================== Timeline Update Helper (时间轴更新辅助函数) ====================
@@ -190,8 +206,12 @@ function debounce(func, wait) {
 
 // ==================== Legacy Functions (Deprecated) ====================
 
-  /**
-   * @deprecated Use updateTimelineByType(tbody, 'vss') instead
+  // ==================== Legacy Timeline Functions (Deprecated) ====================
+// These functions are kept for backward compatibility only.
+// All new code should use updateTimelineByType() instead.
+
+/**
+ * @deprecated Use updateTimelineByType(tbody, 'vss') instead
    * 从表格中收集步骤数据并更新时间轴
    * @param {HTMLElement} tbody - 表格体元素
    */
@@ -261,6 +281,13 @@ const debouncedUpdateTimelineFromTable = debounce(updateTimelineFromTable, 300);
  * @param {string} templateId - Template identifier
  * @param {Object} template - Template object with parameters_schema
  * @returns {string} HTML form string
+ */
+/**
+ * Generate parameter form from template schema.
+ * Main entry point for creating dynamic strategy parameter forms.
+ *
+ * @param {string} templateId - Template identifier
+ * @returns {Promise<HTMLFormElement>} Generated form element
  */
 async function generateFormFromTemplate(templateId) {
   try {
@@ -350,6 +377,9 @@ async function generateFormFromTemplate(templateId) {
  * @param {string} templateId - Template identifier (for context)
  * @returns {HTMLElement} Form control element
  */
+// ==================== Form Generation ====================
+// Main form generation and parameter control rendering functions.
+
 function renderParameterControl(paramSchema, templateId) {
   const paramName = paramSchema.parameter_name || paramSchema.parameterName;
   const paramType = paramSchema.parameter_type || paramSchema.parameterType;
@@ -464,6 +494,10 @@ function renderParameterControl(paramSchema, templateId) {
  * Render integer input control with range hints.
  * Task 1.2: Enhanced number input with range validation
  */
+// ==================== Parameter Control Renderers ====================
+// Functions that render different types of parameter controls (inputs, selects, tables).
+// Each function creates DOM elements for a specific parameter type.
+
 function renderIntegerControl(paramName, schema) {
   const container = document.createElement("div");
   container.className = "number-input-wrapper";
@@ -574,45 +608,52 @@ function renderNumberControl(paramName, schema) {
  * @param {Object} schema - Parameter schema
  * @returns {boolean} Validation result
  */
+// ==================== Validation Functions ====================
+// Functions for validating form inputs and displaying errors.
+// Uses the unified validators object defined above.
+
 function validateNumberRange(input, schema) {
   const value = parseFloat(input.value);
-  const feedbackDiv = input.closest('.form-group')?.querySelector('.parameter-feedback');
 
-  if (!feedbackDiv) return true;
-
-  // Clear previous feedback
-  feedbackDiv.textContent = '';
-  feedbackDiv.className = 'parameter-feedback';
-  feedbackDiv.dataset.feedback = '';
-
-  // Check if required
+  // Check if required (using unified validator)
   if (input.value === '' && schema.required) {
-    feedbackDiv.className = 'parameter-feedback error';
-    feedbackDiv.textContent = '此字段为必填项';
-    feedbackDiv.dataset.feedback = 'error';
-    return false;
+    const result = validators.required(input.value);
+    if (!result.valid) {
+      showError(input, result.message);
+      return false;
+    }
   }
 
   if (input.value === '') {
+    clearError(input);
     return true; // Empty optional field is valid
   }
 
-  if (isNaN(value)) {
-    feedbackDiv.className = 'parameter-feedback error';
-    feedbackDiv.textContent = '请输入有效的数字';
-    feedbackDiv.dataset.feedback = 'error';
+  // Check if valid number (using unified validator)
+  const numResult = validators.isNumber(input.value);
+  if (!numResult.valid) {
+    showError(input, numResult.message);
     return false;
   }
 
+  // Check range (using unified validator)
   const minVal = schema.min_value;
   const maxVal = schema.max_value;
 
-  if (minVal !== undefined && value < minVal) {
-    feedbackDiv.className = 'parameter-feedback error';
-    feedbackDiv.textContent = `值不能小于 ${minVal}`;
-    feedbackDiv.dataset.feedback = 'error';
-    return false;
+  if (minVal !== undefined || maxVal !== undefined) {
+    const rangeResult = validators.numberRange(
+      value,
+      minVal ?? -Infinity,
+      maxVal ?? Infinity,
+      schema.unit || ''
+    );
+    if (!rangeResult.valid) {
+      showError(input, rangeResult.message);
+      return false;
+    }
   }
+
+  clearError(input);
 
   if (maxVal !== undefined && value > maxVal) {
     feedbackDiv.className = 'parameter-feedback error';
@@ -833,7 +874,186 @@ function renderStepArrayControl(paramName, schema) {
  * @param {number} value - Initial value
  * @returns {HTMLInputElement}
  */
-function createTimeInput(className, value = 0) {
+
+// ==================== Validation Helpers ====================
+
+/**
+ * Unified validators for form inputs.
+ * Provides consistent validation logic across all parameter types.
+ */
+const validators = {
+  /**
+   * Validate time order (begin < end).
+   * @param {number} beginHours - Start time in hours
+   * @param {number} endHours - End time in hours
+   * @returns {{valid: boolean, message?: string}}
+   */
+  timeOrder: (beginHours, endHours) => {
+    if (beginHours >= endHours) {
+      return {
+        valid: false,
+        message: `开始时间(${beginHours}h)必须小于结束时间(${endHours}h)`
+      };
+    }
+    return { valid: true };
+  },
+
+  /**
+   * Validate time range (0-24 hours).
+   * @param {number} hours - Time value in hours
+   * @returns {{valid: boolean, message?: string}}
+   */
+  timeRange: (hours) => {
+    if (hours < 0 || hours > 24) {
+      return {
+        valid: false,
+        message: `时间必须在 0-24 小时范围内，当前值: ${hours}`
+      };
+    }
+    return { valid: true };
+  },
+
+  /**
+   * Validate speed range.
+   * @param {number} speed - Speed value in km/h
+   * @param {number} min - Minimum allowed speed (default: 0)
+   * @param {number} max - Maximum allowed speed (default: 120)
+   * @returns {{valid: boolean, message?: string}}
+   */
+  speedRange: (speed, min = 0, max = 120) => {
+    if (speed < min || speed > max) {
+      return {
+        valid: false,
+        message: `速度必须在 ${min}-${max} km/h 范围内，当前值: ${speed}`
+      };
+    }
+    return { valid: true };
+  },
+
+  /**
+   * Validate number range with custom constraints.
+   * @param {number} value - Value to validate
+   * @param {number} min - Minimum allowed value
+   * @param {number} max - Maximum allowed value
+   * @param {string} unit - Unit name for error message
+   * @returns {{valid: boolean, message?: string}}
+   */
+  numberRange: (value, min, max, unit = '') => {
+    if (value < min || value > max) {
+      return {
+        valid: false,
+        message: `值必须在 ${min}-${max}${unit ? ' ' + unit : ''} 范围内，当前值: ${value}`
+      };
+    }
+    return { valid: true };
+  },
+
+  /**
+   * Validate required field.
+   * @param {string|number} value - Value to validate
+   * @returns {{valid: boolean, message?: string}}
+   */
+  required: (value) => {
+    if (value === '' || value === null || value === undefined) {
+      return {
+        valid: false,
+        message: '此字段为必填项'
+      };
+    }
+    return { valid: true };
+  },
+
+  /**
+   * Validate number format.
+   * @param {string} value - String value to check
+   * @returns {{valid: boolean, message?: string}}
+   */
+  isNumber: (value) => {
+    if (value !== '' && isNaN(parseFloat(value))) {
+      return {
+        valid: false,
+        message: '请输入有效的数字'
+      };
+    }
+    return { valid: true };
+  }
+};
+
+/**
+ * Show error message on an input element.
+ * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} input - Input element
+ * @param {string} message - Error message to display
+ */
+function showError(input, message) {
+  // Add error class to input
+  input.classList.add('input-error');
+
+  // Find or create feedback div
+  const formGroup = input.closest('.form-group');
+  if (!formGroup) return;
+
+  let feedbackDiv = formGroup.querySelector('.parameter-feedback');
+  if (!feedbackDiv) {
+    feedbackDiv = document.createElement('div');
+    feedbackDiv.className = 'parameter-feedback';
+    formGroup.appendChild(feedbackDiv);
+  }
+
+  // Set error message
+  feedbackDiv.className = 'parameter-feedback error';
+  feedbackDiv.textContent = message;
+  feedbackDiv.dataset.feedback = 'error';
+}
+
+/**
+ * Clear error message from an input element.
+ * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} input - Input element
+ */
+function clearError(input) {
+  // Remove error class from input
+  input.classList.remove('input-error');
+
+  // Clear feedback div
+  const formGroup = input.closest('.form-group');
+  if (!formGroup) return;
+
+  const feedbackDiv = formGroup.querySelector('.parameter-feedback');
+  if (feedbackDiv) {
+    feedbackDiv.textContent = '';
+    feedbackDiv.className = 'parameter-feedback';
+    feedbackDiv.dataset.feedback = '';
+  }
+}
+
+/**
+ * Validate input on blur with automatic error display.
+ * @param {HTMLInputElement} input - Input element to validate
+ * @param {Function} validatorFn - Validator function that returns {valid, message}
+ */
+function validateOnBlur(input, validatorFn) {
+  input.addEventListener('blur', () => {
+    const result = validatorFn();
+    if (!result.valid) {
+      showError(input, result.message);
+    } else {
+      clearError(input);
+    }
+  });
+
+  // Clear error on input (give user immediate feedback when correcting)
+  input.addEventListener('input', () => {
+    if (input.classList.contains('input-error')) {
+      const result = validatorFn();
+      if (result.valid) {
+        clearError(input);
+      }
+    }
+  });
+}
+
+// ==================== End Validation Helpers ====================
+
+function createTimeInput\(className, value = 0\) \{
   const input = document.createElement("input");
   input.type = "number";
   input.className = className;
@@ -2175,6 +2395,16 @@ function displayXMLPreview(result) {
 /**
  * Extract parameters from form controls.
  */
+// ==================== Form Submission & Preview ====================
+// Functions for extracting form data, validation, and XML preview generation.
+
+/**
+ * Extract all parameter values from the form.
+ * Handles different parameter types (step_array, interval_array, enum_array, etc.).
+ *
+ * @param {HTMLFormElement} form - Form element containing parameters
+ * @returns {Object} Parameter values keyed by parameter name
+ */
 function extractFormParameters(form) {
   const parameters = {};
   const formGroups = form.querySelectorAll(".form-group");
@@ -2280,6 +2510,9 @@ function extractFormParameters(form) {
 /**
  * Show notification message.
  */
+// ==================== UI Utilities ====================
+// Helper functions for user interface notifications and feedback.
+
 function showNotification(message, type) {
   const notification = document.createElement("div");
   notification.className = `notification notification-${type}`;
