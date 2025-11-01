@@ -1053,7 +1053,7 @@ function validateOnBlur(input, validatorFn) {
 
 // ==================== End Validation Helpers ====================
 
-function createTimeInput\(className, value = 0\) \{
+function createTimeInput(className, value = 0) {
   const input = document.createElement("input");
   input.type = "number";
   input.className = className;
