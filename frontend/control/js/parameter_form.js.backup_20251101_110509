@@ -806,7 +806,7 @@ function renderStepArrayControl(paramName, schema) {
     addStepRow(tbody, paramName, 0, 100, stepStructure);
     validateParameterOnChange(tbody, schema);
     // [NEW] 添加新步骤后更新时间轴
-    updateTimelineByType(tbody, 'vss');
+    updateTimelineFromTable(tbody);
   });
 
   buttonDiv.appendChild(addBtn);
@@ -861,14 +861,14 @@ function addStepRow(tbody, paramName, timeVal, speedVal, stepStructure) {
     e.preventDefault();
     row.remove();
     // [NEW] 删除行后更新时间轴
-    updateTimelineByType(tbody, 'vss');
+    updateTimelineFromTable(tbody);
   });
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
 
   // [NEW] 为输入框添加变化事件监听器以更新时间轴（使用防抖）
-  timeInput.addEventListener('input', () => debouncedUpdateTimeline.vss(tbody));
-  speedInput.addEventListener('input', () => debouncedUpdateTimeline.vss(tbody));
+  timeInput.addEventListener('input', () => debouncedUpdateTimelineFromTable(tbody));
+  speedInput.addEventListener('input', () => debouncedUpdateTimelineFromTable(tbody));
 
   tbody.appendChild(row);
 }
@@ -973,7 +973,7 @@ function renderDHSIntervalControl(paramName, schema) {
     e.preventDefault();
     addDHSIntervalRow(tbody, paramName, 0, 1, "CLOSED", ["emergency"], intervalStructure);
     // [NEW] Update timeline after adding row
-    updateTimelineByType(tbody, 'dhs');
+    updateDHSTimelineFromTable(tbody);
   });
 
   buttonDiv.appendChild(addBtn);
@@ -1078,15 +1078,15 @@ function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, allow
     e.preventDefault();
     row.remove();
     // [NEW] Update timeline after removing row
-    updateTimelineByType(tbody, 'dhs');
+    updateDHSTimelineFromTable(tbody);
   });
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
 
   // [NEW] Add input event listeners for real-time timeline update
-  beginInput.addEventListener('input', () => debouncedUpdateTimeline.dhs(tbody));
-  endInput.addEventListener('input', () => debouncedUpdateTimeline.dhs(tbody));
-  statusSelect.addEventListener('change', () => debouncedUpdateTimeline.dhs(tbody));
+  beginInput.addEventListener('input', () => debouncedUpdateDHSTimelineFromTable(tbody));
+  endInput.addEventListener('input', () => debouncedUpdateDHSTimelineFromTable(tbody));
+  statusSelect.addEventListener('change', () => debouncedUpdateDHSTimelineFromTable(tbody));
 
   tbody.appendChild(row);
 }
@@ -1232,7 +1232,7 @@ function renderFlowIntervalControl(paramName, schema) {
     e.preventDefault();
     addFlowIntervalRow(tbody, paramName, 0, 1, 480, 15);
     // [NEW] 添加区间后更新时间轴
-    updateTimelineByType(tbody, 'flow');
+    updateFlowTimelineFromTable(tbody);
   });
 
   buttonDiv.appendChild(addBtn);
@@ -1311,15 +1311,15 @@ function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, ta
     e.preventDefault();
     row.remove();
     // [NEW] 删除行后更新时间轴
-    updateTimelineByType(tbody, 'flow');
+    updateFlowTimelineFromTable(tbody);
   });
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
 
   // [NEW] 为输入框添加变化事件监听器以更新时间轴（使用防抖）
-  beginInput.addEventListener('input', () => debouncedUpdateTimeline.flow(tbody));
-  endInput.addEventListener('input', () => debouncedUpdateTimeline.flow(tbody));
-  flowInput.addEventListener('input', () => debouncedUpdateTimeline.flow(tbody));
+  beginInput.addEventListener('input', () => debouncedUpdateFlowTimelineFromTable(tbody));
+  endInput.addEventListener('input', () => debouncedUpdateFlowTimelineFromTable(tbody));
+  flowInput.addEventListener('input', () => debouncedUpdateFlowTimelineFromTable(tbody));
 
   tbody.appendChild(row);
 }
@@ -1467,7 +1467,7 @@ function renderTECIntervalControl(paramName, schema) {
     e.preventDefault();
     addTECIntervalRow(tbody, paramName, 0, 1);
     // Update timeline after adding row
-    updateTimelineByType(tbody, 'tec_simple');
+    updateTECTimelineFromTable(tbody);
   });
 
   buttonDiv.appendChild(addBtn);
@@ -1531,18 +1531,18 @@ function addTECIntervalRow(tbody, paramName, beginHours, endHours) {
     e.preventDefault();
     row.remove();
     // Update timeline after deleting row
-    updateTimelineByType(tbody, 'tec_simple');
+    updateTECTimelineFromTable(tbody);
   });
   actionCell.appendChild(deleteBtn);
   row.appendChild(actionCell);
 
   // Add change listeners to update timeline
   beginInput.addEventListener("input", debounce(() => {
-    updateTimelineByType(tbody, 'tec_simple');
+    updateTECTimelineFromTable(tbody);
   }, 300));
 
   endInput.addEventListener("input", debounce(() => {
-    updateTimelineByType(tbody, 'tec_simple');
+    updateTECTimelineFromTable(tbody);
   }, 300));
 
   tbody.appendChild(row);

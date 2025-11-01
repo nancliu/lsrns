@@ -150,6 +150,38 @@
     --z-modal-backdrop: 400;
     --z-modal: 500;
     --z-tooltip: 600;
+
+    /* ==================== 表单控件 (Form Controls) ==================== */
+
+    /* 表单间距 */
+    --form-spacing-xs: 4px;             /* 极小间距 */
+    --form-spacing-sm: 8px;             /* 小间距 */
+    --form-spacing-md: 16px;            /* 中等间距（表单组标准） */
+    --form-spacing-lg: 24px;            /* 大间距（区域分隔） */
+    --form-spacing-xl: 32px;            /* 超大间距（主要区域） */
+
+    /* 输入框宽度 */
+    --input-width-xs: 60px;             /* 超小输入框（时间、数值） */
+    --input-width-sm: 100px;            /* 小输入框 */
+    --input-width-md: 200px;            /* 中等输入框 */
+    --input-width-lg: 300px;            /* 大输入框 */
+    --input-width-full: 100%;           /* 全宽 */
+
+    /* 按钮尺寸 */
+    --button-min-width: 80px;           /* 按钮最小宽度 */
+    --button-padding-x: 16px;           /* 按钮水平内边距 */
+    --button-padding-y: 8px;            /* 按钮垂直内边距 */
+
+    /* 表格列宽 */
+    --table-col-time: 120px;            /* 时间列 */
+    --table-col-value: 120px;           /* 数值列 */
+    --table-col-action: 80px;           /* 操作列 */
+    --table-col-status: 100px;          /* 状态列 */
+
+    /* 表单控件高度 */
+    --input-height-sm: 32px;            /* 小输入框 */
+    --input-height-md: 40px;            /* 中等输入框 */
+    --input-height-lg: 48px;            /* 大输入框 */
 }
 
 /* ==================== 深色模式 (Future) ==================== */
