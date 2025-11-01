@@ -824,97 +824,19 @@ function renderStepArrayControl(paramName, schema) {
 /**
  * Add a step row to the steps table.
  */
-
-// ==================== Row Creation Helper Functions ====================
-
-/**
- * Create a time input element (0-24 hours).
- * @param {string} className - CSS class name
- * @param {number} value - Initial value
- * @returns {HTMLInputElement}
- */
-function createTimeInput(className, value = 0) {
-  const input = document.createElement("input");
-  input.type = "number";
-  input.className = className;
-  input.min = "0";
-  input.max = "24";
-  input.step = "0.5";
-  input.value = value;
-  return input;
-}
-
-/**
- * Create a number input element with custom constraints.
- * @param {string} className - CSS class name
- * @param {number} value - Initial value
- * @param {number} min - Minimum value
- * @param {number} max - Maximum value
- * @param {number} step - Step increment
- * @returns {HTMLInputElement}
- */
-function createNumberInput(className, value, min, max, step = 1) {
-  const input = document.createElement("input");
-  input.type = "number";
-  input.className = className;
-  input.min = String(min);
-  input.max = String(max);
-  input.step = String(step);
-  input.value = String(value);
-  return input;
-}
-
-/**
- * Create a remove button for table rows with timeline update.
- * @param {HTMLElement} row - The row to remove
- * @param {HTMLElement} tbody - Table body element
- * @param {string} timelineType - Timeline type (vss/dhs/flow/tec_simple)
- * @returns {HTMLButtonElement}
- */
-function createRemoveButton(row, tbody, timelineType) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "btn-remove-step";
-  btn.textContent = "删除";
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    row.remove();
-    updateTimelineByType(tbody, timelineType);
-  });
-  return btn;
-}
-
-/**
- * Bind input change event to update timeline (with debouncing).
- * @param {HTMLInputElement|HTMLSelectElement} input - Input element
- * @param {HTMLElement} tbody - Table body element
- * @param {string} timelineType - Timeline type
- */
-function bindTimelineUpdate(input, tbody, timelineType) {
-  input.addEventListener('input', () => {
-    if (debouncedUpdateTimeline[timelineType]) {
-      debouncedUpdateTimeline[timelineType](tbody);
-    }
-  });
-  // Also handle 'change' event for select elements
-  if (input.tagName === 'SELECT') {
-    input.addEventListener('change', () => {
-      if (debouncedUpdateTimeline[timelineType]) {
-        debouncedUpdateTimeline[timelineType](tbody);
-      }
-    });
-  }
-}
-
-// ==================== End Helper Functions ====================
-
-function addStepRow\(tbody, paramName, timeVal, speedVal, stepStructure\) \{
+function addStepRow(tbody, paramName, timeVal, speedVal, stepStructure) {
   const row = document.createElement("tr");
   row.className = "step-row";
 
   // Time input
   const timeCell = document.createElement("td");
-  const timeInput = createTimeInput("step-time", timeVal || 0);
+  const timeInput = document.createElement("input");
+  timeInput.type = "number";
+  timeInput.className = "step-time";
+  timeInput.min = "0";
+  timeInput.max = "24";
+  timeInput.step = "0.5";
+  timeInput.value = timeVal || 0;
   timeCell.appendChild(timeInput);
   row.appendChild(timeCell);
 
@@ -1073,15 +995,27 @@ function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, allow
   const row = document.createElement("tr");
   row.className = "dhs-interval-row";
 
-  // Begin time (using helper)
+  // Begin time
   const beginCell = document.createElement("td");
-  const beginInput = createTimeInput("dhs-interval-begin", beginHours || 0);
+  const beginInput = document.createElement("input");
+  beginInput.type = "number";
+  beginInput.className = "dhs-interval-begin";
+  beginInput.min = "0";
+  beginInput.max = "24";
+  beginInput.step = "0.5";
+  beginInput.value = beginHours || 0;
   beginCell.appendChild(beginInput);
   row.appendChild(beginCell);
 
-  // End time (using helper)
+  // End time
   const endCell = document.createElement("td");
-  const endInput = createTimeInput("dhs-interval-end", endHours || 1);
+  const endInput = document.createElement("input");
+  endInput.type = "number";
+  endInput.className = "dhs-interval-end";
+  endInput.min = "0";
+  endInput.max = "24";
+  endInput.step = "0.5";
+  endInput.value = endHours || 1;
   endCell.appendChild(endInput);
   row.appendChild(endCell);
 
@@ -1134,17 +1068,25 @@ function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, allow
   vehiclesCell.appendChild(vehiclesSelect);
   row.appendChild(vehiclesCell);
 
-  // Remove button (using helper)
+  // Remove button
   const actionCell = document.createElement("td");
-  const removeBtn = createRemoveButton(row, tbody, 'dhs');
-  removeBtn.className = "btn-remove-interval"; // Keep original class
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn-remove-interval";
+  removeBtn.textContent = "删除";
+  removeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    row.remove();
+    // [NEW] Update timeline after removing row
+    updateTimelineByType(tbody, 'dhs');
+  });
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
 
-  // Bind timeline updates (using helper)
-  bindTimelineUpdate(beginInput, tbody, 'dhs');
-  bindTimelineUpdate(endInput, tbody, 'dhs');
-  bindTimelineUpdate(statusSelect, tbody, 'dhs');
+  // [NEW] Add input event listeners for real-time timeline update
+  beginInput.addEventListener('input', () => debouncedUpdateTimeline.dhs(tbody));
+  endInput.addEventListener('input', () => debouncedUpdateTimeline.dhs(tbody));
+  statusSelect.addEventListener('change', () => debouncedUpdateTimeline.dhs(tbody));
 
   tbody.appendChild(row);
 }
@@ -1312,41 +1254,72 @@ function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, ta
   const row = document.createElement("tr");
   row.className = "interval-row";
 
-  // Begin time (using helper)
+  // Begin time
   const beginCell = document.createElement("td");
-  const beginInput = createTimeInput("interval-begin", beginHours || 0);
+  const beginInput = document.createElement("input");
+  beginInput.type = "number";
+  beginInput.className = "interval-begin";
+  beginInput.min = "0";
+  beginInput.max = "24";
+  beginInput.step = "0.5";
+  beginInput.value = beginHours || 0;
   beginCell.appendChild(beginInput);
   row.appendChild(beginCell);
 
-  // End time (using helper)
+  // End time
   const endCell = document.createElement("td");
-  const endInput = createTimeInput("interval-end", endHours || 1);
+  const endInput = document.createElement("input");
+  endInput.type = "number";
+  endInput.className = "interval-end";
+  endInput.min = "0";
+  endInput.max = "24";
+  endInput.step = "0.5";
+  endInput.value = endHours || 1;
   endCell.appendChild(endInput);
   row.appendChild(endCell);
 
-  // Flow rate (using helper)
+  // Flow rate
   const flowCell = document.createElement("td");
-  const flowInput = createNumberInput("interval-flow", flowRate || 480, 0, 2000);
+  const flowInput = document.createElement("input");
+  flowInput.type = "number";
+  flowInput.className = "interval-flow";
+  flowInput.min = "0";
+  flowInput.max = "2000";
+  flowInput.value = flowRate || 480;
   flowCell.appendChild(flowInput);
   row.appendChild(flowCell);
 
-  // Target speed (using helper)
+  // Target speed
   const speedCell = document.createElement("td");
-  const speedInput = createNumberInput("interval-speed", targetSpeed || 15, 0, 50, 0.5);
+  const speedInput = document.createElement("input");
+  speedInput.type = "number";
+  speedInput.className = "interval-speed";
+  speedInput.min = "0";
+  speedInput.max = "50";
+  speedInput.step = "0.5";
+  speedInput.value = targetSpeed || 15;
   speedCell.appendChild(speedInput);
   row.appendChild(speedCell);
 
-  // Remove button (using helper)
+  // Remove button
   const actionCell = document.createElement("td");
-  const removeBtn = createRemoveButton(row, tbody, 'flow');
-  removeBtn.className = "btn-remove-interval"; // Keep original class
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn-remove-interval";
+  removeBtn.textContent = "删除";
+  removeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    row.remove();
+    // [NEW] 删除行后更新时间轴
+    updateTimelineByType(tbody, 'flow');
+  });
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
 
-  // Bind timeline updates (using helper)
-  bindTimelineUpdate(beginInput, tbody, 'flow');
-  bindTimelineUpdate(endInput, tbody, 'flow');
-  bindTimelineUpdate(flowInput, tbody, 'flow');
+  // [NEW] 为输入框添加变化事件监听器以更新时间轴（使用防抖）
+  beginInput.addEventListener('input', () => debouncedUpdateTimeline.flow(tbody));
+  endInput.addEventListener('input', () => debouncedUpdateTimeline.flow(tbody));
+  flowInput.addEventListener('input', () => debouncedUpdateTimeline.flow(tbody));
 
   tbody.appendChild(row);
 }
@@ -1524,28 +1497,53 @@ function addTECIntervalRow(tbody, paramName, beginHours, endHours) {
   const row = document.createElement("tr");
   row.className = "tec-interval-row";
 
-  // Begin time (using helper)
+  // Begin time
   const beginCell = document.createElement("td");
-  const beginInput = createTimeInput("tec-interval-begin", beginHours || 0);
+  const beginInput = document.createElement("input");
+  beginInput.type = "number";
+  beginInput.className = "tec-interval-begin";
+  beginInput.min = "0";
+  beginInput.max = "24";
+  beginInput.step = "0.5";
+  beginInput.value = beginHours || 0;
   beginCell.appendChild(beginInput);
   row.appendChild(beginCell);
 
-  // End time (using helper)
+  // End time
   const endCell = document.createElement("td");
-  const endInput = createTimeInput("tec-interval-end", endHours || 1);
+  const endInput = document.createElement("input");
+  endInput.type = "number";
+  endInput.className = "tec-interval-end";
+  endInput.min = "0";
+  endInput.max = "24";
+  endInput.step = "0.5";
+  endInput.value = endHours || 1;
   endCell.appendChild(endInput);
   row.appendChild(endCell);
 
-  // Remove button (using helper)
+  // Action (Delete button)
   const actionCell = document.createElement("td");
-  const removeBtn = createRemoveButton(row, tbody, 'tec_simple');
-  removeBtn.className = "btn btn-delete-row"; // Keep original class name
-  actionCell.appendChild(removeBtn);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "btn btn-delete-row";
+  deleteBtn.textContent = "删除";
+  deleteBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    row.remove();
+    // Update timeline after deleting row
+    updateTimelineByType(tbody, 'tec_simple');
+  });
+  actionCell.appendChild(deleteBtn);
   row.appendChild(actionCell);
 
-  // Bind timeline updates (using helper) - FIX: use unified debounced version
-  bindTimelineUpdate(beginInput, tbody, 'tec_simple');
-  bindTimelineUpdate(endInput, tbody, 'tec_simple');
+  // Add change listeners to update timeline
+  beginInput.addEventListener("input", debounce(() => {
+    updateTimelineByType(tbody, 'tec_simple');
+  }, 300));
+
+  endInput.addEventListener("input", debounce(() => {
+    updateTimelineByType(tbody, 'tec_simple');
+  }, 300));
 
   tbody.appendChild(row);
 }
