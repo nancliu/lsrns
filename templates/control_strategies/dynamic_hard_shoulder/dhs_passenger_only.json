@@ -1,7 +1,7 @@
 {
   "template_id": "dhs_passenger_only",
   "template_name": "应急车道 - 仅客车",
-  "description": "应急车道仅允许乘用车和公交车通行，禁止货车和特种车辆。适用于需要优先保障客运流量的路段，同时限制货车造成的拥堵。",
+  "description": "应急车道仅允许客车通行，禁止货车。适用于需要优先保障客运流量的路段，同时限制货车造成的拥堵。特种车辆可在关闭时段通行。",
   "extends": "dhs_base",
   "version": "2.1",
   "parameters_schema": [
@@ -28,15 +28,14 @@
     {
       "parameter_name": "intervals",
       "parameter_type": "dhs_interval_array",
-      "description": "应急车道开放/关闭的时间区间（预设为仅允许客车和公交，禁止货车）",
+      "description": "应急车道开放/关闭的时间区间（预设为仅允许客车，禁止货车）",
       "default_value": [
         {
           "begin_hours": 0,
           "end_hours": 7,
           "status": "CLOSED",
           "allowed_vehicle_types": [
-            "emergency",
-            "authority"
+            "delivery"
           ]
         },
         {
@@ -45,8 +44,7 @@
           "status": "OPEN",
           "allowed_vehicle_types": [
             "passenger",
-            "bus",
-            "emergency"
+            "delivery"
           ]
         },
         {
@@ -54,8 +52,7 @@
           "end_hours": 17,
           "status": "CLOSED",
           "allowed_vehicle_types": [
-            "emergency",
-            "authority"
+            "delivery"
           ]
         },
         {
@@ -64,8 +61,7 @@
           "status": "OPEN",
           "allowed_vehicle_types": [
             "passenger",
-            "bus",
-            "emergency"
+            "delivery"
           ]
         },
         {
@@ -73,8 +69,7 @@
           "end_hours": 24,
           "status": "CLOSED",
           "allowed_vehicle_types": [
-            "emergency",
-            "authority"
+            "delivery"
           ]
         }
       ],
@@ -83,22 +78,16 @@
     {
       "parameter_name": "allowed_vehicle_types",
       "parameter_type": "enum_array",
-      "description": "应急车道开放时允许通行的车辆类型（全局默认值，预设为仅客车和公交）",
+      "description": "应急车道开放时允许通行的车辆类型（全局默认值，预设为仅客车）",
       "required": false,
       "default_value": [
-        "passenger",
-        "bus"
+        "passenger"
       ],
       "unit": null,
       "enum_values": [
         {
           "value": "passenger",
-          "label": "乘用车 (客车)",
-          "disabled": "false"
-        },
-        {
-          "value": "bus",
-          "label": "公交车",
+          "label": "客车",
           "disabled": "false"
         },
         {
@@ -107,8 +96,8 @@
           "disabled": "true"
         },
         {
-          "value": "emergency",
-          "label": "应急车",
+          "value": "delivery",
+          "label": "特种车辆",
           "disabled": "false"
         }
       ],

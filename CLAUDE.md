@@ -33,6 +33,56 @@ OD数据处理与仿真系统 (OD Data Processing and Simulation System) - A mod
 **Framework**: FastAPI + Pydantic
 **Platform**: Windows 10/11
 
+## Principles & Rules Quick Reference
+
+This project follows a structured set of principles, rules, and standards with unique identifiers for easy reference.
+
+### Architecture Principles
+- **PRINCIPLE-ARCH-001**: Single Responsibility Principle → [Details](#principle-arch-001-single-responsibility-principle)
+- **PRINCIPLE-ARCH-002**: Dependency Direction Rule → [Details](#principle-arch-002-dependency-direction-rule)
+- **PRINCIPLE-ARCH-003**: Service Locator Pattern → [Details](#principle-arch-003-service-locator-pattern)
+- **PRINCIPLE-ARCH-004**: Dependency Injection for Services → [Details](#principle-arch-004-dependency-injection-for-services)
+- **PRINCIPLE-ARCH-005**: No Circular Dependencies → [Details](#principle-arch-005-no-circular-dependencies)
+
+### Project Rules
+- **RULE-ROOT-001**: Project Root Directory Policy → [Details](#project-root-directory-policy)
+- **RULE-FE-001**: Frontend Data Rules (No Hardcoded Data) → [Details](#frontend-data-rules-no-hardcoded-data--no-duplicate-code)
+- **RULE-E2E-001**: E2E Testing Best Practices → [Details](openspec/project.md#e2e-testing-best-practices-rule-e2e-001)
+
+### Code Standards
+- **STANDARD-CODE-001**: Python Code Quality Standards → [Details](#standard-code-001-python-code-quality-standards)
+- **STANDARD-NAMING-001**: Naming Conventions → [Details](#standard-naming-001-naming-conventions)
+
+### Common Pitfalls
+- **Architecture Violations**:
+  - PITFALL-ARCH-001: Circular Dependencies → [Details](#pitfall-arch-001-circular-dependencies)
+  - PITFALL-ARCH-002: Reverse Dependency Flow → [Details](#pitfall-arch-002-reverse-dependency-flow)
+  - PITFALL-ARCH-003: Mixed API Versions → [Details](#pitfall-arch-003-mixed-api-versions)
+- **Code Quality Issues**:
+  - PITFALL-CODE-001: Using Deprecated Functions → [Details](#pitfall-code-001-using-deprecated-functions)
+  - PITFALL-CODE-002: Hardcoded Configuration → [Details](#pitfall-code-002-hardcoded-configuration)
+  - PITFALL-CODE-003: Using print() Instead of Logging → [Details](#pitfall-code-003-using-print-instead-of-logging)
+  - PITFALL-CODE-004: Deprecated Database Connection → [Details](#pitfall-code-004-deprecated-database-connection)
+- **Frontend Issues**:
+  - PITFALL-FE-002: Inline Styles in HTML → [Details](#pitfall-fe-002-inline-styles-in-html)
+  - PITFALL-FE-003: Violating Single Responsibility (Functions) → [Details](#pitfall-fe-003-violating-single-responsibility-functions)
+  - PITFALL-FE-004: Deep Callback Nesting → [Details](#pitfall-fe-004-deep-callback-nesting)
+- **Environment & Tools**:
+  - PITFALL-ENV-001: Wrong Conda Environment → [Details](#pitfall-env-001-wrong-conda-environment)
+  - PITFALL-ENV-002: Working in Legacy Directories → [Details](#pitfall-env-002-working-in-legacy-directories)
+- **File Organization**:
+  - PITFALL-FILE-001: Root Directory Pollution → [Details](#pitfall-file-001-root-directory-pollution)
+
+### Architecture Decision Records
+- **ADR-001**: Two-Layer Modular Architecture → [Details](#adr-001-two-layer-modular-architecture)
+- **ADR-002**: FastAPI + Pydantic → [Details](#adr-002-fastapi--pydantic-for-api-framework)
+- **ADR-003**: Connection Pooling → [Details](#adr-003-connection-pooling-for-database-access)
+- **ADR-004**: Two-Step Simulation Workflow → [Details](#adr-004-two-step-simulation-workflow-prepare--start)
+- **ADR-005**: JSON Templates for Configuration → [Details](#adr-005-json-templates-for-configuration)
+- **ADR-006**: E2E Tests Use Production Data → [Details](#adr-006-e2e-tests-use-production-data)
+
+---
+
 ## Essential Commands
 
 ### Development
@@ -188,11 +238,419 @@ shared/
 
 ### Key Architectural Principles
 
-1. **Single Responsibility**: Each module has one clear purpose
-2. **Dependency Direction**: API → Services → Shared (utilities/data_access/analysis_tools/data_processors)
-3. **Service Locator Pattern**: Services are managed through `api/services/__init__.py`
-4. **Dependency Injection**: Used for managing service instances
-5. **No Circular Dependencies**: Strictly enforced
+#### PRINCIPLE-ARCH-001: Single Responsibility Principle
+
+**定义**: Each module has one clear purpose and reason to change.
+
+**如何检查**:
+- Can the module name be described with a single verb phrase?
+- Does the module have only one reason to change?
+- Run: `grep -r "^class\|^def" <module_file>` - if >10 classes/functions, consider splitting
+
+**违反后果**:
+- Code becomes difficult to test in isolation
+- Changes have unpredictable side effects
+- High coupling between unrelated concerns
+
+**示例**:
+- ✅ **Good**: `shared/data_access/gantry_loader.py` - Only loads gantry data from database
+- ✅ **Good**: `api/services/accuracy_service.py` - Only orchestrates accuracy analysis workflow
+- ❌ **Bad**: `data_handler.py` - Vague name, unclear responsibility
+- ❌ **Bad**: A service that handles both file I/O AND database queries AND business logic
+
+#### PRINCIPLE-ARCH-002: Dependency Direction Rule
+
+**定义**: Dependencies flow in ONE direction only: API Layer → Services → Shared Layer
+
+**严格规则**:
+- ✅ `api/services/` CAN import from `shared/`
+- ✅ `api/routes/` CAN import from `api/services/` and `api/models/`
+- ❌ `shared/` MUST NEVER import from `api/`
+- ❌ Services MUST NEVER import from routes
+
+**如何检查**:
+```bash
+# Check if shared/ imports from api/ (should return empty)
+grep -r "from api" shared/
+grep -r "import api" shared/
+
+# Check if services import from routes (should return empty)
+grep -r "from api.routes" api/services/
+```
+
+**违反后果**:
+- Circular dependencies prevent module initialization
+- Cannot test shared layer independently
+- Cannot reuse shared logic outside API context
+- Tight coupling makes refactoring risky
+
+**依赖流程图**:
+```
+api/routes/          (HTTP endpoints)
+    ↓
+api/services/        (Business orchestration)
+    ↓
+shared/utilities/    (Generic helpers)
+shared/data_access/  (Database layer)
+shared/analysis_tools/ (Analysis algorithms)
+shared/data_processors/ (Core data processing)
+```
+
+#### PRINCIPLE-ARCH-003: Service Locator Pattern
+
+**定义**: All service instances are centrally managed through `api/services/__init__.py`
+
+**实现方式**:
+```python
+# api/services/__init__.py
+from .data_service import DataService
+from .case_service import CaseService
+from .simulation_service import SimulationService
+
+# Singleton instances
+data_service = DataService()
+case_service = CaseService(data_service)
+simulation_service = SimulationService(case_service)
+```
+
+**使用方式**:
+```python
+# api/routes/data_routes.py
+from api.services import data_service
+
+@router.post("/process_od")
+async def process_od(request: ODRequest):
+    return data_service.process_od_data(request)
+```
+
+**好处**:
+- ✅ Single instance management (singleton pattern)
+- ✅ Easy to mock services for testing
+- ✅ Clear dependency relationships
+- ✅ Centralized initialization and configuration
+
+**如何检查**:
+- All service imports should be from `api.services`, not direct module imports
+- Search for anti-pattern: `from api.services.data_service import DataService` (should be `from api.services import data_service`)
+
+#### PRINCIPLE-ARCH-004: Dependency Injection for Services
+
+**定义**: Services receive their dependencies through constructor parameters, not by creating them internally
+
+**正确示例**:
+```python
+# ✅ GOOD: Dependencies injected via constructor
+class CaseService:
+    def __init__(self, data_service: DataService):
+        self.data_service = data_service
+
+    def create_case(self, params):
+        od_data = self.data_service.load_od_data()
+        # ...
+```
+
+**错误示例**:
+```python
+# ❌ BAD: Service creates its own dependencies
+class CaseService:
+    def __init__(self):
+        self.data_service = DataService()  # Hard-coded dependency!
+
+    def create_case(self, params):
+        # ...
+```
+
+**好处**:
+- ✅ Easy to replace dependencies for testing
+- ✅ Clear dependency graph
+- ✅ Loose coupling between services
+- ✅ Enables composition over inheritance
+
+#### PRINCIPLE-ARCH-005: No Circular Dependencies
+
+**定义**: Module A imports B, B imports C, C MUST NOT import A (direct or indirect)
+
+**如何检查**:
+```bash
+# Install pydeps if not available
+# pip install pydeps
+
+# Check for cycles in API layer
+pydeps api/ --show-cycles
+
+# Check for cycles in Shared layer
+pydeps shared/ --show-cycles
+```
+
+**常见违规场景**:
+- ❌ Service A imports Service B, Service B imports Service A
+- ❌ Shared utility imports API model for type hints
+- ❌ Data processor imports analysis tool, analysis tool imports processor
+
+**违反后果**:
+- Module import fails with `ImportError`
+- Cannot instantiate classes (initialization order issues)
+- Testing becomes impossible (cannot isolate modules)
+- High refactoring risk
+
+**解决方法**:
+1. **Extract shared interfaces**: Create a `base.py` or `interfaces.py` with shared types
+2. **Use dependency injection**: Pass dependencies as parameters instead of importing
+3. **Redesign module boundaries**: If A and B depend on each other, they might belong in the same module
+4. **Type hints only**: Use `from typing import TYPE_CHECKING` for type-only imports
+
+**示例解决方案**:
+```python
+# ❌ BAD: Circular dependency
+# module_a.py
+from module_b import ClassB
+class ClassA:
+    def use_b(self):
+        return ClassB()
+
+# module_b.py
+from module_a import ClassA  # Circular!
+class ClassB:
+    def use_a(self):
+        return ClassA()
+
+# ✅ GOOD: Use dependency injection
+# module_a.py
+class ClassA:
+    def use_b(self, b_instance):  # Inject dependency
+        return b_instance.do_something()
+
+# module_b.py
+class ClassB:
+    def use_a(self, a_instance):  # Inject dependency
+        return a_instance.do_something()
+```
+
+## Architecture Decision Records (ADR)
+
+This section documents key architectural decisions, their context, and rationale.
+
+### ADR-001: Two-Layer Modular Architecture
+
+**Date**: 2024-10 (Architecture Refactoring v0.65 → v0.7)
+
+**Status**: ✅ Accepted and Implemented
+
+**Context**:
+- Original single-layer architecture mixed HTTP handling with business logic
+- Core logic couldn't be reused outside API context (e.g., CLI tools, batch jobs)
+- Testing required HTTP request simulation, making unit tests slow and complex
+- Difficult to reason about dependencies and responsibilities
+
+**Decision**: Adopt a strict two-layer architecture:
+- **API Layer** (`api/`): Thin layer for HTTP/REST interface only
+- **Shared Layer** (`shared/`): Thick layer with all business logic, algorithms, data access
+
+**Consequences**:
+- ✅ **Positive**:
+  - Shared layer can be tested independently without API server
+  - Core logic reusable by CLI tools, batch scripts, or future gRPC services
+  - Clear separation of concerns (protocol vs. business logic)
+  - Easier to migrate to different frameworks (e.g., from FastAPI to Django)
+  - Dependency direction is explicit and enforceable
+- ⚠️ **Negative**:
+  - Requires discipline to avoid circular dependencies
+  - May seem over-engineered for small projects
+  - More boilerplate (models in both layers)
+
+**Related**:
+- PRINCIPLE-ARCH-002 (Dependency Direction)
+- [Architecture Refactoring Report](docs/development/架构重构完成报告.md)
+
+---
+
+### ADR-002: FastAPI + Pydantic for API Framework
+
+**Date**: 2023-Q4 (Initial Development)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- Need for modern Python web framework with async support
+- Strong type validation required (traffic simulation data is complex)
+- Automatic API documentation desired for frontend integration
+- Team familiar with Python, not JavaScript/TypeScript
+
+**Decision**: Use FastAPI with Pydantic for:
+- API routing and request handling
+- Request/response validation
+- Automatic OpenAPI/Swagger documentation
+
+**Alternatives Considered**:
+- **Django REST Framework**: Too heavyweight, synchronous only
+- **Flask**: No built-in validation, manual API docs
+- **Express.js (Node.js)**: Team lacks JavaScript expertise
+
+**Consequences**:
+- ✅ **Positive**:
+  - Automatic data validation catches errors early
+  - `/docs` endpoint provides interactive API testing
+  - Async support enables background simulation runs
+  - Type hints improve IDE support and code quality
+- ⚠️ **Negative**:
+  - Learning curve for FastAPI-specific patterns
+  - Pydantic v2 migration required manual updates
+
+---
+
+### ADR-003: Connection Pooling for Database Access
+
+**Date**: 2025-10 (Database Performance Optimization Phase 1)
+
+**Status**: ✅ Accepted and Implemented
+
+**Context**:
+- Original code used `open_db_connection()` creating new connection per query
+- TCP handshake + authentication took 150-200ms per query
+- Route segment query API took 5.4 seconds (unacceptable UX)
+- Database queries dominated API response time
+
+**Decision**:
+- Implement SQLAlchemy connection pooling in `shared/data_access/connection.py`
+- Create `PooledConnectionWrapper` adapter for backward compatibility
+- Deprecate `open_db_connection()` for new code
+
+**Consequences**:
+- ✅ **Positive**:
+  - 90% performance improvement (5.4s → 0.54s after Phase 2)
+  - Reduced database load (connection reuse)
+  - Better resource management (configurable pool size)
+- ⚠️ **Negative**:
+  - Requires careful connection lifecycle management
+  - Connection pool exhaustion possible under high load
+  - Some legacy code still uses old method (gradual migration)
+
+**Related**:
+- PITFALL-CODE-004 (Deprecated Database Connection)
+- [Database Optimization Summary](DATABASE_OPTIMIZATION_SUMMARY.md)
+
+---
+
+### ADR-004: Two-Step Simulation Workflow (Prepare + Start)
+
+**Date**: 2024-11 (v0.9.0)
+
+**Status**: ✅ Accepted and Implemented
+
+**Context**:
+- Original one-step API (`/run_simulation`) didn't allow configuration inspection
+- Users wanted to modify `simulation.sumocfg` before execution
+- Hard to debug simulation setup issues (config generation hidden)
+- External tools needed access to generated config files
+
+**Decision**: Split simulation into two steps:
+1. **Prepare** (`/prepare_simulation`) - Generate config, return paths, status → `pending`
+2. **Start** (`/start_simulation`) - Execute simulation, status → `running`
+3. Keep one-step API for backward compatibility (internally calls prepare + start)
+
+**Alternatives Considered**:
+- **CLI-based config generation**: Rejected (requires terminal access, not web-friendly)
+- **Config file upload**: Too complex for non-expert users
+
+**Consequences**:
+- ✅ **Positive**:
+  - Users can inspect/modify configs before execution
+  - Better error messages (fail fast at prepare stage)
+  - External tools can use `config_file_abs` path
+  - Clear separation of config generation vs. execution
+- ⚠️ **Negative**:
+  - API surface increased (more endpoints to maintain)
+  - Frontend needs to handle two-step workflow
+  - Potential confusion with legacy one-step API
+
+**Related**:
+- Critical Implementation Details → Simulation Workflow
+- PITFALL-ARCH-003 (Mixed API Versions)
+
+---
+
+### ADR-005: JSON Templates for Configuration
+
+**Date**: 2024-Q2 (v0.7)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- Vehicle types were hardcoded in Python code
+- Every vehicle parameter change required code modification + deployment
+- Simulation configurations couldn't be shared between environments
+- Traffic engineers (non-coders) couldn't modify vehicle parameters
+
+**Decision**:
+- Store vehicle types in `vehicle_types.json` template
+- Support multiple template versions (microscopic, mesoscopic)
+- Load templates dynamically at runtime, not compile time
+
+**Consequences**:
+- ✅ **Positive**:
+  - Configuration changes don't require code deployment
+  - Traffic engineers can modify templates directly
+  - Easy to A/B test different vehicle configurations
+  - Templates can be version-controlled independently
+- ⚠️ **Negative**:
+  - Runtime validation needed (invalid JSON can cause failures)
+  - Template schema must be documented
+  - Backward compatibility with old template versions
+
+**Related**:
+- PITFALL-CODE-002 (Hardcoded Configuration)
+- Vehicle Type Configuration section
+
+---
+
+### ADR-006: E2E Tests Use Production Data
+
+**Date**: 2025-11 (E2E Testing Standardization)
+
+**Status**: ✅ Accepted
+
+**Context**:
+- Creating test data fixtures was time-consuming and brittle
+- Test data often became stale or was deleted
+- Wanted to test against real database performance and topology
+- Production data is stable (road network doesn't change frequently)
+
+**Decision**:
+- E2E tests query production database for test data
+- Use well-known stable routes (G4202, G5) and edges
+- Gracefully skip tests if production data unavailable (`test.skip()`)
+
+**Alternatives Considered**:
+- **Mock data**: Rejected (doesn't test real database performance)
+- **Separate test database**: Rejected (maintenance burden, data synchronization issues)
+
+**Consequences**:
+- ✅ **Positive**:
+  - Tests validate real-world scenarios
+  - No test fixture maintenance
+  - Catches database performance regressions
+  - No setup/teardown overhead
+- ⚠️ **Negative**:
+  - Tests depend on external database availability
+  - Production data changes could break tests
+  - Cannot test edge cases not present in production
+
+**Related**:
+- RULE-E2E-001 (E2E Testing Best Practices)
+- [test_strategy_creation_workflow.spec.js](tests/e2e/test_strategy_creation_workflow.spec.js)
+
+---
+
+### Decision Log
+
+| ADR | Title | Date | Status |
+|-----|-------|------|--------|
+| ADR-001 | Two-Layer Modular Architecture | 2024-10 | ✅ Implemented |
+| ADR-002 | FastAPI + Pydantic | 2023-Q4 | ✅ Implemented |
+| ADR-003 | Connection Pooling | 2025-10 | ✅ Implemented |
+| ADR-004 | Two-Step Simulation Workflow | 2024-11 | ✅ Implemented |
+| ADR-005 | JSON Templates for Configuration | 2024-Q2 | ✅ Implemented |
+| ADR-006 | E2E Tests Use Production Data | 2025-11 | ✅ Implemented |
 
 ## Development Workflow
 
@@ -803,9 +1261,11 @@ Before approving frontend PRs, verify:
 
 **Impact**: Violations cause incorrect data display, maintenance issues, and inconsistent behavior across features.
 
-## Code Standards from Cursor Rules
+## Code Standards
 
-### Function/Method Limits
+### STANDARD-CODE-001: Python Code Quality Standards
+
+#### Function/Method Limits
 
 - Max function length: 30 lines
 - Max parameters: 5
@@ -813,7 +1273,7 @@ Before approving frontend PRs, verify:
 - Max class length: 300 lines
 - Suggest split if >10 methods
 
-### Naming Conventions
+#### Naming Conventions
 
 - **Variables/Functions**: snake_case (`process_gantry_data`)
 - **Classes**: PascalCase (`GantryDataProcessor`)
@@ -821,21 +1281,25 @@ Before approving frontend PRs, verify:
 - **Files**: snake_case (`gantry_processor.py`)
 - **Private methods**: prefix with underscore (`_process_data`)
 
-### Required Practices
+#### Required Practices
 
 - Type hints on all functions (parameters and return values)
 - Docstrings required (Google style)
-- No `print()` statements (use logging)
+- No `print()` statements (use logging) - see PITFALL-CODE-003
 - Use pandas vectorized operations (avoid Python loops for data processing)
 - Early returns for error handling
 - No broad except clauses
 
-### Code Quality Tools
+#### Code Quality Tools
 
 - **Formatter**: black
 - **Linter**: flake8 (also consider ruff)
 - **Line length**: 100 characters max
 - **Indentation**: 4 spaces
+
+### STANDARD-NAMING-001: Naming Conventions
+
+See STANDARD-CODE-001 → Naming Conventions above.
 
 ## Analysis Types
 
@@ -871,30 +1335,131 @@ Before approving frontend PRs, verify:
 
 ## Common Pitfalls
 
-### What NOT to Do
+### Architecture Violations
 
-1. **Don't** create circular dependencies between modules
-2. **Don't** use `shared/data_processors/simulation_processor.generate_sumocfg()` - it's deprecated
-3. **Don't** hardcode vehicle types - use vehicle_templates.json
-4. **Don't** let analysis workflows modify case/simulation metadata
-5. **Don't** install dependencies in conda base environment
-6. **Don't** use `print()` - use logging module
-7. **Don't** create files in `sim_scripts/` or `accuracy_analysis/` directories (legacy code, kept for reference only)
-8. **Don't** mix old and new simulation API endpoints inconsistently
-9. **Don't** run tests or scripts without activating `od_project` conda environment first
-10. **Don't** run Playwright tests in conda base environment - always use `od_project`
-11. **Don't** use `open_db_connection()` in new code - use connection pooling from `shared/data_access/connection.py` instead
-12. **Don't** generate documentation or code files in the project root during testing/debugging - always create them in appropriate subdirectories:
-    - Analysis documents → `docs/` (with suitable subdirectory like `docs/control_frontend/parameter_config_analysis/`)
-    - Temporary test files → `tests/` or `test-results/`
-    - Generated code → appropriate `api/`, `shared/`, or `frontend/` subdirectory
-    - Never leave unorganized files in the root directory
-13. **Frontend - Don't** include inline styles in HTML files (use `style=""` attributes) - all styles MUST be in separate CSS files
-14. **Frontend - Don't** create functions that do multiple things - violates Single Responsibility Principle
-15. **Frontend - Don't** write functions longer than 30 lines - split into smaller, focused functions
-16. **Frontend - Don't** use vague function names like `handle()`, `process()`, `doStuff()` - names MUST clearly describe the single responsibility
-17. **Frontend - Don't** nest callbacks more than 3 levels deep - use Promise chains or async/await instead
-18. **Frontend - Don't** mix event handling, data fetching, validation, and DOM manipulation in one function - separate by responsibility
+**PITFALL-ARCH-001: Circular Dependencies**
+- ❌ **Don't** create circular dependencies between modules
+- **检查方法**: `pydeps api/ --show-cycles` and `pydeps shared/ --show-cycles`
+- **后果**: Module import failures, testing impossible
+- **相关原则**: PRINCIPLE-ARCH-005
+
+**PITFALL-ARCH-002: Reverse Dependency Flow**
+- ❌ **Don't** let `shared/` import from `api/`
+- ❌ **Don't** let analysis workflows modify case/simulation metadata
+- **检查方法**: `grep -r "from api" shared/`
+- **后果**: Cannot reuse shared logic, tight coupling
+- **相关原则**: PRINCIPLE-ARCH-002
+
+**PITFALL-ARCH-003: Mixed API Versions**
+- ❌ **Don't** mix old and new simulation API endpoints inconsistently
+- **正确做法**: Use two-step API (prepare + start) for new code, one-step only for backward compatibility
+- **相关文档**: Critical Implementation Details → Simulation Workflow
+
+### Code Quality Issues
+
+**PITFALL-CODE-001: Using Deprecated Functions**
+- ❌ **Don't** use `shared/data_processors/simulation_processor.generate_sumocfg()` - deprecated
+- ✅ **Use**: `shared/utilities/sumo_utils.generate_sumocfg_for_simulation()`
+- **后果**: Exception raised, simulation fails
+
+**PITFALL-CODE-002: Hardcoded Configuration**
+- ❌ **Don't** hardcode vehicle types in code
+- ✅ **Use**: `templates/config_templates/vehicle_templates/vehicle_types.json`
+- **原因**: Configuration should be data-driven, not code-driven
+- **相关原则**: Configuration as Data
+
+**PITFALL-CODE-003: Using print() Instead of Logging**
+- ❌ **Don't** use `print()` statements for output
+- ✅ **Use**: Python `logging` module
+- **原因**: Logs can be configured, filtered, and directed to files
+- **标准**: STANDARD-CODE-001
+
+**PITFALL-CODE-004: Deprecated Database Connection**
+- ❌ **Don't** use `open_db_connection()` in new code
+- ✅ **Use**: Connection pooling from `shared/data_access/connection.py`
+- **原因**: Connection pooling improves performance by 90%+
+- **相关文档**: Database Performance Optimization
+
+### Frontend Code Issues
+
+**PITFALL-FE-002: Inline Styles in HTML**
+- ❌ **Don't** include inline styles in HTML files (`style=""` attributes)
+- ✅ **Use**: Separate CSS files in `frontend/control/css/`
+- **相关规则**: RULE-FE-001
+- **后果**: Poor maintainability, inconsistent styling
+
+**PITFALL-FE-003: Violating Single Responsibility (Functions)**
+- ❌ **Don't** create functions that do multiple things
+- ❌ **Don't** write functions longer than 30 lines
+- ❌ **Don't** use vague names like `handle()`, `process()`, `doStuff()`
+- ❌ **Don't** mix event handling, data fetching, validation, and DOM manipulation in one function
+- ✅ **Do**: Split into small, focused functions with clear names
+- **相关标准**: JavaScript Function Standards (Single Responsibility Principle)
+- **后果**: Hard to test, debug, and maintain
+
+**PITFALL-FE-004: Deep Callback Nesting**
+- ❌ **Don't** nest callbacks more than 3 levels deep
+- ✅ **Use**: Promise chains or async/await
+- **示例**:
+  ```javascript
+  // ❌ BAD
+  fetch(url1).then(r1 => {
+    fetch(url2).then(r2 => {
+      fetch(url3).then(r3 => {
+        // Callback hell!
+      });
+    });
+  });
+
+  // ✅ GOOD
+  const r1 = await fetch(url1);
+  const r2 = await fetch(url2);
+  const r3 = await fetch(url3);
+  ```
+
+### Environment and Tools
+
+**PITFALL-ENV-001: Wrong Conda Environment**
+- ❌ **Don't** install dependencies in conda base environment
+- ❌ **Don't** run tests or scripts without activating `od_project` first
+- ❌ **Don't** run Playwright tests in conda base environment
+- ✅ **Always**: `conda activate od_project` before ANY operations
+- **原因**: Ensures correct Python version, dependencies, and Playwright installation
+- **后果**: Tests fail, dependency conflicts, import errors
+
+**PITFALL-ENV-002: Working in Legacy Directories**
+- ❌ **Don't** create files in `sim_scripts/` or `accuracy_analysis/` directories
+- **原因**: These are legacy code, kept for reference only
+- ✅ **Use**: New architecture paths (`api/`, `shared/`, `frontend/`)
+
+### File Organization
+
+**PITFALL-FILE-001: Root Directory Pollution**
+- ❌ **Don't** generate documentation or code files in the project root during testing/debugging
+- **相关规则**: RULE-ROOT-001
+- **正确组织**:
+  - Analysis documents → `docs/` (with suitable subdirectory)
+  - Temporary test files → `tests/` or `test-results/`
+  - Generated code → appropriate `api/`, `shared/`, or `frontend/` subdirectory
+- **后果**: Poor discoverability, version control clutter, cognitive overload
+
+### Quick Reference Checklist
+
+Use this checklist before committing code:
+
+- [ ] No circular dependencies (`pydeps` clean)
+- [ ] No reverse imports (`shared/` doesn't import `api/`)
+- [ ] Using `sumo_utils.generate_sumocfg_for_simulation()` not deprecated version
+- [ ] No hardcoded vehicle types (using JSON template)
+- [ ] Using `logging` module, not `print()`
+- [ ] Using connection pooling for database access
+- [ ] Frontend: No inline styles in HTML
+- [ ] Frontend: Functions < 30 lines, single responsibility
+- [ ] Frontend: No deep callback nesting (use async/await)
+- [ ] Activated `od_project` conda environment
+- [ ] No files in legacy directories (`sim_scripts/`, `accuracy_analysis/`)
+- [ ] No unorganized files in project root
+- [ ] All tests passing in `od_project` environment
 
 ### Best Practices
 

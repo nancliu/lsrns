@@ -37,31 +37,31 @@
           "begin_hours": 0,
           "end_hours": 7,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"]
+          "allowed_vehicle_types": []
         },
         {
           "begin_hours": 7,
           "end_hours": 9,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+          "allowed_vehicle_types": ["passenger", "truck"]
         },
         {
           "begin_hours": 9,
           "end_hours": 17,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"]
+          "allowed_vehicle_types": []
         },
         {
           "begin_hours": 17,
           "end_hours": 19,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+          "allowed_vehicle_types": ["passenger", "truck"]
         },
         {
           "begin_hours": 19,
           "end_hours": 24,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency", "authority"]
+          "allowed_vehicle_types": []
         }
       ],
       "unit": null,
@@ -76,7 +76,8 @@
         "begin_conversion_factor": 3600,
         "end_display_unit": "hours",
         "end_sumo_unit": "seconds",
-        "end_conversion_factor": 3600
+        "end_conversion_factor": 3600,
+        "vehicle_types_enum": "vehicle_types_category"
       },
       "sumo_element": "interval",
       "sumo_child_element": "closingLaneReroute"

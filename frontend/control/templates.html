@@ -817,9 +817,19 @@
             }
 
             // 动态生成模板参数
+            // [FIX] Check if this template uses restriction_mode (TEC vehicle restriction)
+            const hasRestrictionMode = template.parameters_schema.some(p => p.parameter_name === 'restriction_mode');
+
             template.parameters_schema.forEach(param => {
                 // 跳过 affected_edges 参数（在步骤2已处理）
                 if (param.parameter_name === 'affected_edges' || param.parameter_name === 'affected_segments' || param.parameter_name === 'entrance_ids') {
+                    return;
+                }
+
+                // [FIX] Skip disallow_vehicle_types and allowed_vehicle_types if restriction_mode exists
+                // They will be replaced by a unified conditional control
+                if (hasRestrictionMode && (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types')) {
+                    console.log(`[templates.html] Skipping ${param.parameter_name} - will use unified control after restriction_mode`);
                     return;
                 }
 
@@ -885,29 +895,27 @@
                     inputHtml = window.renderFlowIntervalControl(param.parameter_name, param);
                 } else if (param.parameter_type === 'enum_array' || param.parameter_type === 'array') {
                     // 特殊处理：车型选择参数使用复选框
-                    const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
+                    const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types', 'disallow_vehicle_types'];
                     if (vehicleTypeParams.includes(param.parameter_name)) {
-                        const vehicleTypes = [
-                            { value: 'passenger', label: '客车' },
-                            { value: 'bus', label: '公交车' },
-                            { value: 'truck', label: '货车' },
-                            { value: 'emergency', label: '应急车辆' },
-                            { value: 'authority', label: '政府/执法车辆' },
-                            { value: 'passenger_small', label: '小型客车 (k1, k2)' },
-                            { value: 'passenger_large', label: '大型客车 (k3, k4)' },
-                            { value: 'truck_small', label: '小型货车 (h1, h2)' },
-                            { value: 'truck_large', label: '大型货车 (h3-h6)' },
-                            { value: 'special_small', label: '小型特种车 (t1, t2)' },
-                            { value: 'special_large', label: '大型特种车 (t3-t6)' }
+                        // Load vehicle types from API (param.enum_values)
+                        // Fallback to minimal 3-category defaults if API doesn't provide values
+                        const vehicleTypes = param.enum_values || [
+                            { value: 'passenger', label: '客车', description: '乘用车辆，包含小型和大型客车', includes: ['passenger_small', 'passenger_large'] },
+                            { value: 'truck', label: '货车', description: '货运车辆，包含小型和大型货车', includes: ['truck_small', 'truck_large'] },
+                            { value: 'delivery', label: '特种车辆', description: '特种车辆，包含小型和大型特种车', includes: ['special_small', 'special_large'] }
                         ];
 
                         const defaultValues = param.default_value || [];
                         const checkboxes = vehicleTypes.map(vt => {
                             const checked = Array.isArray(defaultValues) && defaultValues.includes(vt.value) ? 'checked' : '';
-                            return `<div class="checkbox-wrapper">
+                            // Build tooltip showing included detailed types
+                            const includesText = vt.includes ? ` (${vt.includes.length}种)` : '';
+                            const tooltip = vt.includes ? `包含: ${vt.includes.join(', ')}` : (vt.description || '');
+                            const displayLabel = vt.label + includesText;
+                            return `<div class="checkbox-wrapper" title="${tooltip}">
                                       <input type="checkbox" name="${param.parameter_name}" value="${vt.value}"
                                              id="vehicle-${param.parameter_name}-${vt.value}" ${checked}>
-                                      <label for="vehicle-${param.parameter_name}-${vt.value}">${vt.label}</label>
+                                      <label for="vehicle-${param.parameter_name}-${vt.value}">${displayLabel}</label>
                                     </div>`;
                         }).join('');
 
@@ -959,6 +967,25 @@
                 group.appendChild(hint);
 
                 form.appendChild(group);
+
+                // [FIX] After rendering restriction_mode, inject unified vehicle type control
+                if (hasRestrictionMode && param.parameter_name === 'restriction_mode') {
+                    console.log('[templates.html] Injecting unified vehicle type control after restriction_mode');
+                    const unifiedControl = window.renderUnifiedVehicleTypeControl(template);
+                    if (unifiedControl) {
+                        form.appendChild(unifiedControl);
+
+                        // Bind restriction_mode change event to update vehicle type control
+                        const restrictionModeSelect = document.getElementById(`param-restriction_mode`);
+                        if (restrictionModeSelect) {
+                            restrictionModeSelect.addEventListener('change', (e) => {
+                                if (window.updateVehicleTypeControlForRestrictionMode) {
+                                    window.updateVehicleTypeControlForRestrictionMode(e.target.value);
+                                }
+                            });
+                        }
+                    }
+                }
             });
 
             // Task 6.1: 绑定"建议名称"按钮事件
@@ -1449,9 +1476,10 @@
                     break;
                 case 'array':
                     // 特殊处理：车型多选
-                    if (['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types']
+                    if (['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types', 'disallow_vehicle_types']
                         .includes(param.parameter_name)) {
-                        control = createVehicleTypeControl(param);
+                        // [FIX] Use renderEnumArrayControl from parameter_form.js instead of deprecated createVehicleTypeControl
+                        control = window.renderEnumArrayControl ? window.renderEnumArrayControl(param.parameter_name, param) : createStringControl(param);
                     } else {
                         control = createStringControl(param);
                     }
@@ -1500,11 +1528,40 @@
                 gap: 15px;
             `;
 
+            // [FIX] Check if this template uses restriction_mode (TEC vehicle restriction)
+            const hasRestrictionMode = template.parameters_schema.some(p => p.parameter_name === 'restriction_mode');
+
             // 为每个参数创建控件
             template.parameters_schema.forEach(param => {
+                // [FIX] Skip disallow_vehicle_types and allowed_vehicle_types if restriction_mode exists
+                if (hasRestrictionMode && (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types')) {
+                    console.log(`[renderParametersSection] Skipping ${param.parameter_name} - will use unified control`);
+                    return;
+                }
+
                 try {
                     const control = renderParameterControl(param);
                     form.appendChild(control);
+
+                    // [FIX] After rendering restriction_mode, inject unified vehicle type control
+                    if (hasRestrictionMode && param.parameter_name === 'restriction_mode') {
+                        console.log('[renderParametersSection] Injecting unified vehicle type control');
+                        const unifiedControl = window.renderUnifiedVehicleTypeControl(template);
+                        if (unifiedControl) {
+                            form.appendChild(unifiedControl);
+
+                            // Bind restriction_mode change event
+                            const restrictionModeSelect = form.querySelector(`select[data-parameter-name="restriction_mode"]`) ||
+                                                         form.querySelector(`#param-restriction_mode`);
+                            if (restrictionModeSelect) {
+                                restrictionModeSelect.addEventListener('change', (e) => {
+                                    if (window.updateVehicleTypeControlForRestrictionMode) {
+                                        window.updateVehicleTypeControlForRestrictionMode(e.target.value);
+                                    }
+                                });
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.error(`[renderParametersSection] 参数控件创建失败: ${param.parameter_name}`, error);
 
@@ -3096,6 +3153,25 @@
 
                 // 枚举数组类型参数 (enum_array - 如 allowed_vehicle_types)
                 if (param.parameter_type === 'enum_array') {
+                    // [FIX] Special handling for TEC restriction mode vehicle types
+                    if ((param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types') &&
+                        configuredParams.restriction_mode) {
+                        // Check if unified control exists
+                        const unifiedCheckboxes = document.querySelectorAll(`input[name="vehicle_types"][type="checkbox"]:checked`);
+                        if (unifiedCheckboxes.length > 0) {
+                            const value = Array.from(unifiedCheckboxes).map(cb => cb.value);
+                            // Only collect the parameter that matches the current mode
+                            const currentMode = configuredParams.restriction_mode;
+                            if ((currentMode === 'disallow_mode' && param.parameter_name === 'disallow_vehicle_types') ||
+                                (currentMode === 'allow_mode' && param.parameter_name === 'allowed_vehicle_types')) {
+                                configuredParams[param.parameter_name] = value;
+                                console.log(`[collectParameterValues] 从统一控件收集 ${param.parameter_name}:`, value);
+                            }
+                            return;
+                        }
+                    }
+
+                    // Normal checkbox collection (for non-unified controls)
                     const checkboxes = document.querySelectorAll(`input[name="${param.parameter_name}"][type="checkbox"]:checked`);
                     const value = Array.from(checkboxes).map(cb => cb.value);
 

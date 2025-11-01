@@ -35,31 +35,31 @@
           "begin_hours": 0,
           "end_hours": 7,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency"]
+          "allowed_vehicle_types": ["delivery"]
         },
         {
           "begin_hours": 7,
           "end_hours": 10,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+          "allowed_vehicle_types": ["passenger", "truck", "delivery"]
         },
         {
           "begin_hours": 10,
           "end_hours": 17,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency"]
+          "allowed_vehicle_types": ["delivery"]
         },
         {
           "begin_hours": 17,
           "end_hours": 19,
           "status": "OPEN",
-          "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+          "allowed_vehicle_types": ["passenger", "truck", "delivery"]
         },
         {
           "begin_hours": 19,
           "end_hours": 24,
           "status": "CLOSED",
-          "allowed_vehicle_types": ["emergency"]
+          "allowed_vehicle_types": ["delivery"]
         }
       ],
       "unit": null,
@@ -84,13 +84,12 @@
       "parameter_type": "enum_array",
       "description": "应急车道开放时允许通行的车辆类型（全局默认值，可被时间区间的值覆盖）",
       "required": false,
-      "default_value": ["passenger", "bus", "truck", "emergency"],
+      "default_value": ["passenger", "truck", "delivery"],
       "unit": null,
       "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)"},
-        {"value": "bus", "label": "公交车"},
+        {"value": "passenger", "label": "客车"},
         {"value": "truck", "label": "货车"},
-        {"value": "emergency", "label": "应急车"}
+        {"value": "delivery", "label": "特种车辆"}
       ],
       "note": "此参数定义应急车道开放时的默认允许车型。实际使用时，每个时间区间可设置自己的allowed_vehicle_types",
       "sumo_mapping": "allow 属性"

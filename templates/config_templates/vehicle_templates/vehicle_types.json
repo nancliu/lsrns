@@ -1,6 +1,7 @@
 {
   "vehicle_types": {
     "passenger_small": {
+      "category": "passenger",
       "id_prefix": "k",
       "accel": 2.6,
       "decel": 4.5,
@@ -13,6 +14,7 @@
       "carFollowModel": "IDM"
     },
     "passenger_large": {
+      "category": "passenger",
       "id_prefix": "k",
       "accel": 1.8,
       "decel": 4.0,
@@ -25,6 +27,7 @@
       "carFollowModel": "IDM"
     },
     "truck_small": {
+      "category": "truck",
       "id_prefix": "h",
       "accel": 1.2,
       "decel": 3.5,
@@ -37,6 +40,7 @@
       "carFollowModel": "IDM"
     },
     "truck_large": {
+      "category": "truck",
       "id_prefix": "h",
       "accel": 0.8,
       "decel": 3.5,
@@ -49,6 +53,7 @@
       "carFollowModel": "IDM"
     },
     "special_small": {
+      "category": "delivery",
       "id_prefix": "t",
       "accel": 1.5,
       "decel": 4.0,
@@ -61,6 +66,7 @@
       "carFollowModel": "IDM"
     },
     "special_large": {
+      "category": "delivery",
       "id_prefix": "t",
       "accel": 1.0,
       "decel": 3.0,

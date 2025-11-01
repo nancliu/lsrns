@@ -22,6 +22,7 @@ from shared.control_tools import (
     load_index,
     regenerate_index,
 )
+from shared.utilities.vehicle_type_utils import expand_vehicle_types
 from api.models.requests.strategy_requests import (
     StrategyCreateRequest,
     StrategyUpdateRequest,
@@ -187,6 +188,60 @@ class StrategyInstanceService:
                 for edge_id in edge_ids
             ]
 
+    def _process_vehicle_types(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process vehicle types parameter - expand categories to detailed types.
+
+        Implements two-layer vehicle type system:
+        - User selects categories (客车/货车/特种车辆)
+        - Backend expands to detailed SUMO types (passenger_small/large, etc.)
+
+        Args:
+            parameters: Strategy parameters dict
+
+        Returns:
+            Processed parameters dict with expanded vehicle types
+        """
+        # Check if allowed_vehicle_types parameter exists
+        if "allowed_vehicle_types" not in parameters:
+            # No vehicle types to process
+            return parameters
+
+        input_vehicle_types = parameters.get("allowed_vehicle_types", [])
+
+        # Empty list - no processing needed
+        if not input_vehicle_types:
+            return parameters
+
+        try:
+            # Expand vehicle types using utility
+            expansion_result = expand_vehicle_types(input_vehicle_types)
+
+            # Create new parameters dict with expanded types
+            processed_params = parameters.copy()
+            processed_params["allowed_vehicle_types"] = expansion_result["expanded"]
+
+            # Preserve user selection for future editing
+            processed_params["allowed_vehicle_types_user_selection"] = expansion_result.get(
+                "user_selection", input_vehicle_types
+            )
+
+            logger.info(
+                f"Expanded vehicle types: {input_vehicle_types} -> {expansion_result['expanded']}"
+            )
+
+            return processed_params
+
+        except ValueError as e:
+            # Log validation error but don't fail the entire request
+            # Validation should have caught this earlier
+            logger.warning(f"Vehicle type expansion failed: {e}. Using input as-is.")
+            return parameters
+        except Exception as e:
+            # Unexpected error - log and continue with original parameters
+            logger.error(f"Unexpected error in vehicle type processing: {e}")
+            return parameters
+
     def create_strategy(self, request: StrategyCreateRequest) -> StrategyCreateResponse:
         """
         Create a new strategy instance.
@@ -232,6 +287,9 @@ class StrategyInstanceService:
         created_by = self._get_system_identifier()
         current_time = datetime.now(timezone.utc).isoformat()
 
+        # Process vehicle types expansion (if present)
+        processed_parameters = self._process_vehicle_types(request.parameters)
+
         # Build strategy data
         strategy = {
             "strategy_id": strategy_id,
@@ -239,7 +297,7 @@ class StrategyInstanceService:
             "template_id": request.template_id,
             "template_name": template_name,
             "strategy_type": strategy_type,
-            "parameters": request.parameters,
+            "parameters": processed_parameters,
             "affected_edges": request.affected_edges,
             "metadata": {
                 "created_at": current_time,
@@ -536,13 +594,16 @@ class StrategyInstanceService:
             strategy["strategy_name"] = request.strategy_name
 
         if request.parameters is not None:
+            # Process vehicle types expansion (if present)
+            processed_parameters = self._process_vehicle_types(request.parameters)
+
             # TODO: Validate updated parameters against template schema
             if is_demo_schema:
                 # Update configured_params for demo schema
-                strategy["configured_params"] = request.parameters
+                strategy["configured_params"] = processed_parameters
             else:
                 # Update parameters for API schema
-                strategy["parameters"] = request.parameters
+                strategy["parameters"] = processed_parameters
 
         if request.affected_edges is not None:
             if is_demo_schema:

@@ -59,12 +59,7 @@
       "required": false,
       "default_value": ["truck"],
       "unit": null,
-      "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)"},
-        {"value": "bus", "label": "公交车"},
-        {"value": "truck", "label": "货车"},
-        {"value": "emergency", "label": "应急车"}
-      ],
+      "enum_name": "vehicle_types_category",
       "note": "选择要禁止的车型。未选中的车型可自由进入。建议：禁止[truck]可实现货车限行",
       "sumo_mapping": "disallow 属性"
     },
@@ -73,15 +68,10 @@
       "parameter_type": "enum_array",
       "description": "允许进入的车辆类型（仅在允许模式下使用）",
       "required": false,
-      "default_value": ["passenger", "bus", "emergency"],
+      "default_value": ["passenger"],
       "unit": null,
-      "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)"},
-        {"value": "bus", "label": "公交车"},
-        {"value": "truck", "label": "货车"},
-        {"value": "emergency", "label": "应急车"}
-      ],
-      "note": "仅选中的车型允许进入。其他车型被禁止。建议：允许[passenger, bus, emergency]可禁止货车",
+      "enum_name": "vehicle_types_category",
+      "note": "仅选中的车型允许进入。其他车型被禁止。建议：允许[passenger]可禁止货车和特种车辆",
       "sumo_mapping": "allow 属性"
     },
     {
@@ -104,25 +94,25 @@
       "scenario": "禁止货车（高峰期）",
       "mode": "disallow_mode",
       "disallow_vehicle_types": ["truck"],
-      "effect": "禁止货车进入，客车、公交、应急车可自由通行"
+      "effect": "禁止货车进入，客车和特种车辆可自由通行"
     },
     {
-      "scenario": "仅允许客车和公交（高峰期）",
+      "scenario": "仅允许客车（高峰期）",
       "mode": "allow_mode",
-      "allowed_vehicle_types": ["passenger", "bus"],
-      "effect": "仅客车和公交允许进入，货车和应急车被禁止"
+      "allowed_vehicle_types": ["passenger"],
+      "effect": "仅客车允许进入，货车和特种车辆被禁止"
     },
     {
-      "scenario": "允许应急车通过（其他全禁）",
+      "scenario": "允许特种车辆通过（其他全禁）",
       "mode": "allow_mode",
-      "allowed_vehicle_types": ["emergency"],
-      "effect": "仅应急车允许，客车、货车、公交全部禁止（适合紧急情况）"
+      "allowed_vehicle_types": ["delivery"],
+      "effect": "仅特种车辆允许，客车和货车全部禁止（适合紧急情况）"
     },
     {
-      "scenario": "禁止货车和应急车（仅客车和公交）",
+      "scenario": "禁止货车和特种车辆（仅客车）",
       "mode": "disallow_mode",
-      "disallow_vehicle_types": ["truck", "emergency"],
-      "effect": "禁止货车和应急车，仅客车和公交通行"
+      "disallow_vehicle_types": ["truck", "delivery"],
+      "effect": "禁止货车和特种车辆，仅客车通行"
     }
   ],
   "warnings": [

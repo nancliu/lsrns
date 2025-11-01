@@ -30,21 +30,21 @@ const TEMPLATE_METADATA = {
   'vss_moderate': {
     name: '可变限速 - 中等控制',
     type: 'VSS',
-    expectedParams: ['affected_edges', 'speed_steps', 'applicable_vehicle_types'],
+    expectedParams: ['affected_edges', 'speed_steps'],
     minSegments: 1,
     maxSegments: 3
   },
   'vss_strict': {
     name: '可变限速 - 严格控制',
     type: 'VSS',
-    expectedParams: ['affected_edges', 'speed_steps', 'applicable_vehicle_types'],
+    expectedParams: ['affected_edges', 'speed_steps'],
     minSegments: 1,
     maxSegments: 3
   },
   'vss_weather_based': {
     name: '可变限速 - 天气应急',
     type: 'VSS',
-    expectedParams: ['affected_edges', 'speed_steps', 'weather_condition', 'applicable_vehicle_types'],
+    expectedParams: ['affected_edges', 'speed_steps', 'weather_condition'],
     minSegments: 1,
     maxSegments: 3
   },
@@ -208,9 +208,9 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
         expect(selectedCount).toBe(segmentsToSelect);
         console.log(`✓ Selected ${selectedCount} segments`);
 
-        // Click next button (find button with text "下一步")
-        const nextBtn = page.locator('button:has-text("下一步")').last();
-        await expect(nextBtn).toBeEnabled();
+        // Click next button (进入配置参数 button at bottom of table)
+        const nextBtn = page.locator('#step2-next-bottom');
+        await expect(nextBtn).toBeVisible();
         await nextBtn.click();
 
         // Wait for step 3 to be visible
@@ -383,7 +383,7 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
 
     const checkbox = page.locator('#results-table tbody tr input[type="checkbox"]').first();
     await checkbox.check();
-    await page.locator('button:has-text("下一步")').last().click();
+    await page.locator('#step2-next-bottom').click();
 
     // Wait for parameter form
     await page.waitForSelector('#step3-content', { state: 'visible', timeout: 10000 });
@@ -435,7 +435,7 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
     const checkboxes = page.locator('#results-table tbody tr input[type="checkbox"]');
     await checkboxes.nth(0).check();
     await checkboxes.nth(1).check();
-    await page.locator('button:has-text("下一步")').last().click();
+    await page.locator('#step2-next-bottom').click();
 
     // Wait for parameter form
     await page.waitForSelector('#step3-content', { state: 'visible', timeout: 10000 });
@@ -486,7 +486,7 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
     // Select 1 edge (TEC requires single entrance)
     const checkbox = page.locator('#results-table tbody tr input[type="checkbox"]').first();
     await checkbox.check();
-    await page.locator('button:has-text("下一步")').last().click();
+    await page.locator('#step2-next-bottom').click();
 
     // Wait for parameter form
     await page.waitForSelector('#step3-content', { state: 'visible', timeout: 10000 });

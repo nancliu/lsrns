@@ -21,22 +21,22 @@
         "begin_hours": 0,
         "end_hours": 7,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["emergency"]
+        "allowed_vehicle_types": ["delivery"]
       },
       {
         "begin_hours": 7,
         "end_hours": 10,
         "status": "OPEN",
-        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+        "allowed_vehicle_types": ["passenger", "truck", "delivery"]
       },
       {
         "begin_hours": 10,
         "end_hours": 24,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["emergency"]
+        "allowed_vehicle_types": ["delivery"]
       }
     ],
-    "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+    "allowed_vehicle_types": ["passenger", "truck", "delivery"]
   },
   "tags": ["G5", "成雅高速", "白家段", "早高峰", "应急车道", "预防性管控", "真实数据", "P2"],
   "data_source": {

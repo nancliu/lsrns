@@ -15,6 +15,18 @@ OD Data Processing and Simulation System (OD数据处理与仿真系统) - A mod
 
 **Current Version**: v0.9.0
 
+## Principles & Rules Index
+
+This project follows structured principles and rules. For complete details, see [CLAUDE.md](../CLAUDE.md).
+
+**Architecture Principles**: PRINCIPLE-ARCH-001 to 005 ([Details](../CLAUDE.md#key-architectural-principles))
+**Project Rules**: RULE-ROOT-001, RULE-FE-001, RULE-E2E-001 ([Details](../CLAUDE.md#project-root-directory-policy))
+**Code Standards**: STANDARD-CODE-001, STANDARD-NAMING-001 ([Details](../CLAUDE.md#code-standards))
+**Common Pitfalls**: PITFALL-ARCH-001 to 003, PITFALL-CODE-001 to 004, PITFALL-FE-002 to 004, PITFALL-ENV-001 to 002, PITFALL-FILE-001 ([Details](../CLAUDE.md#common-pitfalls))
+**Architecture Decisions**: ADR-001 to 006 ([Details](../CLAUDE.md#architecture-decision-records-adr))
+
+---
+
 ## Tech Stack
 
 ### Backend
@@ -69,220 +81,19 @@ OD Data Processing and Simulation System (OD数据处理与仿真系统) - A mod
 
 ### Frontend Development Standards
 
-**关注点分离原则 (Separation of Concerns)**:
+**Summary**: Frontend code must follow strict separation of concerns (HTML/CSS/JS) and Single Responsibility Principle for functions.
 
-前端代码必须严格遵循 HTML / CSS / JavaScript 分离：
+**Key Requirements**:
+- HTML: Semantic structure only, no inline styles or scripts
+- CSS: All styles in separate files under `frontend/control/css/`
+- JavaScript: Functions ≤30 lines, ≤5 parameters, ≤3 nesting levels, clear single responsibility
+- **RULE-FE-001**: No hardcoded data or duplicate code (all data from template JSON `default_value`)
 
-1. **HTML 文件** (`frontend/control/*.html`)
-   - 仅包含语义化 HTML 结构
-   - NO inline styles (`style=""`)
-   - NO inline scripts (`<script>` 内联代码)
-   - 使用有意义的 class 和 id 用于样式和脚本钩子
-
-2. **CSS 文件** (`frontend/control/css/*.css`)
-   - 所有样式规则在单独的 .css 文件中
-   - 优先使用 class 选择器而非 ID
-   - 按功能模块或页面分组组织
-   - 文件命名: `[page-or-component]-name.css`
-   - 示例: `templates-base.css`, `edge_selector.css`, `batch_simulation.css`
-
-3. **JavaScript 文件** (`frontend/control/js/*.js`)
-   - 仅包含 JavaScript 逻辑，NO inline styles
-   - 每个文件处理一个独立的功能模块
-   - 必须遵循最小职责原则（Single Responsibility Principle）
-
-**函数最小职责原则 (Single Responsibility Principle)**:
-
-JavaScript 函数开发严格约束：
-
-- **单一职责**: 每个函数只做一件事，职责清晰
-- **最大长度**: 30 行代码
-- **最大参数**: 5 个参数
-- **最大嵌套**: 3 层深度
-- **命名约定**: 函数名称必须清晰描述其单一职责
-  - 好: `updateRouteDropdown()`, `validateFormInput()`, `fetchSimulationStatus()`
-  - 差: `handleChange()`, `process()`, `doStuff()`
-
-**函数分类与示例**:
-
-```javascript
-// 1. 事件处理函数：每个事件一个简单处理器，委托给功能函数
-document.getElementById('btn').onclick = () => performAction();
-
-// 2. 数据获取函数：每个 API 端点一个函数
-async function fetchSimulationResults() { ... }
-async function loadCaseMetadata() { ... }
-
-// 3. DOM 操作函数：每个 UI 更新任务一个函数
-function updateProgressBar(percent) { ... }
-function renderResultsTable(data) { ... }
-
-// 4. 验证函数：每个验证规则一个函数
-function validateSpeedRange(speed) { ... }
-function validateTimeFormat(time) { ... }
-
-// 5. 格式化函数：每个格式转换一个函数
-function formatTimestamp(date) { ... }
-function formatSpeedValue(speed) { ... }
-```
-
-**反面例子 (禁止)**:
-
-```javascript
-// ❌ 错误：混合多个职责
-async function handleFormSubmit(e) {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData);
-
-  if (!data.speed || data.speed < 0 || data.speed > 120) {
-    alert('Invalid speed');
-    return;
-  }
-
-  fetch('/api/update', { method: 'POST', body: JSON.stringify(data) })
-    .then(r => r.json())
-    .then(result => {
-      document.getElementById('output').innerHTML = `
-        <div class="result">
-          <p>Speed: ${result.speed} km/h</p>
-        </div>
-      `;
-    })
-    .catch(err => console.error(err));
-}
-```
-
-**正面例子 (推荐)**:
-
-```javascript
-// ✅ 正确：分离多个小的、职责清晰的函数
-
-// 验证函数
-function validateSpeedInput(speed) {
-  return speed > 0 && speed <= 120;
-}
-
-// API 调用函数
-async function updateSimulationSpeed(data) {
-  const response = await fetch('/api/update', {
-    method: 'POST',
-    body: JSON.stringify(data)
-  });
-  return response.json();
-}
-
-// 格式化函数
-function formatResultDisplay(result) {
-  return `<div class="result"><p>Speed: ${result.speed} km/h</p></div>`;
-}
-
-// DOM 更新函数
-function renderResult(html) {
-  document.getElementById('output').innerHTML = html;
-}
-
-// 事件处理函数：委托给其他专门函数
-async function handleFormSubmit(e) {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = Object.fromEntries(formData);
-
-  if (!validateSpeedInput(data.speed)) {
-    alert('Invalid speed');
-    return;
-  }
-
-  try {
-    const result = await updateSimulationSpeed(data);
-    const html = formatResultDisplay(result);
-    renderResult(html);
-  } catch (err) {
-    console.error('Error updating simulation:', err);
-  }
-}
-```
-
-**审核清单**:
-
-- [ ] 所有 HTML 文件中没有 `style=""` 属性
-- [ ] 所有 HTML 文件中没有 `<script>` 内联代码
-- [ ] 所有样式都在 `frontend/control/css/*.css` 文件中
-- [ ] 每个 JavaScript 函数长度 ≤ 30 行
-- [ ] 每个函数只做一件事，职责清晰
-- [ ] 函数名称清晰描述其行为
-- [ ] 没有深层嵌套（>3 层）
-- [ ] 没有混合事件处理、数据获取、验证和 DOM 操作的函数
-
-### 前端数据规则：禁止硬编码数据和代码重复 (RULE-FE-001)
-
-**RULE-FE-001**: 前端代码禁止硬编码数据和功能重复
-
-**核心规则**:
-
-1. **禁止在 HTML 中硬编码示例数据**
-   - ❌ 禁止: `placeholder="7"`, `placeholder="9"`, `placeholder="400"` (硬编码数值)
-   - ✅ 允许: `placeholder="例如: 7:00"` (仅格式提示)
-   - ✅ 所有初始数据必须来自模板 JSON 的 `default_value` 字段
-   - ✅ 使用 `value="..."` 属性存储实际数据，而非 `placeholder`
-
-2. **单一数据源原则 - 禁止代码重复**
-   - ❌ 禁止: 同一功能在 `templates.html` 和 `parameter_form.js` 中各有一份实现
-   - ❌ 禁止: 不同版本的 `addFlowIntervalRow()` 函数存在于多个文件
-   - ✅ 必需: 每个功能只有一个实现位置（Single Source of Truth）
-   - ✅ 示例: 参数表单生成应仅在 `parameter_form.js` 中，不应在 HTML 中重复
-
-3. **数据来源可追踪**
-   - ✅ 每个数据值都必须能追溯到来源（模板的 `default_value`）
-   - ✅ 代码必须有注释说明数据来源
-   - ❌ 禁止: 来源不明的魔术数字（Magic Number）
-   - ✅ 示例:
-     ```javascript
-     // ✅ 正确 - 数据来源清晰
-     const defaultIntervals = schema.default_value || [];  // 来自模板
-     defaultIntervals.forEach(interval => {
-         addFlowIntervalRow(
-             tbody,
-             paramName,
-             interval.begin_hours,    // ← 来自模板的 default_value
-             interval.end_hours,      // ← 来自模板的 default_value
-             interval.flow_vph,       // ← 来自模板的 default_value
-             interval.target_speed    // ← 来自模板的 default_value
-         );
-     });
-     ```
-
-4. **参数化函数 - 不硬编码值**
-   - ✅ 函数接受参数传递所有可变数据
-   - ✅ 正确做法:
-     ```javascript
-     // ✅ 正确 - 所有数据通过参数传入
-     function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, targetSpeed) {
-         const row = document.createElement("tr");
-         const beginInput = document.createElement("input");
-         beginInput.value = beginHours;  // ← 参数驱动
-         // ... 其他字段 ...
-     }
-     ```
-   - ❌ 错误做法（在 HTML 中硬编码）:
-     ```javascript
-     // ❌ 错误 - 硬编码值，无参数
-     function addFlowIntervalRow(tbody) {
-         row.innerHTML = `<input placeholder="7" />`;  // ← 硬编码!
-     }
-     ```
-
-**前端代码审核检查清单**:
-
-在审核前端 PR 时，必须验证：
-- [ ] 不存在 `placeholder` 属性中的硬编码数值
-- [ ] 不存在重复的函数定义（搜索 HTML 和 JS 中的同名函数）
-- [ ] 所有初始数据都从模板的 `default_value` 加载，不硬编码
-- [ ] 函数已参数化（接受数据作为参数）
-- [ ] 数据来源在注释中清晰说明
-- [ ] 使用 `value` 属性存储实际数据，不使用 `placeholder`
-
-**违反影响**: 硬编码导致数据显示错误，代码重复导致维护困难和 bug 风险，数据来源不清晰导致调试困难。
+**详细规范**: See [CLAUDE.md → Frontend Development Standards](../CLAUDE.md#frontend-development-standards) for:
+- Complete separation of concerns guidelines
+- JavaScript function standards with examples
+- Code review checklist
+- Common violations and fixes
 
 ### Project Root Directory Policy
 
@@ -360,57 +171,24 @@ Maintaining a clean root directory:
 ### Architecture Patterns
 
 **Two-Layer Modular Architecture**:
+- **API Layer** (`api/`): Thin HTTP/REST interface only
+- **Shared Layer** (`shared/`): Thick layer with all business logic and algorithms
 
-1. **API Layer** (`api/`) - HTTP interface, business coordination, request/response handling
-2. **Shared Layer** (`shared/`) - Core business logic, algorithms, data access, reusable utilities
-
-**Critical Rule**: API layer calls Shared layer only. No circular dependencies allowed.
-
-**API Layer Structure**:
-
-```
-api/
-├── main.py              # ONLY entry point
-├── routes/              # Route definitions by domain
-│   ├── data_routes.py
-│   ├── case_routes.py
-│   ├── simulation_routes.py
-│   ├── analysis_routes.py
-│   ├── template_routes.py
-│   └── file_routes.py
-├── services/            # Business logic (calls shared/)
-│   ├── data_service.py
-│   ├── case_service.py
-│   ├── simulation_service.py
-│   ├── accuracy_service.py
-│   ├── mechanism_service.py
-│   ├── performance_service.py
-│   ├── edgedata_service.py
-│   └── template_service.py
-└── models/              # Data validation
-    ├── requests/
-    ├── responses/
-    ├── entities/
-    └── enums.py
-```
-
-**Shared Layer Structure**:
-
-```
-shared/
-├── utilities/           # Generic helper functions
-├── data_access/         # Database access (connection pooling)
-├── analysis_tools/      # Analysis algorithms
-└── data_processors/     # Core data processing
-```
-
-**Dependency Flow**: API → Services → Shared (utilities/data_access/analysis_tools/data_processors)
+**Critical Rule**: Unidirectional dependency: API → Services → Shared (never reverse)
 
 **Key Patterns**:
+- **PRINCIPLE-ARCH-001**: Single Responsibility Principle
+- **PRINCIPLE-ARCH-002**: Dependency Direction (API → Shared only)
+- **PRINCIPLE-ARCH-003**: Service Locator Pattern (`api/services/__init__.py`)
+- **PRINCIPLE-ARCH-004**: Dependency Injection for services
+- **PRINCIPLE-ARCH-005**: No Circular Dependencies (strictly enforced)
 
-- Service Locator Pattern for service management (`api/services/__init__.py`)
-- Dependency Injection for service instances
-- Pydantic models for request/response validation
+**详细说明**: See [CLAUDE.md → Key Architectural Principles](../CLAUDE.md#key-architectural-principles) for:
+- Complete principle definitions with "why"
+- How to check compliance (commands)
+- Consequences of violations
+- Code examples (good vs. bad)
+- Architecture Decision Records (ADR-001 to ADR-006)
 
 ### Testing Strategy
 
@@ -888,28 +666,29 @@ cases/{case_id}/
 
 ### DO's and DON'Ts
 
-**DO**:
+**Quick Reference** (see [CLAUDE.md → Common Pitfalls](../CLAUDE.md#common-pitfalls) for detailed explanations):
 
-- Use pathlib.Path for file operations
-- Use pandas for data processing (vectorized)
-- Validate inputs using Pydantic models
-- Use logging module for output
-- Return structured data from services
-- Handle errors gracefully
-- Use mamba for dependency installation
+**DO**:
+- ✅ Use `pathlib.Path` for file operations
+- ✅ Use pandas vectorized operations (avoid Python loops)
+- ✅ Validate inputs with Pydantic models
+- ✅ Use logging module (never `print()`)
+- ✅ Always activate `od_project` conda environment first
 
 **DON'T**:
+- ❌ Create circular dependencies (PITFALL-ARCH-001)
+- ❌ Use deprecated functions (PITFALL-CODE-001)
+- ❌ Hardcode configuration data (PITFALL-CODE-002)
+- ❌ Use `open_db_connection()` (PITFALL-CODE-004 - use connection pooling)
+- ❌ Wrong conda environment (PITFALL-ENV-001)
 
-- Create circular dependencies
-- Use deprecated `simulation_processor.generate_sumocfg()`
-- Hardcode vehicle types
-- Modify case/simulation metadata in analysis workflows
-- Install dependencies in conda base environment
-- Use print() statements (use logging)
-- Create files in sim_scripts/ or accuracy_analysis/ (legacy code)
-- Mix old and new simulation API endpoints inconsistently
-- Run tests without activating `od_project` environment
-- Use `open_db_connection()` - use connection pooling instead
+**Detailed Pitfalls**: See [CLAUDE.md → Common Pitfalls](../CLAUDE.md#common-pitfalls) for:
+- Architecture Violations (PITFALL-ARCH-001 to 003)
+- Code Quality Issues (PITFALL-CODE-001 to 004)
+- Frontend Issues (PITFALL-FE-002 to 004)
+- Environment & Tools (PITFALL-ENV-001 to 002)
+- File Organization (PITFALL-FILE-001)
+- Quick Reference Checklist
 
 ## External Dependencies
 
@@ -937,3 +716,37 @@ cases/{case_id}/
 - [docs/api_docs/新架构API指南.md](../docs/api_docs/新架构API指南.md) - Complete API documentation
 - [docs/DEPLOYMENT_GUIDE.md](../docs/DEPLOYMENT_GUIDE.md) - Deployment instructions
 - [openspec/AGENTS.md](./AGENTS.md) - OpenSpec change management process
+
+## Capabilities (Specs)
+
+The following capabilities are currently defined in `openspec/specs/`:
+
+### Strategy Management
+- **strategy-templates** - Traffic control strategy template system (VSS, TEC, DHS)
+- **parameter-form-layout** - Strategy parameter configuration form (Step 3 workflow)
+
+### Batch Processing
+- **batch-management** - Batch simulation management and execution
+- **batch-optimization** - Batch optimization and result analysis
+
+### Planning & Monitoring
+- **baseline-plan** - Baseline traffic planning
+- **plan-management** - Traffic control plan management
+- **live-monitoring** - Real-time simulation monitoring
+
+### Results & Analysis
+- **result-page-separation** - Separated result visualization pages
+
+### System Utilities
+- **css-import-fix** - CSS import order and dependency management
+- **strategy-reference-protection** - Strategy instance reference integrity
+
+## Recent Changes
+
+### 2025-11-01
+- ✅ **refactor-strategy-parameter-configuration** - Frontend refactoring for strategy parameter configuration
+  - Added **parameter-form-layout** capability
+  - Improved UI/UX consistency across VSS/TEC/DHS strategies
+  - Separated vehicle type configuration from time intervals
+  - Unified route segment source (Step 2 → Step 3)
+  - Added comprehensive validation and user hints

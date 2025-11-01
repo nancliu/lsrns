@@ -22,34 +22,34 @@
         "begin_hours": 0,
         "end_hours": 7,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["emergency"]
+        "allowed_vehicle_types": ["delivery"]
       },
       {
         "begin_hours": 7,
         "end_hours": 10,
         "status": "OPEN",
-        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+        "allowed_vehicle_types": ["passenger", "truck", "delivery"]
       },
       {
         "begin_hours": 10,
         "end_hours": 17,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["emergency"]
+        "allowed_vehicle_types": ["delivery"]
       },
       {
         "begin_hours": 17,
         "end_hours": 19,
         "status": "OPEN",
-        "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+        "allowed_vehicle_types": ["passenger", "truck", "delivery"]
       },
       {
         "begin_hours": 19,
         "end_hours": 24,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["emergency"]
+        "allowed_vehicle_types": ["delivery"]
       }
     ],
-    "allowed_vehicle_types": ["passenger", "bus", "truck", "emergency"]
+    "allowed_vehicle_types": ["passenger", "truck", "delivery"]
   },
   "tags": ["G4202", "绕城高速", "成雅段", "早晚高峰", "应急车道", "预防性管控", "真实数据", "P2"],
   "data_source": {

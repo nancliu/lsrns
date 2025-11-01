@@ -1,58 +1,51 @@
 {
-  "enum_id": "vehicle_types",
-  "enum_name": "车辆类型枚举",
-  "description": "控制策略中使用的车辆类型定义，与SUMO vehicle types配置保持一致",
-  "version": "1.0",
-  "reference": "基于 templates/config_templates/vehicle_templates/vehicle_types.json 中的 vClass 定义",
+  "enum_id": "vehicle_types_category",
+  "enum_name": "车辆类型分类枚举 (两层系统)",
+  "description": "控制策略中使用的车辆类型高层分类，自动映射到SUMO详细车型",
+  "version": "2.0",
+  "reference": "基于 templates/config_templates/vehicle_templates/vehicle_types.json 中的 6 种详细车型",
+  "design_principle": "两层架构：用户界面层(3种分类) -> SUMO仿真层(6种详细类型)",
   "values": [
     {
       "value": "passenger",
-      "label": "乘用车 (客车)",
-      "description": "小型客车，包含小型和大型乘用车",
+      "label": "客车",
+      "description": "乘用车辆，包含小型和大型客车",
+      "includes": ["passenger_small", "passenger_large"],
       "sumo_vClass": "passenger",
       "example_ids": ["k1", "k2", "k3", "k4"]
-    },
-    {
-      "value": "bus",
-      "label": "公交车",
-      "description": "公共交通客车",
-      "sumo_vClass": "bus",
-      "example_ids": []
     },
     {
       "value": "truck",
       "label": "货车",
       "description": "货运车辆，包含小型和大型货车",
+      "includes": ["truck_small", "truck_large"],
       "sumo_vClass": "truck",
       "example_ids": ["h1", "h2", "h3", "h4", "h5", "h6"]
     },
     {
       "value": "delivery",
-      "label": "配送车",
-      "description": "特种车辆，用于配送和物流",
+      "label": "特种车辆",
+      "description": "特种车辆，包含小型和大型特种车",
+      "includes": ["special_small", "special_large"],
       "sumo_vClass": "delivery",
       "example_ids": ["t1", "t2", "t3", "t4", "t5", "t6"]
-    },
-    {
-      "value": "emergency",
-      "label": "应急车",
-      "description": "应急车辆，如救护车、消防车、警车",
-      "sumo_vClass": "emergency",
-      "example_ids": []
-    },
-    {
-      "value": "authority",
-      "label": "执法车",
-      "description": "执法和管理车辆",
-      "sumo_vClass": "authority",
-      "example_ids": []
     }
   ],
+  "expansion_rules": {
+    "description": "用户选择的分类会自动扩展为对应的详细车型",
+    "examples": {
+      "input": ["passenger", "truck"],
+      "output": ["passenger_small", "passenger_large", "truck_small", "truck_large"]
+    },
+    "backward_compatibility": "系统同时保存用户选择 (allowed_vehicle_types_user_selection) 和扩展后的详细类型 (allowed_vehicle_types)"
+  },
   "usage_notes": {
-    "dhs_strategies": "应急车道开放策略中，CLOSED状态通常仅允许 ['emergency', 'authority']",
-    "tec_strategies": "收费站控制策略中，可灵活配置允许或禁止的车型",
-    "vss_strategies": "可变限速策略不支持按车型差异化，该枚举仅用于文档说明"
+    "dhs_strategies": "应急车道开放策略中配置允许通行的车辆类型",
+    "tec_strategies": "收费站控制策略中配置允许或限制的车辆类型",
+    "vss_strategies": "可变限速策略中配置受影响的车辆类型",
+    "frontend": "前端只显示3个分类复选框，后端自动扩展为6个详细类型"
   },
   "created_at": "2025-10-29T00:00:00Z",
-  "updated_at": "2025-10-29T00:00:00Z"
+  "updated_at": "2025-11-01T00:00:00Z",
+  "change_log": "v2.0: 简化为固定三分类系统，移除bus/emergency/authority，添加includes映射字段"
 }

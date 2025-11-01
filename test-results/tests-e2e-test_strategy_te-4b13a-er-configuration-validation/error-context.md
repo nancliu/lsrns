@@ -1,0 +1,412 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "交通管控仿真优化系统" [level=1] [ref=e3]
+    - link "返回主系统" [ref=e4] [cursor=pointer]:
+      - /url: ../index.html
+  - generic [ref=e5]:
+    - list [ref=e7]:
+      - listitem [ref=e8]:
+        - link "策略管理" [ref=e9] [cursor=pointer]:
+          - /url: templates.html
+      - listitem [ref=e10]:
+        - link "方案管理" [ref=e11] [cursor=pointer]:
+          - /url: plans.html
+      - listitem [ref=e12]:
+        - link "批量仿真" [ref=e13] [cursor=pointer]:
+          - /url: simulations.html
+      - listitem [ref=e14]:
+        - link "方案优化" [ref=e15] [cursor=pointer]:
+          - /url: optimization.html
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "策略管理" [level=2] [ref=e18]
+        - paragraph [ref=e19]: 创建和管理交通控制策略实例
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: "1"
+          - generic [ref=e23]: 选择模板
+        - generic [ref=e24]: →
+        - generic [ref=e25]:
+          - generic [ref=e26]: "2"
+          - generic [ref=e27]: 选择路段
+        - generic [ref=e28]: →
+        - generic [ref=e29]:
+          - generic [ref=e30]: "3"
+          - generic [ref=e31]: 配置参数
+      - generic [ref=e32]:
+        - heading "创建新策略" [level=2] [ref=e33]
+        - generic [ref=e34]:
+          - heading "步骤3：配置策略参数" [level=3] [ref=e35]
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]:
+                - strong [ref=e39]: 已选模板：
+                - generic [ref=e40]: 可变限速 - 中等控制
+                - generic [ref=e41]: 可变限速
+              - button "更换模板" [ref=e42] [cursor=pointer]
+            - generic [ref=e43]: ✓ 已选择可变限速模板 - 配置速度控制参数
+          - generic [ref=e44]:
+            - generic [ref=e46]:
+              - generic [ref=e47]:
+                - generic [ref=e48]: 已选择
+                - generic [ref=e49]: 3 个路段
+              - generic [ref=e50]:
+                - generic [ref=e51]: 总长度
+                - generic [ref=e52]: 1.46 km
+              - generic [ref=e53]:
+                - generic [ref=e54]: 覆盖路线
+                - generic [ref=e55]: G4202
+              - generic [ref=e56]:
+                - generic [ref=e57]: 车道数范围
+                - generic [ref=e58]: 3-4 车道
+            - separator [ref=e59]
+            - table [ref=e61]:
+              - rowgroup [ref=e62]:
+                - row "序号 路段ID 路线 路段代码 桩号范围 长度(m) 车道 方向 节点类型 门架数" [ref=e63]:
+                  - cell "序号" [ref=e64]
+                  - cell "路段ID" [ref=e65]
+                  - cell "路线" [ref=e66]
+                  - cell "路段代码" [ref=e67]
+                  - cell "桩号范围" [ref=e68]
+                  - cell "长度(m)" [ref=e69]
+                  - cell "车道" [ref=e70]
+                  - cell "方向" [ref=e71]
+                  - cell "节点类型" [ref=e72]
+                  - cell "门架数" [ref=e73]
+              - rowgroup [ref=e74]:
+                - row "1 -13154 G4202 G4202001 K1+131 - K0+329 802.4 3 逆时针 普通 0" [ref=e75]:
+                  - cell "1" [ref=e76]
+                  - cell "-13154" [ref=e77]
+                  - cell "G4202" [ref=e78]
+                  - cell "G4202001" [ref=e79]
+                  - cell "K1+131 - K0+329" [ref=e80]
+                  - cell "802.4" [ref=e81]
+                  - cell "3" [ref=e82]
+                  - cell "逆时针" [ref=e83]
+                  - cell "普通" [ref=e84]
+                  - cell "0" [ref=e85]
+                - row "2 -7812 G4202 G4202001 K1+240 - K0+726 513.8 3 逆时针 普通 0" [ref=e86]:
+                  - cell "2" [ref=e87]
+                  - cell "-7812" [ref=e88]
+                  - cell "G4202" [ref=e89]
+                  - cell "G4202001" [ref=e90]
+                  - cell "K1+240 - K0+726" [ref=e91]
+                  - cell "513.8" [ref=e92]
+                  - cell "3" [ref=e93]
+                  - cell "逆时针" [ref=e94]
+                  - cell "普通" [ref=e95]
+                  - cell "0" [ref=e96]
+                - row "3 -11324 G4202 G4202001 K1+240 - K1+091 148.6 4 逆时针 汇流 0" [ref=e97]:
+                  - cell "3" [ref=e98]
+                  - cell "-11324" [ref=e99]
+                  - cell "G4202" [ref=e100]
+                  - cell "G4202001" [ref=e101]
+                  - cell "K1+240 - K1+091" [ref=e102]
+                  - cell "148.6" [ref=e103]
+                  - cell "4" [ref=e104]
+                  - cell "逆时针" [ref=e105]
+                  - cell "汇流" [ref=e106]
+                  - cell "0" [ref=e107]
+            - emphasis [ref=e109]: 如需修改路段选择，请返回第2步
+          - heading "⚙️ 参数配置" [level=4] [ref=e110]
+          - generic [ref=e111]:
+            - generic [ref=e112]:
+              - generic [ref=e113]: 策略名称 *
+              - generic [ref=e114]:
+                - 'textbox "例如: 早高峰G4202可变限速策略" [ref=e115]': G4202 K1-K1 限速?km/h (定时管控)
+                - button "建议名称" [ref=e116]
+              - generic [ref=e117]: 为该策略实例命名（1-100个字符）
+            - generic [ref=e118]:
+              - generic [ref=e119]: 策略描述
+              - generic [ref=e120]:
+                - textbox "可选：描述该策略的应用场景和目的" [ref=e121]: 本策略针对G4202 K1-K1路段实施可变限速管控。在指定时段内，对该路段实施限速?km/h的速度管控。 策略目标：通过动态调整限速值，优化交通流量，提高道路通行效率，降低事故风险。 适用场景：需要根据实时交通状况灵活调整车速的路段。
+                - button "重新生成描述" [ref=e122]
+              - generic [ref=e123]: 可选
+            - generic [ref=e124]:
+              - generic [ref=e125]: 时间-限速值序列，支持多个步骤实现时变控制 *
+              - generic [ref=e126]:
+                - generic [ref=e127]: 时刻表示：例如 7 表示从 7:00 开始执行该限速，直到下一个时刻点
+                - generic [ref=e128]:
+                  - generic [ref=e129]:
+                    - generic [ref=e130]: "00"
+                    - generic [ref=e131]: "01"
+                    - generic [ref=e132]: "02"
+                    - generic [ref=e133]: "03"
+                    - generic [ref=e134]: "04"
+                    - generic [ref=e135]: "05"
+                    - generic [ref=e136]: "06"
+                    - generic [ref=e137]: "07"
+                    - generic [ref=e138]: "08"
+                    - generic [ref=e139]: "09"
+                    - generic [ref=e140]: "10"
+                    - generic [ref=e141]: "11"
+                    - generic [ref=e142]: "12"
+                    - generic [ref=e143]: "13"
+                    - generic [ref=e144]: "14"
+                    - generic [ref=e145]: "15"
+                    - generic [ref=e146]: "16"
+                    - generic [ref=e147]: "17"
+                    - generic [ref=e148]: "18"
+                    - generic [ref=e149]: "19"
+                    - generic [ref=e150]: "20"
+                    - generic [ref=e151]: "21"
+                    - generic [ref=e152]: "22"
+                    - generic [ref=e153]: "23"
+                  - generic [ref=e154]:
+                    - generic [ref=e156] [cursor=pointer]: 100 km/h
+                    - generic [ref=e158] [cursor=pointer]: 80 km/h
+                    - generic [ref=e160] [cursor=pointer]: 100 km/h
+                    - generic [ref=e162] [cursor=pointer]: 80 km/h
+                - table [ref=e163]:
+                  - rowgroup [ref=e164]:
+                    - row "时间(小时) 限速(km/h) 操作" [ref=e165]:
+                      - cell "时间(小时)" [ref=e166]
+                      - cell "限速(km/h)" [ref=e167]
+                      - cell "操作" [ref=e168]
+                  - rowgroup [ref=e169]:
+                    - row "删除" [ref=e170]:
+                      - cell [ref=e171]:
+                        - spinbutton [ref=e172]
+                      - cell [ref=e173]:
+                        - spinbutton [ref=e174]
+                      - cell "删除" [ref=e175]:
+                        - button "删除" [ref=e176] [cursor=pointer]
+                    - row "删除" [ref=e177]:
+                      - cell [ref=e178]:
+                        - spinbutton [ref=e179]
+                      - cell [ref=e180]:
+                        - spinbutton [ref=e181]
+                      - cell "删除" [ref=e182]:
+                        - button "删除" [ref=e183] [cursor=pointer]
+                    - row "删除" [ref=e184]:
+                      - cell [ref=e185]:
+                        - spinbutton [ref=e186]
+                      - cell [ref=e187]:
+                        - spinbutton [ref=e188]
+                      - cell "删除" [ref=e189]:
+                        - button "删除" [ref=e190] [cursor=pointer]
+                    - row "删除" [ref=e191]:
+                      - cell [ref=e192]:
+                        - spinbutton [ref=e193]
+                      - cell [ref=e194]:
+                        - spinbutton [ref=e195]
+                      - cell "删除" [ref=e196]:
+                        - button "删除" [ref=e197] [cursor=pointer]
+                - button "+ Add Step" [ref=e199] [cursor=pointer]
+                - generic [ref=e200]: 使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h
+              - generic [ref=e201]: 使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h
+          - generic [ref=e202]:
+            - button "上一步" [ref=e203] [cursor=pointer]
+            - button "重置" [ref=e204] [cursor=pointer]
+            - button "生成策略实例" [ref=e205] [cursor=pointer]
+      - generic [ref=e206]:
+        - heading "已创建的策略实例" [level=2] [ref=e207]
+        - generic [ref=e208]:
+          - generic [ref=e209]:
+            - textbox "搜索策略名称..." [ref=e211]
+            - generic [ref=e212]:
+              - generic [ref=e213]: "策略类型:"
+              - combobox [ref=e214]:
+                - option "全部" [selected]
+                - option "可变限速 (VSS)"
+                - option "动态硬路肩 (DHS)"
+                - option "收费站管控 (TEC)"
+            - generic [ref=e215]:
+              - generic [ref=e216]: "模板:"
+              - combobox [ref=e217]:
+                - option "全部" [selected]
+                - option "应急车道 - 基础模板（抽象）"
+                - option "应急车道 - 仅客车"
+                - option "应急车道开放"
+                - option "应急车道 - 多时段管理"
+                - option "收费入口 - 紧急关闭"
+                - option "收费入口 - 流量控制"
+                - option "收费入口 - 车型限制"
+                - option "可变限速 - 分车道控制"
+                - option "可变限速 - 中等控制"
+                - option "可变限速 - 严格控制"
+                - option "可变限速 - 上游预警"
+                - option "可变限速 - 天气应急"
+            - button "刷新" [ref=e218]
+          - table [ref=e220]:
+            - rowgroup [ref=e221]:
+              - row "策略名称 类型 模板 路段数 创建时间 操作" [ref=e222]:
+                - cell "策略名称" [ref=e223]
+                - cell "类型" [ref=e224]
+                - cell "模板" [ref=e225]
+                - cell "路段数" [ref=e226]
+                - cell "创建时间" [ref=e227]
+                - cell "操作" [ref=e228]
+            - rowgroup [ref=e229]:
+              - row "G4202成雅段早高峰应急车道开放 动态硬路肩 应急车道开放 9 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e230]:
+                - cell "G4202成雅段早高峰应急车道开放" [ref=e231]
+                - cell "动态硬路肩" [ref=e232]:
+                  - generic [ref=e233]: 动态硬路肩
+                - cell "应急车道开放" [ref=e234]
+                - cell "9" [ref=e235]
+                - cell "2025/10/26 08:00" [ref=e236]
+                - cell "查看 编辑 复制 删除" [ref=e237]:
+                  - button "查看" [ref=e238] [cursor=pointer]
+                  - button "编辑" [ref=e239] [cursor=pointer]
+                  - button "复制" [ref=e240] [cursor=pointer]
+                  - button "删除" [ref=e241] [cursor=pointer]
+              - row "G4202绕东锦城湖段晚高峰应急车道开放 动态硬路肩 应急车道开放 13 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e242]:
+                - cell "G4202绕东锦城湖段晚高峰应急车道开放" [ref=e243]
+                - cell "动态硬路肩" [ref=e244]:
+                  - generic [ref=e245]: 动态硬路肩
+                - cell "应急车道开放" [ref=e246]
+                - cell "13" [ref=e247]
+                - cell "2025/10/26 08:00" [ref=e248]
+                - cell "查看 编辑 复制 删除" [ref=e249]:
+                  - button "查看" [ref=e250] [cursor=pointer]
+                  - button "编辑" [ref=e251] [cursor=pointer]
+                  - button "复制" [ref=e252] [cursor=pointer]
+                  - button "删除" [ref=e253] [cursor=pointer]
+              - row "G4202机场段早高峰应急车道开放 动态硬路肩 应急车道开放 12 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e254]:
+                - cell "G4202机场段早高峰应急车道开放" [ref=e255]
+                - cell "动态硬路肩" [ref=e256]:
+                  - generic [ref=e257]: 动态硬路肩
+                - cell "应急车道开放" [ref=e258]
+                - cell "12" [ref=e259]
+                - cell "2025/10/26 08:00" [ref=e260]
+                - cell "查看 编辑 复制 删除" [ref=e261]:
+                  - button "查看" [ref=e262] [cursor=pointer]
+                  - button "编辑" [ref=e263] [cursor=pointer]
+                  - button "复制" [ref=e264] [cursor=pointer]
+                  - button "删除" [ref=e265] [cursor=pointer]
+              - row "G5白家段早高峰应急车道开放 动态硬路肩 应急车道开放 8 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e266]:
+                - cell "G5白家段早高峰应急车道开放" [ref=e267]
+                - cell "动态硬路肩" [ref=e268]:
+                  - generic [ref=e269]: 动态硬路肩
+                - cell "应急车道开放" [ref=e270]
+                - cell "8" [ref=e271]
+                - cell "2025/10/26 08:00" [ref=e272]
+                - cell "查看 编辑 复制 删除" [ref=e273]:
+                  - button "查看" [ref=e274] [cursor=pointer]
+                  - button "编辑" [ref=e275] [cursor=pointer]
+                  - button "复制" [ref=e276] [cursor=pointer]
+                  - button "删除" [ref=e277] [cursor=pointer]
+              - row "G5成雅双流段高峰应急车道开放 动态硬路肩 应急车道 - 多时段管理 14 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e278]:
+                - cell "G5成雅双流段高峰应急车道开放" [ref=e279]
+                - cell "动态硬路肩" [ref=e280]:
+                  - generic [ref=e281]: 动态硬路肩
+                - cell "应急车道 - 多时段管理" [ref=e282]
+                - cell "14" [ref=e283]
+                - cell "2025/10/26 08:00" [ref=e284]
+                - cell "查看 编辑 复制 删除" [ref=e285]:
+                  - button "查看" [ref=e286] [cursor=pointer]
+                  - button "编辑" [ref=e287] [cursor=pointer]
+                  - button "复制" [ref=e288] [cursor=pointer]
+                  - button "删除" [ref=e289] [cursor=pointer]
+              - row "G5成雅双流南站入口流量控制 收费站管控 收费入口 - 流量控制 1 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e290]:
+                - cell "G5成雅双流南站入口流量控制" [ref=e291]
+                - cell "收费站管控" [ref=e292]:
+                  - generic [ref=e293]: 收费站管控
+                - cell "收费入口 - 流量控制" [ref=e294]
+                - cell "1" [ref=e295]
+                - cell "2025/10/26 08:00" [ref=e296]
+                - cell "查看 编辑 复制 删除" [ref=e297]:
+                  - button "查看" [ref=e298] [cursor=pointer]
+                  - button "编辑" [ref=e299] [cursor=pointer]
+                  - button "复制" [ref=e300] [cursor=pointer]
+                  - button "删除" [ref=e301] [cursor=pointer]
+              - row "G5成雅白家站入口流量控制 收费站管控 收费入口 - 流量控制 1 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e302]:
+                - cell "G5成雅白家站入口流量控制" [ref=e303]
+                - cell "收费站管控" [ref=e304]:
+                  - generic [ref=e305]: 收费站管控
+                - cell "收费入口 - 流量控制" [ref=e306]
+                - cell "1" [ref=e307]
+                - cell "2025/10/26 08:00" [ref=e308]
+                - cell "查看 编辑 复制 删除" [ref=e309]:
+                  - button "查看" [ref=e310] [cursor=pointer]
+                  - button "编辑" [ref=e311] [cursor=pointer]
+                  - button "复制" [ref=e312] [cursor=pointer]
+                  - button "删除" [ref=e313] [cursor=pointer]
+              - row "G5成绵新都站入口流量控制 收费站管控 收费入口 - 流量控制 1 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e314]:
+                - cell "G5成绵新都站入口流量控制" [ref=e315]
+                - cell "收费站管控" [ref=e316]:
+                  - generic [ref=e317]: 收费站管控
+                - cell "收费入口 - 流量控制" [ref=e318]
+                - cell "1" [ref=e319]
+                - cell "2025/10/26 08:00" [ref=e320]
+                - cell "查看 编辑 复制 删除" [ref=e321]:
+                  - button "查看" [ref=e322] [cursor=pointer]
+                  - button "编辑" [ref=e323] [cursor=pointer]
+                  - button "复制" [ref=e324] [cursor=pointer]
+                  - button "删除" [ref=e325] [cursor=pointer]
+              - row "G4202绕西双流段早高峰可变限速 可变限速 可变限速 - 中等控制 16 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e326]:
+                - cell "G4202绕西双流段早高峰可变限速" [ref=e327]
+                - cell "可变限速" [ref=e328]:
+                  - generic [ref=e329]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e330]
+                - cell "16" [ref=e331]
+                - cell "2025/10/26 08:00" [ref=e332]
+                - cell "查看 编辑 复制 删除" [ref=e333]:
+                  - button "查看" [ref=e334] [cursor=pointer]
+                  - button "编辑" [ref=e335] [cursor=pointer]
+                  - button "复制" [ref=e336] [cursor=pointer]
+                  - button "删除" [ref=e337] [cursor=pointer]
+              - row "G4202绕东锦城湖段晚高峰可变限速 可变限速 可变限速 - 严格控制 13 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e338]:
+                - cell "G4202绕东锦城湖段晚高峰可变限速" [ref=e339]
+                - cell "可变限速" [ref=e340]:
+                  - generic [ref=e341]: 可变限速
+                - cell "可变限速 - 严格控制" [ref=e342]
+                - cell "13" [ref=e343]
+                - cell "2025/10/26 08:00" [ref=e344]
+                - cell "查看 编辑 复制 删除" [ref=e345]:
+                  - button "查看" [ref=e346] [cursor=pointer]
+                  - button "编辑" [ref=e347] [cursor=pointer]
+                  - button "复制" [ref=e348] [cursor=pointer]
+                  - button "删除" [ref=e349] [cursor=pointer]
+              - row "G4202机场段早高峰可变限速 可变限速 可变限速 - 中等控制 12 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e350]:
+                - cell "G4202机场段早高峰可变限速" [ref=e351]
+                - cell "可变限速" [ref=e352]:
+                  - generic [ref=e353]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e354]
+                - cell "12" [ref=e355]
+                - cell "2025/10/26 08:00" [ref=e356]
+                - cell "查看 编辑 复制 删除" [ref=e357]:
+                  - button "查看" [ref=e358] [cursor=pointer]
+                  - button "编辑" [ref=e359] [cursor=pointer]
+                  - button "复制" [ref=e360] [cursor=pointer]
+                  - button "删除" [ref=e361] [cursor=pointer]
+              - row "G4202绕西光华段早高峰可变限速 可变限速 可变限速 - 中等控制 8 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e362]:
+                - cell "G4202绕西光华段早高峰可变限速" [ref=e363]
+                - cell "可变限速" [ref=e364]:
+                  - generic [ref=e365]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e366]
+                - cell "8" [ref=e367]
+                - cell "2025/10/26 08:00" [ref=e368]
+                - cell "查看 编辑 复制 删除" [ref=e369]:
+                  - button "查看" [ref=e370] [cursor=pointer]
+                  - button "编辑" [ref=e371] [cursor=pointer]
+                  - button "复制" [ref=e372] [cursor=pointer]
+                  - button "删除" [ref=e373] [cursor=pointer]
+              - row "G5成雅双流段全天可变限速 可变限速 可变限速 - 严格控制 14 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e374]:
+                - cell "G5成雅双流段全天可变限速" [ref=e375]
+                - cell "可变限速" [ref=e376]:
+                  - generic [ref=e377]: 可变限速
+                - cell "可变限速 - 严格控制" [ref=e378]
+                - cell "14" [ref=e379]
+                - cell "2025/10/26 08:00" [ref=e380]
+                - cell "查看 编辑 复制 删除" [ref=e381]:
+                  - button "查看" [ref=e382] [cursor=pointer]
+                  - button "编辑" [ref=e383] [cursor=pointer]
+                  - button "复制" [ref=e384] [cursor=pointer]
+                  - button "删除" [ref=e385] [cursor=pointer]
+              - row "G5成绵新都段晚高峰可变限速 可变限速 可变限速 - 中等控制 12 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e386]:
+                - cell "G5成绵新都段晚高峰可变限速" [ref=e387]
+                - cell "可变限速" [ref=e388]:
+                  - generic [ref=e389]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e390]
+                - cell "12" [ref=e391]
+                - cell "2025/10/26 08:00" [ref=e392]
+                - cell "查看 编辑 复制 删除" [ref=e393]:
+                  - button "查看" [ref=e394] [cursor=pointer]
+                  - button "编辑" [ref=e395] [cursor=pointer]
+                  - button "复制" [ref=e396] [cursor=pointer]
+                  - button "删除" [ref=e397] [cursor=pointer]
+```

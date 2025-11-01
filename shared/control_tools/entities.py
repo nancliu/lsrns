@@ -99,6 +99,7 @@ class ParameterSchema(BaseModel):
     unit: Optional[str] = Field(None, max_length=50)
     constraints: Optional[Dict[str, Any]] = None
     sumo_mapping: Optional[str] = None
+    enum_name: Optional[str] = None  # Reference to enum definition file (e.g., 'vehicle_types_category')
     enum_values: Optional[List[Dict[str, str]]] = None
     interval_structure: Optional[Dict[str, Any]] = None
     note: Optional[str] = None

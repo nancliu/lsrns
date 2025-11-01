@@ -205,73 +205,8 @@ function debounce(func, wait) {
   };
 
 // ==================== Legacy Functions (Deprecated) ====================
-
-  // ==================== Legacy Timeline Functions (Deprecated) ====================
-// These functions are kept for backward compatibility only.
-// All new code should use updateTimelineByType() instead.
-
-/**
- * @deprecated Use updateTimelineByType(tbody, 'vss') instead
-   * 从表格中收集步骤数据并更新时间轴
-   * @param {HTMLElement} tbody - 表格体元素
-   */
-function updateTimelineFromTable(tbody) {
-  if (!window.TimelineVisualizer) {
-    console.warn('[updateTimelineFromTable] TimelineVisualizer not available');
-    return;
-  }
-
-  const parameterName = tbody.dataset.parameterName;
-  if (!parameterName) {
-    console.warn('[updateTimelineFromTable] No parameterName found');
-    return;
-  }
-
-  // 查找对应的容器（步骤数组控件容器）
-  const container = tbody.closest('.step-array-control-enhanced');
-  if (!container) {
-    console.warn('[updateTimelineFromTable] Container not found');
-    return;
-  }
-
-  const timeline = container.querySelector('.parameter-timeline');
-  if (!timeline) {
-    console.warn('[updateTimelineFromTable] Timeline element not found');
-    return;
-  }
-
-  // 收集步骤数据
-  const rows = tbody.querySelectorAll('.step-row');
-  const steps = [];
-
-  rows.forEach(row => {
-    const timeInput = row.querySelector('.step-time');
-    const speedInput = row.querySelector('.step-speed');
-
-    if (timeInput && speedInput) {
-      const time_hours = parseFloat(timeInput.value) || 0;
-      const speed_kmh = parseFloat(speedInput.value) || 0;
-
-      steps.push({ time_hours, speed_kmh });
-    }
-  });
-
-  // 按时间排序
-  steps.sort((a, b) => a.time_hours - b.time_hours);
-
-  console.log('[updateTimelineFromTable] Updating timeline with steps:', steps);
-
-  // 更新时间轴
-  try {
-    window.TimelineVisualizer.updateTimeline(timeline, steps, { type: 'speed' });
-  } catch (err) {
-    console.error('[updateTimelineFromTable] Failed to update timeline:', err);
-  }
-}
-
-// @deprecated Use debouncedUpdateTimeline.vss instead
-// 创建防抖版本的更新函数（300ms延迟）
-const debouncedUpdateTimelineFromTable = debounce(updateTimelineFromTable, 300);
+// [REFACTORING COMPLETED 2025-11-01] All deprecated timeline functions have been removed.
+// Use updateTimelineByType(tbody, type) instead for all timeline updates.
 
 // ==================== Form Generation ====================
 
@@ -837,8 +772,8 @@ function renderStepArrayControl(paramName, schema) {
 
   const addBtn = document.createElement("button");
   addBtn.type = "button";
-  addBtn.className = "btn btn-add-step";
-  addBtn.textContent = "+ Add Step";
+  addBtn.className = "btn btn-add-interval";  // [FIX] Changed from btn-add-step to btn-add-interval for consistency
+  addBtn.textContent = "+ 添加限速步骤";  // [FIX] Changed to Chinese for consistency with other controls
   addBtn.addEventListener("click", (e) => {
     e.preventDefault();
     addStepRow(tbody, paramName, 0, 100, stepStructure);
@@ -1491,47 +1426,6 @@ function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, inter
 /**
  * Update DHS timeline from table data (reads current table state and updates timeline).
  */
-/**
-   * @deprecated Use updateTimelineByType(tbody, 'dhs') instead
-   */
-function updateDHSTimelineFromTable(tbody) {
-  const paramName = tbody.dataset.parameterName;
-  if (!paramName) return;
-
-  // Find the timeline element (sibling of table)
-  const container = tbody.closest('.dhs-interval-control-enhanced');
-  if (!container) return;
-
-  const timelineElement = container.querySelector('.parameter-timeline');
-  if (!timelineElement) return;
-
-  // Extract intervals from table rows
-  const rows = tbody.querySelectorAll('.dhs-interval-row');
-  const intervals = [];
-
-  rows.forEach(row => {
-    const beginInput = row.querySelector('.dhs-interval-begin');
-    const endInput = row.querySelector('.dhs-interval-end');
-    const statusSelect = row.querySelector('.dhs-interval-status');
-
-    if (beginInput && endInput && statusSelect) {
-      intervals.push({
-        begin_hours: parseFloat(beginInput.value) || 0,
-        end_hours: parseFloat(endInput.value) || 0,
-        status: statusSelect.value || 'CLOSED'
-      });
-    }
-  });
-
-  // Update the timeline
-  window.TimelineVisualizer.updateTimeline(timelineElement, intervals, { type: 'dhs' });
-}
-
-/**
-   * @deprecated Use debouncedUpdateTimeline.dhs instead
-   * Debounced version of updateDHSTimelineFromTable (300ms delay).
-   */
-const debouncedUpdateDHSTimelineFromTable = debounce(updateDHSTimelineFromTable, 300);
 
 /**
  * Render flow_interval_array control.
@@ -1718,47 +1612,6 @@ function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, ta
 /**
  * Update Flow timeline from table data (reads current table state and updates timeline).
  */
-/**
-   * @deprecated Use updateTimelineByType(tbody, 'flow') instead
-   */
-function updateFlowTimelineFromTable(tbody) {
-  const paramName = tbody.dataset.parameterName;
-  if (!paramName) return;
-
-  // Find the timeline element (sibling of table)
-  const container = tbody.closest('.flow-interval-control-enhanced');
-  if (!container) return;
-
-  const timelineElement = container.querySelector('.parameter-timeline');
-  if (!timelineElement) return;
-
-  // Extract intervals from table rows
-  const rows = tbody.querySelectorAll('.interval-row');
-  const intervals = [];
-
-  rows.forEach(row => {
-    const beginInput = row.querySelector('.interval-begin');
-    const endInput = row.querySelector('.interval-end');
-    const flowInput = row.querySelector('.interval-flow');
-
-    if (beginInput && endInput && flowInput) {
-      intervals.push({
-        begin_hours: parseFloat(beginInput.value) || 0,
-        end_hours: parseFloat(endInput.value) || 0,
-        flow_vph: parseFloat(flowInput.value) || 0
-      });
-    }
-  });
-
-  // Update the timeline
-  window.TimelineVisualizer.updateTimeline(timelineElement, intervals, { type: 'flow' });
-}
-
-/**
-   * @deprecated Use debouncedUpdateTimeline.flow instead
-   * Debounced version of updateFlowTimelineFromTable (300ms delay).
-   */
-const debouncedUpdateFlowTimelineFromTable = debounce(updateFlowTimelineFromTable, 300);
 
 /**
  * Render tec_interval_array control for TEC vehicle restriction strategies.
@@ -1950,52 +1803,6 @@ function addTECIntervalRow(tbody, paramName, beginHours, endHours) {
  *
  * @param {HTMLElement} tbody - Table body element
  */
-/**
-   * @deprecated Use updateTimelineByType(tbody, 'tec_simple') instead
-   */
-function updateTECTimelineFromTable(tbody) {
-  // Find timeline element in parent container
-  const container = tbody.closest('.tec-interval-control-enhanced');
-  if (!container) return;
-
-  const timelineElement = container.querySelector('.parameter-timeline');
-  if (!timelineElement || !window.TimelineVisualizer) return;
-
-  // Collect intervals from table
-  const intervals = [];
-  const rows = tbody.querySelectorAll('.tec-interval-row');
-
-  rows.forEach(row => {
-    const beginInput = row.querySelector('.tec-interval-begin');
-    const endInput = row.querySelector('.tec-interval-end');
-
-    if (beginInput && endInput) {
-      const beginHours = parseFloat(beginInput.value) || 0;
-      const endHours = parseFloat(endInput.value) || 0;
-
-      // Only add valid intervals
-      if (endHours > beginHours && beginHours >= 0 && endHours <= 24) {
-        intervals.push({
-          begin_hours: beginHours,
-          end_hours: endHours
-        });
-      }
-    }
-  });
-
-  // Update timeline
-  try {
-    const paramName = tbody.dataset.parameterName;
-    window.TimelineVisualizer.updateTimeline(
-      timelineElement,
-      paramName,
-      intervals,
-      { type: 'simple_interval' }
-    );
-  } catch (err) {
-    console.warn('[updateTECTimelineFromTable] Failed to update timeline:', err);
-  }
-}
 
 /**
  * Render string control.
@@ -2642,101 +2449,6 @@ function extractFormParameters(form) {
   return parameters;
 }
 
-/**
- * Render global vehicle type configuration control.
- * This is for strategy-level vehicle type configuration (allowed or disallowed).
- * Not for per-interval vehicle configuration.
- *
- * @param {Array} vehicleTypeParams - Array of vehicle type parameters from template schema
- * @param {Object} template - Template object containing parameters_schema
- * @returns {HTMLElement|null} Container with vehicle type control, or null if no vehicle params
- */
-function renderGlobalVehicleTypeControl(vehicleTypeParams, template) {
-  if (!vehicleTypeParams || vehicleTypeParams.length === 0) return null;
-  if (!template || !template.parameters_schema) return null;
-
-  // Find the vehicle type parameter in the schema
-  const vehicleParam = template.parameters_schema.find(p =>
-    vehicleTypeParams.includes(p.parameter_name)
-  );
-
-  if (!vehicleParam) return null;
-
-  const container = document.createElement('div');
-  container.className = 'form-group vehicle-type-config-global';
-  container.dataset.parameterName = vehicleParam.parameter_name;
-  container.dataset.parameterType = vehicleParam.parameter_type;
-
-  // Determine label based on parameter name
-  let labelText = '车型限制';
-  let hintText = '选择适用的车型';
-
-  if (vehicleParam.parameter_name === 'allowed_vehicle_types') {
-    labelText = '允许的车型';
-    hintText = '仅选中的车型可使用此策略';
-  } else if (vehicleParam.parameter_name === 'disallow_vehicle_types' ||
-             vehicleParam.parameter_name === 'banned_vehicle_types') {
-    labelText = '禁止的车型';
-    hintText = '选中的车型禁止使用此策略';
-  } else if (vehicleParam.parameter_name === 'applicable_vehicle_types') {
-    labelText = '适用车型';
-    hintText = '此策略适用于选中的车型';
-  }
-
-  // Create label
-  const label = document.createElement('label');
-  label.textContent = labelText + (vehicleParam.required ? ' *' : '');
-  label.className = 'vehicle-type-label-global';
-  container.appendChild(label);
-
-  // Create vehicle type checkboxes
-  const checkboxContainer = document.createElement('div');
-  checkboxContainer.className = 'vehicle-checkboxes';
-
-  const vehicleOptions = [
-    { value: 'passenger', label: '小客车' },
-    { value: 'bus', label: '公交车' },
-    { value: 'truck', label: '货车' },
-    { value: 'emergency', label: '应急车' },
-    { value: 'authority', label: '执法车' }
-  ];
-
-  const defaultValues = vehicleParam.default_value || [];
-
-  vehicleOptions.forEach(opt => {
-    const checkboxDiv = document.createElement('div');
-    checkboxDiv.className = 'checkbox-wrapper';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.name = vehicleParam.parameter_name;
-    checkbox.value = opt.value;
-    checkbox.id = `vehicle-${vehicleParam.parameter_name}-${opt.value}`;
-    checkbox.className = 'vehicle-checkbox enum-checkbox';
-
-    if (Array.isArray(defaultValues) && defaultValues.includes(opt.value)) {
-      checkbox.checked = true;
-    }
-
-    const checkboxLabel = document.createElement('label');
-    checkboxLabel.htmlFor = checkbox.id;
-    checkboxLabel.textContent = opt.label;
-
-    checkboxDiv.appendChild(checkbox);
-    checkboxDiv.appendChild(checkboxLabel);
-    checkboxContainer.appendChild(checkboxDiv);
-  });
-
-  container.appendChild(checkboxContainer);
-
-  // Create hint
-  const hint = document.createElement('span');
-  hint.className = 'form-hint';
-  hint.textContent = hintText;
-  container.appendChild(hint);
-
-  return container;
-}
 
 /**
  * Show notification message.
@@ -2767,6 +2479,8 @@ function showNotification(message, type) {
  * @returns {HTMLElement} Container with unified vehicle type control
  */
 function renderUnifiedVehicleTypeControl(templateData) {
+  console.log('[renderUnifiedVehicleTypeControl] Called with template:', templateData?.template_id);
+
   const container = document.createElement("div");
   container.className = "form-group unified-vehicle-type-control";
   container.id = "unified-vehicle-type-container";
@@ -2774,10 +2488,12 @@ function renderUnifiedVehicleTypeControl(templateData) {
   // Find the restriction_mode default value
   const restrictionModeParam = templateData.parameters_schema.find(p => p.parameter_name === 'restriction_mode');
   const initialMode = restrictionModeParam?.default_value || 'disallow_mode';
+  console.log('[renderUnifiedVehicleTypeControl] Initial mode:', initialMode);
 
   // Find the vehicle type schemas
   const disallowParam = templateData.parameters_schema.find(p => p.parameter_name === 'disallow_vehicle_types');
   const allowParam = templateData.parameters_schema.find(p => p.parameter_name === 'allowed_vehicle_types');
+  console.log('[renderUnifiedVehicleTypeControl] Found params:', { disallowParam: !!disallowParam, allowParam: !!allowParam });
 
   // Label (will be updated dynamically)
   const label = document.createElement("label");
@@ -2799,10 +2515,30 @@ function renderUnifiedVehicleTypeControl(templateData) {
   checkboxContainer.className = "enum-array-control";
   checkboxContainer.id = "vehicle-type-checkboxes";
 
-  const enumValues = disallowParam?.enum_values || allowParam?.enum_values || [];
+  // [FIX] Get enum values - handle both direct enum_values and enum_name reference
+  let enumValues = disallowParam?.enum_values || allowParam?.enum_values || [];
+
+  // If enum_values not found, check if enum_name is specified (TEC templates use this)
+  if (enumValues.length === 0) {
+    const enumName = disallowParam?.enum_name || allowParam?.enum_name;
+    console.log('[renderUnifiedVehicleTypeControl] enum_name:', enumName);
+
+    // For TEC templates, always use the standard 3-category system
+    if (enumName === 'vehicle_types_category' || enumValues.length === 0) {
+      console.log('[renderUnifiedVehicleTypeControl] Using standard 3-category vehicle types');
+      enumValues = [
+        { value: 'passenger', label: '客车', description: '乘用车辆，包含小型和大型客车' },
+        { value: 'truck', label: '货车', description: '货运车辆，包含小型和大型货车' },
+        { value: 'delivery', label: '特种车辆', description: '特种车辆，包含小型和大型特种车' }
+      ];
+    }
+  }
+
   const defaultValues = initialMode === 'disallow_mode'
     ? (disallowParam?.default_value || [])
     : (allowParam?.default_value || []);
+
+  console.log('[renderUnifiedVehicleTypeControl] Enum values count:', enumValues.length, 'Default values:', defaultValues);
 
   enumValues.forEach(enumVal => {
     const checkboxDiv = document.createElement("div");
@@ -2989,7 +2725,6 @@ window.generateXMLPreview = generateXMLPreview;
 window.extractFormParameters = extractFormParameters;
 window.renderUnifiedVehicleTypeControl = renderUnifiedVehicleTypeControl;
 window.updateVehicleTypeControlForRestrictionMode = updateVehicleTypeControlForRestrictionMode;
-window.renderGlobalVehicleTypeControl = renderGlobalVehicleTypeControl;
 window.renderSelectedEdgesSummary = renderSelectedEdgesSummary;
 
 // Export individual render functions for use in templates.html
@@ -2997,6 +2732,7 @@ window.renderStepArrayControl = renderStepArrayControl;
 window.renderDHSIntervalControl = renderDHSIntervalControl;
 window.renderFlowIntervalControl = renderFlowIntervalControl;
 window.renderTECIntervalControl = renderTECIntervalControl;
+window.renderEnumArrayControl = renderEnumArrayControl;  // [FIX] Export for vehicle type controls
 
 // Task 8.4: Export hint generation function for use in templates.html
 window.generateParameterHint = generateParameterHint;

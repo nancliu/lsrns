@@ -43,17 +43,16 @@
     {
       "parameter_name": "allowed_vehicle_types",
       "parameter_type": "enum_array",
-      "description": "允许通行的车型（紧急关闭时应留空 = 禁止所有车型。仅在特殊情况下允许emergency车通过）",
+      "description": "允许通行的车型（紧急关闭时应留空 = 禁止所有车型。仅在特殊情况下允许特种车辆通过）",
       "required": false,
       "default_value": [],
       "unit": null,
       "enum_values": [
-        {"value": "passenger", "label": "乘用车 (客车)", "disabled": "true"},
-        {"value": "bus", "label": "公交车", "disabled": "true"},
+        {"value": "passenger", "label": "客车", "disabled": "true"},
         {"value": "truck", "label": "货车", "disabled": "true"},
-        {"value": "emergency", "label": "应急车", "disabled": "false"}
+        {"value": "delivery", "label": "特种车辆", "disabled": "false"}
       ],
-      "note": "推荐留空（关闭所有车型）。仅在极特殊情况下允许emergency车通过"
+      "note": "推荐留空（关闭所有车型）。仅在极特殊情况下允许特种车辆通过"
     },
     {
       "parameter_name": "closure_reason",
@@ -78,22 +77,6 @@
       "min_value": 0.5,
       "max_value": 24,
       "unit": "小时"
-    },
-    {
-      "parameter_name": "contact_person",
-      "parameter_type": "string",
-      "description": "负责人员或部门（用于文档和应急沟通）",
-      "required": false,
-      "default_value": "",
-      "unit": null
-    },
-    {
-      "parameter_name": "emergency_contact",
-      "parameter_type": "string",
-      "description": "应急联系电话或方式",
-      "required": false,
-      "default_value": "",
-      "unit": null
     }
   ],
   "critical_warnings": [

@@ -43,27 +43,22 @@
       "required": false,
       "default_value": [
         "passenger",
-        "bus",
         "truck",
-        "emergency"
+        "delivery"
       ],
       "unit": null,
       "enum_values": [
         {
           "value": "passenger",
-          "label": "乘用车 (客车)"
-        },
-        {
-          "value": "bus",
-          "label": "公交车"
+          "label": "客车"
         },
         {
           "value": "truck",
           "label": "货车"
         },
         {
-          "value": "emergency",
-          "label": "应急车"
+          "value": "delivery",
+          "label": "特种车辆"
         }
       ],
       "sumo_mapping": "allow 属性",
