@@ -830,7 +830,8 @@
                 group.setAttribute('data-parameter-type', param.parameter_type);
 
                 let inputHtml = '';
-                let hintHtml = '';
+                // Task 8.4: Use generateParameterHint function for consistent hint generation
+                let hintHtml = window.generateParameterHint ? window.generateParameterHint(param) : '';
 
                 if (param.parameter_type === 'integer' || param.parameter_type === 'float' || param.parameter_type === 'number') {
                     inputHtml = `<input type="number" id="param-${param.parameter_name}"
@@ -839,7 +840,6 @@
                                    ${param.max_value !== null ? `max="${param.max_value}"` : ''}
                                    ${param.default_value !== null ? `value="${param.default_value}"` : ''}
                                    step="${param.parameter_type === 'float' ? '0.01' : '1'}">`;
-                    hintHtml = `${param.unit || ''} ${param.min_value !== null && param.max_value !== null ? `范围: ${param.min_value}-${param.max_value}` : ''}`;
                 } else if (param.parameter_type === 'enum') {
                     // Enum 类型：使用下拉框
                     if (param.enum_values && param.enum_values.length > 0) {
@@ -850,13 +850,10 @@
                             return `<option value="${value}" ${selected}>${label}</option>`;
                         }).join('');
                         inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>${options}</select>`;
-                        const enumLabels = param.enum_values.map(ev => ev.label || ev).join(', ');
-                        hintHtml = `可选值: ${enumLabels}`;
                     } else {
                         inputHtml = `<input type="text" id="param-${param.parameter_name}"
                                        ${param.required ? 'required' : ''}
                                        ${param.default_value !== null ? `value="${param.default_value}"` : ''}>`;
-                        hintHtml = param.unit || '';
                     }
                 } else if (param.parameter_type === 'string') {
                     // 如果有 allowed_values，使用下拉框
@@ -866,12 +863,10 @@
                             return `<option value="${val}" ${selected}>${val}</option>`;
                         }).join('');
                         inputHtml = `<select id="param-${param.parameter_name}" ${param.required ? 'required' : ''}>${options}</select>`;
-                        hintHtml = `可选值: ${param.allowed_values.join(', ')}`;
                     } else {
                         inputHtml = `<input type="text" id="param-${param.parameter_name}"
                                        ${param.required ? 'required' : ''}
                                        ${param.default_value !== null ? `value="${param.default_value}"` : ''}>`;
-                        hintHtml = param.unit || '';
                     }
                 } else if (param.parameter_type === 'boolean') {
                     const defaultVal = param.default_value === true || param.default_value === 'true';
@@ -879,19 +874,15 @@
                                    <option value="true" ${defaultVal ? 'selected' : ''}>是</option>
                                    <option value="false" ${!defaultVal ? 'selected' : ''}>否</option>
                                  </select>`;
-                    hintHtml = param.unit || '';
                 } else if (param.parameter_type === 'step_array') {
                     // VSS speed_steps 参数 - 使用交互式时间选择器
                     inputHtml = window.renderStepArrayControl(param.parameter_name, param);
-                    hintHtml = `${param.unit || ''} 使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h`;
                 } else if (param.parameter_type === 'dhs_interval_array') {
                     // DHS intervals 参数 - 使用增强的DHS区间编辑器（包含时间轴可视化）
                     inputHtml = window.renderDHSIntervalControl(param.parameter_name, param);
-                    hintHtml = `${param.unit || ''} 使用表格编辑器配置DHS时间区间。注意：必须覆盖完整的24小时`;
                 } else if (param.parameter_type === 'tec_interval_array' || param.parameter_type === 'flow_interval_array') {
-                    // TEC flow_intervals 参数 - 使用交互式流量区间编辑器
+                    // TEC/Flow intervals 参数 - 使用交互式流量区间编辑器
                     inputHtml = window.renderFlowIntervalControl(param.parameter_name, param);
-                    hintHtml = `${param.unit || ''} 使用表格编辑器配置TEC流量控制区间。合理设置流量和速度限制`;
                 } else if (param.parameter_type === 'enum_array' || param.parameter_type === 'array') {
                     // 特殊处理：车型选择参数使用多选框
                     const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
@@ -915,7 +906,7 @@
                             return `<option value="${vt.value}" ${selected}>${vt.label}</option>`;
                         }).join('');
 
-                        // 根据参数类型定制提示文本
+                        // Task 8.4: Override hint for vehicle type parameters with custom hints
                         let customHint = '';
                         if (param.parameter_name === 'applicable_vehicle_types') {
                             customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，留空表示适用所有车型';
@@ -939,7 +930,6 @@
                                          ${param.required ? 'required' : ''}
                                          placeholder='例如: [[7,9],[17,19]] 或 [60,80,100]'>${defaultValueStr}</textarea>
                                      </div>`;
-                        hintHtml = `${param.unit || ''} JSON数组格式，例如: [[7,9],[17,19]] 表示时间段，或 [60,80,100] 表示数值列表`;
                     }
                 }
 

@@ -1023,6 +1023,100 @@ function clearError(input) {
 }
 
 /**
+ * Task 8.4: Generate parameter hint text based on parameter type and schema.
+ * Provides parameter-level hints without duplicating control-level hints.
+ *
+ * @param {Object} param - Parameter schema object
+ * @returns {string} Hint text to display
+ */
+function generateParameterHint(param) {
+  // Control hints object - specific to each control type
+  // These are shown by the control itself and should not be duplicated here
+  const controlHints = {
+    'step_array': '使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h',
+    'dhs_interval_array': '使用表格编辑器配置DHS时间区间。注意：必须覆盖完整的24小时',
+    'flow_interval_array': '使用表格编辑器配置流量控制区间。合理设置流量和速度限制',
+    'tec_interval_array': '使用表格编辑器配置TEC时间区间'
+  };
+
+  // Get control hint if applicable
+  const controlHint = controlHints[param.parameter_type] || '';
+
+  // Generate parameter-level hint
+  let paramHint = '';
+
+  switch (param.parameter_type) {
+    case 'integer':
+    case 'float':
+    case 'number':
+      // For numeric types: show unit and range
+      if (param.unit) paramHint += param.unit;
+      if (param.min_value !== null && param.max_value !== null) {
+        if (paramHint) paramHint += ' · ';
+        paramHint += `范围: ${param.min_value}-${param.max_value}`;
+      }
+      break;
+
+    case 'enum':
+      // For enum types: show possible values
+      if (param.enum_values && param.enum_values.length > 0) {
+        const labels = param.enum_values.map(ev => ev.label || ev).join(', ');
+        paramHint = `可选值: ${labels}`;
+      } else if (param.unit) {
+        paramHint = param.unit;
+      }
+      break;
+
+    case 'string':
+      // For string types: show allowed values or unit
+      if (param.allowed_values && param.allowed_values.length > 0) {
+        paramHint = `可选值: ${param.allowed_values.join(', ')}`;
+      } else if (param.unit) {
+        paramHint = param.unit;
+      }
+      break;
+
+    case 'boolean':
+      // For boolean: show unit if available
+      paramHint = param.unit || '';
+      break;
+
+    case 'enum_array':
+    case 'array':
+      // For arrays: check if vehicle type parameter
+      const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
+      if (vehicleTypeParams.includes(param.parameter_name)) {
+        // Vehicle type hints are custom per parameter, generated in templates.html
+        // Do not duplicate them here
+        break;
+      }
+      // Generic array hint
+      paramHint = param.unit || 'JSON数组格式';
+      break;
+
+    case 'step_array':
+    case 'dhs_interval_array':
+    case 'flow_interval_array':
+    case 'tec_interval_array':
+      // For interval types: only show unit, control hint is handled separately
+      paramHint = param.unit || '';
+      break;
+
+    default:
+      paramHint = param.unit || '';
+  }
+
+  // Combine hints with separator if both exist
+  if (paramHint && controlHint) {
+    return `${paramHint} · ${controlHint}`;
+  } else if (controlHint) {
+    return controlHint;
+  } else {
+    return paramHint;
+  }
+}
+
+/**
  * Validate input on blur with automatic error display.
  * @param {HTMLInputElement} input - Input element to validate
  * @param {Function} validatorFn - Validator function that returns {valid, message}
@@ -1088,6 +1182,13 @@ function createNumberInput(className, value, min, max, step = 1) {
  * @param {string} timelineType - Timeline type (vss/dhs/flow/tec_simple)
  * @returns {HTMLButtonElement}
  */
+/**
+ * Create a remove button with confirmation dialog (Task 8.3).
+ * @param {HTMLTableRowElement} row - Row element to remove
+ * @param {HTMLElement} tbody - Table body element
+ * @param {string} timelineType - Timeline type for update
+ * @returns {HTMLButtonElement} Remove button element
+ */
 function createRemoveButton(row, tbody, timelineType) {
   const btn = document.createElement("button");
   btn.type = "button";
@@ -1095,8 +1196,11 @@ function createRemoveButton(row, tbody, timelineType) {
   btn.textContent = "删除";
   btn.addEventListener("click", (e) => {
     e.preventDefault();
-    row.remove();
-    updateTimelineByType(tbody, timelineType);
+    // Task 8.3: Add confirmation dialog
+    if (confirm("确定要删除这一行吗？")) {
+      row.remove();
+      updateTimelineByType(tbody, timelineType);
+    }
   });
   return btn;
 }
@@ -1148,18 +1252,34 @@ function addStepRow(tbody, paramName, timeVal, speedVal, stepStructure) {
 
   // Remove button
   const actionCell = document.createElement("td");
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "btn-remove-step";
-  removeBtn.textContent = "Remove";
-  removeBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    row.remove();
-    // [NEW] 删除行后更新时间轴
-    updateTimelineByType(tbody, 'vss');
-  });
+  const removeBtn = createRemoveButton(row, tbody, 'vss');
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
+
+  // Task 8.1 & 8.2: Bind validation on blur events
+  // Validate time range (0-24 hours)
+  timeInput.addEventListener('blur', () => {
+    const timeValue = parseFloat(timeInput.value);
+    const result = validators.timeRange(timeValue);
+    if (!result.valid) {
+      showError(timeInput, result.message);
+    } else {
+      clearError(timeInput);
+    }
+  });
+
+  // Validate speed range
+  speedInput.addEventListener('blur', () => {
+    const speedValue = parseFloat(speedInput.value);
+    const speedMin = stepStructure.speed_min || 30;
+    const speedMax = stepStructure.speed_max || 130;
+    const result = validators.speedRange(speedValue, speedMin, speedMax);
+    if (!result.valid) {
+      showError(speedInput, result.message);
+    } else {
+      clearError(speedInput);
+    }
+  });
 
   // [NEW] 为输入框添加变化事件监听器以更新时间轴（使用防抖）
   timeInput.addEventListener('input', () => debouncedUpdateTimeline.vss(tbody));
@@ -1329,6 +1449,36 @@ function addDHSIntervalRow(tbody, paramName, beginHours, endHours, status, inter
   removeBtn.className = "btn-remove-interval"; // Keep original class
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
+
+  // Task 8.1 & 8.2: Bind validation on blur events
+  // Validate time order and ranges
+  endInput.addEventListener('blur', () => {
+    const beginValue = parseFloat(beginInput.value);
+    const endValue = parseFloat(endInput.value);
+
+    // Validate time order
+    const orderResult = validators.timeOrder(beginValue, endValue);
+    if (!orderResult.valid) {
+      showError(endInput, orderResult.message);
+      return;
+    }
+
+    // Validate time ranges
+    const beginRangeResult = validators.timeRange(beginValue);
+    if (!beginRangeResult.valid) {
+      showError(beginInput, beginRangeResult.message);
+      return;
+    }
+
+    const endRangeResult = validators.timeRange(endValue);
+    if (!endRangeResult.valid) {
+      showError(endInput, endRangeResult.message);
+      return;
+    }
+
+    clearError(endInput);
+    clearError(beginInput);
+  });
 
   // Bind timeline updates (using helper)
   bindTimelineUpdate(beginInput, tbody, 'dhs');
@@ -1532,6 +1682,31 @@ function addFlowIntervalRow(tbody, paramName, beginHours, endHours, flowRate, ta
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
 
+  // Task 8.1 & 8.2: Bind validation on blur events
+  endInput.addEventListener('blur', () => {
+    const beginValue = parseFloat(beginInput.value);
+    const endValue = parseFloat(endInput.value);
+
+    // Validate time order
+    const orderResult = validators.timeOrder(beginValue, endValue);
+    if (!orderResult.valid) {
+      showError(endInput, orderResult.message);
+      return;
+    }
+
+    // Validate time ranges
+    const beginRangeResult = validators.timeRange(beginValue);
+    const endRangeResult = validators.timeRange(endValue);
+    if (!beginRangeResult.valid || !endRangeResult.valid) {
+      if (!beginRangeResult.valid) showError(beginInput, beginRangeResult.message);
+      if (!endRangeResult.valid) showError(endInput, endRangeResult.message);
+      return;
+    }
+
+    clearError(endInput);
+    clearError(beginInput);
+  });
+
   // Bind timeline updates (using helper)
   bindTimelineUpdate(beginInput, tbody, 'flow');
   bindTimelineUpdate(endInput, tbody, 'flow');
@@ -1703,6 +1878,7 @@ function renderTECIntervalControl(paramName, schema) {
 
 /**
  * Add a TEC interval row to the table.
+ * Task 8.1 & 8.2: Includes time order and range validation.
  *
  * @param {HTMLElement} tbody - Table body element
  * @param {string} paramName - Parameter name
@@ -1731,6 +1907,36 @@ function addTECIntervalRow(tbody, paramName, beginHours, endHours) {
   removeBtn.className = "btn btn-delete-row"; // Keep original class name
   actionCell.appendChild(removeBtn);
   row.appendChild(actionCell);
+
+  // Task 8.1: Add time order validation on endInput blur
+  endInput.addEventListener('blur', () => {
+    const beginValue = parseFloat(beginInput.value);
+    const endValue = parseFloat(endInput.value);
+
+    // Validate time order
+    const orderResult = validators.timeOrder(beginValue, endValue);
+    if (!orderResult.valid) {
+      showError(endInput, orderResult.message);
+      return;
+    }
+
+    // Task 8.2: Validate time ranges for both begin and end
+    const beginRangeResult = validators.timeRange(beginValue);
+    if (!beginRangeResult.valid) {
+      showError(beginInput, beginRangeResult.message);
+      return;
+    }
+
+    const endRangeResult = validators.timeRange(endValue);
+    if (!endRangeResult.valid) {
+      showError(endInput, endRangeResult.message);
+      return;
+    }
+
+    // All validations passed
+    clearError(endInput);
+    clearError(beginInput);
+  });
 
   // Bind timeline updates (using helper) - FIX: use unified debounced version
   bindTimelineUpdate(beginInput, tbody, 'tec_simple');
@@ -2791,6 +2997,9 @@ window.renderStepArrayControl = renderStepArrayControl;
 window.renderDHSIntervalControl = renderDHSIntervalControl;
 window.renderFlowIntervalControl = renderFlowIntervalControl;
 window.renderTECIntervalControl = renderTECIntervalControl;
+
+// Task 8.4: Export hint generation function for use in templates.html
+window.generateParameterHint = generateParameterHint;
 
 // Export row addition functions for use in strategy_manager.js
 window.addStepRow = addStepRow;
