@@ -1128,7 +1128,7 @@ function bindTimelineUpdate(input, tbody, timelineType) {
 
 // ==================== End Helper Functions ====================
 
-function addStepRow\(tbody, paramName, timeVal, speedVal, stepStructure\) \{
+function addStepRow(tbody, paramName, timeVal, speedVal, stepStructure) {
   const row = document.createElement("tr");
   row.className = "step-row";
 
