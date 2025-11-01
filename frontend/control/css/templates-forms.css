@@ -652,6 +652,41 @@
     color: #0066cc;
 }
 
+/* Vehicle Type Checkboxes - Checkbox-based selection for vehicle type parameters */
+.vehicle-type-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 8px 0;
+    padding: 8px 0;
+}
+
+.vehicle-type-checkboxes .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vehicle-type-checkboxes input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: #3498db;
+}
+
+.vehicle-type-checkboxes label {
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    margin: 0;
+    user-select: none;
+}
+
+.vehicle-type-checkboxes label:hover {
+    color: #333;
+    font-weight: 500;
+}
+
 /* ==================== Selected Edges Summary ==================== */
 
 .selected-edges-summary {

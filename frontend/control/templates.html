@@ -884,7 +884,7 @@
                     // TEC/Flow intervals 参数 - 使用交互式流量区间编辑器
                     inputHtml = window.renderFlowIntervalControl(param.parameter_name, param);
                 } else if (param.parameter_type === 'enum_array' || param.parameter_type === 'array') {
-                    // 特殊处理：车型选择参数使用多选框
+                    // 特殊处理：车型选择参数使用复选框
                     const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
                     if (vehicleTypeParams.includes(param.parameter_name)) {
                         const vehicleTypes = [
@@ -901,26 +901,29 @@
                             { value: 'special_large', label: '大型特种车 (t3-t6)' }
                         ];
 
-                        const options = vehicleTypes.map(vt => {
-                            const selected = param.default_value && param.default_value.includes(vt.value) ? 'selected' : '';
-                            return `<option value="${vt.value}" ${selected}>${vt.label}</option>`;
+                        const defaultValues = param.default_value || [];
+                        const checkboxes = vehicleTypes.map(vt => {
+                            const checked = Array.isArray(defaultValues) && defaultValues.includes(vt.value) ? 'checked' : '';
+                            return `<div class="checkbox-wrapper">
+                                      <input type="checkbox" name="${param.parameter_name}" value="${vt.value}"
+                                             id="vehicle-${param.parameter_name}-${vt.value}" ${checked}>
+                                      <label for="vehicle-${param.parameter_name}-${vt.value}">${vt.label}</label>
+                                    </div>`;
                         }).join('');
 
                         // Task 8.4: Override hint for vehicle type parameters with custom hints
                         let customHint = '';
                         if (param.parameter_name === 'applicable_vehicle_types') {
-                            customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，留空表示适用所有车型';
+                            customHint = '选择适用于此策略的车型，留空表示适用所有车型';
                         } else if (param.parameter_name === 'allowed_vehicle_types') {
-                            customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，默认全选表示所有车型可使用硬路肩';
+                            customHint = '选择允许使用硬路肩的车型，默认全选表示所有车型可使用';
                         } else if (param.parameter_name === 'banned_vehicle_types') {
-                            customHint = '按住 Ctrl (Windows) 或 Cmd (Mac) 可多选，选中的车型将被禁止进入';
+                            customHint = '选择禁止进入的车型';
                         }
 
-                        inputHtml = `<select id="param-${param.parameter_name}" multiple size="8"
-                                       class="w-full p-8"
-                                       ${param.required ? 'required' : ''}>
-                                       ${options}
-                                     </select>`;
+                        inputHtml = `<div class="vehicle-type-checkboxes" id="param-${param.parameter_name}">
+                                       ${checkboxes}
+                                     </div>`;
                         hintHtml = customHint;
                     } else {
                         // 其他 Array 类型：使用 textarea，JSON格式输入，包装在 array-control-container 中
