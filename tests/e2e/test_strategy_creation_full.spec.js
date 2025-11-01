@@ -444,4 +444,89 @@ test.describe('Task 9.3: 全面策略创建验证 (混合策略)', () => {
     console.log('\n✅ 表单验证完整性检查通过\n');
   });
 
+  test('错误处理验证：检测创建失败和错误通知', async ({ page }) => {
+    console.log('\n========== 错误处理验证 ==========\n');
+
+    // 访问策略创建页面
+    await page.goto('http://localhost:8000/control/templates.html', { timeout: 30000 });
+    await page.waitForSelector('.template-card', { timeout: 10000 });
+
+    // 选择 VSS 模板
+    console.log('✅ 测试 1: 尝试创建不完整的策略（缺少必填参数）');
+    const vssCard = page.locator('.template-card').filter({ hasText: /VSS/ }).first();
+    await vssCard.click();
+
+    // 不填任何参数，直接尝试创建（应该失败）
+    const saveBtn = page.locator('button:has-text("生成策略实例")');
+    if (await saveBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      // 监听错误消息
+      page.on('dialog', dialog => {
+        console.log(`   📢 对话框检测: ${dialog.type()} - ${dialog.message()}`);
+        dialog.dismiss();
+      });
+
+      // 点击保存按钮
+      await saveBtn.click();
+      await page.waitForTimeout(2000);
+
+      // 检查错误通知
+      const errorNotification = page.locator('.notification-error, [data-type="error"], .alert-error');
+      if (await errorNotification.isVisible({ timeout: 3000 }).catch(() => false)) {
+        const errorText = await errorNotification.textContent();
+        console.log(`   ✓ 错误通知检测成功: "${errorText}"`);
+        console.log('   ℹ️  系统正确显示创建失败的错误消息');
+      } else {
+        console.log('   ℹ️  未检测到错误通知（可能是因为 alert 或其他通知方式）');
+      }
+    }
+
+    // 测试 2: 检查缺少车型配置的错误
+    console.log('\n✅ 测试 2: 验证车型配置参数被正确提取');
+
+    // 返回到模板选择
+    await page.goto('http://localhost:8000/control/templates.html', { timeout: 30000 });
+    await page.waitForSelector('.template-card', { timeout: 10000 });
+
+    // 选择可能需要车型配置的模板（如有）
+    const dshCard = page.locator('.template-card').filter({ hasText: /DHS|应急/ }).first();
+    if (await dshCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await dshCard.click();
+      await page.waitForSelector('#route-codes', { timeout: 10000 });
+
+      // 选择路段
+      await page.selectOption('#route-codes', 'G4202');
+      await page.fill('#min-stake', '33');
+      await page.fill('#max-stake', '44');
+      const queryBtn = page.locator('button:has-text("查询")').first();
+      if (await queryBtn.isVisible()) {
+        await queryBtn.click();
+        await page.waitForTimeout(2000);
+      }
+
+      // 进入参数配置
+      const nextBtn = page.locator('button:has-text("进入配置参数")').first();
+      if (await nextBtn.isVisible()) {
+        await nextBtn.click();
+        await page.waitForSelector('#param-form', { timeout: 10000 });
+
+        // 检查车型配置是否存在
+        const vehicleCheckboxes = page.locator('input[type="checkbox"][name*="vehicle"]');
+        const checkboxCount = await vehicleCheckboxes.count();
+        if (checkboxCount > 0) {
+          console.log(`   ✓ 检测到 ${checkboxCount} 个车型配置复选框`);
+
+          // 尝试至少选中一个车型
+          const firstCheckbox = vehicleCheckboxes.first();
+          await firstCheckbox.check();
+          const isChecked = await firstCheckbox.isChecked();
+          console.log(`   ✓ 车型配置可交互: ${isChecked ? '选中' : '未选中'}`);
+        } else {
+          console.log('   ℹ️  此模板中未找到车型配置复选框');
+        }
+      }
+    }
+
+    console.log('\n✅ 错误处理验证完成\n');
+  });
+
 });

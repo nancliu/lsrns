@@ -268,6 +268,57 @@ body {
     color: var(--color-danger);
 }
 
+/* ==================== Unified Notification Styles ==================== */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 400px;
+    padding: var(--spacing-12) var(--spacing-16);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: var(--font-weight-500);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notification-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.notification-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.notification-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+}
+
+.notification-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 /* ==================== Edge Tag Styles ==================== */
 
 .edge-tag {

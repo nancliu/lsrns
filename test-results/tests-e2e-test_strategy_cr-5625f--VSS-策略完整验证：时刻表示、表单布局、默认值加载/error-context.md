@@ -1,0 +1,991 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "交通管控仿真优化系统" [level=1] [ref=e3]
+    - link "返回主系统" [ref=e4] [cursor=pointer]:
+      - /url: ../index.html
+  - generic [ref=e5]:
+    - list [ref=e7]:
+      - listitem [ref=e8]:
+        - link "策略管理" [ref=e9] [cursor=pointer]:
+          - /url: templates.html
+      - listitem [ref=e10]:
+        - link "方案管理" [ref=e11] [cursor=pointer]:
+          - /url: plans.html
+      - listitem [ref=e12]:
+        - link "批量仿真" [ref=e13] [cursor=pointer]:
+          - /url: simulations.html
+      - listitem [ref=e14]:
+        - link "方案优化" [ref=e15] [cursor=pointer]:
+          - /url: optimization.html
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "策略管理" [level=2] [ref=e18]
+        - paragraph [ref=e19]: 创建和管理交通控制策略实例
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: "1"
+          - generic [ref=e23]: 选择模板
+        - generic [ref=e24]: →
+        - generic [ref=e25]:
+          - generic [ref=e26]: "2"
+          - generic [ref=e27]: 选择路段
+        - generic [ref=e28]: →
+        - generic [ref=e29]:
+          - generic [ref=e30]: "3"
+          - generic [ref=e31]: 配置参数
+      - generic [ref=e32]:
+        - heading "创建新策略" [level=2] [ref=e33]
+        - generic [ref=e34]:
+          - heading "步骤2：选择管控路段" [level=3] [ref=e35]
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]:
+                - strong [ref=e39]: 已选模板：
+                - generic [ref=e40]: 可变限速 - 分车道控制
+                - generic [ref=e41]: 可变限速
+              - button "更换模板" [ref=e42] [cursor=pointer]
+            - generic [ref=e43]:
+              - text: 💡
+              - strong [ref=e44]: 筛选建议：
+              - text: 可变限速通常应用于主路路段，建议筛选：车道数≥3、路段长度500-2000米。💡 建议选择连续路段以保证限速一致性
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - heading "筛选条件" [level=4] [ref=e47]
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - generic [ref=e51]: 路线代码
+                  - listbox "路线代码" [ref=e52]:
+                    - option "G4202 (1198 路段)" [selected] [ref=e53]
+                    - option "G4215 (54 路段)" [ref=e54]
+                    - option "G5 (3605 路段)" [ref=e55]
+                    - option "G5013 (27 路段)" [ref=e56]
+                    - option "G76 (674 路段)" [ref=e57]
+                    - option "S4 (532 路段)" [ref=e58]
+                    - option "S81 (151 路段)" [ref=e59]
+                    - option "SA2 (766 路段)" [ref=e60]
+                  - generic [ref=e61]: 支持多选 (Ctrl+点击)
+                - generic [ref=e62]:
+                  - generic [ref=e63]: 路段代码
+                  - listbox "路段代码" [ref=e64]:
+                    - option "G4202001 (K1.13-K45.68, 621 路段)" [ref=e65]
+                    - option "G4202002 (K49.24-K85.92, 577 路段)" [ref=e66]
+                  - generic [ref=e67]: 根据路线自动过滤
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - generic [ref=e71]: 最小桩号 (km)
+                  - spinbutton "最小桩号 (km)" [ref=e72]: "33"
+                - generic [ref=e73]:
+                  - generic [ref=e74]: 最大桩号 (km)
+                  - spinbutton "最大桩号 (km)" [ref=e75]: "44"
+                - generic [ref=e76]:
+                  - generic [ref=e77]: 最小长度 (m)
+                  - spinbutton "最小长度 (m)" [ref=e78]
+                - generic [ref=e79]:
+                  - generic [ref=e80]: 最大长度 (m)
+                  - spinbutton "最大长度 (m)" [ref=e81]
+              - generic [ref=e83]:
+                - generic [ref=e84]:
+                  - generic [ref=e85]: 最小车道数
+                  - spinbutton "最小车道数" [ref=e86]
+                  - generic [ref=e87]: DHS≥4
+                - generic [ref=e88]:
+                  - generic [ref=e89]: 行驶方向
+                  - combobox "行驶方向" [ref=e90] [cursor=pointer]:
+                    - option "全部" [selected]
+                    - option "顺时针"
+                    - option "逆时针"
+                - generic [ref=e91]:
+                  - generic [ref=e92]: 节点类型
+                  - listbox "节点类型" [ref=e93]:
+                    - option "普通路段" [ref=e94]
+                    - option "分流" [ref=e95]
+                    - option "汇流" [ref=e96]
+                    - option "车道增加" [ref=e97]
+                    - option "车道减少" [ref=e98]
+                    - option "入口" [ref=e99]
+                    - option "出口" [ref=e100]
+                - generic [ref=e101]:
+                  - generic [ref=e102]: 示范段
+                  - listbox "示范段" [ref=e103]:
+                    - option "示范段 1 (1528.42-1784.66km, 1132 路段)" [ref=e104]
+                    - option "示范段 2 (1942.95-2390.88km, 1499 路段)" [ref=e105]
+                    - option "示范段 3 (1811.20-1951.92km, 718 路段)" [ref=e106]
+                    - option "示范段 3 (1774.79-1891.18km, 193 路段)" [ref=e107]
+                    - option "示范段 4 (1750.94-1861.19km, 481 路段)" [ref=e108]
+                    - option "示范段 4 (57.88-194.65km, 532 路段)" [ref=e109]
+                    - option "示范段 5 (1.13-85.92km, 1198 路段)" [ref=e110]
+                    - option "示范段 6 (112.68-234.06km, 766 路段)" [ref=e111]
+                    - option "示范段 7 (10.05-77.96km, 151 路段)" [ref=e112]
+                    - option "示范段 8 (1692.14-1758.01km, 256 路段)" [ref=e113]
+                    - option "示范段 9 (86.74-98.09km, 54 路段)" [ref=e114]
+                - generic [ref=e115]:
+                  - generic [ref=e116]: 包含门架
+                  - combobox "包含门架" [ref=e117] [cursor=pointer]:
+                    - option "否" [selected]
+                    - option "是"
+                  - generic [ref=e118]: 有观测数据
+              - generic [ref=e119]:
+                - button "重置筛选" [ref=e120] [cursor=pointer]
+                - button "🔄 刷新路段缓存" [ref=e121] [cursor=pointer]
+                - button "查询路段" [ref=e122] [cursor=pointer]
+            - generic [ref=e123]:
+              - heading "查询结果" [level=4] [ref=e124]
+              - generic [ref=e125]:
+                - generic [ref=e126]:
+                  - strong [ref=e127]: 查询结果：
+                  - generic [ref=e128]: "63"
+                  - text: 条
+                  - generic [ref=e129]:
+                    - text: "已选择:"
+                    - generic [ref=e130]: "0"
+                    - text: 条
+                - generic [ref=e131]:
+                  - button "全选" [ref=e132] [cursor=pointer]
+                  - button "取消全选" [ref=e133] [cursor=pointer]
+              - generic [ref=e134]: Large result set (63), consider adding more filters for better precision.
+              - generic [ref=e136]:
+                - table [ref=e137]:
+                  - rowgroup [ref=e138]:
+                    - row "路段ID 路线 路段代码 桩号范围 长度(m) 车道 方向 节点类型 门架数" [ref=e139]:
+                      - cell [ref=e140]:
+                        - checkbox [ref=e141]
+                      - cell "路段ID" [ref=e142]
+                      - cell "路线" [ref=e143]
+                      - cell "路段代码" [ref=e144]
+                      - cell "桩号范围" [ref=e145]
+                      - cell "长度(m)" [ref=e146]
+                      - cell "车道" [ref=e147]
+                      - cell "方向" [ref=e148]
+                      - cell "节点类型" [ref=e149]
+                      - cell "门架数" [ref=e150]
+                  - rowgroup [ref=e151]:
+                    - row "-6404 G4202 G4202001 K33.35 - K33.40 49.4 4 顺时针 普通 0" [ref=e152]:
+                      - cell [ref=e153]:
+                        - checkbox [ref=e154]
+                      - cell "-6404" [ref=e155]
+                      - cell "G4202" [ref=e156]
+                      - cell "G4202001" [ref=e157]
+                      - cell "K33.35 - K33.40" [ref=e158]
+                      - cell "49.4" [ref=e159]
+                      - cell "4" [ref=e160]
+                      - cell "顺时针" [ref=e161]
+                      - cell "普通" [ref=e162]
+                      - cell "0" [ref=e163]
+                    - row "-2602.1207 G4202 G4202001 K33.69 - K33.91 219.1 4 顺时针 车道增加 0" [ref=e164]:
+                      - cell [ref=e165]:
+                        - checkbox [ref=e166]
+                      - cell "-2602.1207" [ref=e167]
+                      - cell "G4202" [ref=e168]
+                      - cell "G4202001" [ref=e169]
+                      - cell "K33.69 - K33.91" [ref=e170]
+                      - cell "219.1" [ref=e171]
+                      - cell "4" [ref=e172]
+                      - cell "顺时针" [ref=e173]
+                      - cell "车道增加" [ref=e174]
+                      - cell "0" [ref=e175]
+                    - row "-10020 G4202 G4202001 K33.91 - K34.18 264.3 3 顺时针 分流 0" [ref=e176]:
+                      - cell [ref=e177]:
+                        - checkbox [ref=e178]
+                      - cell "-10020" [ref=e179]
+                      - cell "G4202" [ref=e180]
+                      - cell "G4202001" [ref=e181]
+                      - cell "K33.91 - K34.18" [ref=e182]
+                      - cell "264.3" [ref=e183]
+                      - cell "3" [ref=e184]
+                      - cell "顺时针" [ref=e185]
+                      - cell "分流" [ref=e186]
+                      - cell "0" [ref=e187]
+                    - row "-1234 G4202 G4202001 K34.18 - K34.38 197.6 3 顺时针 普通 0" [ref=e188]:
+                      - cell [ref=e189]:
+                        - checkbox [ref=e190]
+                      - cell "-1234" [ref=e191]
+                      - cell "G4202" [ref=e192]
+                      - cell "G4202001" [ref=e193]
+                      - cell "K34.18 - K34.38" [ref=e194]
+                      - cell "197.6" [ref=e195]
+                      - cell "3" [ref=e196]
+                      - cell "顺时针" [ref=e197]
+                      - cell "普通" [ref=e198]
+                      - cell "0" [ref=e199]
+                    - row "-5124 G4202 G4202001 K34.38 - K34.52 141.8 3 顺时针 普通 0" [ref=e200]:
+                      - cell [ref=e201]:
+                        - checkbox [ref=e202]
+                      - cell "-5124" [ref=e203]
+                      - cell "G4202" [ref=e204]
+                      - cell "G4202001" [ref=e205]
+                      - cell "K34.38 - K34.52" [ref=e206]
+                      - cell "141.8" [ref=e207]
+                      - cell "3" [ref=e208]
+                      - cell "顺时针" [ref=e209]
+                      - cell "普通" [ref=e210]
+                      - cell "0" [ref=e211]
+                    - row "-13706 G4202 G4202001 K34.52 - K34.80 287.9 3 顺时针 普通 0" [ref=e212]:
+                      - cell [ref=e213]:
+                        - checkbox [ref=e214]
+                      - cell "-13706" [ref=e215]
+                      - cell "G4202" [ref=e216]
+                      - cell "G4202001" [ref=e217]
+                      - cell "K34.52 - K34.80" [ref=e218]
+                      - cell "287.9" [ref=e219]
+                      - cell "3" [ref=e220]
+                      - cell "顺时针" [ref=e221]
+                      - cell "普通" [ref=e222]
+                      - cell "0" [ref=e223]
+                    - row "-7462 G4202 G4202001 K35.10 - K35.39 288.7 4 顺时针 普通 0" [ref=e224]:
+                      - cell [ref=e225]:
+                        - checkbox [ref=e226]
+                      - cell "-7462" [ref=e227]
+                      - cell "G4202" [ref=e228]
+                      - cell "G4202001" [ref=e229]
+                      - cell "K35.10 - K35.39" [ref=e230]
+                      - cell "288.7" [ref=e231]
+                      - cell "4" [ref=e232]
+                      - cell "顺时针" [ref=e233]
+                      - cell "普通" [ref=e234]
+                      - cell "0" [ref=e235]
+                    - row "-2680 G4202 G4202001 K35.10 - K34.75 346.8 4 逆时针 车道减少 0" [ref=e236]:
+                      - cell [ref=e237]:
+                        - checkbox [ref=e238]
+                      - cell "-2680" [ref=e239]
+                      - cell "G4202" [ref=e240]
+                      - cell "G4202001" [ref=e241]
+                      - cell "K35.10 - K34.75" [ref=e242]
+                      - cell "346.8" [ref=e243]
+                      - cell "4" [ref=e244]
+                      - cell "逆时针" [ref=e245]
+                      - cell "车道减少" [ref=e246]
+                      - cell "0" [ref=e247]
+                    - row "-690 G4202 G4202001 K35.10 - K34.89 211.2 4 逆时针 普通 0" [ref=e248]:
+                      - cell [ref=e249]:
+                        - checkbox [ref=e250]
+                      - cell "-690" [ref=e251]
+                      - cell "G4202" [ref=e252]
+                      - cell "G4202001" [ref=e253]
+                      - cell "K35.10 - K34.89" [ref=e254]
+                      - cell "211.2" [ref=e255]
+                      - cell "4" [ref=e256]
+                      - cell "逆时针" [ref=e257]
+                      - cell "普通" [ref=e258]
+                      - cell "0" [ref=e259]
+                    - row "-2680.221 G4202 G4202001 K35.10 - K34.99 113.3 4 逆时针 分流 0" [ref=e260]:
+                      - cell [ref=e261]:
+                        - checkbox [ref=e262]
+                      - cell "-2680.221" [ref=e263]
+                      - cell "G4202" [ref=e264]
+                      - cell "G4202001" [ref=e265]
+                      - cell "K35.10 - K34.99" [ref=e266]
+                      - cell "113.3" [ref=e267]
+                      - cell "4" [ref=e268]
+                      - cell "逆时针" [ref=e269]
+                      - cell "分流" [ref=e270]
+                      - cell "0" [ref=e271]
+                    - row "-13012 G4202 G4202001 K35.39 - K35.53 140.0 4 顺时针 普通 0" [ref=e272]:
+                      - cell [ref=e273]:
+                        - checkbox [ref=e274]
+                      - cell "-13012" [ref=e275]
+                      - cell "G4202" [ref=e276]
+                      - cell "G4202001" [ref=e277]
+                      - cell "K35.39 - K35.53" [ref=e278]
+                      - cell "140.0" [ref=e279]
+                      - cell "4" [ref=e280]
+                      - cell "顺时针" [ref=e281]
+                      - cell "普通" [ref=e282]
+                      - cell "0" [ref=e283]
+                    - row "-8646 G4202 G4202001 K35.53 - K35.75 220.4 4 顺时针 普通 0" [ref=e284]:
+                      - cell [ref=e285]:
+                        - checkbox [ref=e286]
+                      - cell "-8646" [ref=e287]
+                      - cell "G4202" [ref=e288]
+                      - cell "G4202001" [ref=e289]
+                      - cell "K35.53 - K35.75" [ref=e290]
+                      - cell "220.4" [ref=e291]
+                      - cell "4" [ref=e292]
+                      - cell "顺时针" [ref=e293]
+                      - cell "普通" [ref=e294]
+                      - cell "0" [ref=e295]
+                    - row "-9050 G4202 G4202001 K36.71 - K36.37 333.3 3 逆时针 普通 0" [ref=e296]:
+                      - cell [ref=e297]:
+                        - checkbox [ref=e298]
+                      - cell "-9050" [ref=e299]
+                      - cell "G4202" [ref=e300]
+                      - cell "G4202001" [ref=e301]
+                      - cell "K36.71 - K36.37" [ref=e302]
+                      - cell "333.3" [ref=e303]
+                      - cell "3" [ref=e304]
+                      - cell "逆时针" [ref=e305]
+                      - cell "普通" [ref=e306]
+                      - cell "0" [ref=e307]
+                    - row "-12264 G4202 G4202001 K36.71 - K36.48 231.2 3 逆时针 普通 0" [ref=e308]:
+                      - cell [ref=e309]:
+                        - checkbox [ref=e310]
+                      - cell "-12264" [ref=e311]
+                      - cell "G4202" [ref=e312]
+                      - cell "G4202001" [ref=e313]
+                      - cell "K36.71 - K36.48" [ref=e314]
+                      - cell "231.2" [ref=e315]
+                      - cell "3" [ref=e316]
+                      - cell "逆时针" [ref=e317]
+                      - cell "普通" [ref=e318]
+                      - cell "0" [ref=e319]
+                    - row "-13708 G4202 G4202001 K36.71 - K36.65 58.1 3 逆时针 普通 0" [ref=e320]:
+                      - cell [ref=e321]:
+                        - checkbox [ref=e322]
+                      - cell "-13708" [ref=e323]
+                      - cell "G4202" [ref=e324]
+                      - cell "G4202001" [ref=e325]
+                      - cell "K36.71 - K36.65" [ref=e326]
+                      - cell "58.1" [ref=e327]
+                      - cell "3" [ref=e328]
+                      - cell "逆时针" [ref=e329]
+                      - cell "普通" [ref=e330]
+                      - cell "0" [ref=e331]
+                    - row "-5016 G4202 G4202001 K36.71 - K36.50 202.1 4 逆时针 汇流 0" [ref=e332]:
+                      - cell [ref=e333]:
+                        - checkbox [ref=e334]
+                      - cell "-5016" [ref=e335]
+                      - cell "G4202" [ref=e336]
+                      - cell "G4202001" [ref=e337]
+                      - cell "K36.71 - K36.50" [ref=e338]
+                      - cell "202.1" [ref=e339]
+                      - cell "4" [ref=e340]
+                      - cell "逆时针" [ref=e341]
+                      - cell "汇流" [ref=e342]
+                      - cell "0" [ref=e343]
+                    - row "-5016.171 G4202 G4202001 K36.71 - K36.10 604.2 3 逆时针 车道减少 0" [ref=e344]:
+                      - cell [ref=e345]:
+                        - checkbox [ref=e346]
+                      - cell "-5016.171" [ref=e347]
+                      - cell "G4202" [ref=e348]
+                      - cell "G4202001" [ref=e349]
+                      - cell "K36.71 - K36.10" [ref=e350]
+                      - cell "604.2" [ref=e351]
+                      - cell "3" [ref=e352]
+                      - cell "逆时针" [ref=e353]
+                      - cell "车道减少" [ref=e354]
+                      - cell "0" [ref=e355]
+                    - row "-5146 G4202 G4202001 K36.71 - K36.43 279.9 3 逆时针 普通 0" [ref=e356]:
+                      - cell [ref=e357]:
+                        - checkbox [ref=e358]
+                      - cell "-5146" [ref=e359]
+                      - cell "G4202" [ref=e360]
+                      - cell "G4202001" [ref=e361]
+                      - cell "K36.71 - K36.43" [ref=e362]
+                      - cell "279.9" [ref=e363]
+                      - cell "3" [ref=e364]
+                      - cell "逆时针" [ref=e365]
+                      - cell "普通" [ref=e366]
+                      - cell "0" [ref=e367]
+                    - row "-9142 G4202 G4202001 K36.71 - K37.30 591.1 3 顺时针 普通 0" [ref=e368]:
+                      - cell [ref=e369]:
+                        - checkbox [ref=e370]
+                      - cell "-9142" [ref=e371]
+                      - cell "G4202" [ref=e372]
+                      - cell "G4202001" [ref=e373]
+                      - cell "K36.71 - K37.30" [ref=e374]
+                      - cell "591.1" [ref=e375]
+                      - cell "3" [ref=e376]
+                      - cell "顺时针" [ref=e377]
+                      - cell "普通" [ref=e378]
+                      - cell "0" [ref=e379]
+                    - row "-8502 G4202 G4202001 K36.93 - K37.51 582.6 4 顺时针 普通 0" [ref=e380]:
+                      - cell [ref=e381]:
+                        - checkbox [ref=e382]
+                      - cell "-8502" [ref=e383]
+                      - cell "G4202" [ref=e384]
+                      - cell "G4202001" [ref=e385]
+                      - cell "K36.93 - K37.51" [ref=e386]
+                      - cell "582.6" [ref=e387]
+                      - cell "4" [ref=e388]
+                      - cell "顺时针" [ref=e389]
+                      - cell "普通" [ref=e390]
+                      - cell "0" [ref=e391]
+                    - row "-10000 G4202 G4202001 K36.93 - K36.30 635.1 4 逆时针 分流 0" [ref=e392]:
+                      - cell [ref=e393]:
+                        - checkbox [ref=e394]
+                      - cell "-10000" [ref=e395]
+                      - cell "G4202" [ref=e396]
+                      - cell "G4202001" [ref=e397]
+                      - cell "K36.93 - K36.30" [ref=e398]
+                      - cell "635.1" [ref=e399]
+                      - cell "4" [ref=e400]
+                      - cell "逆时针" [ref=e401]
+                      - cell "分流" [ref=e402]
+                      - cell "0" [ref=e403]
+                    - row "-12886 G4202 G4202001 K36.93 - K36.78 148.1 5 逆时针 汇流 0" [ref=e404]:
+                      - cell [ref=e405]:
+                        - checkbox [ref=e406]
+                      - cell "-12886" [ref=e407]
+                      - cell "G4202" [ref=e408]
+                      - cell "G4202001" [ref=e409]
+                      - cell "K36.93 - K36.78" [ref=e410]
+                      - cell "148.1" [ref=e411]
+                      - cell "5" [ref=e412]
+                      - cell "逆时针" [ref=e413]
+                      - cell "汇流" [ref=e414]
+                      - cell "0" [ref=e415]
+                    - row "-12886.141 G4202 G4202001 K36.93 - K36.40 531.4 4 逆时针 车道减少 0" [ref=e416]:
+                      - cell [ref=e417]:
+                        - checkbox [ref=e418]
+                      - cell "-12886.141" [ref=e419]
+                      - cell "G4202" [ref=e420]
+                      - cell "G4202001" [ref=e421]
+                      - cell "K36.93 - K36.40" [ref=e422]
+                      - cell "531.4" [ref=e423]
+                      - cell "4" [ref=e424]
+                      - cell "逆时针" [ref=e425]
+                      - cell "车道减少" [ref=e426]
+                      - cell "0" [ref=e427]
+                    - row "-8148 G4202 G4202001 K37.30 - K37.94 639.1 3 顺时针 普通 0" [ref=e428]:
+                      - cell [ref=e429]:
+                        - checkbox [ref=e430]
+                      - cell "-8148" [ref=e431]
+                      - cell "G4202" [ref=e432]
+                      - cell "G4202001" [ref=e433]
+                      - cell "K37.30 - K37.94" [ref=e434]
+                      - cell "639.1" [ref=e435]
+                      - cell "3" [ref=e436]
+                      - cell "顺时针" [ref=e437]
+                      - cell "普通" [ref=e438]
+                      - cell "0" [ref=e439]
+                    - row "-8996 G4202 G4202001 K37.51 - K37.79 277.7 4 顺时针 普通 0" [ref=e440]:
+                      - cell [ref=e441]:
+                        - checkbox [ref=e442]
+                      - cell "-8996" [ref=e443]
+                      - cell "G4202" [ref=e444]
+                      - cell "G4202001" [ref=e445]
+                      - cell "K37.51 - K37.79" [ref=e446]
+                      - cell "277.7" [ref=e447]
+                      - cell "4" [ref=e448]
+                      - cell "顺时针" [ref=e449]
+                      - cell "普通" [ref=e450]
+                      - cell "0" [ref=e451]
+                    - row "-12960 G4202 G4202001 K37.79 - K38.39 601.3 4 顺时针 普通 0" [ref=e452]:
+                      - cell [ref=e453]:
+                        - checkbox [ref=e454]
+                      - cell "-12960" [ref=e455]
+                      - cell "G4202" [ref=e456]
+                      - cell "G4202001" [ref=e457]
+                      - cell "K37.79 - K38.39" [ref=e458]
+                      - cell "601.3" [ref=e459]
+                      - cell "4" [ref=e460]
+                      - cell "顺时针" [ref=e461]
+                      - cell "普通" [ref=e462]
+                      - cell "0" [ref=e463]
+                    - row "-8148.643 G4202 G4202001 K38.05 - K37.90 151.0 4 逆时针 车道增加 0" [ref=e464]:
+                      - cell [ref=e465]:
+                        - checkbox [ref=e466]
+                      - cell "-8148.643" [ref=e467]
+                      - cell "G4202" [ref=e468]
+                      - cell "G4202001" [ref=e469]
+                      - cell "K38.05 - K37.90" [ref=e470]
+                      - cell "151.0" [ref=e471]
+                      - cell "4" [ref=e472]
+                      - cell "逆时针" [ref=e473]
+                      - cell "车道增加" [ref=e474]
+                      - cell "0" [ref=e475]
+                    - row "-8482 G4202 G4202001 K38.05 - K38.55 497.8 3 顺时针 分流 0" [ref=e476]:
+                      - cell [ref=e477]:
+                        - checkbox [ref=e478]
+                      - cell "-8482" [ref=e479]
+                      - cell "G4202" [ref=e480]
+                      - cell "G4202001" [ref=e481]
+                      - cell "K38.05 - K38.55" [ref=e482]
+                      - cell "497.8" [ref=e483]
+                      - cell "3" [ref=e484]
+                      - cell "顺时针" [ref=e485]
+                      - cell "分流" [ref=e486]
+                      - cell "0" [ref=e487]
+                    - row "-12960.605 G4202 G4202001 K38.39 - K38.56 164.4 5 顺时针 车道增加 0" [ref=e488]:
+                      - cell [ref=e489]:
+                        - checkbox [ref=e490]
+                      - cell "-12960.605" [ref=e491]
+                      - cell "G4202" [ref=e492]
+                      - cell "G4202001" [ref=e493]
+                      - cell "K38.39 - K38.56" [ref=e494]
+                      - cell "164.4" [ref=e495]
+                      - cell "5" [ref=e496]
+                      - cell "顺时针" [ref=e497]
+                      - cell "车道增加" [ref=e498]
+                      - cell "0" [ref=e499]
+                    - row "-16442 G4202 G4202001 K38.55 - K38.76 212.0 4 顺时针 汇流 0" [ref=e500]:
+                      - cell [ref=e501]:
+                        - checkbox [ref=e502]
+                      - cell "-16442" [ref=e503]
+                      - cell "G4202" [ref=e504]
+                      - cell "G4202001" [ref=e505]
+                      - cell "K38.55 - K38.76" [ref=e506]
+                      - cell "212.0" [ref=e507]
+                      - cell "4" [ref=e508]
+                      - cell "顺时针" [ref=e509]
+                      - cell "汇流" [ref=e510]
+                      - cell "0" [ref=e511]
+                    - row "-15344 G4202 G4202001 K38.55 - K39.49 943.2 4 顺时针 普通 0" [ref=e512]:
+                      - cell [ref=e513]:
+                        - checkbox [ref=e514]
+                      - cell "-15344" [ref=e515]
+                      - cell "G4202" [ref=e516]
+                      - cell "G4202001" [ref=e517]
+                      - cell "K38.55 - K39.49" [ref=e518]
+                      - cell "943.2" [ref=e519]
+                      - cell "4" [ref=e520]
+                      - cell "顺时针" [ref=e521]
+                      - cell "普通" [ref=e522]
+                      - cell "0" [ref=e523]
+                    - row "-3108 G4202 G4202001 K38.55 - K38.50 49.6 4 逆时针 普通 0" [ref=e524]:
+                      - cell [ref=e525]:
+                        - checkbox [ref=e526]
+                      - cell "-3108" [ref=e527]
+                      - cell "G4202" [ref=e528]
+                      - cell "G4202001" [ref=e529]
+                      - cell "K38.55 - K38.50" [ref=e530]
+                      - cell "49.6" [ref=e531]
+                      - cell "4" [ref=e532]
+                      - cell "逆时针" [ref=e533]
+                      - cell "普通" [ref=e534]
+                      - cell "0" [ref=e535]
+                    - row "-15896 G4202 G4202001 K38.55 - K38.40 152.4 5 逆时针 汇流 0" [ref=e536]:
+                      - cell [ref=e537]:
+                        - checkbox [ref=e538]
+                      - cell "-15896" [ref=e539]
+                      - cell "G4202" [ref=e540]
+                      - cell "G4202001" [ref=e541]
+                      - cell "K38.55 - K38.40" [ref=e542]
+                      - cell "152.4" [ref=e543]
+                      - cell "5" [ref=e544]
+                      - cell "逆时针" [ref=e545]
+                      - cell "汇流" [ref=e546]
+                      - cell "0" [ref=e547]
+                    - row "-1982 G4202 G4202001 K38.55 - K38.03 518.5 4 逆时针 普通 0" [ref=e548]:
+                      - cell [ref=e549]:
+                        - checkbox [ref=e550]
+                      - cell "-1982" [ref=e551]
+                      - cell "G4202" [ref=e552]
+                      - cell "G4202001" [ref=e553]
+                      - cell "K38.55 - K38.03" [ref=e554]
+                      - cell "518.5" [ref=e555]
+                      - cell "4" [ref=e556]
+                      - cell "逆时针" [ref=e557]
+                      - cell "普通" [ref=e558]
+                      - cell "0" [ref=e559]
+                    - row "-15896.145 G4202 G4202001 K38.55 - K38.19 358.5 4 逆时针 车道减少 0" [ref=e560]:
+                      - cell [ref=e561]:
+                        - checkbox [ref=e562]
+                      - cell "-15896.145" [ref=e563]
+                      - cell "G4202" [ref=e564]
+                      - cell "G4202001" [ref=e565]
+                      - cell "K38.55 - K38.19" [ref=e566]
+                      - cell "358.5" [ref=e567]
+                      - cell "4" [ref=e568]
+                      - cell "逆时针" [ref=e569]
+                      - cell "车道减少" [ref=e570]
+                      - cell "0" [ref=e571]
+                    - row "-1982.519 G4202 G4202001 K38.55 - K38.50 42.9 3 逆时针 车道减少 0" [ref=e572]:
+                      - cell [ref=e573]:
+                        - checkbox [ref=e574]
+                      - cell "-1982.519" [ref=e575]
+                      - cell "G4202" [ref=e576]
+                      - cell "G4202001" [ref=e577]
+                      - cell "K38.55 - K38.50" [ref=e578]
+                      - cell "42.9" [ref=e579]
+                      - cell "3" [ref=e580]
+                      - cell "逆时针" [ref=e581]
+                      - cell "车道减少" [ref=e582]
+                      - cell "0" [ref=e583]
+                    - row "-5664 G4202 G4202001 K38.82 - K39.76 935.6 3 顺时针 车道减少 0" [ref=e584]:
+                      - cell [ref=e585]:
+                        - checkbox [ref=e586]
+                      - cell "-5664" [ref=e587]
+                      - cell "G4202" [ref=e588]
+                      - cell "G4202001" [ref=e589]
+                      - cell "K38.82 - K39.76" [ref=e590]
+                      - cell "935.6" [ref=e591]
+                      - cell "3" [ref=e592]
+                      - cell "顺时针" [ref=e593]
+                      - cell "车道减少" [ref=e594]
+                      - cell "0" [ref=e595]
+                    - row "-992 G4202 G4202001 K39.49 - K39.63 137.6 4 顺时针 普通 0" [ref=e596]:
+                      - cell [ref=e597]:
+                        - checkbox [ref=e598]
+                      - cell "-992" [ref=e599]
+                      - cell "G4202" [ref=e600]
+                      - cell "G4202001" [ref=e601]
+                      - cell "K39.49 - K39.63" [ref=e602]
+                      - cell "137.6" [ref=e603]
+                      - cell "4" [ref=e604]
+                      - cell "顺时针" [ref=e605]
+                      - cell "普通" [ref=e606]
+                      - cell "0" [ref=e607]
+                    - row "-992.141 G4202 G4202001 K39.63 - K39.75 118.7 5 顺时针 车道增加 0" [ref=e608]:
+                      - cell [ref=e609]:
+                        - checkbox [ref=e610]
+                      - cell "-992.141" [ref=e611]
+                      - cell "G4202" [ref=e612]
+                      - cell "G4202001" [ref=e613]
+                      - cell "K39.63 - K39.75" [ref=e614]
+                      - cell "118.7" [ref=e615]
+                      - cell "5" [ref=e616]
+                      - cell "顺时针" [ref=e617]
+                      - cell "车道增加" [ref=e618]
+                      - cell "0" [ref=e619]
+                    - row "-11918 G4202 G4202001 K39.76 - K39.81 51.8 3 顺时针 普通 0" [ref=e620]:
+                      - cell [ref=e621]:
+                        - checkbox [ref=e622]
+                      - cell "-11918" [ref=e623]
+                      - cell "G4202" [ref=e624]
+                      - cell "G4202001" [ref=e625]
+                      - cell "K39.76 - K39.81" [ref=e626]
+                      - cell "51.8" [ref=e627]
+                      - cell "3" [ref=e628]
+                      - cell "顺时针" [ref=e629]
+                      - cell "普通" [ref=e630]
+                      - cell "0" [ref=e631]
+                    - row "-7798 G4202 G4202001 K39.81 - K40.26 456.1 3 顺时针 普通 0" [ref=e632]:
+                      - cell [ref=e633]:
+                        - checkbox [ref=e634]
+                      - cell "-7798" [ref=e635]
+                      - cell "G4202" [ref=e636]
+                      - cell "G4202001" [ref=e637]
+                      - cell "K39.81 - K40.26" [ref=e638]
+                      - cell "456.1" [ref=e639]
+                      - cell "3" [ref=e640]
+                      - cell "顺时针" [ref=e641]
+                      - cell "普通" [ref=e642]
+                      - cell "0" [ref=e643]
+                    - row "-5220 G4202 G4202001 K40.60 - K40.46 134.1 3 逆时针 分流 0" [ref=e644]:
+                      - cell [ref=e645]:
+                        - checkbox [ref=e646]
+                      - cell "-5220" [ref=e647]
+                      - cell "G4202" [ref=e648]
+                      - cell "G4202001" [ref=e649]
+                      - cell "K40.60 - K40.46" [ref=e650]
+                      - cell "134.1" [ref=e651]
+                      - cell "3" [ref=e652]
+                      - cell "逆时针" [ref=e653]
+                      - cell "分流" [ref=e654]
+                      - cell "0" [ref=e655]
+                    - row "-7790 G4202 G4202001 K40.60 - K40.92 326.2 3 顺时针 普通 0" [ref=e656]:
+                      - cell [ref=e657]:
+                        - checkbox [ref=e658]
+                      - cell "-7790" [ref=e659]
+                      - cell "G4202" [ref=e660]
+                      - cell "G4202001" [ref=e661]
+                      - cell "K40.60 - K40.92" [ref=e662]
+                      - cell "326.2" [ref=e663]
+                      - cell "3" [ref=e664]
+                      - cell "顺时针" [ref=e665]
+                      - cell "普通" [ref=e666]
+                      - cell "0" [ref=e667]
+                    - row "-7798.460 G4202 G4202001 K40.60 - K40.45 150.3 4 逆时针 车道增加 0" [ref=e668]:
+                      - cell [ref=e669]:
+                        - checkbox [ref=e670]
+                      - cell "-7798.460" [ref=e671]
+                      - cell "G4202" [ref=e672]
+                      - cell "G4202001" [ref=e673]
+                      - cell "K40.60 - K40.45" [ref=e674]
+                      - cell "150.3" [ref=e675]
+                      - cell "4" [ref=e676]
+                      - cell "逆时针" [ref=e677]
+                      - cell "车道增加" [ref=e678]
+                      - cell "0" [ref=e679]
+                    - row "-13928 G4202 G4202001 K40.60 - K40.30 296.6 3 逆时针 分流 0" [ref=e680]:
+                      - cell [ref=e681]:
+                        - checkbox [ref=e682]
+                      - cell "-13928" [ref=e683]
+                      - cell "G4202" [ref=e684]
+                      - cell "G4202001" [ref=e685]
+                      - cell "K40.60 - K40.30" [ref=e686]
+                      - cell "296.6" [ref=e687]
+                      - cell "3" [ref=e688]
+                      - cell "逆时针" [ref=e689]
+                      - cell "分流" [ref=e690]
+                      - cell "0" [ref=e691]
+                    - row "-7790.354 G4202 G4202001 K40.92 - K41.22 299.2 3 顺时针 汇流 0" [ref=e692]:
+                      - cell [ref=e693]:
+                        - checkbox [ref=e694]
+                      - cell "-7790.354" [ref=e695]
+                      - cell "G4202" [ref=e696]
+                      - cell "G4202001" [ref=e697]
+                      - cell "K40.92 - K41.22" [ref=e698]
+                      - cell "299.2" [ref=e699]
+                      - cell "3" [ref=e700]
+                      - cell "顺时针" [ref=e701]
+                      - cell "汇流" [ref=e702]
+                      - cell "0" [ref=e703]
+                    - row "-1842 G4202 G4202001 K41.22 - K41.36 134.3 4 顺时针 汇流 0" [ref=e704]:
+                      - cell [ref=e705]:
+                        - checkbox [ref=e706]
+                      - cell "-1842" [ref=e707]
+                      - cell "G4202" [ref=e708]
+                      - cell "G4202001" [ref=e709]
+                      - cell "K41.22 - K41.36" [ref=e710]
+                      - cell "134.3" [ref=e711]
+                      - cell "4" [ref=e712]
+                      - cell "顺时针" [ref=e713]
+                      - cell "汇流" [ref=e714]
+                      - cell "0" [ref=e715]
+                    - row "-1842.115 G4202 G4202001 K41.36 - K41.75 397.7 4 顺时针 普通 0" [ref=e716]:
+                      - cell [ref=e717]:
+                        - checkbox [ref=e718]
+                      - cell "-1842.115" [ref=e719]
+                      - cell "G4202" [ref=e720]
+                      - cell "G4202001" [ref=e721]
+                      - cell "K41.36 - K41.75" [ref=e722]
+                      - cell "397.7" [ref=e723]
+                      - cell "4" [ref=e724]
+                      - cell "顺时针" [ref=e725]
+                      - cell "普通" [ref=e726]
+                      - cell "0" [ref=e727]
+                    - row "-11526 G4202 G4202001 K41.41 - K42.46 1047.1 4 顺时针 分流 0" [ref=e728]:
+                      - cell [ref=e729]:
+                        - checkbox [ref=e730]
+                      - cell "-11526" [ref=e731]
+                      - cell "G4202" [ref=e732]
+                      - cell "G4202001" [ref=e733]
+                      - cell "K41.41 - K42.46" [ref=e734]
+                      - cell "1047.1" [ref=e735]
+                      - cell "4" [ref=e736]
+                      - cell "顺时针" [ref=e737]
+                      - cell "分流" [ref=e738]
+                      - cell "0" [ref=e739]
+                    - row "-15156 G4202 G4202001 K42.46 - K42.78 326.1 5 顺时针 汇流 0" [ref=e740]:
+                      - cell [ref=e741]:
+                        - checkbox [ref=e742]
+                      - cell "-15156" [ref=e743]
+                      - cell "G4202" [ref=e744]
+                      - cell "G4202001" [ref=e745]
+                      - cell "K42.46 - K42.78" [ref=e746]
+                      - cell "326.1" [ref=e747]
+                      - cell "5" [ref=e748]
+                      - cell "顺时针" [ref=e749]
+                      - cell "汇流" [ref=e750]
+                      - cell "0" [ref=e751]
+                - generic [ref=e752]:
+                  - generic [ref=e753]: 显示 1-50 / 共 63 条
+                  - generic [ref=e754]:
+                    - button "上一页" [disabled] [ref=e755]
+                    - generic [ref=e756]: 第 1 / 2 页
+                    - button "下一页" [ref=e757] [cursor=pointer]
+            - generic [ref=e759]:
+              - heading "网络可视化" [level=4] [ref=e760]
+              - generic [ref=e761]:
+                - button "加载网络地图" [ref=e762] [cursor=pointer]
+                - button "重置视图" [ref=e763] [cursor=pointer]
+                - button "清除选择" [ref=e764] [cursor=pointer]
+                - generic [ref=e765]:
+                  - generic [ref=e766]:
+                    - text: "可视化选中:"
+                    - strong [ref=e767]: "0"
+                    - text: 条路段
+                  - generic [ref=e768]: "💡 提示: 鼠标滚轮缩放，拖动平移，点击路段选择"
+              - generic [ref=e772]: 点击"加载网络地图"按钮可视化路网结构
+      - generic [ref=e773]:
+        - heading "已创建的策略实例" [level=2] [ref=e774]
+        - generic [ref=e775]:
+          - generic [ref=e776]:
+            - textbox "搜索策略名称..." [ref=e778]
+            - generic [ref=e779]:
+              - generic [ref=e780]: "策略类型:"
+              - combobox [ref=e781]:
+                - option "全部" [selected]
+                - option "可变限速 (VSS)"
+                - option "动态硬路肩 (DHS)"
+                - option "收费站管控 (TEC)"
+            - generic [ref=e782]:
+              - generic [ref=e783]: "模板:"
+              - combobox [ref=e784]:
+                - option "全部" [selected]
+                - option "应急车道 - 基础模板（抽象）"
+                - option "应急车道 - 仅客车"
+                - option "应急车道开放"
+                - option "应急车道 - 多时段管理"
+                - option "收费入口 - 紧急关闭"
+                - option "收费入口 - 流量控制"
+                - option "收费入口 - 车型限制"
+                - option "可变限速 - 分车道控制"
+                - option "可变限速 - 中等控制"
+                - option "可变限速 - 严格控制"
+                - option "可变限速 - 上游预警"
+                - option "可变限速 - 天气应急"
+            - button "刷新" [ref=e785]
+          - table [ref=e787]:
+            - rowgroup [ref=e788]:
+              - row "策略名称 类型 模板 路段数 创建时间 操作" [ref=e789]:
+                - cell "策略名称" [ref=e790]
+                - cell "类型" [ref=e791]
+                - cell "模板" [ref=e792]
+                - cell "路段数" [ref=e793]
+                - cell "创建时间" [ref=e794]
+                - cell "操作" [ref=e795]
+            - rowgroup [ref=e796]:
+              - row "G4202成雅段早高峰应急车道开放 动态硬路肩 应急车道开放 9 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e797]:
+                - cell "G4202成雅段早高峰应急车道开放" [ref=e798]
+                - cell "动态硬路肩" [ref=e799]:
+                  - generic [ref=e800]: 动态硬路肩
+                - cell "应急车道开放" [ref=e801]
+                - cell "9" [ref=e802]
+                - cell "2025/10/26 08:00" [ref=e803]
+                - cell "查看 编辑 复制 删除" [ref=e804]:
+                  - button "查看" [ref=e805] [cursor=pointer]
+                  - button "编辑" [ref=e806] [cursor=pointer]
+                  - button "复制" [ref=e807] [cursor=pointer]
+                  - button "删除" [ref=e808] [cursor=pointer]
+              - row "G4202绕东锦城湖段晚高峰应急车道开放 动态硬路肩 应急车道开放 13 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e809]:
+                - cell "G4202绕东锦城湖段晚高峰应急车道开放" [ref=e810]
+                - cell "动态硬路肩" [ref=e811]:
+                  - generic [ref=e812]: 动态硬路肩
+                - cell "应急车道开放" [ref=e813]
+                - cell "13" [ref=e814]
+                - cell "2025/10/26 08:00" [ref=e815]
+                - cell "查看 编辑 复制 删除" [ref=e816]:
+                  - button "查看" [ref=e817] [cursor=pointer]
+                  - button "编辑" [ref=e818] [cursor=pointer]
+                  - button "复制" [ref=e819] [cursor=pointer]
+                  - button "删除" [ref=e820] [cursor=pointer]
+              - row "G4202机场段早高峰应急车道开放 动态硬路肩 应急车道开放 12 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e821]:
+                - cell "G4202机场段早高峰应急车道开放" [ref=e822]
+                - cell "动态硬路肩" [ref=e823]:
+                  - generic [ref=e824]: 动态硬路肩
+                - cell "应急车道开放" [ref=e825]
+                - cell "12" [ref=e826]
+                - cell "2025/10/26 08:00" [ref=e827]
+                - cell "查看 编辑 复制 删除" [ref=e828]:
+                  - button "查看" [ref=e829] [cursor=pointer]
+                  - button "编辑" [ref=e830] [cursor=pointer]
+                  - button "复制" [ref=e831] [cursor=pointer]
+                  - button "删除" [ref=e832] [cursor=pointer]
+              - row "G5白家段早高峰应急车道开放 动态硬路肩 应急车道开放 8 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e833]:
+                - cell "G5白家段早高峰应急车道开放" [ref=e834]
+                - cell "动态硬路肩" [ref=e835]:
+                  - generic [ref=e836]: 动态硬路肩
+                - cell "应急车道开放" [ref=e837]
+                - cell "8" [ref=e838]
+                - cell "2025/10/26 08:00" [ref=e839]
+                - cell "查看 编辑 复制 删除" [ref=e840]:
+                  - button "查看" [ref=e841] [cursor=pointer]
+                  - button "编辑" [ref=e842] [cursor=pointer]
+                  - button "复制" [ref=e843] [cursor=pointer]
+                  - button "删除" [ref=e844] [cursor=pointer]
+              - row "G5成雅双流段高峰应急车道开放 动态硬路肩 应急车道 - 多时段管理 14 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e845]:
+                - cell "G5成雅双流段高峰应急车道开放" [ref=e846]
+                - cell "动态硬路肩" [ref=e847]:
+                  - generic [ref=e848]: 动态硬路肩
+                - cell "应急车道 - 多时段管理" [ref=e849]
+                - cell "14" [ref=e850]
+                - cell "2025/10/26 08:00" [ref=e851]
+                - cell "查看 编辑 复制 删除" [ref=e852]:
+                  - button "查看" [ref=e853] [cursor=pointer]
+                  - button "编辑" [ref=e854] [cursor=pointer]
+                  - button "复制" [ref=e855] [cursor=pointer]
+                  - button "删除" [ref=e856] [cursor=pointer]
+              - row "G5成雅双流南站入口流量控制 收费站管控 收费入口 - 流量控制 1 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e857]:
+                - cell "G5成雅双流南站入口流量控制" [ref=e858]
+                - cell "收费站管控" [ref=e859]:
+                  - generic [ref=e860]: 收费站管控
+                - cell "收费入口 - 流量控制" [ref=e861]
+                - cell "1" [ref=e862]
+                - cell "2025/10/26 08:00" [ref=e863]
+                - cell "查看 编辑 复制 删除" [ref=e864]:
+                  - button "查看" [ref=e865] [cursor=pointer]
+                  - button "编辑" [ref=e866] [cursor=pointer]
+                  - button "复制" [ref=e867] [cursor=pointer]
+                  - button "删除" [ref=e868] [cursor=pointer]
+              - row "G5成雅白家站入口流量控制 收费站管控 收费入口 - 流量控制 1 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e869]:
+                - cell "G5成雅白家站入口流量控制" [ref=e870]
+                - cell "收费站管控" [ref=e871]:
+                  - generic [ref=e872]: 收费站管控
+                - cell "收费入口 - 流量控制" [ref=e873]
+                - cell "1" [ref=e874]
+                - cell "2025/10/26 08:00" [ref=e875]
+                - cell "查看 编辑 复制 删除" [ref=e876]:
+                  - button "查看" [ref=e877] [cursor=pointer]
+                  - button "编辑" [ref=e878] [cursor=pointer]
+                  - button "复制" [ref=e879] [cursor=pointer]
+                  - button "删除" [ref=e880] [cursor=pointer]
+              - row "G5成绵新都站入口流量控制 收费站管控 收费入口 - 流量控制 1 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e881]:
+                - cell "G5成绵新都站入口流量控制" [ref=e882]
+                - cell "收费站管控" [ref=e883]:
+                  - generic [ref=e884]: 收费站管控
+                - cell "收费入口 - 流量控制" [ref=e885]
+                - cell "1" [ref=e886]
+                - cell "2025/10/26 08:00" [ref=e887]
+                - cell "查看 编辑 复制 删除" [ref=e888]:
+                  - button "查看" [ref=e889] [cursor=pointer]
+                  - button "编辑" [ref=e890] [cursor=pointer]
+                  - button "复制" [ref=e891] [cursor=pointer]
+                  - button "删除" [ref=e892] [cursor=pointer]
+              - row "G4202绕西双流段早高峰可变限速 可变限速 可变限速 - 中等控制 16 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e893]:
+                - cell "G4202绕西双流段早高峰可变限速" [ref=e894]
+                - cell "可变限速" [ref=e895]:
+                  - generic [ref=e896]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e897]
+                - cell "16" [ref=e898]
+                - cell "2025/10/26 08:00" [ref=e899]
+                - cell "查看 编辑 复制 删除" [ref=e900]:
+                  - button "查看" [ref=e901] [cursor=pointer]
+                  - button "编辑" [ref=e902] [cursor=pointer]
+                  - button "复制" [ref=e903] [cursor=pointer]
+                  - button "删除" [ref=e904] [cursor=pointer]
+              - row "G4202绕东锦城湖段晚高峰可变限速 可变限速 可变限速 - 严格控制 13 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e905]:
+                - cell "G4202绕东锦城湖段晚高峰可变限速" [ref=e906]
+                - cell "可变限速" [ref=e907]:
+                  - generic [ref=e908]: 可变限速
+                - cell "可变限速 - 严格控制" [ref=e909]
+                - cell "13" [ref=e910]
+                - cell "2025/10/26 08:00" [ref=e911]
+                - cell "查看 编辑 复制 删除" [ref=e912]:
+                  - button "查看" [ref=e913] [cursor=pointer]
+                  - button "编辑" [ref=e914] [cursor=pointer]
+                  - button "复制" [ref=e915] [cursor=pointer]
+                  - button "删除" [ref=e916] [cursor=pointer]
+              - row "G4202机场段早高峰可变限速 可变限速 可变限速 - 中等控制 12 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e917]:
+                - cell "G4202机场段早高峰可变限速" [ref=e918]
+                - cell "可变限速" [ref=e919]:
+                  - generic [ref=e920]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e921]
+                - cell "12" [ref=e922]
+                - cell "2025/10/26 08:00" [ref=e923]
+                - cell "查看 编辑 复制 删除" [ref=e924]:
+                  - button "查看" [ref=e925] [cursor=pointer]
+                  - button "编辑" [ref=e926] [cursor=pointer]
+                  - button "复制" [ref=e927] [cursor=pointer]
+                  - button "删除" [ref=e928] [cursor=pointer]
+              - row "G4202绕西光华段早高峰可变限速 可变限速 可变限速 - 中等控制 8 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e929]:
+                - cell "G4202绕西光华段早高峰可变限速" [ref=e930]
+                - cell "可变限速" [ref=e931]:
+                  - generic [ref=e932]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e933]
+                - cell "8" [ref=e934]
+                - cell "2025/10/26 08:00" [ref=e935]
+                - cell "查看 编辑 复制 删除" [ref=e936]:
+                  - button "查看" [ref=e937] [cursor=pointer]
+                  - button "编辑" [ref=e938] [cursor=pointer]
+                  - button "复制" [ref=e939] [cursor=pointer]
+                  - button "删除" [ref=e940] [cursor=pointer]
+              - row "G5成雅双流段全天可变限速 可变限速 可变限速 - 严格控制 14 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e941]:
+                - cell "G5成雅双流段全天可变限速" [ref=e942]
+                - cell "可变限速" [ref=e943]:
+                  - generic [ref=e944]: 可变限速
+                - cell "可变限速 - 严格控制" [ref=e945]
+                - cell "14" [ref=e946]
+                - cell "2025/10/26 08:00" [ref=e947]
+                - cell "查看 编辑 复制 删除" [ref=e948]:
+                  - button "查看" [ref=e949] [cursor=pointer]
+                  - button "编辑" [ref=e950] [cursor=pointer]
+                  - button "复制" [ref=e951] [cursor=pointer]
+                  - button "删除" [ref=e952] [cursor=pointer]
+              - row "G5成绵新都段晚高峰可变限速 可变限速 可变限速 - 中等控制 12 2025/10/26 08:00 查看 编辑 复制 删除" [ref=e953]:
+                - cell "G5成绵新都段晚高峰可变限速" [ref=e954]
+                - cell "可变限速" [ref=e955]:
+                  - generic [ref=e956]: 可变限速
+                - cell "可变限速 - 中等控制" [ref=e957]
+                - cell "12" [ref=e958]
+                - cell "2025/10/26 08:00" [ref=e959]
+                - cell "查看 编辑 复制 删除" [ref=e960]:
+                  - button "查看" [ref=e961] [cursor=pointer]
+                  - button "编辑" [ref=e962] [cursor=pointer]
+                  - button "复制" [ref=e963] [cursor=pointer]
+                  - button "删除" [ref=e964] [cursor=pointer]
+```

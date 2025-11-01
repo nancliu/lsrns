@@ -3091,6 +3091,23 @@
                     return;
                 }
 
+                // 枚举数组类型参数 (enum_array - 如 allowed_vehicle_types)
+                if (param.parameter_type === 'enum_array') {
+                    const checkboxes = document.querySelectorAll(`input[name="${param.parameter_name}"][type="checkbox"]:checked`);
+                    const value = Array.from(checkboxes).map(cb => cb.value);
+
+                    // 跳过空的可选参数
+                    if (!param.required && value.length === 0) {
+                        console.log(`[collectParameterValues] 跳过空的可选枚举数组参数: ${param.parameter_name}`);
+                        return;
+                    }
+
+                    if (value.length > 0 || param.required) {
+                        configuredParams[param.parameter_name] = value;
+                    }
+                    return;
+                }
+
                 // 其他参数类型
                 const input = document.getElementById(`param-${param.parameter_name}`);
                 if (!input) {
@@ -3116,7 +3133,7 @@
                 } else if (param.parameter_type === 'boolean') {
                     value = value === 'true';
                 } else if (param.parameter_type === 'array') {
-                    // 车型多选框
+                    // 车型多选框 (旧方式 - 基于 select)
                     const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
                     if (vehicleTypeParams.includes(param.parameter_name)) {
                         const selectedOptions = Array.from(input.selectedOptions || []);
@@ -3263,7 +3280,12 @@
         function handleStrategyCreationResponse(result) {
             console.log('[handleStrategyCreationResponse] 策略创建成功:', result);
 
-            alert(`策略创建成功！\n策略ID: ${result.strategy_id}`);
+            // 使用改进的成功通知 (如果 showNotification 可用)
+            if (typeof showNotification === 'function') {
+                showNotification(`策略创建成功！策略ID: ${result.strategy_id}`, 'success');
+            } else {
+                alert(`策略创建成功！\n策略ID: ${result.strategy_id}`);
+            }
 
             // 刷新策略列表
             if (typeof fetchStrategyInstances === 'function') {
@@ -3319,7 +3341,12 @@
 
             } catch (error) {
                 console.error('[createStrategy] 错误:', error);
-                alert(`创建失败: ${error.message}`);
+                // 使用改进的错误通知 (如果 showNotification 可用)
+                if (typeof showNotification === 'function') {
+                    showNotification(`创建失败: ${error.message}`, 'error');
+                } else {
+                    alert(`创建失败: ${error.message}`);
+                }
             }
         }
 
