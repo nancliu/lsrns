@@ -294,17 +294,16 @@
                 <h3>步骤3：配置策略参数</h3>
 
                 <!-- Step 3 已选模板信息展示 (新增，参考Step 2的showTemplateInfo) -->
-                <div id="step3-template-info" class="template-summary mb-25" style="display: none;">
-                    <div class="template-info-card">
-                        <div class="template-info-header">
-                            <h4 class="template-name" id="step3-template-name">-</h4>
-                            <span class="strategy-badge" id="step3-strategy-badge">-</span>
+                <div id="step3-template-info" class="selected-template-info alert-info-hidden" style="display: none;">
+                    <div class="flex-row-between">
+                        <div>
+                            <strong class="text-dark">已选模板：</strong>
+                            <span id="step3-template-name" class="text-md-dark-ml"></span>
+                            <span id="step3-strategy-badge"></span>
                         </div>
-                        <div class="template-info-body">
-                            <p id="step3-template-hint" class="template-hint"></p>
-                            <button class="btn btn-small btn-secondary" onclick="changeTemplate()">修改模板</button>
-                        </div>
+                        <button onclick="changeTemplate()">更换模板</button>
                     </div>
+                    <div id="step3-template-hint" class="card-small"></div>
                 </div>
 
                 <!-- 已选路段详细信息展示 (Phase 2: Task 2.1-2.4) -->
