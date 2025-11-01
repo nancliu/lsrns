@@ -704,10 +704,10 @@ function renderStepArrayControl(paramName, schema) {
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
-      // 添加时间轴说明文字 - Task 5.1: 添加时刻语义提示
+      // 添加时间轴说明文字 - 简化提示
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = "时刻表示：例如 7 表示从 7:00 开始执行该限速，直到下一个时刻点";
+      description.textContent = "时刻：7 表示 7:00 开始，持续到下一时刻";
       container.appendChild(description);
 
       // 使用默认值，或提供示例步骤（如果没有默认值）
@@ -785,10 +785,10 @@ function renderStepArrayControl(paramName, schema) {
   buttonDiv.appendChild(addBtn);
   container.appendChild(buttonDiv);
 
-  // [NEW] 添加使用提示
+  // 添加使用提示（简化）
   const hint = document.createElement("div");
   hint.className = "config-hint";
-  hint.textContent = "使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h";
+  hint.textContent = "时间：小时，速度：km/h";
   container.appendChild(hint);
 
   return container;
@@ -965,13 +965,12 @@ function clearError(input) {
  * @returns {string} Hint text to display
  */
 function generateParameterHint(param) {
-  // Control hints object - specific to each control type
-  // These are shown by the control itself and should not be duplicated here
+  // Control hints object - 简化版本
   const controlHints = {
-    'step_array': '使用表格编辑器配置速度步骤。时间单位：小时，速度单位：km/h',
-    'dhs_interval_array': '使用表格编辑器配置DHS时间区间。注意：必须覆盖完整的24小时',
-    'flow_interval_array': '使用表格编辑器配置流量控制区间。合理设置流量和速度限制',
-    'tec_interval_array': '使用表格编辑器配置TEC时间区间'
+    'step_array': '',
+    'dhs_interval_array': '',
+    'flow_interval_array': '',
+    'tec_interval_array': ''
   };
 
   // Get control hint if applicable
@@ -984,31 +983,22 @@ function generateParameterHint(param) {
     case 'integer':
     case 'float':
     case 'number':
-      // For numeric types: show unit and range
-      if (param.unit) paramHint += param.unit;
-      if (param.min_value !== null && param.max_value !== null) {
-        if (paramHint) paramHint += ' · ';
-        paramHint += `范围: ${param.min_value}-${param.max_value}`;
+      // For numeric types: 简化显示（范围信息已在输入框min/max中体现）
+      if (param.unit) paramHint = param.unit;
+      // 仅当没有单位且有范围时才显示范围
+      if (!param.unit && param.min_value !== null && param.max_value !== null) {
+        paramHint = `${param.min_value}-${param.max_value}`;
       }
       break;
 
     case 'enum':
-      // For enum types: show possible values
-      if (param.enum_values && param.enum_values.length > 0) {
-        const labels = param.enum_values.map(ev => ev.label || ev).join(', ');
-        paramHint = `可选值: ${labels}`;
-      } else if (param.unit) {
-        paramHint = param.unit;
-      }
+      // For enum types: 不显示可选值（下拉框已清晰显示）
+      paramHint = param.unit || '';
       break;
 
     case 'string':
-      // For string types: show allowed values or unit
-      if (param.allowed_values && param.allowed_values.length > 0) {
-        paramHint = `可选值: ${param.allowed_values.join(', ')}`;
-      } else if (param.unit) {
-        paramHint = param.unit;
-      }
+      // For string types: 不显示可选值（下拉框已清晰显示）
+      paramHint = param.unit || '';
       break;
 
     case 'boolean':
@@ -1238,10 +1228,10 @@ function renderDHSIntervalControl(paramName, schema) {
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
-      // 添加时间轴说明文字 - Task 5.2: 添加时段语义提示
+      // 添加时间轴说明文字（简化）
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = "时段表示：例如 7-9 表示 7:00-9:00 硬路肩开放（必须覆盖完整24小时）";
+      description.textContent = "时段：7-9 表示 7:00-9:00（需覆盖24小时）";
       container.appendChild(description);
 
       // 使用默认值，或提供示例区间（如果没有默认值）
@@ -1325,10 +1315,10 @@ function renderDHSIntervalControl(paramName, schema) {
   buttonDiv.appendChild(addBtn);
   container.appendChild(buttonDiv);
 
-  // [NEW] Usage hint
+  // 使用提示（简化）
   const hint = document.createElement("div");
   hint.className = "config-hint";
-  hint.textContent = "使用表格编辑器配置应急车道开放/关闭区间。时间单位：小时。注意：必须覆盖完整24小时，不能有时间重叠或间隙。";
+  hint.textContent = "时间：小时，需覆盖24小时且无重叠";
   container.appendChild(hint);
 
   return container;
@@ -1440,10 +1430,10 @@ function renderFlowIntervalControl(paramName, schema) {
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
-      // 添加时间轴说明文字 - Task 5.2: 添加时段语义提示
+      // 添加时间轴说明文字（简化）
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = "时段表示：例如 7-9 表示 7:00-9:00 执行流量控制，限制流量和目标速度";
+      description.textContent = "时段：7-9 表示 7:00-9:00";
       container.appendChild(description);
 
       // [FIXED] 统一数据格式：确保所有区间使用 flow_vph 字段
@@ -1529,10 +1519,10 @@ function renderFlowIntervalControl(paramName, schema) {
   buttonDiv.appendChild(addBtn);
   container.appendChild(buttonDiv);
 
-  // [NEW] 添加使用提示
+  // 添加使用提示（简化）
   const hint = document.createElement("div");
   hint.className = "config-hint";
-  hint.textContent = "使用表格编辑器配置流量控制区间。时间单位：小时，流量单位：车辆/小时";
+  hint.textContent = "时间：小时，流量：车辆/小时";
   container.appendChild(hint);
 
   return container;
@@ -1633,10 +1623,10 @@ function renderTECIntervalControl(paramName, schema) {
   // Add timeline visualization
   if (window.TimelineVisualizer) {
     try {
-      // Add timeline description - Task 5.2: 添加时段语义提示
+      // 添加时间轴说明文字（简化）
       const description = document.createElement("div");
       description.className = "timeline-description";
-      description.textContent = "时段表示：例如 7-9 表示 7:00-9:00 执行车型限制/入口控制";
+      description.textContent = "时段：7-9 表示 7:00-9:00";
       container.appendChild(description);
 
       // Use default values, or provide example intervals if none
@@ -2567,13 +2557,11 @@ function renderUnifiedVehicleTypeControl(templateData) {
 
   container.appendChild(checkboxContainer);
 
-  // Hint (will be updated dynamically)
+  // Hint (简化，减少冗余描述)
   const hint = document.createElement("span");
   hint.className = "config-hint";
   hint.id = "vehicle-type-hint";
-  hint.textContent = initialMode === 'disallow_mode'
-    ? '选中的车型将被禁止进入，其他车型可自由通行'
-    : '仅选中的车型允许进入，其他车型被禁止';
+  hint.textContent = '';  // 标签已足够清晰，无需额外hint
   container.appendChild(hint);
 
   return container;
@@ -2593,17 +2581,17 @@ function updateVehicleTypeControlForRestrictionMode(mode) {
 
   if (mode === 'disallow_mode') {
     label.textContent = '禁止进入的车辆类型';
-    hint.textContent = '选中的车型将被禁止进入，其他车型可自由通行';
+    hint.textContent = '';  // 标签已清晰，无需额外hint
     if (description) {
-      description.textContent = '禁止进入的车辆类型（仅在禁止模式下使用）';
+      description.textContent = '';  // 简化描述
     }
     // Optionally clear selections when mode changes
     checkboxes.forEach(cb => cb.checked = false);
   } else if (mode === 'allow_mode') {
     label.textContent = '允许进入的车辆类型';
-    hint.textContent = '仅选中的车型允许进入，其他车型被禁止';
+    hint.textContent = '';  // 标签已清晰，无需额外hint
     if (description) {
-      description.textContent = '允许进入的车辆类型（仅在允许模式下使用）';
+      description.textContent = '';  // 简化描述
     }
     // Optionally clear selections when mode changes
     checkboxes.forEach(cb => cb.checked = false);
@@ -2709,10 +2697,10 @@ function renderSelectedEdgesSummary() {
   table.appendChild(tbody);
   container.appendChild(table);
 
-  // Add hint
+  // 添加提示（简化）
   const hint = document.createElement('span');
   hint.className = 'form-hint';
-  hint.textContent = '这些是在步骤2中选择的路段。如需修改，请返回步骤2。';
+  hint.textContent = '如需修改，请返回步骤2';
   container.appendChild(hint);
 
   return container;

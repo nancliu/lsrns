@@ -770,7 +770,7 @@
                         建议名称
                     </button>
                 </div>
-                <span class="form-hint">为该策略实例命名（1-100个字符）</span>
+                <span class="form-hint">1-100个字符</span>
             `;
             form.appendChild(nameGroup);
 
@@ -787,7 +787,6 @@
                         重新生成描述
                     </button>
                 </div>
-                <span class="form-hint">可选</span>
             `;
             form.appendChild(descGroup);
 
@@ -919,15 +918,8 @@
                                     </div>`;
                         }).join('');
 
-                        // Task 8.4: Override hint for vehicle type parameters with custom hints
+                        // 简化车型参数的hints（标签已足够清晰）
                         let customHint = '';
-                        if (param.parameter_name === 'applicable_vehicle_types') {
-                            customHint = '选择适用于此策略的车型，留空表示适用所有车型';
-                        } else if (param.parameter_name === 'allowed_vehicle_types') {
-                            customHint = '选择允许使用硬路肩的车型，默认全选表示所有车型可使用';
-                        } else if (param.parameter_name === 'banned_vehicle_types') {
-                            customHint = '选择禁止进入的车型';
-                        }
 
                         inputHtml = `<div class="vehicle-type-checkboxes" id="param-${param.parameter_name}">
                                        ${checkboxes}

@@ -5,6 +5,18 @@
 **Created**: 2025-11-01
 **Author**: AI Assistant
 
+## Why
+
+The system has vehicle type definitions scattered across three unsynchronized locations (SUMO config, frontend hardcode, enum definitions), creating maintenance burden and preventing dynamic updates. The project's fixed requirement for exactly three vehicle categories (客车/货车/特种车辆) is simpler than the current mixed hierarchy, and unifying around SUMO as single source of truth will improve maintainability and reliability.
+
+## What Changes
+
+- Consolidate three unsynchronized vehicle type sources into one: `vehicle_types.json` as single source of truth
+- Remove 6+ unsupported vehicle types (bus, emergency, authority) and lock to exactly 3 categories
+- Remove all frontend hardcoded vehicle type lists; load dynamically from API
+- Implement backend auto-expansion logic: categories (3) → detailed types (6) for SUMO
+- Establish two-layer architecture: UI layer (3 categories) maps to SUMO layer (6 detailed types)
+
 ## Overview
 
 Simplify the vehicle type configuration system to use only three fixed categories (客车/货车/特种车辆) for traffic control strategies, eliminating complexity while maintaining full SUMO simulation compatibility.
