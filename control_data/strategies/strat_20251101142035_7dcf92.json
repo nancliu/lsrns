@@ -1,0 +1,49 @@
+{
+  "strategy_id": "strat_20251101142035_7dcf92",
+  "strategy_name": "VSS上游预警 - 全量测试",
+  "template_id": "vss_upstream_warning",
+  "template_name": "可变限速 - 上游预警",
+  "strategy_type": "VSS",
+  "parameters": {
+    "affected_edges": [
+      "-8756",
+      "-2884",
+      "-4914",
+      "-17036",
+      "-5308"
+    ],
+    "warning_advance_minutes": 5,
+    "bottleneck_location": "G5 K1810",
+    "speed_steps": [
+      {
+        "time_hours": 0,
+        "speed_kmh": 120
+      },
+      {
+        "time_hours": 9,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 120
+      },
+      {
+        "time_hours": 24,
+        "speed_kmh": 120
+      }
+    ]
+  },
+  "affected_edges": [
+    "-8756",
+    "-2884",
+    "-4914",
+    "-17036",
+    "-5308"
+  ],
+  "metadata": {
+    "created_at": "2025-11-01T14:20:35.483968+00:00",
+    "updated_at": "2025-11-01T14:20:35.483968+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

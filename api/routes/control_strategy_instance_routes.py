@@ -86,10 +86,13 @@ async def create_strategy(request: StrategyCreateRequest) -> StrategyCreateRespo
         logger.error(f"Validation error creating strategy: {e}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     except Exception as e:
-        # Internal errors
+        # Internal errors - return detailed error message for debugging
+        error_msg = str(e)
         logger.error(f"Error creating strategy: {e}", exc_info=True)
+        # [FIX] 返回详细的错误信息，便于前端调试
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create strategy"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create strategy: {error_msg}"
         )
 
 

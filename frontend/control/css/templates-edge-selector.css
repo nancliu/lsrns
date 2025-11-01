@@ -592,3 +592,38 @@
         width: 100%;
     }
 }
+
+/* ==================== Visualization Panel Status Messages ==================== */
+/* 可视化面板状态提示样式 - 替代内联样式 */
+
+.viz-loading,
+.viz-error,
+.viz-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.viz-loading {
+    color: #7f8c8d;
+    background: rgba(255,255,255,0.95);
+    min-width: 200px;
+}
+
+.viz-error {
+    color: #e74c3c;
+    background: rgba(255,255,255,0.95);
+    min-width: 200px;
+}
+
+.viz-empty {
+    color: #95a5a6;
+    background: rgba(255,255,255,0.95);
+    min-width: 250px;
+}

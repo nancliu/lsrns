@@ -555,6 +555,21 @@ def _validate_enum_array(param_name: str, value: Any, schema: Dict[str, Any]) ->
         })
         return errors, warnings
 
+    # [FIX] Allow empty array for optional parameters (e.g., when user doesn't select any vehicle types)
+    # But still validate if array is not empty
+    if len(value) == 0:
+        # Empty array is valid for optional parameters
+        # Only raise error if parameter is required and min_items > 0
+        min_items = schema.get("min_items", 0)
+        if schema.get("required", False) and min_items > 0:
+            errors.append({
+                "parameter": param_name,
+                "message": f"Parameter '{param_name}' requires at least {min_items} value(s)",
+                "constraint": {"min_items": min_items},
+                "provided_value": []
+            })
+        return errors, warnings
+
     # Get allowed values
     enum_values = schema.get("enum_values", [])
     allowed = {ev.get("value") if isinstance(ev, dict) else ev for ev in enum_values}

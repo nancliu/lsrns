@@ -229,7 +229,8 @@
                         </div>
 
                         <!-- [FIX] 表格上方的进入配置参数按钮 -->
-                        <div class="step-navigation" id="step2-top-actions" style="display: none; margin-bottom: 15px;">
+                        <!-- [CSS分离] 样式通过CSS类控制显示/隐藏，不再使用内联style -->
+                        <div class="step-navigation hidden" id="step2-top-actions">
                             <button class="btn btn-primary" onclick="nextStep()" id="step2-next-top">进入配置参数</button>
                         </div>
 
@@ -257,7 +258,7 @@
 
                     <!-- [FIX] 表格下方的步骤导航按钮 - 改为"进入配置参数" -->
                     <div class="step-navigation" id="step2-bottom-actions">
-                        <button class="btn btn-primary" onclick="nextStep()" id="step2-next-bottom" style="display: none;">进入配置参数</button>
+                        <button class="btn btn-primary hidden" onclick="nextStep()" id="step2-next-bottom">进入配置参数</button>
                     </div>
 
                     <!-- 网络可视化面板 (Phase 1B - US4) -->
@@ -281,9 +282,10 @@
                             <!-- Hover层 (中层，交互效果) -->
                             <canvas id="network-canvas-hover" class="overlay-full-1"></canvas>
                             <!-- 提示信息层 (顶层，始终可见) -->
-                            <div class="viz-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #7f8c8d; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; display: none;">正在加载网络几何数据...</div>
-                            <div class="viz-error" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #e74c3c; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; display: none;"></div>
-                            <div class="viz-empty" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; padding: 20px; color: #95a5a6; background: rgba(255,255,255,0.95); border-radius: 8px; min-width: 250px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10;">点击"加载网络地图"按钮可视化路网结构</div>
+                            <!-- [CSS分离] 可视化状态提示 - 样式定义在 templates-edge-selector.css -->
+                            <div class="viz-loading hidden">正在加载网络几何数据...</div>
+                            <div class="viz-error hidden"></div>
+                            <div class="viz-empty">点击"加载网络地图"按钮可视化路网结构</div>
                         </div>
                     </div>
                 </div>
@@ -294,7 +296,7 @@
                 <h3>步骤3：配置策略参数</h3>
 
                 <!-- Step 3 已选模板信息展示 (新增，参考Step 2的showTemplateInfo) -->
-                <div id="step3-template-info" class="selected-template-info alert-info-hidden" style="display: none;">
+                <div id="step3-template-info" class="selected-template-info alert-info-hidden hidden">
                     <div class="flex-row-between">
                         <div>
                             <strong class="text-dark">已选模板：</strong>
@@ -574,10 +576,26 @@
                 }
             }
 
-            // 显示/隐藏步骤内容
-            document.getElementById('step1-content').style.display = currentStep === 1 ? 'block' : 'none';
-            document.getElementById('step2-content').style.display = currentStep === 2 ? 'block' : 'none';
-            document.getElementById('step3-content').style.display = currentStep === 3 ? 'block' : 'none';
+            // 显示/隐藏步骤内容 - [FIX] 使用classList而不是style.display（因为hidden类有!important）
+            const step1El = document.getElementById('step1-content');
+            const step2El = document.getElementById('step2-content');
+            const step3El = document.getElementById('step3-content');
+            
+            // 移除所有步骤的hidden类，然后为当前步骤移除，其他步骤添加
+            [step1El, step2El, step3El].forEach((el, index) => {
+                if (el) {
+                    const stepNum = index + 1;
+                    if (stepNum === currentStep) {
+                        el.classList.remove('hidden');
+                        el.style.display = 'block';
+                    } else {
+                        el.classList.add('hidden');
+                        el.style.display = 'none';
+                    }
+                }
+            });
+            
+            console.log('[updateStepDisplay] 当前步骤:', currentStep, 'step2-content hidden类:', step2El?.classList.contains('hidden'));
 
             // 如果进入步骤2，显示已选模板信息
             if (currentStep === 2 && selectedTemplate) {
@@ -629,7 +647,12 @@
             };
 
             hintEl.innerHTML = filterHints[strategyType];
+            
+            // [FIX] 移除隐藏类并显示卡片
+            infoCard.classList.remove('alert-info-hidden', 'hidden');
             infoCard.style.display = 'block';
+            
+            console.log('[showTemplateInfo] 已显示模板信息卡片:', template.template_name);
         }
 
         // 显示Step 3的已选模板信息 (Task 6.0 新增)
@@ -826,17 +849,20 @@
             // 动态生成模板参数
             // [FIX] Check if this template uses restriction_mode (TEC vehicle restriction)
             const hasRestrictionMode = template.parameters_schema.some(p => p.parameter_name === 'restriction_mode');
+            console.log('[generateParamsForm] Template:', template.template_id, 'hasRestrictionMode:', hasRestrictionMode);
 
             template.parameters_schema.forEach(param => {
-                // 跳过 affected_edges 参数（在步骤2已处理）
-                if (param.parameter_name === 'affected_edges' || param.parameter_name === 'affected_segments' || param.parameter_name === 'entrance_ids') {
+                // [FIX] 首先检查是否是 TEC 模板的车辆类型参数（必须在最前面，在其他处理之前）
+                // 这样可以确保它们永远不会被渲染为旧控件
+                if (hasRestrictionMode && (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types')) {
+                    console.log(`[generateParamsForm] 跳过 TEC 车辆类型参数 ${param.parameter_name} - 将使用统一控件`);
                     return;
                 }
-
-                // [FIX] Skip disallow_vehicle_types and allowed_vehicle_types if restriction_mode exists
-                // They will be replaced by a unified conditional control
-                if (hasRestrictionMode && (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types')) {
-                    console.log(`[templates.html] Skipping ${param.parameter_name} - will use unified control after restriction_mode`);
+                
+                // 跳过路段参数（在步骤2已处理）
+                // [FIX] 包含所有可能的路段参数名：affected_edges, affected_segments, entrance_ids, entrance_edges
+                if (['affected_edges', 'affected_segments', 'entrance_ids', 'entrance_edges'].includes(param.parameter_name)) {
+                    console.log(`[generateParamsForm] 跳过路段参数 ${param.parameter_name}（在步骤2已处理）`);
                     return;
                 }
 
@@ -893,17 +919,40 @@
                                  </select>`;
                 } else if (param.parameter_type === 'step_array') {
                     // VSS speed_steps 参数 - 使用交互式时间选择器
+                    console.log('[generateParamsForm] step_array param:', {
+                        name: param.parameter_name,
+                        hasDefaultValue: !!param.default_value,
+                        defaultValueType: typeof param.default_value,
+                        defaultValue: param.default_value,
+                        defaultLength: Array.isArray(param.default_value) ? param.default_value.length : 0,
+                        firstStep: Array.isArray(param.default_value) && param.default_value.length > 0 ? param.default_value[0] : null
+                    });
                     inputHtml = window.renderStepArrayControl(param.parameter_name, param);
                 } else if (param.parameter_type === 'dhs_interval_array') {
                     // DHS intervals 参数 - 使用增强的DHS区间编辑器（包含时间轴可视化）
                     inputHtml = window.renderDHSIntervalControl(param.parameter_name, param);
-                } else if (param.parameter_type === 'tec_interval_array' || param.parameter_type === 'flow_interval_array') {
-                    // TEC/Flow intervals 参数 - 使用交互式流量区间编辑器
+                } else if (param.parameter_type === 'tec_interval_array') {
+                    // TEC intervals 参数 - 使用TEC区间编辑器（仅时间，无流量/速度）
+                    inputHtml = window.renderTECIntervalControl ? window.renderTECIntervalControl(param.parameter_name, param) : '';
+                } else if (param.parameter_type === 'flow_interval_array') {
+                    // Flow intervals 参数 - 使用交互式流量区间编辑器（包含流量和速度）
                     inputHtml = window.renderFlowIntervalControl(param.parameter_name, param);
                 } else if (param.parameter_type === 'enum_array' || param.parameter_type === 'array') {
-                    // 特殊处理：车型选择参数使用复选框
-                    const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types', 'disallow_vehicle_types'];
+                    // [FIX] 特殊处理：车型选择参数
+                    // 注意：disallow_vehicle_types 和 allowed_vehicle_types 在 TEC 模板中已由统一控件处理（见第857行跳过逻辑）
+                    // [FIX] 再次检查：如果到达这里，说明应该已经被跳过，如果还没跳过，强制跳过
+                    if (hasRestrictionMode && (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types')) {
+                        console.error(`[generateParamsForm] 严重错误：${param.parameter_name} 应该在第857行被跳过，但到达了 enum_array 处理！强制跳过。`);
+                        return; // 强制跳过，确保不会渲染旧控件
+                    }
+                    
+                    // [FIX] disallow_vehicle_types 不在此列表中，因为它应该已经在第857行被跳过
+                    const vehicleTypeParams = ['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'];
+                    
                     if (vehicleTypeParams.includes(param.parameter_name)) {
+                        // [注意] 此实现仅用于非 TEC 模板的车辆类型参数（例如 DHS 模板的 allowed_vehicle_types）
+                        // TEC 模板的 disallow_vehicle_types 和 allowed_vehicle_types 必须使用 renderUnifiedVehicleTypeControl（统一控件）
+                        // 它们应该已经在第857行被跳过
                         // Load vehicle types from API (param.enum_values)
                         // Fallback to minimal 3-category defaults if API doesn't provide values
                         const vehicleTypes = param.enum_values || [
@@ -970,20 +1019,24 @@
 
                 // [FIX] After rendering restriction_mode, inject unified vehicle type control
                 if (hasRestrictionMode && param.parameter_name === 'restriction_mode') {
-                    console.log('[templates.html] Injecting unified vehicle type control after restriction_mode');
+                    console.log('[templates.html] 检测到 restriction_mode，插入统一车辆类型控件');
                     const unifiedControl = window.renderUnifiedVehicleTypeControl(template);
                     if (unifiedControl) {
+                        console.log('[templates.html] 统一控件创建成功，添加到表单');
                         form.appendChild(unifiedControl);
 
                         // Bind restriction_mode change event to update vehicle type control
                         const restrictionModeSelect = document.getElementById(`param-restriction_mode`);
                         if (restrictionModeSelect) {
+                            console.log('[templates.html] 绑定 restriction_mode 变更事件');
                             restrictionModeSelect.addEventListener('change', (e) => {
                                 if (window.updateVehicleTypeControlForRestrictionMode) {
                                     window.updateVehicleTypeControlForRestrictionMode(e.target.value);
                                 }
                             });
                         }
+                    } else {
+                        console.error('[templates.html] 统一控件创建失败！window.renderUnifiedVehicleTypeControl 返回 null');
                     }
                 }
             });
@@ -1034,7 +1087,7 @@
 
             const elem = document.getElementById('summary-template');
             if (!elem) {
-                console.warn('[updateTemplateSummary] 元素未找到 (EdgeDisplayTable 模式下这是正常的)');
+                // [FIX] EdgeDisplayTable 模式下这些元素不存在，静默处理，不输出警告
                 return;
             }
 
@@ -1066,7 +1119,7 @@
 
             const elem = document.getElementById('summary-edges');
             if (!elem) {
-                console.warn('[updateEdgeSummary] 元素未找到');
+                // [FIX] EdgeDisplayTable 模式下这些元素不存在，静默处理，不输出警告
                 return;
             }
 
@@ -1087,7 +1140,7 @@
 
             const elem = document.getElementById('summary-edge-list');
             if (!elem) {
-                console.warn('[updateEdgeList] 元素未找到');
+                // [FIX] EdgeDisplayTable 模式下这些元素不存在，静默处理，不输出警告
                 return;
             }
 
@@ -1454,12 +1507,15 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'param-control-wrapper';
             wrapper.setAttribute('data-parameter-name', param.parameter_name);
-            wrapper.style.cssText = `
-                padding: 15px;
-                background: #f8f9fa;
-                border-radius: 6px;
-                border: 1px solid #e9ecef;
-            `;
+            // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
+
+            // [FIX] 对于 TEC 模板的 disallow_vehicle_types 和 allowed_vehicle_types，不应该调用此函数
+            // 它们应该在第1581行的 renderParametersSection 中被跳过
+            // 如果到达这里，说明跳过逻辑有问题
+            if (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types') {
+                console.error(`[renderParameterControl] 错误：${param.parameter_name} 不应该调用此函数！应在 renderParametersSection 中被跳过。`);
+                return null; // 返回 null，不渲染控件
+            }
 
             let control;
 
@@ -1482,13 +1538,17 @@
                     control = createDHSIntervalControl(param);
                     break;
                 case 'tec_interval_array':
+                    // [FIX] TEC intervals 使用专门的控件（只有时间，无流量/速度）
+                    control = window.renderTECIntervalControl ? window.renderTECIntervalControl(param.parameter_name, param) : createStringControl(param);
+                    break;
                 case 'flow_interval_array':
-                    control = createFlowIntervalControl(param);
+                    // Flow intervals 使用流量控制控件（包含流量和速度）
+                    control = window.renderFlowIntervalControl ? window.renderFlowIntervalControl(param.parameter_name, param) : createStringControl(param);
                     break;
                 case 'array':
-                    // 特殊处理：车型多选
-                    if (['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types', 'disallow_vehicle_types']
-                        .includes(param.parameter_name)) {
+                    // 特殊处理：车型多选（仅用于非 TEC 模板）
+                    // TEC 模板的 disallow_vehicle_types 和 allowed_vehicle_types 已在上方被跳过
+                    if (['applicable_vehicle_types', 'allowed_vehicle_types', 'banned_vehicle_types'].includes(param.parameter_name)) {
                         // [FIX] Use renderEnumArrayControl from parameter_form.js instead of deprecated createVehicleTypeControl
                         control = window.renderEnumArrayControl ? window.renderEnumArrayControl(param.parameter_name, param) : createStringControl(param);
                     } else {
@@ -1522,24 +1582,15 @@
 
             // 添加参数标题
             const title = document.createElement('h4');
+            title.className = 'parameters-title';
             title.textContent = '参数配置';
-            title.style.cssText = `
-                margin-bottom: 15px;
-                color: #2c3e50;
-                font-size: 1rem;
-                border-bottom: 2px solid #3498db;
-                padding-bottom: 10px;
-            `;
+            // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
             container.appendChild(title);
 
             // 创建参数表单
             const form = document.createElement('form');
             form.className = 'parameters-form';
-            form.style.cssText = `
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 15px;
-            `;
+            // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
             // [FIX] Check if this template uses restriction_mode (TEC vehicle restriction)
             const hasRestrictionMode = template.parameters_schema.some(p => p.parameter_name === 'restriction_mode');
@@ -1554,7 +1605,10 @@
 
                 try {
                     const control = renderParameterControl(param);
-                    form.appendChild(control);
+                    // [FIX] 如果控件返回 null（例如被跳过的参数），不添加到表单
+                    if (control) {
+                        form.appendChild(control);
+                    }
 
                     // [FIX] After rendering restriction_mode, inject unified vehicle type control
                     if (hasRestrictionMode && param.parameter_name === 'restriction_mode') {
@@ -1580,7 +1634,8 @@
 
                     // 显示错误信息
                     const errorDiv = document.createElement('div');
-                    errorDiv.style.cssText = 'padding: 10px; background: #ffe0e0; color: #c00; border-radius: 4px;';
+                    errorDiv.className = 'validation-error-div';
+                    // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
                     errorDiv.textContent = `❌ 参数 "${param.description}" 加载失败`;
                     form.appendChild(errorDiv);
                 }
@@ -1902,7 +1957,8 @@
 
                 // 分隔线
                 const divider = document.createElement('hr');
-                divider.style.cssText = 'margin: 20px 0; border: none; border-top: 2px solid #e9ecef;';
+                divider.className = 'edge-table-divider';
+                // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
                 this.container.appendChild(divider);
 
                 // 路段表格
@@ -1919,7 +1975,7 @@
             renderSummary() {
                 const summary = document.createElement('div');
                 summary.className = 'edge-summary';
-                summary.style.cssText = 'background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 0;';
+                // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                 const totalLength = this.edges.reduce((sum, e) => sum + (e.length_m || 0), 0) / 1000;
                 const routes = [...new Set(this.edges.map(e => e.route_code))].filter(r => r);
@@ -1930,7 +1986,8 @@
                 } : {min: 0, max: 0};
 
                 const summaryGrid = document.createElement('div');
-                summaryGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;';
+                summaryGrid.className = 'edge-summary-grid';
+                // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                 const items = [
                     { label: '已选择', value: `${this.edges.length} 个路段` },
@@ -1941,15 +1998,18 @@
 
                 items.forEach(item => {
                     const itemDiv = document.createElement('div');
-                    itemDiv.style.cssText = 'display: flex; flex-direction: column; gap: 5px;';
+                    itemDiv.className = 'edge-summary-item';
+                    // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                     const label = document.createElement('span');
+                    label.className = 'edge-summary-label';
                     label.textContent = item.label;
-                    label.style.cssText = 'font-size: 0.85rem; color: #7f8c8d; font-weight: 500;';
+                    // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                     const value = document.createElement('span');
+                    value.className = 'edge-summary-value';
                     value.textContent = item.value;
-                    value.style.cssText = 'font-size: 1.3rem; color: #2c3e50; font-weight: 600;';
+                    // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                     itemDiv.appendChild(label);
                     itemDiv.appendChild(value);
@@ -1986,14 +2046,14 @@
             renderTable() {
                 const tableWrapper = document.createElement('div');
                 tableWrapper.className = 'edge-table-wrapper';
-                tableWrapper.style.cssText = 'background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 15px;';
+                // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                 const table = document.createElement('table');
                 table.className = 'edge-table';
-                table.style.cssText = 'width: 100%; border-collapse: collapse;';
+                // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
 
                 const thead = document.createElement('thead');
-                thead.style.cssText = 'background: #3498db; color: white;';
+                // [CSS分离] 样式已定义在 templates-forms.css 中，不再使用内联样式
                 thead.innerHTML = `
                     <tr>
                         <th class="table-cell-head">序号</th>
@@ -2036,7 +2096,7 @@
 
             renderEdgeRow(edge, index) {
                 const row = document.createElement('tr');
-                row.style.borderBottom = '1px solid #e9ecef';
+                // [CSS分离] border-bottom样式已定义在 .edge-table tbody tr 中，不再使用内联样式
                 row.dataset.edgeId = edge.edge_id;
 
                 const formatStake = (stake) => {
@@ -2088,7 +2148,7 @@
 
                 cells.forEach(content => {
                     const cell = document.createElement('td');
-                    cell.style.padding = '10px';
+                    // [CSS分离] padding样式已定义在 .edge-table td 中，不再使用内联样式
                     cell.textContent = content;
                     row.appendChild(cell);
                 });
@@ -3121,10 +3181,31 @@
                 }
 
                 const rows = tbody.querySelectorAll('.step-row');
-                return Array.from(rows).map(row => ({
-                    time_hours: parseFloat(row.querySelector('.step-time').value),
-                    speed_kmh: parseFloat(row.querySelector('.step-speed').value)
-                }));
+                console.log(`[extractTableParameters] step_array - found ${rows.length} rows`);
+
+                const result = Array.from(rows).map((row, idx) => {
+                    const timeInput = row.querySelector('.step-time');
+                    const speedInput = row.querySelector('.step-speed');
+                    const timeVal = timeInput ? parseFloat(timeInput.value) : NaN;
+                    const speedVal = speedInput ? parseFloat(speedInput.value) : NaN;
+
+                    console.log(`[extractTableParameters] step_array row ${idx}:`, {
+                        hasTimeInput: !!timeInput,
+                        timeValue: timeInput?.value,
+                        timeParsed: timeVal,
+                        hasSpeedInput: !!speedInput,
+                        speedValue: speedInput?.value,
+                        speedParsed: speedVal
+                    });
+
+                    return {
+                        time_hours: timeVal,
+                        speed_kmh: speedVal
+                    };
+                });
+
+                console.log(`[extractTableParameters] step_array - result:`, result);
+                return result;
             }
 
             if (paramType === 'dhs_interval_array') {
@@ -3153,20 +3234,57 @@
                 });
             }
 
-            if (paramType === 'tec_interval_array' || paramType === 'flow_interval_array') {
+            // [FIX] TEC interval array: 只包含 begin_hours 和 end_hours（无流量和速度字段）
+            if (paramType === 'tec_interval_array') {
+                // TEC intervals use .tec-intervals-tbody and .tec-interval-row
+                const tbody = document.querySelector(`[data-parameter-name="${paramName}"] .tec-intervals-tbody`);
+                if (!tbody) {
+                    console.error(`[extractTableParameters] tec-intervals-tbody not found for tec_interval_array: ${paramName}`);
+                    return [];
+                }
+
+                const rows = tbody.querySelectorAll('.tec-interval-row');
+                return Array.from(rows).map(row => {
+                    const begin = parseFloat(row.querySelector('.tec-interval-begin').value);
+                    const end = parseFloat(row.querySelector('.tec-interval-end').value);
+                    // [FIX] 验证数值有效性，避免 NaN
+                    if (isNaN(begin) || isNaN(end)) {
+                        console.error(`[extractTableParameters] 无效的TEC区间值: begin=${begin}, end=${end}`);
+                        return null;
+                    }
+                    return {
+                        begin_hours: begin,
+                        end_hours: end
+                    };
+                }).filter(item => item !== null);
+            }
+
+            // Flow interval array: 包含 begin_hours, end_hours, vehsPerHour, target_speed
+            if (paramType === 'flow_interval_array') {
                 const tbody = document.querySelector(`[data-parameter-name="${paramName}"] .intervals-tbody`);
                 if (!tbody) {
-                    console.error(`[extractTableParameters] tbody not found for ${paramType}: ${paramName}`);
+                    console.error(`[extractTableParameters] intervals-tbody not found for flow_interval_array: ${paramName}`);
                     return [];
                 }
 
                 const rows = tbody.querySelectorAll('.interval-row');
-                return Array.from(rows).map(row => ({
-                    begin_hours: parseFloat(row.querySelector('.interval-begin').value),
-                    end_hours: parseFloat(row.querySelector('.interval-end').value),
-                    vehsPerHour: parseFloat(row.querySelector('.interval-flow').value),
-                    target_speed: parseFloat(row.querySelector('.interval-speed').value)
-                }));
+                return Array.from(rows).map(row => {
+                    const begin = parseFloat(row.querySelector('.interval-begin').value);
+                    const end = parseFloat(row.querySelector('.interval-end').value);
+                    const flow = parseFloat(row.querySelector('.interval-flow').value);
+                    const speed = parseFloat(row.querySelector('.interval-speed').value);
+                    // [FIX] 验证数值有效性，避免 NaN
+                    if (isNaN(begin) || isNaN(end) || isNaN(flow) || isNaN(speed)) {
+                        console.error(`[extractTableParameters] 无效的流量区间值: begin=${begin}, end=${end}, flow=${flow}, speed=${speed}`);
+                        return null;
+                    }
+                    return {
+                        begin_hours: begin,
+                        end_hours: end,
+                        vehsPerHour: flow,
+                        target_speed: speed
+                    };
+                }).filter(item => item !== null);
             }
 
             return [];
@@ -3185,9 +3303,60 @@
             }
 
             template.parameters_schema.forEach(param => {
-                // 特殊处理：受影响的路段
-                if (['affected_edges', 'affected_segments', 'entrance_ids'].includes(param.parameter_name)) {
-                    configuredParams[param.parameter_name] = selectedEdges;
+                // 特殊处理：受影响的路段（从步骤2的选择中获取）
+                // [FIX] 包含所有可能的路段参数名：affected_edges, affected_segments, entrance_ids, entrance_edges
+                if (['affected_edges', 'affected_segments', 'entrance_ids', 'entrance_edges'].includes(param.parameter_name)) {
+                    // [数据链路] 从EdgeSelector获取edge_ids（统一数据源）
+                    let edgeIds = [];
+                    
+                    // 方法1: 直接从EdgeSelector获取（主要数据源）
+                    if (typeof EdgeSelector !== 'undefined' && EdgeSelector.state && EdgeSelector.state.edgeSelectionSet) {
+                        edgeIds = Array.from(EdgeSelector.state.edgeSelectionSet).filter(id => id != null && id !== '');
+                        if (edgeIds.length > 0) {
+                            console.log(`[collectParameterValues] 从EdgeSelector获取${param.parameter_name}:`, edgeIds.length, '条');
+                        }
+                    }
+
+                    // 方法2: 如果EdgeSelector不可用，从sessionStorage获取（备用数据源）
+                    if (edgeIds.length === 0) {
+                        const edgesJson = sessionStorage.getItem('strategy_selected_edges');
+                        if (edgesJson) {
+                            try {
+                                const edgesData = JSON.parse(edgesJson);
+                                if (Array.isArray(edgesData) && edgesData.length > 0) {
+                                    edgeIds = edgesData.map(edge => {
+                                        if (typeof edge === 'string') {
+                                            return edge;
+                                        }
+                                        return edge.edge_id || edge;
+                                    }).filter(id => id != null && id !== '');
+                                    console.log(`[collectParameterValues] 从sessionStorage获取${param.parameter_name}（备用）:`, edgeIds.length, '条');
+                                }
+                            } catch (e) {
+                                console.error(`[collectParameterValues] 解析sessionStorage数据失败:`, e);
+                            }
+                        }
+                    }
+
+                    // 方法3: 如果仍然为空，尝试从全局变量获取（最后备选）
+                    if (edgeIds.length === 0 && typeof selectedEdges !== 'undefined' && Array.isArray(selectedEdges) && selectedEdges.length > 0) {
+                        edgeIds = selectedEdges.filter(id => id != null && id !== '');
+                        console.log(`[collectParameterValues] 从全局变量selectedEdges获取${param.parameter_name}:`, edgeIds.length, '条');
+                    }
+
+                    if (edgeIds.length === 0) {
+                        console.error(`[collectParameterValues] ${param.parameter_name}未找到edge_id！`, {
+                            edgeSelectorAvailable: typeof EdgeSelector !== 'undefined' && EdgeSelector.state ? '是' : '否',
+                            sessionStorageExists: !!sessionStorage.getItem('strategy_selected_edges'),
+                            selectedEdgesExists: typeof selectedEdges !== 'undefined'
+                        });
+                        if (param.required) {
+                            throw new Error(`请先选择影响的路段（${param.parameter_name}未找到）。请返回步骤2选择路段。`);
+                        }
+                    } else {
+                        configuredParams[param.parameter_name] = edgeIds;
+                        console.log(`[collectParameterValues] 成功收集${param.parameter_name}:`, edgeIds.length, '条路段');
+                    }
                     return;
                 }
 
@@ -3211,37 +3380,74 @@
                 // 枚举数组类型参数 (enum_array - 如 allowed_vehicle_types)
                 if (param.parameter_type === 'enum_array') {
                     // [数据链路] 统一车辆类型控件的处理（TEC模板使用）
-                    if ((param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types') &&
-                        configuredParams.restriction_mode) {
-                        // Check if unified control exists
+                    // [FIX] 从DOM直接读取restriction_mode，而不是依赖configuredParams（可能还没收集到）
+                    if (param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types') {
+                        // [FIX] 优先检查统一控件（name="vehicle_types"）
                         const unifiedCheckboxes = document.querySelectorAll(`input[name="vehicle_types"][type="checkbox"]:checked`);
-                        if (unifiedCheckboxes.length > 0) {
+                        
+                        // [FIX] 从DOM读取restriction_mode的值（无论是否有选中的复选框，都需要读取模式）
+                        const restrictionModeInput = document.getElementById('param-restriction_mode');
+                        // [FIX] 如果没有值，使用默认值 'disallow_mode'
+                        let currentMode = restrictionModeInput ? restrictionModeInput.value : null;
+                        if (!currentMode || currentMode === '') {
+                            // 查找模板中的默认值
+                            const restrictionModeParam = template.parameters_schema.find(p => p.parameter_name === 'restriction_mode');
+                            currentMode = restrictionModeParam?.default_value || 'disallow_mode';
+                            console.log(`[collectParameterValues] restriction_mode未设置，使用默认值: ${currentMode}`);
+                        }
+                        
+                        // [FIX] 检查统一控件是否存在（通过检查容器元素）
+                        const unifiedContainer = document.getElementById('unified-vehicle-type-container');
+                        if (!unifiedContainer) {
+                            console.error(`[collectParameterValues] 统一控件容器未找到！应该使用 renderUnifiedVehicleTypeControl`);
+                            if (param.required) {
+                                throw new Error(`必填参数 ${param.parameter_name} 的控件未找到。请确保使用统一车辆类型控件。`);
+                            }
+                            return;
+                        }
+                        
+                        if (currentMode) {
+                            // [FIX] 收集选中的复选框值（可能为空数组）
                             const value = Array.from(unifiedCheckboxes).map(cb => cb.value);
+                            
                             // Only collect the parameter that matches the current mode
-                            const currentMode = configuredParams.restriction_mode;
                             if ((currentMode === 'disallow_mode' && param.parameter_name === 'disallow_vehicle_types') ||
                                 (currentMode === 'allow_mode' && param.parameter_name === 'allowed_vehicle_types')) {
+                                
+                                // [FIX] 如果用户没有选择任何车型，使用默认值
+                                let finalValue = value;
+                                if (value.length === 0 && param.default_value && Array.isArray(param.default_value) && param.default_value.length > 0) {
+                                    finalValue = param.default_value;
+                                    console.log(`[collectParameterValues] 未选择车型，使用默认值:`, finalValue);
+                                }
+                                
                                 // [FIX] 验证收集的值是否在模板定义的enum_values中
-                                // 如果模板定义了enum_values，确保提交的值是有效的
                                 if (param.enum_values && Array.isArray(param.enum_values) && param.enum_values.length > 0) {
                                     const validValues = param.enum_values.map(ev => 
                                         typeof ev === 'string' ? ev : (ev.value || ev)
                                     );
                                     // 过滤掉不在有效值列表中的值
-                                    const filteredValue = value.filter(v => validValues.includes(v));
-                                    if (filteredValue.length !== value.length) {
+                                    const filteredValue = finalValue.filter(v => validValues.includes(v));
+                                    if (filteredValue.length !== finalValue.length) {
                                         console.warn(`[collectParameterValues] 过滤掉无效值:`, 
-                                            value.filter(v => !validValues.includes(v)));
+                                            finalValue.filter(v => !validValues.includes(v)));
                                     }
+                                    // [FIX] 即使过滤后为空，也要设置参数（使用空数组）
                                     configuredParams[param.parameter_name] = filteredValue;
+                                    console.log(`[collectParameterValues] 从统一控件收集 ${param.parameter_name}:`, configuredParams[param.parameter_name], 'mode:', currentMode);
                                 } else {
-                                    // 如果模板没有定义enum_values，直接使用收集的值
-                                    configuredParams[param.parameter_name] = value;
+                                    // 如果模板没有定义enum_values，直接使用收集的值或默认值
+                                    configuredParams[param.parameter_name] = finalValue;
+                                    console.log(`[collectParameterValues] 从统一控件收集 ${param.parameter_name} (无enum_values验证):`, configuredParams[param.parameter_name], 'mode:', currentMode);
                                 }
-                                console.log(`[collectParameterValues] 从统一控件收集 ${param.parameter_name}:`, configuredParams[param.parameter_name]);
+                            } else {
+                                // 当前模式不匹配此参数，跳过收集（另一个参数会在对应的模式中被收集）
+                                console.log(`[collectParameterValues] 跳过 ${param.parameter_name} (当前模式 ${currentMode} 不匹配)`);
                             }
-                            return;
+                        } else {
+                            console.warn(`[collectParameterValues] restriction_mode未找到，无法确定收集哪个参数`);
                         }
+                        return;
                     }
 
                     // Normal checkbox collection (for non-unified controls)
@@ -3260,19 +3466,32 @@
                     return;
                 }
 
-                // 其他参数类型
+                // 其他参数类型（包括 enum、string、integer、float、boolean 等）
                 const input = document.getElementById(`param-${param.parameter_name}`);
                 if (!input) {
                     if (param.required) {
                         console.warn(`[collectParameterValues] 必填参数未找到输入框: ${param.parameter_name}`);
+                    } else {
+                        // [FIX] 对于可选参数（如 restriction_mode），如果没有输入框但有默认值，使用默认值
+                        if (param.default_value !== null && param.default_value !== undefined && param.default_value !== '') {
+                            configuredParams[param.parameter_name] = param.default_value;
+                            console.log(`[collectParameterValues] 可选参数 ${param.parameter_name} 未找到输入框，使用默认值:`, param.default_value);
+                        }
                     }
                     return;
                 }
 
                 let value = input.value;
+                
+                // [FIX] 对于可选参数，如果没有值但有默认值，使用默认值（特别是 restriction_mode）
+                if ((!value || value === '') && !param.required && param.default_value !== null && param.default_value !== undefined && param.default_value !== '') {
+                    value = param.default_value;
+                    console.log(`[collectParameterValues] 参数 ${param.parameter_name} 值为空，使用默认值:`, value);
+                }
 
-                // 跳过空的可选参数
-                if (!param.required && (value === '' || value === null || value === undefined)) {
+                // [FIX] 对于有默认值的参数（即使可选），也要收集（特别是 restriction_mode）
+                // 跳过空的可选参数（且没有默认值）
+                if (!param.required && (value === '' || value === null || value === undefined) && (param.default_value === null || param.default_value === undefined || param.default_value === '')) {
                     console.log(`[collectParameterValues] 跳过空的可选参数: ${param.parameter_name}`);
                     return;
                 }
@@ -3408,6 +3627,13 @@
          */
         async function submitStrategyToAPI(payload) {
             console.log('[submitStrategyToAPI] 提交策略:', payload);
+            // [DEBUG] 验证 payload 结构
+            try {
+                JSON.stringify(payload); // 测试是否可以序列化
+            } catch (e) {
+                console.error('[submitStrategyToAPI] Payload 序列化失败:', e);
+                throw new Error(`数据格式错误: ${e.message}`);
+            }
 
             const response = await fetch('/api/v1/control/strategy-instances/', {
                 method: 'POST',
@@ -3418,8 +3644,20 @@
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP ${response.status}`);
+                // [FIX] 尝试获取详细的错误信息
+                let errorData = {};
+                try {
+                    errorData = await response.json();
+                    console.error('[submitStrategyToAPI] API 错误响应:', errorData);
+                } catch (e) {
+                    // 如果响应不是JSON，尝试读取文本
+                    const text = await response.text().catch(() => '');
+                    console.error('[submitStrategyToAPI] API 错误响应（文本）:', text);
+                    errorData = { detail: text || `HTTP ${response.status}` };
+                }
+                // [FIX] 返回更详细的错误信息
+                const errorMsg = errorData.detail || errorData.message || `HTTP ${response.status}`;
+                throw new Error(errorMsg);
             }
 
             return await response.json();
@@ -3477,13 +3715,25 @@
                 }
 
                 // Step 5: 构建请求负载
+                // [FIX] 清理参数中的 undefined 和 null 值（仅保留必需参数）
+                const cleanedParameters = {};
+                Object.keys(parameters).forEach(key => {
+                    const value = parameters[key];
+                    // 跳过 undefined，但保留 null、空数组、空字符串（这些可能是有效值）
+                    if (value !== undefined) {
+                        cleanedParameters[key] = value;
+                    }
+                });
+                console.log('[createStrategy] 原始参数:', parameters);
+                console.log('[createStrategy] 清理后的参数:', cleanedParameters);
+                
                 const payload = buildStrategyPayload(
                     basicInfo.templateObj,
-                    parameters,
+                    cleanedParameters,
                     basicInfo.edgeIds,
                     basicInfo.strategyName
                 );
-                console.log('[createStrategy] API 请求体:', payload);
+                console.log('[createStrategy] API 请求体:', JSON.stringify(payload, null, 2));
 
                 // Step 6: 提交 API
                 const result = await submitStrategyToAPI(payload);

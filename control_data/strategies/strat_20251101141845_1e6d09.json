@@ -1,0 +1,63 @@
+{
+  "strategy_id": "strat_20251101141845_1e6d09",
+  "strategy_name": "VSS中等控制 - 全量测试策略",
+  "template_id": "vss_moderate",
+  "template_name": "可变限速 - 中等控制",
+  "strategy_type": "VSS",
+  "parameters": {
+    "speed_steps": [
+      {
+        "time_hours": 0,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 6,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 7,
+        "speed_kmh": 60
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 16,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 19,
+        "speed_kmh": 70
+      },
+      {
+        "time_hours": 22,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 24,
+        "speed_kmh": 100
+      }
+    ],
+    "affected_edges": [
+      "-6404",
+      "-2602.1207",
+      "-10020",
+      "-1234",
+      "-5124"
+    ]
+  },
+  "affected_edges": [
+    "-6404",
+    "-2602.1207",
+    "-10020",
+    "-1234",
+    "-5124"
+  ],
+  "metadata": {
+    "created_at": "2025-11-01T14:18:45.272105+00:00",
+    "updated_at": "2025-11-01T14:18:45.272105+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

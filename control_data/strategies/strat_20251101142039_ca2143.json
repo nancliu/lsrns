@@ -1,0 +1,76 @@
+{
+  "strategy_id": "strat_20251101142039_ca2143",
+  "strategy_name": "DHS多时段管理 - 全量测试",
+  "template_id": "dhs_peak_multi_interval",
+  "template_name": "应急车道 - 多时段管理",
+  "strategy_type": "DHS",
+  "parameters": {
+    "affected_edges": [
+      "-7444",
+      "-15452.627",
+      "-6906.1080",
+      "-10376",
+      "-3324"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 6,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 6,
+        "end_hours": 8,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck"
+        ]
+      },
+      {
+        "begin_hours": 8,
+        "end_hours": 11,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 11,
+        "end_hours": 14,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 14,
+        "end_hours": 18,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck"
+        ]
+      },
+      {
+        "begin_hours": 18,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      }
+    ]
+  },
+  "affected_edges": [
+    "-7444",
+    "-15452.627",
+    "-6906.1080",
+    "-10376",
+    "-3324"
+  ],
+  "metadata": {
+    "created_at": "2025-11-01T14:20:39.198516+00:00",
+    "updated_at": "2025-11-01T14:20:39.198516+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

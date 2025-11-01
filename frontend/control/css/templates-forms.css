@@ -796,3 +796,115 @@
     color: #333;
     border-color: #999;
 }
+
+/* ==================== EdgeDisplayTable Component Styles ==================== */
+/* 路段展示表格组件样式 - 统一替代内联样式 */
+
+.edge-summary {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 0;
+}
+
+.edge-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.edge-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.edge-summary-label {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.edge-summary-value {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.edge-table-wrapper {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.edge-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.edge-table thead {
+    background: #3498db;
+    color: white;
+}
+
+.edge-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.edge-table td {
+    padding: 10px;
+}
+
+.edge-table-divider {
+    margin: 20px 0;
+    border: none;
+    border-top: 2px solid #e9ecef;
+}
+
+.validation-error-div {
+    padding: 10px;
+    background: #ffe0e0;
+    color: #c00;
+    border-radius: 4px;
+}
+
+/* ==================== Parameter Control Wrapper (Fix inline styles) ==================== */
+
+.param-control-wrapper {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.parameters-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.parameters-title {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 1rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+/* ==================== Display Control Utilities ==================== */
+/* 用于动态显示/隐藏，替代style.display */
+
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block;
+}
+
+.flex-visible {
+    display: flex;
+}

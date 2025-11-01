@@ -1,0 +1,51 @@
+{
+  "enum_id": "vehicle_types_category",
+  "enum_name": "车辆类型分类枚举 (两层系统)",
+  "description": "控制策略中使用的车辆类型高层分类，自动映射到SUMO详细车型",
+  "version": "2.0",
+  "reference": "基于 templates/config_templates/vehicle_templates/vehicle_types.json 中的 6 种详细车型",
+  "design_principle": "两层架构：用户界面层(3种分类) -> SUMO仿真层(6种详细类型)",
+  "values": [
+    {
+      "value": "passenger",
+      "label": "客车",
+      "description": "乘用车辆，包含小型和大型客车",
+      "includes": ["passenger_small", "passenger_large"],
+      "sumo_vClass": "passenger",
+      "example_ids": ["k1", "k2", "k3", "k4"]
+    },
+    {
+      "value": "truck",
+      "label": "货车",
+      "description": "货运车辆，包含小型和大型货车",
+      "includes": ["truck_small", "truck_large"],
+      "sumo_vClass": "truck",
+      "example_ids": ["h1", "h2", "h3", "h4", "h5", "h6"]
+    },
+    {
+      "value": "delivery",
+      "label": "特种车辆",
+      "description": "特种车辆，包含小型和大型特种车",
+      "includes": ["special_small", "special_large"],
+      "sumo_vClass": "delivery",
+      "example_ids": ["t1", "t2", "t3", "t4", "t5", "t6"]
+    }
+  ],
+  "expansion_rules": {
+    "description": "用户选择的分类会自动扩展为对应的详细车型",
+    "examples": {
+      "input": ["passenger", "truck"],
+      "output": ["passenger_small", "passenger_large", "truck_small", "truck_large"]
+    },
+    "backward_compatibility": "系统同时保存用户选择 (allowed_vehicle_types_user_selection) 和扩展后的详细类型 (allowed_vehicle_types)"
+  },
+  "usage_notes": {
+    "dhs_strategies": "应急车道开放策略中配置允许通行的车辆类型",
+    "tec_strategies": "收费站控制策略中配置允许或限制的车辆类型",
+    "vss_strategies": "可变限速策略中配置受影响的车辆类型",
+    "frontend": "前端只显示3个分类复选框，后端自动扩展为6个详细类型"
+  },
+  "created_at": "2025-10-29T00:00:00Z",
+  "updated_at": "2025-11-01T00:00:00Z",
+  "change_log": "v2.0: 简化为固定三分类系统，移除bus/emergency/authority，添加includes映射字段"
+}

@@ -1,0 +1,64 @@
+{
+  "strategy_id": "strat_20251101141354_57bbd3",
+  "strategy_name": "G4202 K33-K44 应急车道开放 (测试)",
+  "template_id": "dhs_peak_hours",
+  "template_name": "应急车道开放",
+  "strategy_type": "DHS",
+  "parameters": {
+    "affected_edges": [
+      "-2680.221",
+      "-2680",
+      "-690"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 7,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 7,
+        "end_hours": 10,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck"
+        ]
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 16,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 16,
+        "end_hours": 19,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck"
+        ]
+      },
+      {
+        "begin_hours": 19,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      }
+    ]
+  },
+  "affected_edges": [
+    "-2680.221",
+    "-2680",
+    "-690"
+  ],
+  "metadata": {
+    "created_at": "2025-11-01T14:13:54.149475+00:00",
+    "updated_at": "2025-11-01T14:13:54.149475+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

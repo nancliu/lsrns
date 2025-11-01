@@ -1,0 +1,66 @@
+{
+  "strategy_id": "strat_20251101141852_2332d6",
+  "strategy_name": "DHS仅客车 - 全量测试策略",
+  "template_id": "dhs_passenger_only",
+  "template_name": "应急车道 - 仅客车",
+  "strategy_type": "DHS",
+  "parameters": {
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 0,
+        "end_hours": 8,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 8,
+        "end_hours": 11,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 11,
+        "end_hours": 15,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 15,
+        "end_hours": 18,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 18,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      }
+    ],
+    "affected_edges": [
+      "-13352",
+      "-4070",
+      "-10202",
+      "-6652.199",
+      "-3094"
+    ]
+  },
+  "affected_edges": [
+    "-13352",
+    "-4070",
+    "-10202",
+    "-6652.199",
+    "-3094"
+  ],
+  "metadata": {
+    "created_at": "2025-11-01T14:18:52.044272+00:00",
+    "updated_at": "2025-11-01T14:18:52.044272+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

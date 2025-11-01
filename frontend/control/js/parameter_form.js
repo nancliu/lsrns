@@ -701,6 +701,17 @@ function renderStepArrayControl(paramName, schema) {
   const stepStructure = schema.step_structure || schema.stepStructure || {};
   const defaultSteps = schema.default_value || [];
 
+  // ===== DEBUGGING: Log the parameter auto-population flow =====
+  console.log('[renderStepArrayControl] Processing', paramName, {
+    hasSchema: !!schema,
+    hasDefaultValue: !!schema.default_value,
+    defaultValueType: typeof schema.default_value,
+    defaultStepsCount: defaultSteps.length,
+    defaultSteps: defaultSteps,
+    firstStep: defaultSteps.length > 0 ? defaultSteps[0] : null,
+    stepStructure: stepStructure
+  });
+
   // [OPTIMIZED] 添加时间轴可视化（支持空默认值）
   if (window.TimelineVisualizer) {
     try {
@@ -760,6 +771,7 @@ function renderStepArrayControl(paramName, schema) {
   defaultSteps.forEach((step, idx) => {
     const timeVal = step.time_hours !== undefined ? step.time_hours : (step.time_seconds / 3600);
     const speedVal = step.speed_kmh !== undefined ? step.speed_kmh : (step.speed_ms * 3.6);
+    console.log(`[renderStepArrayControl] Adding default step ${idx}:`, { step, timeVal, speedVal });
     addStepRow(tbody, paramName, timeVal, speedVal, stepStructure);
   });
 
@@ -1076,7 +1088,7 @@ function createTimeInput(className, value = 0) {
   input.min = "0";
   input.max = "24";
   input.step = "0.5";
-  input.value = value;
+  input.value = String(value);  // ✅ CRITICAL FIX: Convert value to string for form inputs
   return input;
 }
 
@@ -1155,12 +1167,24 @@ function bindTimelineUpdate(input, tbody, timelineType) {
 // ==================== End Helper Functions ====================
 
 function addStepRow(tbody, paramName, timeVal, speedVal, stepStructure) {
+  // ===== DEBUGGING: Log row creation with values =====
+  console.log('[addStepRow] Creating row for', paramName, {
+    timeVal,
+    speedVal,
+    hasStepStructure: !!stepStructure
+  });
+
   const row = document.createElement("tr");
   row.className = "step-row";
 
   // Time input
   const timeCell = document.createElement("td");
   const timeInput = createTimeInput("step-time", timeVal || 0);
+  console.log('[addStepRow] Created timeInput:', {
+    className: timeInput.className,
+    value: timeInput.value,
+    htmlContent: timeInput.outerHTML.substring(0, 100)
+  });
   timeCell.appendChild(timeInput);
   row.appendChild(timeCell);
 
@@ -1172,6 +1196,12 @@ function addStepRow(tbody, paramName, timeVal, speedVal, stepStructure) {
   speedInput.min = stepStructure.speed_min || 30;
   speedInput.max = stepStructure.speed_max || 130;
   speedInput.value = speedVal || 100;
+  console.log('[addStepRow] Created speedInput:', {
+    className: speedInput.className,
+    value: speedInput.value,
+    min: speedInput.min,
+    max: speedInput.max
+  });
   speedCell.appendChild(speedInput);
   row.appendChild(speedCell);
 
@@ -2341,6 +2371,20 @@ function extractFormParameters(form) {
       if (tbody) {
         const rows = tbody.querySelectorAll(".step-row");
         console.log('[extractFormParameters] step_array - found rows:', rows.length);
+
+        // ===== DEBUGGING: Verify each row has proper CSS classes =====
+        Array.from(rows).forEach((row, idx) => {
+          const timeInput = row.querySelector(".step-time");
+          const speedInput = row.querySelector(".step-speed");
+          console.log(`[extractFormParameters] step_array - row ${idx}:`, {
+            rowClass: row.className,
+            hasTimeInput: !!timeInput,
+            timeValue: timeInput ? timeInput.value : 'N/A',
+            hasSpeedInput: !!speedInput,
+            speedValue: speedInput ? speedInput.value : 'N/A'
+          });
+        });
+
         value = Array.from(rows).map((row) => ({
           time_hours: parseFloat(row.querySelector(".step-time").value),
           speed_kmh: parseFloat(row.querySelector(".step-speed").value)
@@ -2348,6 +2392,8 @@ function extractFormParameters(form) {
         console.log('[extractFormParameters] step_array - extracted value:', value);
       } else {
         console.warn('[extractFormParameters] step_array - tbody not found!');
+        console.warn('[extractFormParameters] form-group:', group);
+        console.warn('[extractFormParameters] form-group.innerHTML:', group.innerHTML.substring(0, 200));
       }
     } else if (paramType === "dhs_interval_array") {
       // Collect DHS interval rows (begin_hours, end_hours, status - NO vehicle types)
@@ -2500,10 +2546,11 @@ function renderUnifiedVehicleTypeControl(templateData) {
   description.textContent = currentParam?.description || '';
   container.appendChild(description);
 
+  // [FIX] 使用与正确样式一致的HTML结构（checkbox-wrapper 和 vehicle-type-checkboxes）
   // Checkbox group for vehicle types
   const checkboxContainer = document.createElement("div");
-  checkboxContainer.className = "enum-array-control";
-  checkboxContainer.id = "vehicle-type-checkboxes";
+  checkboxContainer.className = "vehicle-type-checkboxes";
+  checkboxContainer.id = "param-unified-vehicle-types";
 
   // [数据链路] Get enum values from template (already enriched by ControlTemplateService)
   // API should return enum_values populated from enum_name references
@@ -2520,11 +2567,11 @@ function renderUnifiedVehicleTypeControl(templateData) {
       templateId: templateData?.template_id
     });
     
-    // 如果确实有enum_name但没有enum_values，说明后端enrich失败
-    // 这种情况下使用硬编码值作为降级方案（但会触发验证错误）
-    // 理想情况下，API应该已经enrich了enum_values
+    // [FIX] 如果确实有enum_name但没有enum_values，说明后端enrich失败
+    // 使用与枚举文件一致的值作为降级方案（这些值应该能通过后端验证）
+    // 理想情况下，API应该已经enrich了enum_values，但在文件创建或服务器重启后可能需要刷新
     if (enumName === 'vehicle_types_category') {
-      console.warn('[renderUnifiedVehicleTypeControl] 使用降级默认值（可能导致验证失败）');
+      console.warn('[renderUnifiedVehicleTypeControl] enum_values为空，使用降级默认值（与vehicle_types_category.json一致）');
       enumValues = [
         { value: 'passenger', label: '客车', description: '乘用车辆，包含小型和大型客车' },
         { value: 'truck', label: '货车', description: '货运车辆，包含小型和大型货车' },
@@ -2545,16 +2592,16 @@ function renderUnifiedVehicleTypeControl(templateData) {
 
   console.log('[renderUnifiedVehicleTypeControl] Enum values count:', enumValues.length, 'Default values:', defaultValues);
 
+  // [FIX] 使用 checkbox-wrapper 类，与正确的样式一致
   enumValues.forEach(enumVal => {
     const checkboxDiv = document.createElement("div");
-    checkboxDiv.className = "checkbox-item";
+    checkboxDiv.className = "checkbox-wrapper";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.name = "vehicle_types"; // Unified name, will be converted on submit
     checkbox.value = typeof enumVal === "string" ? enumVal : enumVal.value;
-    checkbox.className = "enum-checkbox";
-    checkbox.id = `vehicle-type-${checkbox.value}`;
+    checkbox.id = `vehicle-vehicle_types-${checkbox.value}`;
 
     // Check default values
     if (defaultValues.includes(checkbox.value)) {

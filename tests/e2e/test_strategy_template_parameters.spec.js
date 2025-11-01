@@ -314,7 +314,7 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
             }
           } else if (paramType === 'step_array' || paramType === 'flow_interval_array' || paramType === 'dhs_interval_array') {
             // Array controls should have add/remove buttons
-            const arrayContainer = formGroup.locator('.array-control-container, .step-array-control, .interval-array-control');
+            const arrayContainer = formGroup.locator('.array-control-container, .step-array-control, .step-array-control-enhanced, .interval-array-control, .dhs-interval-array-control, .flow-interval-array-control');
             await expect(arrayContainer).toBeVisible();
             console.log(`    ✓ Array control found for ${paramName}`);
           }

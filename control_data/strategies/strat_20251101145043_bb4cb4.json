@@ -1,0 +1,33 @@
+{
+  "strategy_id": "strat_20251101145043_bb4cb4",
+  "strategy_name": "G4202001 车辆限行 (定时管控) (2)",
+  "template_id": "tec_vehicle_restriction",
+  "template_name": "收费入口 - 车型限制",
+  "strategy_type": "TEC",
+  "parameters": {
+    "entrance_edges": [
+      "-8564"
+    ],
+    "restriction_intervals": [
+      {
+        "begin_hours": 7,
+        "end_hours": 9
+      },
+      {
+        "begin_hours": 17,
+        "end_hours": 19
+      }
+    ],
+    "restriction_mode": "disallow_mode",
+    "restriction_reason": "traffic_management"
+  },
+  "affected_edges": [
+    "-8564"
+  ],
+  "metadata": {
+    "created_at": "2025-11-01T14:50:43.725225+00:00",
+    "updated_at": "2025-11-01T14:50:43.725225+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

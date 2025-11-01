@@ -781,18 +781,28 @@ const EdgeSelector = {
         }
 
         // [FIX] Show/hide "进入配置参数" buttons based on edge selection
+        // [CSS分离] 使用classList而不是style.display（因为hidden类有!important）
         const topActionsBtn = document.getElementById('step2-top-actions');
-        const bottomActionsBtn = document.getElementById('step2-bottom-actions');
+        const bottomNextBtn = document.getElementById('step2-next-bottom');
         const hasSelection = this.state.edgeSelectionSet.size > 0;
 
         if (topActionsBtn) {
-            topActionsBtn.style.display = hasSelection ? 'flex' : 'none';
+            if (hasSelection) {
+                topActionsBtn.classList.remove('hidden');
+                topActionsBtn.style.display = 'flex';
+            } else {
+                topActionsBtn.classList.add('hidden');
+                topActionsBtn.style.display = 'none';
+            }
         }
-        if (bottomActionsBtn) {
-            // Update button visibility (button itself should be visible when there's selection)
-            const nextBtn = document.getElementById('step2-next-bottom');
-            if (nextBtn) {
-                nextBtn.style.display = hasSelection ? 'block' : 'none';
+        
+        if (bottomNextBtn) {
+            if (hasSelection) {
+                bottomNextBtn.classList.remove('hidden');
+                bottomNextBtn.style.display = 'block';
+            } else {
+                bottomNextBtn.classList.add('hidden');
+                bottomNextBtn.style.display = 'none';
             }
         }
 
