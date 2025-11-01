@@ -345,6 +345,88 @@
   - 文件：`frontend/control/css/templates-base.css`
   - 提交：6c64159
 
+## 阶段 11：车型定义统一与两层关系设计 (待规划)
+
+**背景**: 用户指出车型定义存在 3 个不同步的来源，应统一为 vehicle_types.json (SUMO 仿真配置)。同时需要设计高级/详细两层车型关系。
+
+### 分析文档
+
+已完成详细的分析和设计文档，见项目文档：
+
+- [VEHICLE_TYPES_UNIFICATION_RECOMMENDATION.md](../../../VEHICLE_TYPES_UNIFICATION_RECOMMENDATION.md) - 执行建议
+- [VEHICLE_TYPES_UNIFICATION_ANALYSIS.md](../../../docs/frontend_analysis/VEHICLE_TYPES_UNIFICATION_ANALYSIS.md) - 详细分析
+- [VEHICLE_TYPES_HIERARCHICAL_DESIGN.md](../../../docs/frontend_analysis/VEHICLE_TYPES_HIERARCHICAL_DESIGN.md) - 两层关系设计
+
+### 问题概述
+
+当前存在的问题：
+
+1. ❌ templates.html 硬编码 11 种混合车型（行 890-902）
+2. ⚠️ vehicle_types_enum.json 定义的高级车型与仿真配置不对应
+3. ✅ vehicle_types.json 是唯一真实源但未被前端使用
+
+### 推荐方案
+
+方案 A (详细级统一) + 两层车型关系设计
+
+核心改动：
+
+- 前端从硬编码改为动态读取 API 的 enum_values
+- 后端实现高级车型 → 详细车型的自动转换
+- vehicle_types_enum.json 维护转换映射关系
+
+### 待规划任务
+
+- [ ] **Task 11.1**: 前端改造 - 从 API 动态读取车型 (2-3 天)
+  - 移除 templates.html 行 890-902 的硬编码列表
+  - 改为从 param.enum_values 读取车型数据
+  - 添加备用加载逻辑
+
+- [ ] **Task 11.2**: 后端改造 - 返回 enum_values (1-2 天)
+  - 更新 template API 返回格式，包含 enum_values
+  - 从 vehicle_types.json 或 enum.json 构建车型列表
+  - 添加元数据（valid_ids 等）
+
+- [ ] **Task 11.3**: 实现两层转换 - 高级 → 详细车型 (2-3 天)
+  - 在后端实现 expand_vehicle_types() 转换函数
+  - vehicle_types_enum.json 中添加 includes 字段定义映射
+  - 参数提交时自动展开用户选择
+
+- [ ] **Task 11.4**: 更新 vehicle_types_enum.json
+  - 改为详细级定义，或改作文档用途
+  - 添加 includes 字段定义类别与详细车型的映射
+  - 添加转换说明和使用指南
+
+- [ ] **Task 11.5**: 前端 UI 提示改进 (1 天)
+  - 添加"选择客车包括..."的提示文本
+  - 在 label 下方显示 includes 列表
+  - 改进用户理解和交互体验
+
+- [ ] **Task 11.6**: E2E 测试验证 (1 天)
+  - 测试动态车型加载
+  - 测试高级车型选择和转换
+  - 验证参数提交正确性
+
+**预计工作量**: 4-6 天
+**优先级**: P2 (改进性，非阻塞)
+**风险等级**: 低
+
+### 实施时机
+
+建议在以下时点执行：
+
+- 当前前端重构完成后（阶段 9-10）
+- 或作为下个迭代的改进工作
+
+### 参考
+
+详见三份分析文档，特别是：
+
+- [VEHICLE_TYPES_HIERARCHICAL_DESIGN.md](../../../docs/frontend_analysis/VEHICLE_TYPES_HIERARCHICAL_DESIGN.md) 的"实施建议"部分
+- [VEHICLE_TYPES_UNIFICATION_RECOMMENDATION.md](../../../VEHICLE_TYPES_UNIFICATION_RECOMMENDATION.md) 的"实施计划"部分
+
+---
+
 ## 阶段 10：验收与归档 (2h)
 
 - [ ] **Task 10.1**: 性能测试
