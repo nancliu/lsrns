@@ -141,21 +141,19 @@
   - 验证：Step 3 顶部显示已选模板名称和类型
   - 文件：`frontend/control/templates.html:296-308, 595-596, 636-663`
 
-- [x] **Task 6.1**: 实现策略名称自动生成
-  - 创建 `generateStrategyName(template, edges)` 函数
-  - 生成格式：`{类型}-{路由路段}-{时间戳}`
-  - 在表单加载时自动填充名称
-  - 绑定"建议名称"按钮事件
-  - 验证：策略名称自动生成且格式正确
-  - 文件：`frontend/control/templates.html:989-1021, 956-963`
+- [x] **Task 6.1**: 绑定策略名称自动生成按钮事件
+  - 在 `generateParamsForm()` 中绑定"建议名称"按钮 click 事件
+  - 委托给已有的 `autoPopulateStrategyName()` 函数（在 initializeEdgeDisplay 中调用）
+  - 验证：按钮点击后调用 autoPopulateStrategyName()
+  - 文件：`frontend/control/templates.html:956-968`
+  - **说明**：策略名称自动填充由 initializeEdgeDisplay() 中的 autoPopulateStrategyName() 负责（500ms 延迟，此时有完整的 Edge 对象）
 
-- [x] **Task 6.2**: 实现策略描述自动生成
-  - 创建 `generateStrategyDescription(template, edges)` 函数
-  - 根据策略类型生成不同的描述文本
-  - 在表单加载时自动填充描述
-  - 绑定"重新生成描述"按钮事件
-  - 验证：策略描述自动生成且内容合理
-  - 文件：`frontend/control/templates.html:1023-1045, 966-973`
+- [x] **Task 6.2**: 绑定策略描述自动生成按钮事件
+  - 在 `generateParamsForm()` 中绑定"重新生成描述"按钮 click 事件
+  - 委托给已有的 `autoPopulateStrategyDescription()` 函数（在 initializeEdgeDisplay 中调用）
+  - 验证：按钮点击后调用 autoPopulateStrategyDescription()
+  - 文件：`frontend/control/templates.html:970-982`
+  - **说明**：策略描述自动填充由 initializeEdgeDisplay() 中的 autoPopulateStrategyDescription() 负责（500ms 延迟，此时有完整的 Edge 对象）
 
 - [x] **Task 6.3**: 确保车型配置区域正确渲染
   - 验证：车型多选框在表单中正确显示
