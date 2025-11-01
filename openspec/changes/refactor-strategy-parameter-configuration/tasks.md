@@ -130,30 +130,69 @@
   - 验证：时间轴视觉符合语义
   - 文件：已验证现有 TimelineVisualizer 调用正确
 
-## 阶段 6：车型配置分离 (6h)
+## 阶段 6：Phase 5 修复 - Step 3 显示和自动生成 (6h) ✅
 
-- [ ] **Task 6.1**: 从 DHS/TEC 表格移除车型列
+**背景**：Phase 5 完成后，手动检查发现Step 3页面显示和自动生成功能不完整。本阶段修复这些问题。
+
+- [x] **Task 6.0**: 在 Step 3 顶部添加已选模板信息展示区
+  - 添加新的HTML容器 `step3-template-info` 用于显示已选模板
+  - 创建 `showTemplateInfoStep3(template)` 函数
+  - 在 `updateStepDisplay()` 中调用 `showTemplateInfoStep3()`
+  - 验证：Step 3 顶部显示已选模板名称和类型
+  - 文件：`frontend/control/templates.html:296-308, 595-596, 636-663`
+
+- [x] **Task 6.1**: 实现策略名称自动生成
+  - 创建 `generateStrategyName(template, edges)` 函数
+  - 生成格式：`{类型}-{路由路段}-{时间戳}`
+  - 在表单加载时自动填充名称
+  - 绑定"建议名称"按钮事件
+  - 验证：策略名称自动生成且格式正确
+  - 文件：`frontend/control/templates.html:989-1021, 956-963`
+
+- [x] **Task 6.2**: 实现策略描述自动生成
+  - 创建 `generateStrategyDescription(template, edges)` 函数
+  - 根据策略类型生成不同的描述文本
+  - 在表单加载时自动填充描述
+  - 绑定"重新生成描述"按钮事件
+  - 验证：策略描述自动生成且内容合理
+  - 文件：`frontend/control/templates.html:1023-1045, 966-973`
+
+- [x] **Task 6.3**: 确保车型配置区域正确渲染
+  - 验证：车型多选框在表单中正确显示
+  - 验证：根据 `allowed_vehicle_types` 或 `banned_vehicle_types` 参数动态显示
+  - 验证：Hint 提示清晰
+  - 文件：`frontend/control/templates.html:871-901`
+
+- [x] **Task 6.4**: 运行 E2E 测试验证完整流程
+  - 运行 Playwright 测试套件
+  - 验证：VSS、DHS、TEC 所有策略类型都能正确加载和配置
+  - 验证：参数表格正确渲染
+  - 文件：`tests/e2e/test_strategy_creation_workflow.spec.js`
+
+## 阶段 6b：车型配置分离 (6h) ⏳ (下一步)
+
+- [ ] **Task 6b.1**: 从 DHS/TEC 表格移除车型列
   - 修改 `renderDHSIntervalControl()` 移除 `allowed_vehicle_types` 列
   - 修改 `renderTECIntervalControl()` 移除车型相关列
   - 更新 `addRow()` 配置移除车型字段
   - 验证：表格中无车型列
   - 文件：`frontend/control/js/parameter_form.js:720-1400`
 
-- [ ] **Task 6.2**: 创建全局车型配置区域
+- [ ] **Task 6b.2**: 创建全局车型配置区域
   - 提取 [parameter_form.js:2142-2217] 的车型UI
   - 移到表单顶部（策略名称/描述之后）
   - 确保在所有策略类型中显示
   - 验证：车型配置区域独立显示
   - 文件：`frontend/control/js/parameter_form.js`
 
-- [ ] **Task 6.3**: 动态标签和提示
+- [ ] **Task 6b.3**: 动态标签和提示
   - 检测 `allowed_vehicle_types` 或 `disallow_vehicle_types`
   - 动态设置标签：`允许的车型` vs `禁止的车型`
   - 动态设置 Hint：`仅这些车型...` vs `这些车型禁止...`
   - 验证：标签和提示符合参数类型
   - 文件：`frontend/control/js/parameter_form.js:2142-2217`
 
-- [ ] **Task 6.4**: 更新提交逻辑
+- [ ] **Task 6b.4**: 更新提交逻辑
   - 修改 `extractFormParameters()` 根据参数名转换车型数据
   - `allowed_vehicle_types` → 勾选的车型
   - `disallow_vehicle_types` → 勾选的车型
