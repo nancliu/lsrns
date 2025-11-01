@@ -454,9 +454,6 @@ function renderParameterControl(paramSchema, templateId) {
     case "tec_interval_array":
       control = renderTECIntervalControl(paramName, paramSchema);
       break;
-    case "edge_array":
-      control = renderEdgeArrayControl(paramName, paramSchema);
-      break;
     case "string":
       control = renderStringControl(paramName, paramSchema);
       break;
@@ -1795,69 +1792,6 @@ function updateTECTimelineFromTable(tbody) {
 }
 
 /**
- * Render edge_array control.
- */
-function renderEdgeArrayControl(paramName, schema) {
-  const container = document.createElement("div");
-  container.className = "edge-array-control";
-
-  const defaultEdges = schema.default_value || [];
-
-  // Create list of edge inputs
-  const edgesList = document.createElement("div");
-  edgesList.className = "edges-list";
-  edgesList.dataset.parameterName = paramName;
-
-  defaultEdges.forEach((edgeId) => {
-    addEdgeInputRow(edgesList, paramName, edgeId);
-  });
-
-  container.appendChild(edgesList);
-
-  // Add button
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.className = "btn btn-add-edge";
-  addBtn.textContent = "+ Add Edge";
-  addBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    addEdgeInputRow(edgesList, paramName, "");
-  });
-
-  container.appendChild(addBtn);
-
-  return container;
-}
-
-/**
- * Add an edge input row.
- */
-function addEdgeInputRow(edgesList, paramName, edgeId) {
-  const row = document.createElement("div");
-  row.className = "edge-input-row";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "form-control edge-id-input";
-  input.name = `${paramName}-edge`;
-  input.placeholder = "Enter edge ID";
-  input.value = edgeId;
-
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "btn-remove-edge";
-  removeBtn.textContent = "✕";
-  removeBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    row.remove();
-  });
-
-  row.appendChild(input);
-  row.appendChild(removeBtn);
-  edgesList.appendChild(row);
-}
-
-/**
  * Render string control.
  */
 function renderStringControl(paramName, schema) {
@@ -2453,14 +2387,6 @@ function extractFormParameters(form) {
         console.log('[extractFormParameters] tec_interval_array - extracted value:', value);
       } else {
         console.warn('[extractFormParameters] tec_interval_array - tbody not found!');
-      }
-    } else if (paramType === "edge_array") {
-      // Collect edge inputs
-      const edgesList = group.querySelector(".edges-list");
-      if (edgesList) {
-        value = Array.from(edgesList.querySelectorAll(".edge-id-input"))
-          .map((input) => input.value)
-          .filter((v) => v.trim());
       }
     } else if (paramType === "array") {
       // Check for special array types

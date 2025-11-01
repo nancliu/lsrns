@@ -941,15 +941,6 @@
                                      </div>`;
                         hintHtml = `${param.unit || ''} JSON数组格式，例如: [[7,9],[17,19]] 表示时间段，或 [60,80,100] 表示数值列表`;
                     }
-                } else if (param.parameter_type === 'edge_array') {
-                    // Edge array 类型：使用 array-control-container 包装
-                    const defaultValueStr = param.default_value !== null ? JSON.stringify(param.default_value) : '[]';
-                    inputHtml = `<div class="array-control-container">
-                                   <textarea id="param-${param.parameter_name}" rows="3"
-                                     ${param.required ? 'required' : ''}
-                                     placeholder='例如: ["-8712", "-15452"]'>${defaultValueStr}</textarea>
-                                 </div>`;
-                    hintHtml = `${param.unit || ''} JSON数组格式，edge ID列表`;
                 }
 
                 // 创建 label
