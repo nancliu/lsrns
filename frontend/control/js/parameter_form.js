@@ -2505,23 +2505,38 @@ function renderUnifiedVehicleTypeControl(templateData) {
   checkboxContainer.className = "enum-array-control";
   checkboxContainer.id = "vehicle-type-checkboxes";
 
-  // [FIX] Get enum values - handle both direct enum_values and enum_name reference
+  // [数据链路] Get enum values from template (already enriched by ControlTemplateService)
+  // API should return enum_values populated from enum_name references
   let enumValues = disallowParam?.enum_values || allowParam?.enum_values || [];
 
-  // If enum_values not found, check if enum_name is specified (TEC templates use this)
+  // [FIX] 如果enum_values为空，说明模板可能没有被正确enrich
+  // 这种情况下不应该使用硬编码的默认值，而应该提示错误
   if (enumValues.length === 0) {
     const enumName = disallowParam?.enum_name || allowParam?.enum_name;
-    console.log('[renderUnifiedVehicleTypeControl] enum_name:', enumName);
-
-    // For TEC templates, always use the standard 3-category system
-    if (enumName === 'vehicle_types_category' || enumValues.length === 0) {
-      console.log('[renderUnifiedVehicleTypeControl] Using standard 3-category vehicle types');
+    console.error('[renderUnifiedVehicleTypeControl] enum_values为空！', {
+      enumName: enumName,
+      disallowParam: disallowParam?.parameter_name,
+      allowParam: allowParam?.parameter_name,
+      templateId: templateData?.template_id
+    });
+    
+    // 如果确实有enum_name但没有enum_values，说明后端enrich失败
+    // 这种情况下使用硬编码值作为降级方案（但会触发验证错误）
+    // 理想情况下，API应该已经enrich了enum_values
+    if (enumName === 'vehicle_types_category') {
+      console.warn('[renderUnifiedVehicleTypeControl] 使用降级默认值（可能导致验证失败）');
       enumValues = [
         { value: 'passenger', label: '客车', description: '乘用车辆，包含小型和大型客车' },
         { value: 'truck', label: '货车', description: '货运车辆，包含小型和大型货车' },
         { value: 'delivery', label: '特种车辆', description: '特种车辆，包含小型和大型特种车' }
       ];
+    } else {
+      // 没有enum_name也没有enum_values，无法生成控件
+      console.error('[renderUnifiedVehicleTypeControl] 无法生成控件：缺少enum_values和enum_name');
+      return null;
     }
+  } else {
+    console.log('[renderUnifiedVehicleTypeControl] 使用模板中的enum_values:', enumValues.length, '个选项');
   }
 
   const defaultValues = initialMode === 'disallow_mode'
@@ -2604,7 +2619,12 @@ function updateVehicleTypeControlForRestrictionMode(mode) {
 /**
  * Render a read-only display of selected edges from Step 2.
  * Shows edges selected in Step 2 as a summary table in Step 3.
- *
+ * 
+ * @deprecated 此函数已废弃，不再使用
+ * 路段显示统一使用 EdgeDisplayTable 组件（在 edge-display-container 中）
+ * EdgeDisplayTable 通过 initializeEdgeDisplay() 初始化，显示完整详细的路段信息
+ * 所有路段数据从 EdgeSelector.state.edgeSelectionSet 统一获取
+ * 
  * @returns {HTMLElement|null} Container with selected edges table, or null if no edges selected
  */
 function renderSelectedEdgesSummary() {

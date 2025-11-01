@@ -75,7 +75,7 @@ class StrategyInstanceService:
 
     def _load_template(self, template_id: str) -> Optional[Dict[str, Any]]:
         """
-        Load template from Phase 1A.
+        Load template from Phase 1A with enum_values enriched.
 
         Args:
             template_id: Template identifier
@@ -84,22 +84,21 @@ class StrategyInstanceService:
             Template data dict if found, None otherwise
         """
         try:
-            # Import here to avoid circular dependency
-            from shared.control_tools.template_loader import get_template_by_id
-            from pathlib import Path
+            # [数据链路] Use ControlTemplateService to get enriched template (with enum_values populated)
+            # This ensures enum_values are loaded from enum_name references
+            from api.services.control_template_service import ControlTemplateService
 
-            # Get templates directory
-            project_root = Path(__file__).parent.parent.parent
-            templates_dir = project_root / "templates" / "control_strategies"
+            template_service = ControlTemplateService()
+            template_response = template_service.get_template_detail(template_id)
 
-            # Load template using Phase 1A loader
-            template_obj = get_template_by_id(template_id, templates_dir)
-
-            if template_obj is None:
+            if template_response is None or template_response.template is None:
                 logger.warning(f"Template not found: {template_id}")
                 return None
 
+            template_obj = template_response.template
+
             # Convert ControlTemplate object to dict for internal use
+            # Note: enum_values are already populated by ControlTemplateService._enrich_template_with_enums
             template_dict = {
                 "template_id": template_obj.template_id,
                 "template_name": template_obj.template_name,
@@ -123,6 +122,8 @@ class StrategyInstanceService:
                         "min_value": param.min_value,
                         "max_value": param.max_value,
                         "allowed_values": param.allowed_values,
+                        "enum_values": getattr(param, "enum_values", None),  # [FIX] Include enum_values (from enrichment)
+                        "enum_name": getattr(param, "enum_name", None),  # Include enum_name for reference
                         "pattern": getattr(param, "pattern", None),
                         "min_items": getattr(param, "min_items", None),
                     }

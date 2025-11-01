@@ -723,6 +723,33 @@
                     alert(validation.message);
                     return; // 阻止进入下一步
                 }
+
+                // [数据链路] 从EdgeSelector（唯一数据源）获取已选路段并保存到sessionStorage（作为备份）
+                if (typeof EdgeSelector !== 'undefined' && EdgeSelector.state && EdgeSelector.state.edgeSelectionSet) {
+                    const selectedEdgeIds = Array.from(EdgeSelector.state.edgeSelectionSet);
+                    
+                    if (selectedEdgeIds.length > 0) {
+                        // 尝试从currentResults中获取完整的路段数据对象（用于步骤3显示）
+                        const selectedEdgeData = EdgeSelector.state.currentResults.filter(edge => 
+                            selectedEdgeIds.includes(edge.edge_id)
+                        );
+                        
+                        // 更新全局变量（供步骤3使用）
+                        selectedEdges = selectedEdgeIds;
+                        
+                        // 保存到sessionStorage作为备份（仅保存edge_id数组，完整数据由EdgeDisplayTable管理）
+                        // EdgeDisplayTable 会直接从 EdgeSelector.state.currentResults 获取完整数据
+                        // sessionStorage 仅用于页面刷新等场景的备用数据源
+                        const edgeIdsForStorage = selectedEdgeIds.map(id => ({ edge_id: id }));
+                        sessionStorage.setItem('strategy_selected_edges', JSON.stringify(edgeIdsForStorage));
+                        
+                        console.log('[nextStep] 已从EdgeSelector获取', selectedEdgeIds.length, '条路段，并保存到sessionStorage');
+                    } else {
+                        console.warn('[nextStep] EdgeSelector中没有选中的路段');
+                    }
+                } else {
+                    console.error('[nextStep] EdgeSelector未初始化');
+                }
             }
 
             if (currentStep < 3) {
@@ -753,8 +780,8 @@
             form.innerHTML = '';
             console.log('[generateParamsForm] Cleared form');
 
-            // 更新配置摘要
-            updateConfigSummary();
+            // 更新配置摘要（传递template和edges参数，避免依赖未初始化的全局变量）
+            updateConfigSummary(template, window.selectedEdges);
             console.log('[generateParamsForm] Updated config summary');
 
             // 策略名称（必填）- Task 3.3: 添加"建议名称"按钮
@@ -790,30 +817,11 @@
             `;
             form.appendChild(descGroup);
 
-            // Phase 7.2: 显示从 Step 2 选择的路段
-            const edgesSummary = window.renderSelectedEdgesSummary();
-            if (edgesSummary) {
-                form.appendChild(edgesSummary);
-
-                // Phase 7.3: 添加"返回修改路段"按钮
-                const returnButtonDiv = document.createElement('div');
-                returnButtonDiv.className = 'return-to-step2-button-container';
-                returnButtonDiv.innerHTML = `
-                    <button type="button" class="btn btn-secondary" id="return-to-step2-btn">
-                        返回修改路段
-                    </button>
-                `;
-                form.appendChild(returnButtonDiv);
-
-                // 绑定返回 Step 2 的按钮
-                const returnBtn = document.getElementById('return-to-step2-btn');
-                if (returnBtn) {
-                    returnBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        previousStep();
-                    });
-                }
-            }
+            // [已移除] Phase 7.2 的 renderSelectedEdgesSummary() 渲染
+            // 路段显示统一使用 EdgeDisplayTable 组件（通过 initializeEdgeDisplay() 初始化）
+            // EdgeDisplayTable 已经在 edge-display-container 中显示了完整详细的路段信息
+            // 并且包含了"如需修改路段选择，请返回第2步"的提示
+            // 所有路段数据从 EdgeSelector.state.edgeSelectionSet 统一获取，无需重复渲染
 
             // 动态生成模板参数
             // [FIX] Check if this template uses restriction_mode (TEC vehicle restriction)
@@ -1105,30 +1113,41 @@
 
             try {
                 // 使用传入的参数或全局变量
-                const tmpl = template || window.selectedTemplate;
-                const edgs = edges || window.selectedEdges;
+                let tmpl = template || window.selectedTemplate;
+                let edgs = edges || selectedEdges;
+
+                // [数据链路] 如果edges未传入且selectedEdges为空，从EdgeSelector获取（统一数据源）
+                if (!edgs || edgs.length === 0) {
+                    if (typeof EdgeSelector !== 'undefined' && EdgeSelector.state && EdgeSelector.state.edgeSelectionSet) {
+                        edgs = Array.from(EdgeSelector.state.edgeSelectionSet);
+                        // 更新全局变量以便后续使用
+                        selectedEdges = edgs;
+                        console.log('[updateConfigSummary] 从EdgeSelector获取路段数据:', edgs.length, '条');
+                    } else {
+                        // 如果EdgeSelector不可用，尝试从sessionStorage加载（备用）
+                        const edgesJson = sessionStorage.getItem('strategy_selected_edges');
+                        if (edgesJson) {
+                            const edgesData = JSON.parse(edgesJson);
+                            edgs = Array.isArray(edgesData) 
+                                ? edgesData.map(edge => typeof edge === 'string' ? edge : (edge.edge_id || edge))
+                                : [];
+                            // 更新全局变量以便后续使用
+                            if (edgs.length > 0) {
+                                selectedEdges = edgs;
+                            }
+                            console.log('[updateConfigSummary] 从sessionStorage加载路段数据（备用）:', edgs.length, '条');
+                        }
+                    }
+                }
 
                 // 1. 更新摘要信息（各自独立）
                 updateTemplateSummary(tmpl);
                 updateEdgeSummary(edgs);
                 updateEdgeList(edgs);
 
-                // 2. 【新增 Phase 1 Day 3】渲染参数表单
-                if (tmpl && tmpl.parameters_schema && tmpl.parameters_schema.length > 0) {
-                    const paramsContainer = document.getElementById('params-container');
-                    if (paramsContainer) {
-                        // 清空旧的参数表单
-                        paramsContainer.innerHTML = '';
-
-                        // 渲染新的参数表单
-                        renderParametersSection(paramsContainer, tmpl);
-
-                        // 绑定参数变化监听器
-                        attachParameterListeners(paramsContainer, tmpl);
-
-                        console.log('[updateConfigSummary] 参数表单已渲染和绑定');
-                    }
-                }
+                // 2. 【废弃】参数表单渲染已迁移到 generateParamsForm()
+                // renderParametersSection 和 attachParameterListeners 使用不存在的 params-container 元素
+                // 实际参数渲染由 generateParamsForm() 负责，直接操作 params-form 元素
 
                 console.log('[updateConfigSummary] 完成');
             } catch (error) {
@@ -1487,6 +1506,8 @@
 
         /**
          * 渲染参数表单区域（完整的参数配置界面）
+         * @deprecated 此函数已废弃，因为HTML中不存在 params-container 元素
+         * 实际参数渲染由 generateParamsForm() 负责，直接操作 params-form 元素
          * @param {HTMLElement} container - 容器元素
          * @param {Object} template - 策略模板对象
          */
@@ -1576,6 +1597,8 @@
         /**
          * 为参数表单绑定变化监听器
          * 负责实时验证和反馈
+         * @deprecated 此函数已废弃，因为 renderParametersSection() 已废弃
+         * 参数监听器由 generateParamsForm() 直接绑定到 params-form 元素
          * @param {HTMLElement} container - 参数容器
          * @param {Object} template - 模板对象
          */
@@ -3029,15 +3052,57 @@
                 throw new Error('请输入策略名称');
             }
 
-            if (!selectedEdges || selectedEdges.length === 0) {
-                throw new Error('请先选择影响的路段');
+            // [数据链路] 从EdgeSelector.state.edgeSelectionSet获取（唯一数据源）
+            // EdgeSelector是用户在步骤2选择路段时的唯一数据源，所有其他地方的数据都从此派生
+            let edgeIds = [];
+            
+            // 方法1: 直接从EdgeSelector获取（主要数据源）
+            if (typeof EdgeSelector !== 'undefined' && EdgeSelector.state && EdgeSelector.state.edgeSelectionSet) {
+                edgeIds = Array.from(EdgeSelector.state.edgeSelectionSet).filter(id => id != null && id !== '');
+                if (edgeIds.length > 0) {
+                    console.log('[collectBasicStrategyInfo] 从EdgeSelector获取:', edgeIds.length, '条');
+                }
             }
+
+            // 方法2: 如果EdgeSelector不可用，从sessionStorage获取（备用数据源，仅用于页面刷新等场景）
+            if (edgeIds.length === 0) {
+                const edgesJson = sessionStorage.getItem('strategy_selected_edges');
+                if (edgesJson) {
+                    try {
+                        const edgesData = JSON.parse(edgesJson);
+                        if (Array.isArray(edgesData) && edgesData.length > 0) {
+                            edgeIds = edgesData.map(edge => {
+                                // 支持两种格式：字符串数组 或 对象数组
+                                if (typeof edge === 'string') {
+                                    return edge;
+                                }
+                                return edge.edge_id || edge;
+                            }).filter(id => id != null && id !== '');
+                            console.log('[collectBasicStrategyInfo] 从sessionStorage获取（备用）:', edgeIds.length, '条');
+                        }
+                    } catch (e) {
+                        console.error('[collectBasicStrategyInfo] 解析sessionStorage数据失败:', e);
+                    }
+                }
+            }
+
+            // 如果仍然为空，抛出错误
+            if (edgeIds.length === 0) {
+                console.error('[collectBasicStrategyInfo] 未找到已选路段:', {
+                    edgeSelectorAvailable: typeof EdgeSelector !== 'undefined' && EdgeSelector.state ? '是' : '否',
+                    edgeSelectorSize: typeof EdgeSelector !== 'undefined' && EdgeSelector.state && EdgeSelector.state.edgeSelectionSet ? EdgeSelector.state.edgeSelectionSet.size : 0,
+                    sessionStorageExists: !!sessionStorage.getItem('strategy_selected_edges')
+                });
+                throw new Error('请先选择影响的路段（edge_id未找到）。请返回步骤2选择路段。');
+            }
+
+            console.log('[collectBasicStrategyInfo] 提取的edgeIds:', edgeIds);
 
             return {
                 templateObj: selectedTemplate,
                 templateId: selectedTemplate.template_id,
                 strategyName: strategyName,
-                edgeIds: selectedEdges
+                edgeIds: edgeIds
             };
         }
 
@@ -3145,7 +3210,7 @@
 
                 // 枚举数组类型参数 (enum_array - 如 allowed_vehicle_types)
                 if (param.parameter_type === 'enum_array') {
-                    // [FIX] Special handling for TEC restriction mode vehicle types
+                    // [数据链路] 统一车辆类型控件的处理（TEC模板使用）
                     if ((param.parameter_name === 'disallow_vehicle_types' || param.parameter_name === 'allowed_vehicle_types') &&
                         configuredParams.restriction_mode) {
                         // Check if unified control exists
@@ -3156,8 +3221,24 @@
                             const currentMode = configuredParams.restriction_mode;
                             if ((currentMode === 'disallow_mode' && param.parameter_name === 'disallow_vehicle_types') ||
                                 (currentMode === 'allow_mode' && param.parameter_name === 'allowed_vehicle_types')) {
-                                configuredParams[param.parameter_name] = value;
-                                console.log(`[collectParameterValues] 从统一控件收集 ${param.parameter_name}:`, value);
+                                // [FIX] 验证收集的值是否在模板定义的enum_values中
+                                // 如果模板定义了enum_values，确保提交的值是有效的
+                                if (param.enum_values && Array.isArray(param.enum_values) && param.enum_values.length > 0) {
+                                    const validValues = param.enum_values.map(ev => 
+                                        typeof ev === 'string' ? ev : (ev.value || ev)
+                                    );
+                                    // 过滤掉不在有效值列表中的值
+                                    const filteredValue = value.filter(v => validValues.includes(v));
+                                    if (filteredValue.length !== value.length) {
+                                        console.warn(`[collectParameterValues] 过滤掉无效值:`, 
+                                            value.filter(v => !validValues.includes(v)));
+                                    }
+                                    configuredParams[param.parameter_name] = filteredValue;
+                                } else {
+                                    // 如果模板没有定义enum_values，直接使用收集的值
+                                    configuredParams[param.parameter_name] = value;
+                                }
+                                console.log(`[collectParameterValues] 从统一控件收集 ${param.parameter_name}:`, configuredParams[param.parameter_name]);
                             }
                             return;
                         }
