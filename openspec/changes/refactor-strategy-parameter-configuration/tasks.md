@@ -297,11 +297,53 @@
   - 记录下一步计划
   - 文件：`docs/frontend_analysis/REFACTORING_PROGRESS.md`
 
+- [ ] **Task 9.4**: 更新前端重构进度文档
+  - 在 `REFACTORING_PROGRESS.md` 标记已完成任务
+  - 更新技术债务估算（应减少 ~200 行重复代码）
+  - 记录下一步计划
+  - 文件：`docs/frontend_analysis/REFACTORING_PROGRESS.md`
+
 - [ ] **Task 9.5**: 编写用户文档
   - 更新策略创建指南
   - 说明时间语义（时刻 vs 时段）
   - 说明车型配置逻辑
   - 文件：`docs/user_guides/strategy_creation_guide.md`
+
+## 阶段 9-B: Bug Fix - 策略实例创建失败问题 (2h) ✅
+
+**问题描述**: 测试时发现策略实例创建失败，提示 "Parameter 'allowed_vehicle_types' must be an array of enum values"。根因是 enum_array 参数类型未被正确处理。
+
+- [x] **Task 9-B.1**: 修复 enum_array 参数提取 ✅
+  - 在 `collectParameterValues()` 中添加 enum_array 类型处理
+  - 正确提取复选框选中值为数组格式（lines 3094-3109）
+  - 修复 allowed_vehicle_types 等参数无法被提取的问题
+  - 验证：✅ 车型配置正确提取为数组
+  - 文件：`frontend/control/templates.html`
+  - 提交：6c64159
+
+- [x] **Task 9-B.2**: 改进错误处理和显示 ✅
+  - 使用 showNotification() 替代 alert() 显示错误（lines 3339-3344）
+  - 使用 showNotification() 显示成功消息（lines 3284-3288）
+  - 提供更专业的错误通知用户体验
+  - 验证：✅ 错误消息更清晰专业
+  - 文件：`frontend/control/templates.html`
+  - 提交：6c64159
+
+- [x] **Task 9-B.3**: 添加 E2E 测试错误检测 ✅
+  - 新增测试: 错误处理验证：检测创建失败和错误通知（lines 447-530）
+  - 测试 1: 检测不完整策略创建的错误消息
+  - 测试 2: 验证车型配置参数被正确提取
+  - 验证：✅ E2E 测试可正确检测错误
+  - 文件：`tests/e2e/test_strategy_creation_full.spec.js`
+  - 提交：6c64159
+
+- [x] **Task 9-B.4**: 统一通知样式 ✅
+  - 添加 .notification, .notification-success, .notification-error 等样式（lines 271-320）
+  - 统一样式: 位置固定右上角, 背景色/边框/文字颜色一致
+  - 添加滑入动画 (slideIn)
+  - 验证：✅ 所有通知样式一致美观
+  - 文件：`frontend/control/css/templates-base.css`
+  - 提交：6c64159
 
 ## 阶段 10：验收与归档 (2h)
 
