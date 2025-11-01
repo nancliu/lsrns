@@ -953,95 +953,33 @@
                 form.appendChild(group);
             });
 
-            // Task 6.1: 绑定策略名称自动生成按钮
+            // Task 6.1: 绑定"建议名称"按钮事件
+            // 注意：自动填充由 initializeEdgeDisplay() 中的 autoPopulateStrategyName() 处理
+            // 此处仅绑定手动生成按钮
             const suggestNameBtn = document.getElementById('suggest-name-btn');
             if (suggestNameBtn) {
                 suggestNameBtn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const suggestedName = generateStrategyName(selectedTemplate, selectedEdges);
-                    document.getElementById('param-strategy-name').value = suggestedName;
+                    // 调用现有的自动填充函数
+                    if (typeof autoPopulateStrategyName === 'function') {
+                        autoPopulateStrategyName();
+                    }
                 });
             }
 
-            // Task 6.2: 绑定策略描述自动生成按钮
+            // Task 6.2: 绑定"重新生成描述"按钮事件
+            // 注意：自动填充由 initializeEdgeDisplay() 中的 autoPopulateStrategyDescription() 处理
+            // 此处仅绑定手动生成按钮
             const regenerateDescBtn = document.getElementById('regenerate-description-btn');
             if (regenerateDescBtn) {
                 regenerateDescBtn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const suggestedDesc = generateStrategyDescription(selectedTemplate, selectedEdges);
-                    document.getElementById('param-strategy-description').value = suggestedDesc;
+                    // 调用现有的自动填充函数
+                    if (typeof autoPopulateStrategyDescription === 'function') {
+                        autoPopulateStrategyDescription();
+                    }
                 });
             }
-
-            // Task 6.3: 页面加载时自动填充名称和描述（如果为空）
-            const nameInput = document.getElementById('param-strategy-name');
-            const descInput = document.getElementById('param-strategy-description');
-
-            if (nameInput && !nameInput.value) {
-                nameInput.value = generateStrategyName(selectedTemplate, selectedEdges);
-            }
-
-            if (descInput && !descInput.value) {
-                descInput.value = generateStrategyDescription(selectedTemplate, selectedEdges);
-            }
-        }
-
-        // Task 6.1: 生成建议的策略名称
-        function generateStrategyName(template, edges) {
-            if (!template || !edges || edges.length === 0) {
-                return '新策略实例';
-            }
-
-            const strategyTypeName = {
-                'VSS': '可变限速',
-                'DHS': '动态硬路肩',
-                'TEC': '入口控制'
-            };
-
-            const typeName = strategyTypeName[template.strategy_type] || '控制策略';
-
-            // 获取路段信息
-            let edgeDesc = '';
-            if (edges.length === 1) {
-                const edge = edges[0];
-                const route = edge.route_code || edge.route_name || 'G';
-                const segment = edge.road_code || edge.segment_name || '路段';
-                edgeDesc = `${route}${segment}`;
-            } else {
-                const firstEdge = edges[0];
-                const route = firstEdge.route_code || firstEdge.route_name || 'G';
-                edgeDesc = `${route}${edges.length}路段`;
-            }
-
-            // 生成带时间戳的名称
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
-
-            return `${typeName}-${edgeDesc}-${timeStr}`;
-        }
-
-        // Task 6.2: 生成建议的策略描述
-        function generateStrategyDescription(template, edges) {
-            if (!template) {
-                return '';
-            }
-
-            const descriptions = {
-                'VSS': (edges) => {
-                    const edgeCount = edges ? edges.length : 0;
-                    return `可变限速策略：对${edgeCount}条路段进行动态限速控制，根据实时交通流量情况调整速度限值，以缓解拥堵、提高通行效率。`;
-                },
-                'DHS': (edges) => {
-                    const edgeCount = edges ? edges.length : 0;
-                    return `动态硬路肩策略：在${edgeCount}条连续路段上根据交通状况启用或关闭硬路肩，有效扩大通行能力，缓解高峰期拥堵。`;
-                },
-                'TEC': (edges) => {
-                    return `入口控制策略：根据下游路段拥堵情况，对收费站入口匝道进行流量控制，优化高速公路交通流，提高整体通行效率。`;
-                }
-            };
-
-            const descGenerator = descriptions[template.strategy_type];
-            return descGenerator ? descGenerator(edges) : `${template.template_name}策略实例`;
         }
 
         // 更新配置摘要（步骤3）
