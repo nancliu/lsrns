@@ -33,17 +33,28 @@ def _extract_case_start_hour(case_metadata: Dict[str, Any]) -> Optional[int]:
     """
     Extract simulation start hour from case metadata.
 
-    Per design specification (2025-11-02):
+    Per clarification (2025-11-02):
+    - Simulation time is RELATIVE to case start time
+    - Example: Case starts at 08:00, simulation time=0 means 08:00, time=3600 means 09:00
     - Source: case.metadata.time_range.start (UTC+8 timestamp)
     - Format: "2025/09/01 08:00:00"
-    - Returns: Hour of day [0-23]
+    - Returns: Hour of day [0-23] for reference frame
     - Note: Ignores timezone errors in metadata (timezone not always specified)
+
+    IMPORTANT: Strategy time_hours are ABSOLUTE clock times (0-24 hours).
+    To convert to simulation time (relative to case start):
+      simulation_time_seconds = (strategy_time_hours - case_start_hour) × 3600
+
+    Example:
+      - Case starts at 08:00 (case_start_hour=8)
+      - Strategy with time_hours=9 (absolute 09:00)
+      - Simulation time = (9 - 8) × 3600 = 3600 seconds
 
     Args:
         case_metadata: Case metadata dictionary with time_range
 
     Returns:
-        Hour of day [0-23] or None if metadata not available
+        Hour of day [0-23] (case start hour) or None if metadata not available
 
     Raises:
         ValueError: If time_range.start format is invalid
@@ -70,11 +81,53 @@ def _extract_case_start_hour(case_metadata: Dict[str, Any]) -> Optional[int]:
         assert 0 <= hour <= 23, f"Hour out of range [0-23]: {hour}"
 
         logger.debug(f"Extracted case start hour: {hour} from {start_time_str}")
+        logger.debug(f"Simulation time is relative to case start: time=0 means {hour:02d}:00")
         return hour
 
     except Exception as e:
         logger.error(f"Error extracting case start hour: {e}")
         raise
+
+
+def _convert_absolute_to_simulation_time(
+    absolute_time_hours: float,
+    case_start_hour: Optional[int]
+) -> int:
+    """
+    Convert absolute clock time to simulation-relative time.
+
+    Per clarification (2025-11-02):
+    - Strategy times are ABSOLUTE (0-24 clock hours)
+    - Simulation times are RELATIVE to case start
+    - Formula: simulation_time_seconds = (absolute_hours - case_start_hour) × 3600
+
+    Args:
+        absolute_time_hours: Strategy time in absolute clock hours [0-24]
+        case_start_hour: Case simulation start hour [0-23] or None to use as-is
+
+    Returns:
+        Simulation time in seconds (can be negative if before case start!)
+
+    Example:
+        Case starts at 08:00, strategy time is 09:00
+        absolute_time_hours=9, case_start_hour=8
+        → (9 - 8) × 3600 = 3600 seconds into simulation
+    """
+    if case_start_hour is None:
+        # No case metadata - assume absolute time is simulation time
+        logger.warning("Case start hour not available, treating absolute time as simulation time")
+        return int(absolute_time_hours * 3600)
+
+    # Adjust absolute time by case start hour
+    relative_hours = absolute_time_hours - case_start_hour
+    simulation_seconds = int(relative_hours * 3600)
+
+    logger.debug(
+        f"Absolute time {absolute_time_hours}h - case start {case_start_hour}h = "
+        f"{relative_hours}h = {simulation_seconds}s (simulation time)"
+    )
+
+    return simulation_seconds
 
 
 def _map_vehicle_types_to_sumo(

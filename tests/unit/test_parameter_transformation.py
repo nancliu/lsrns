@@ -22,6 +22,7 @@ from shared.control_tools.additional_generator import (
     generate_dhs_xml,
     _map_vehicle_types_to_sumo,
     _extract_case_start_hour,
+    _convert_absolute_to_simulation_time,
     generate_strategy_xml
 )
 from shared.control_tools.xml_validator import validate_xml_string
@@ -87,6 +88,90 @@ class TestCaseMetadataExtraction:
         # Should raise AssertionError or ValueError
         with pytest.raises((ValueError, AssertionError)):
             _extract_case_start_hour(case_metadata)
+
+
+class TestTimeConversionAbsoluteToSimulation:
+    """Test conversion from absolute clock time to simulation-relative time."""
+
+    def test_time_conversion_case_start_08_strategy_09(self):
+        """Test: Case starts at 08:00, strategy time is 09:00."""
+        # Case starts at 08:00
+        case_start_hour = 8
+        # Strategy uses absolute time 09:00
+        absolute_time_hours = 9
+
+        simulation_seconds = _convert_absolute_to_simulation_time(absolute_time_hours, case_start_hour)
+
+        # Expected: (9 - 8) × 3600 = 3600 seconds
+        assert simulation_seconds == 3600, f"Expected 3600s, got {simulation_seconds}s"
+
+    def test_time_conversion_case_start_08_strategy_same_time(self):
+        """Test: Case starts at 08:00, strategy time is also 08:00."""
+        case_start_hour = 8
+        absolute_time_hours = 8
+
+        simulation_seconds = _convert_absolute_to_simulation_time(absolute_time_hours, case_start_hour)
+
+        # Expected: (8 - 8) × 3600 = 0 seconds (start of simulation)
+        assert simulation_seconds == 0, f"Expected 0s, got {simulation_seconds}s"
+
+    def test_time_conversion_case_start_08_strategy_07(self):
+        """Test: Case starts at 08:00, strategy time is 07:00 (before case start)."""
+        case_start_hour = 8
+        absolute_time_hours = 7
+
+        simulation_seconds = _convert_absolute_to_simulation_time(absolute_time_hours, case_start_hour)
+
+        # Expected: (7 - 8) × 3600 = -3600 seconds (negative = before simulation start)
+        assert simulation_seconds == -3600, f"Expected -3600s, got {simulation_seconds}s"
+
+    def test_time_conversion_case_start_00_strategy_12(self):
+        """Test: Case starts at 00:00, strategy time is 12:00 (noon)."""
+        case_start_hour = 0
+        absolute_time_hours = 12
+
+        simulation_seconds = _convert_absolute_to_simulation_time(absolute_time_hours, case_start_hour)
+
+        # Expected: (12 - 0) × 3600 = 43200 seconds (12 hours)
+        assert simulation_seconds == 43200, f"Expected 43200s, got {simulation_seconds}s"
+
+    def test_time_conversion_case_start_23_strategy_24(self):
+        """Test: Case starts at 23:00, strategy time is 24:00 (midnight of next day)."""
+        case_start_hour = 23
+        absolute_time_hours = 24
+
+        simulation_seconds = _convert_absolute_to_simulation_time(absolute_time_hours, case_start_hour)
+
+        # Expected: (24 - 23) × 3600 = 3600 seconds (1 hour)
+        assert simulation_seconds == 3600, f"Expected 3600s, got {simulation_seconds}s"
+
+    def test_time_conversion_no_case_metadata(self):
+        """Test: No case metadata available, use absolute time directly."""
+        absolute_time_hours = 9
+        case_start_hour = None
+
+        simulation_seconds = _convert_absolute_to_simulation_time(absolute_time_hours, case_start_hour)
+
+        # Expected: Use absolute time as-is: 9 × 3600 = 32400 seconds
+        assert simulation_seconds == 32400, f"Expected 32400s, got {simulation_seconds}s"
+
+    def test_time_conversion_multiple_values(self):
+        """Test conversion with multiple time values for completeness."""
+        case_start_hour = 7
+
+        test_cases = [
+            (7, 0),           # 07:00 → 0 seconds (start)
+            (8, 3600),        # 08:00 → 1 hour
+            (9, 7200),        # 09:00 → 2 hours
+            (12, 18000),      # 12:00 → 5 hours
+            (19, 43200),      # 19:00 → 12 hours
+            (6, -3600),       # 06:00 → -1 hour (before start)
+        ]
+
+        for absolute_hours, expected_seconds in test_cases:
+            result = _convert_absolute_to_simulation_time(absolute_hours, case_start_hour)
+            assert result == expected_seconds, \
+                f"Case start 07:00, strategy {absolute_hours}h: expected {expected_seconds}s, got {result}s"
 
 
 class TestVehicleTypeConversion:
