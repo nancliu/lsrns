@@ -1,59 +1,211 @@
 {
   "strategy_id": "strategy_real_dhs_g4202_002",
   "strategy_name": "G4202绕东锦城湖段晚高峰应急车道开放",
-  "description": "针对K42.32锦城湖段晚高峰高流量（478-517 veh/hr）问题，晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g4202_002使用，形成VSS+DHS复合管控方案。基于baseline门架数据G420151001001210010",
   "template_id": "dhs_peak_hours",
+  "template_name": "应急车道开放",
   "strategy_type": "DHS",
-  "configured_params": {
-    "affected_edges": [
-      "-7798.460",
-      "-13928",
-      "-7790",
-      "-5220",
-      "-7790.354",
-      "-1842",
-      "-1842.115",
-      "-11526",
-      "-15156",
-      "-15156.326",
-      "-7982",
-      "-7982.425",
-      "-7982.512"
-    ],
+  "parameters": {
     "hard_shoulder_lane_index": 0,
     "intervals": [
       {
         "begin_hours": 0,
         "end_hours": 17,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["delivery"]
+        "allowed_vehicle_types": [
+          "delivery"
+        ]
       },
       {
         "begin_hours": 17,
         "end_hours": 20,
         "status": "OPEN",
-        "allowed_vehicle_types": ["passenger", "truck", "delivery"]
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck",
+          "delivery"
+        ]
       },
       {
         "begin_hours": 20,
         "end_hours": 24,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["delivery"]
+        "allowed_vehicle_types": [
+          "delivery"
+        ]
       }
     ],
-    "allowed_vehicle_types": ["passenger", "truck", "delivery"]
+    "allowed_vehicle_types": [
+      "passenger",
+      "truck",
+      "delivery"
+    ]
   },
-  "tags": ["G4202", "绕城高速", "锦城湖段", "晚高峰", "应急车道", "真实数据", "P0", "复合策略"],
+  "affected_edges": [
+    "-7798.460",
+    "-13928",
+    "-7790",
+    "-5220",
+    "-7790.354",
+    "-1842",
+    "-1842.115",
+    "-11526",
+    "-15156",
+    "-15156.326",
+    "-7982",
+    "-7982.425",
+    "-7982.512"
+  ],
+  "metadata": {
+    "created_at": "2025-10-26T00:00:00Z",
+    "updated_at": "2025-10-26T00:00:00Z",
+    "created_by": "data_analyst",
+    "version": 1
+  },
+  "description": "针对K42.32锦城湖段晚高峰高流量（478-517 veh/hr）问题，晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g4202_002使用，形成VSS+DHS复合管控方案。基于baseline门架数据G420151001001210010",
+  "tags": [
+    "G4202",
+    "绕城高速",
+    "锦城湖段",
+    "晚高峰",
+    "应急车道",
+    "真实数据",
+    "P0",
+    "复合策略"
+  ],
   "data_source": {
     "gantry_id": "G420151001001210010",
     "batch_id": "20251013_20251019",
     "pattern_type": "workday",
-    "max_flow": 517.90,
+    "max_flow": 517.9,
     "stake": "K42.32"
   },
-  "created_at": "2025-10-26T00:00:00Z",
-  "updated_at": "2025-10-26T00:00:00Z",
-  "created_by": "data_analyst",
   "status": "active",
-  "referenced_by": []
+  "referenced_by": [],
+  "template": {
+    "template_id": "dhs_peak_hours",
+    "template_name": "应急车道开放",
+    "description": "高峰期开放应急车道（硬路肩）作为临时车道，增加道路通行能力。适用于拥堵严重的高速公路路段，通过临时车道缓解交通压力。",
+    "extends": "dhs_base",
+    "version": "2.1",
+    "parameters_schema": [
+      {
+        "parameter_name": "affected_edges",
+        "parameter_type": "edge_array",
+        "description": "受应急车道控制影响的路段edge ID列表（应形成连续区间）",
+        "required": true,
+        "default_value": [],
+        "unit": null,
+        "sumo_mapping": "edges (直接使用)"
+      },
+      {
+        "parameter_name": "hard_shoulder_lane_index",
+        "parameter_type": "integer",
+        "description": "应急车道索引（SUMO中索引0为最右侧车道，即硬路肩）",
+        "required": false,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 7,
+        "unit": null,
+        "note": "SUMO车道编号：0=最右侧（硬路肩），递增向左。4车道公路中：0为硬路肩，3为最左侧车道"
+      },
+      {
+        "parameter_name": "intervals",
+        "parameter_type": "dhs_interval_array",
+        "description": "应急车道开放/关闭的时间区间列表（注意：必须覆盖完整24小时，不能有时间重叠或间隙）",
+        "required": true,
+        "default_value": [
+          {
+            "begin_hours": 0,
+            "end_hours": 7,
+            "status": "CLOSED",
+            "allowed_vehicle_types": [
+              "delivery"
+            ]
+          },
+          {
+            "begin_hours": 7,
+            "end_hours": 10,
+            "status": "OPEN",
+            "allowed_vehicle_types": [
+              "passenger",
+              "truck",
+              "delivery"
+            ]
+          },
+          {
+            "begin_hours": 10,
+            "end_hours": 17,
+            "status": "CLOSED",
+            "allowed_vehicle_types": [
+              "delivery"
+            ]
+          },
+          {
+            "begin_hours": 17,
+            "end_hours": 19,
+            "status": "OPEN",
+            "allowed_vehicle_types": [
+              "passenger",
+              "truck",
+              "delivery"
+            ]
+          },
+          {
+            "begin_hours": 19,
+            "end_hours": 24,
+            "status": "CLOSED",
+            "allowed_vehicle_types": [
+              "delivery"
+            ]
+          }
+        ],
+        "unit": null,
+        "constraints": {
+          "min_intervals": 1,
+          "max_intervals": 10,
+          "coverage": "应覆盖完整的24小时"
+        },
+        "interval_structure": {
+          "begin_display_unit": "hours",
+          "begin_sumo_unit": "seconds",
+          "begin_conversion_factor": 3600,
+          "end_display_unit": "hours",
+          "end_sumo_unit": "seconds",
+          "end_conversion_factor": 3600
+        },
+        "sumo_element": "interval",
+        "sumo_child_element": "closingLaneReroute"
+      },
+      {
+        "parameter_name": "allowed_vehicle_types",
+        "parameter_type": "enum_array",
+        "description": "应急车道开放时允许通行的车辆类型（全局默认值，可被时间区间的值覆盖）",
+        "required": false,
+        "default_value": [
+          "passenger",
+          "truck",
+          "delivery"
+        ],
+        "unit": null,
+        "enum_values": [
+          {
+            "value": "passenger",
+            "label": "客车"
+          },
+          {
+            "value": "truck",
+            "label": "货车"
+          },
+          {
+            "value": "delivery",
+            "label": "特种车辆"
+          }
+        ],
+        "note": "此参数定义应急车道开放时的默认允许车型。实际使用时，每个时间区间可设置自己的allowed_vehicle_types",
+        "sumo_mapping": "allow 属性"
+      }
+    ],
+    "created_at": "2025-10-19T00:00:00Z",
+    "updated_at": "2025-10-31T14:00:00Z"
+  }
 }

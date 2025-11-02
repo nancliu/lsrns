@@ -1,62 +1,96 @@
 {
   "strategy_id": "strategy_real_dhs_g5_002",
   "strategy_name": "G5成雅双流段高峰应急车道开放",
-  "description": "针对K1820双流段全天持续拥堵，早晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g5_001使用，形成VSS+DHS复合管控方案。基于baseline门架数据G000551005000220010",
   "template_id": "dhs_peak_multi_interval",
+  "template_name": "应急车道 - 多时段管理",
   "strategy_type": "DHS",
-  "configured_params": {
-    "affected_edges": [
-      "-8174",
-      "-14036",
-      "-7854",
-      "-15664",
-      "-4878",
-      "-13916",
-      "-10274",
-      "-2092",
-      "-9480",
-      "-11518",
-      "-4878.749",
-      "-4878.924",
-      "-14628",
-      "-6476"
-    ],
+  "parameters": {
     "hard_shoulder_lane_index": 0,
     "intervals": [
       {
         "begin_hours": 0,
         "end_hours": 7,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["delivery"]
+        "allowed_vehicle_types": [
+          "delivery"
+        ]
       },
       {
         "begin_hours": 7,
         "end_hours": 10,
         "status": "OPEN",
-        "allowed_vehicle_types": ["passenger", "truck", "delivery"]
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck",
+          "delivery"
+        ]
       },
       {
         "begin_hours": 10,
         "end_hours": 16,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["delivery"]
+        "allowed_vehicle_types": [
+          "delivery"
+        ]
       },
       {
         "begin_hours": 16,
         "end_hours": 20,
         "status": "OPEN",
-        "allowed_vehicle_types": ["passenger", "truck", "delivery"]
+        "allowed_vehicle_types": [
+          "passenger",
+          "truck",
+          "delivery"
+        ]
       },
       {
         "begin_hours": 20,
         "end_hours": 24,
         "status": "CLOSED",
-        "allowed_vehicle_types": ["delivery"]
+        "allowed_vehicle_types": [
+          "delivery"
+        ]
       }
     ],
-    "allowed_vehicle_types": ["passenger", "truck", "delivery"]
+    "allowed_vehicle_types": [
+      "passenger",
+      "truck",
+      "delivery"
+    ]
   },
-  "tags": ["G5", "成雅高速", "双流段", "早晚高峰", "应急车道", "真实数据", "P0", "复合策略"],
+  "affected_edges": [
+    "-8174",
+    "-14036",
+    "-7854",
+    "-15664",
+    "-4878",
+    "-13916",
+    "-10274",
+    "-2092",
+    "-9480",
+    "-11518",
+    "-4878.749",
+    "-4878.924",
+    "-14628",
+    "-6476"
+  ],
+  "metadata": {
+    "created_at": "2025-10-26T00:00:00Z",
+    "updated_at": "2025-10-26T00:00:00Z",
+    "created_by": "data_analyst",
+    "version": 1
+  },
+  "description": "针对K1820双流段全天持续拥堵，早晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g5_001使用，形成VSS+DHS复合管控方案。基于baseline门架数据G000551005000220010",
+  "tags": [
+    "G5",
+    "成雅高速",
+    "双流段",
+    "早晚高峰",
+    "应急车道",
+    "真实数据",
+    "P0",
+    "复合策略"
+  ],
   "data_source": {
     "gantry_id": "G000551005000220010",
     "batch_id": "20251013_20251019",
@@ -64,9 +98,81 @@
     "max_flow": 316.95,
     "stake": "K1820.15"
   },
-  "created_at": "2025-10-26T00:00:00Z",
-  "updated_at": "2025-10-26T00:00:00Z",
-  "created_by": "data_analyst",
   "status": "active",
-  "referenced_by": []
+  "referenced_by": [],
+  "template": {
+    "template_id": "dhs_peak_multi_interval",
+    "template_name": "应急车道 - 多时段管理",
+    "description": "复杂的多时段应急车道管理方案，通过5+个时间段在24小时内精确控制应急车道的开放与关闭，实现最优的流量管理。模式：夜间关闭→早高峰开放→平峰关闭→晚高峰开放→夜间关闭。",
+    "extends": "dhs_base",
+    "version": "2.1",
+    "parameters_schema": [
+      {
+        "parameter_name": "affected_edges",
+        "parameter_type": "edge_array",
+        "description": "受应急车道控制影响的路段edge ID列表（应形成连续区间）",
+        "required": true,
+        "default_value": [],
+        "unit": null,
+        "sumo_mapping": "edges (直接使用)"
+      },
+      {
+        "parameter_name": "hard_shoulder_lane_index",
+        "parameter_type": "integer",
+        "description": "应急车道索引（SUMO中索引0为最右侧车道，即硬路肩）",
+        "required": false,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 7,
+        "unit": null,
+        "note": "SUMO车道编号：0=最右侧（硬路肩），递增向左。4车道公路中：0为硬路肩，3为最左侧车道"
+      },
+      {
+        "parameter_name": "intervals",
+        "parameter_type": "dhs_interval_array",
+        "description": "5个及以上精确的时间段定义（最少5个），必须完整覆盖24小时（0-24），无缝隙或重叠",
+        "constraints": {
+          "min_intervals": 5,
+          "max_intervals": 10,
+          "coverage": "必须覆盖完整24小时(0-24)，无缝隙或重叠"
+        },
+        "required": true
+      },
+      {
+        "parameter_name": "allowed_vehicle_types",
+        "parameter_type": "enum_array",
+        "description": "应急车道开放时允许通行的车辆类型（全局默认值，可被时间区间的值覆盖）",
+        "required": false,
+        "default_value": [
+          "passenger",
+          "truck",
+          "delivery"
+        ],
+        "unit": null,
+        "enum_values": [
+          {
+            "value": "passenger",
+            "label": "客车"
+          },
+          {
+            "value": "truck",
+            "label": "货车"
+          },
+          {
+            "value": "delivery",
+            "label": "特种车辆"
+          }
+        ],
+        "sumo_mapping": "allow 属性",
+        "note": "此参数定义应急车道开放时的默认允许车型。实际使用时，每个时间区间可设置自己的allowed_vehicle_types"
+      }
+    ],
+    "creation_guidance": {
+      "preset_pattern": "默认标准模式：早(07-09) + 晚(17-19)高峰各2小时开放",
+      "customization": "用户可在每个interval中调整开放/关闭和允许的车型",
+      "timeline_visualization": "UI应显示24小时时间线，标记开放(绿色)和关闭(灰色)区间"
+    },
+    "created_at": "2025-10-24T12:00:00Z",
+    "updated_at": "2025-10-29T00:00:00Z"
+  }
 }

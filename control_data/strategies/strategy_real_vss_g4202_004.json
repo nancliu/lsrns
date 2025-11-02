@@ -1,20 +1,10 @@
 {
   "strategy_id": "strategy_real_vss_g4202_004",
   "strategy_name": "G4202绕西光华段早高峰可变限速",
-  "description": "针对K59.8绕西光华大道站-成温邛枢纽早高峰拥堵（速度19.88km/h），采用分时段限速控制。基于baseline门架数据G420151002000410010（批次20251013_20251019）",
   "template_id": "vss_moderate",
+  "template_name": "可变限速 - 中等控制",
   "strategy_type": "VSS",
-  "configured_params": {
-    "affected_edges": [
-      "-12324",
-      "-9794",
-      "-15220",
-      "-13798",
-      "-8656",
-      "-4680",
-      "-7352",
-      "-14872"
-    ],
+  "parameters": {
     "speed_steps": [
       {
         "time_hours": 0,
@@ -42,6 +32,23 @@
       }
     ]
   },
+  "affected_edges": [
+    "-12324",
+    "-9794",
+    "-15220",
+    "-13798",
+    "-8656",
+    "-4680",
+    "-7352",
+    "-14872"
+  ],
+  "metadata": {
+    "created_at": "2025-10-26T00:00:00Z",
+    "updated_at": "2025-10-26T00:00:00Z",
+    "created_by": "data_analyst",
+    "version": 1
+  },
+  "description": "针对K59.8绕西光华大道站-成温邛枢纽早高峰拥堵（速度19.88km/h），采用分时段限速控制。基于baseline门架数据G420151002000410010（批次20251013_20251019）",
   "tags": [
     "G4202",
     "绕城高速",
@@ -60,9 +67,71 @@
     "max_flow": 350.42,
     "stake": "K59.8"
   },
-  "created_at": "2025-10-26T00:00:00Z",
-  "updated_at": "2025-10-26T00:00:00Z",
-  "created_by": "data_analyst",
   "status": "active",
-  "referenced_by": []
+  "referenced_by": [],
+  "template": {
+    "template_id": "vss_moderate",
+    "template_name": "可变限速 - 中等控制",
+    "description": "适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段。通过动态调整限速值来平衡交通流量，减少拥堵风险。",
+    "strategy_type": "VSS",
+    "sumo_element": "variableSpeedSign",
+    "version": "2.0",
+    "parameters_schema": [
+      {
+        "parameter_name": "affected_edges",
+        "parameter_type": "edge_array",
+        "description": "受限速影响的路段edge ID列表",
+        "required": true,
+        "default_value": [],
+        "unit": null,
+        "sumo_mapping": "lanes (自动生成)"
+      },
+      {
+        "parameter_name": "speed_steps",
+        "parameter_type": "step_array",
+        "description": "时间-限速值序列，支持多个步骤实现时变控制",
+        "required": true,
+        "default_value": [
+          {
+            "time_hours": 7,
+            "speed_kmh": 100
+          },
+          {
+            "time_hours": 9,
+            "speed_kmh": 80
+          },
+          {
+            "time_hours": 17,
+            "speed_kmh": 100
+          },
+          {
+            "time_hours": 19,
+            "speed_kmh": 80
+          }
+        ],
+        "unit": null,
+        "constraints": {
+          "min_steps": 1,
+          "max_steps": 10
+        },
+        "step_structure": {
+          "time_display_unit": "hours",
+          "time_sumo_unit": "seconds",
+          "time_conversion_factor": 3600,
+          "speed_display_unit": "km/h",
+          "speed_sumo_unit": "m/s",
+          "speed_conversion_factor": 0.277778,
+          "speed_min": 30,
+          "speed_max": 130
+        },
+        "sumo_element": "step",
+        "sumo_attributes": [
+          "time",
+          "speed"
+        ]
+      }
+    ],
+    "created_at": "2025-10-19T00:00:00Z",
+    "updated_at": "2025-10-24T12:00:00Z"
+  }
 }

@@ -1,0 +1,15 @@
+{
+  "plan_id": "plan_20251102_114638_13139",
+  "plan_name": "E2E测试方案",
+  "description": "这是一个自动化测试创建的方案",
+  "strategy_ids": [],
+  "tags": [
+    "测试",
+    "E2E"
+  ],
+  "target_scenario": "自动化测试场景",
+  "expected_effects": null,
+  "additional_file_path": "control_data/plans/plan_20251102_114638_13139/control.add.xml",
+  "created_at": "2025-11-02T11:46:38.876415",
+  "updated_at": "2025-11-02T11:46:38.876415"
+}

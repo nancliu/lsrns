@@ -384,6 +384,11 @@
     color: var(--color-secondary);
 }
 
+.text-muted {
+    color: var(--color-secondary-hover);
+    font-size: 0.9rem;
+}
+
 /* 视图切换 */
 .view {
     display: none;
@@ -422,12 +427,15 @@
     font-weight: var(--font-weight-600);
 }
 
-/* 批次历史样式 */
-.history-filters {
+/* 批次监控样式 */
+.monitoring-controls {
     margin-bottom: var(--spacing-20);
     padding: var(--spacing-15);
     background: var(--color-light-hover);
     border-radius: var(--radius-md);
+    display: flex;
+    gap: var(--spacing-20);
+    flex-wrap: wrap;
 }
 
 .filter-group {
@@ -449,7 +457,14 @@
     background: white;
 }
 
-/* 批次历史列表 */
+/* 批次列表 (统一监控视图) */
+.batch-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-15);
+}
+
+/* 保留旧类名以向后兼容 */
 .batch-history-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

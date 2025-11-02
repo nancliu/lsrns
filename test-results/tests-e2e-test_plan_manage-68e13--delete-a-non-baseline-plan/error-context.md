@@ -1,0 +1,205 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "交通管控仿真优化系统" [level=1] [ref=e3]
+    - link "返回主系统" [ref=e4] [cursor=pointer]:
+      - /url: ../index.html
+  - generic [ref=e5]:
+    - list [ref=e7]:
+      - listitem [ref=e8]:
+        - link "策略管理" [ref=e9] [cursor=pointer]:
+          - /url: templates.html
+      - listitem [ref=e10]:
+        - link "方案管理" [ref=e11] [cursor=pointer]:
+          - /url: plans.html
+      - listitem [ref=e12]:
+        - link "批量仿真" [ref=e13] [cursor=pointer]:
+          - /url: simulations.html
+      - listitem [ref=e14]:
+        - link "方案优化" [ref=e15] [cursor=pointer]:
+          - /url: optimization.html
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "方案管理" [level=2] [ref=e18]
+        - paragraph [ref=e19]: 创建和管理交通控制方案
+      - button "➕ 新建方案" [ref=e21] [cursor=pointer]
+      - generic [ref=e22]:
+        - textbox "搜索方案名称..." [ref=e23]
+        - textbox "按标签筛选..." [ref=e24]
+        - generic [ref=e25]:
+          - checkbox "显示基准方案" [checked] [ref=e26]
+          - text: 显示基准方案
+      - generic [ref=e28]:
+        - generic [ref=e29] [cursor=pointer]:
+          - generic [ref=e30] [cursor=pointer]:
+            - generic [ref=e31] [cursor=pointer]:
+              - generic [ref=e32] [cursor=pointer]: 基准方案（无管控）
+              - generic [ref=e33] [cursor=pointer]: "策略数: 0"
+            - generic [ref=e34] [cursor=pointer]: 基准
+          - generic [ref=e35] [cursor=pointer]:
+            - generic [ref=e36] [cursor=pointer]: 基准
+            - generic [ref=e37] [cursor=pointer]: 无管控
+            - generic [ref=e38] [cursor=pointer]: 系统
+        - generic [ref=e39] [cursor=pointer]:
+          - generic [ref=e41] [cursor=pointer]:
+            - generic [ref=e42] [cursor=pointer]: 晚高峰严重拥堵DHS应急车道开放方案
+            - generic [ref=e43] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e44] [cursor=pointer]:
+            - generic [ref=e45] [cursor=pointer]: P0
+            - generic [ref=e46] [cursor=pointer]: evening高峰
+            - generic [ref=e47] [cursor=pointer]: 简单策略
+            - generic [ref=e48] [cursor=pointer]: DHS
+        - generic [ref=e49] [cursor=pointer]:
+          - generic [ref=e51] [cursor=pointer]:
+            - generic [ref=e52] [cursor=pointer]: 早高峰严重拥堵DHS应急车道开放方案
+            - generic [ref=e53] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e54] [cursor=pointer]:
+            - generic [ref=e55] [cursor=pointer]: P0
+            - generic [ref=e56] [cursor=pointer]: morning高峰
+            - generic [ref=e57] [cursor=pointer]: 简单策略
+            - generic [ref=e58] [cursor=pointer]: DHS
+        - generic [ref=e59] [cursor=pointer]:
+          - generic [ref=e61] [cursor=pointer]:
+            - generic [ref=e62] [cursor=pointer]: 晚高峰严重拥堵TEC入口流量控制方案
+            - generic [ref=e63] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e64] [cursor=pointer]:
+            - generic [ref=e65] [cursor=pointer]: P0
+            - generic [ref=e66] [cursor=pointer]: evening高峰
+            - generic [ref=e67] [cursor=pointer]: 简单策略
+            - generic [ref=e68] [cursor=pointer]: TEC
+          - generic [ref=e69] [cursor=pointer]:
+            - button "查看" [ref=e70] [cursor=pointer]
+            - button "编辑" [ref=e71] [cursor=pointer]
+            - button "删除" [ref=e72] [cursor=pointer]
+        - generic [ref=e73] [cursor=pointer]:
+          - generic [ref=e75] [cursor=pointer]:
+            - generic [ref=e76] [cursor=pointer]: 早高峰严重拥堵TEC入口流量控制方案
+            - generic [ref=e77] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e78] [cursor=pointer]:
+            - generic [ref=e79] [cursor=pointer]: P0
+            - generic [ref=e80] [cursor=pointer]: morning高峰
+            - generic [ref=e81] [cursor=pointer]: 简单策略
+            - generic [ref=e82] [cursor=pointer]: TEC
+        - generic [ref=e83] [cursor=pointer]:
+          - generic [ref=e85] [cursor=pointer]:
+            - generic [ref=e86] [cursor=pointer]: 晚高峰VSS+DHS复合管控方案
+            - generic [ref=e87] [cursor=pointer]: "策略数: 2"
+          - generic [ref=e88] [cursor=pointer]:
+            - generic [ref=e89] [cursor=pointer]: P0
+            - generic [ref=e90] [cursor=pointer]: 复合策略
+            - generic [ref=e91] [cursor=pointer]: VSS+DHS
+            - generic [ref=e92] [cursor=pointer]: 晚高峰
+            - generic [ref=e93] [cursor=pointer]: 双策略协同
+            - generic [ref=e94] [cursor=pointer]: 通行能力提升
+        - generic [ref=e95] [cursor=pointer]:
+          - generic [ref=e97] [cursor=pointer]:
+            - generic [ref=e98] [cursor=pointer]: 晚高峰高流量拥堵VSS+DHS复合管控方案
+            - generic [ref=e99] [cursor=pointer]: "策略数: 2"
+          - generic [ref=e100] [cursor=pointer]:
+            - generic [ref=e101] [cursor=pointer]: P0
+            - generic [ref=e102] [cursor=pointer]: evening高峰
+            - generic [ref=e103] [cursor=pointer]: 中等策略
+            - generic [ref=e104] [cursor=pointer]: VSS
+            - generic [ref=e105] [cursor=pointer]: DHS
+        - generic [ref=e106] [cursor=pointer]:
+          - generic [ref=e108] [cursor=pointer]:
+            - generic [ref=e109] [cursor=pointer]: 早高峰严重拥堵VSS+DHS复合管控方案
+            - generic [ref=e110] [cursor=pointer]: "策略数: 2"
+          - generic [ref=e111] [cursor=pointer]:
+            - generic [ref=e112] [cursor=pointer]: P0
+            - generic [ref=e113] [cursor=pointer]: morning高峰
+            - generic [ref=e114] [cursor=pointer]: 中等策略
+            - generic [ref=e115] [cursor=pointer]: VSS
+            - generic [ref=e116] [cursor=pointer]: DHS
+        - generic [ref=e117] [cursor=pointer]:
+          - generic [ref=e119] [cursor=pointer]:
+            - generic [ref=e120] [cursor=pointer]: 全天持续拥堵三策略立体管控方案
+            - generic [ref=e121] [cursor=pointer]: "策略数: 3"
+          - generic [ref=e122] [cursor=pointer]:
+            - generic [ref=e123] [cursor=pointer]: P0
+            - generic [ref=e124] [cursor=pointer]: 复杂策略
+            - generic [ref=e125] [cursor=pointer]: VSS+DHS+TEC
+            - generic [ref=e126] [cursor=pointer]: 全天管控
+            - generic [ref=e127] [cursor=pointer]: 三策略协同
+            - generic [ref=e128] [cursor=pointer]: 立体化管控
+            - generic [ref=e129] [cursor=pointer]: 入口控制
+        - generic [ref=e130] [cursor=pointer]:
+          - generic [ref=e132] [cursor=pointer]:
+            - generic [ref=e133] [cursor=pointer]: 全天持续拥堵VSS+DHS+TEC三策略立体管控方案
+            - generic [ref=e134] [cursor=pointer]: "策略数: 3"
+          - generic [ref=e135] [cursor=pointer]:
+            - generic [ref=e136] [cursor=pointer]: P0
+            - generic [ref=e137] [cursor=pointer]: allday高峰
+            - generic [ref=e138] [cursor=pointer]: 高策略
+            - generic [ref=e139] [cursor=pointer]: VSS
+            - generic [ref=e140] [cursor=pointer]: DHS
+            - generic [ref=e141] [cursor=pointer]: TEC
+        - generic [ref=e142] [cursor=pointer]:
+          - generic [ref=e144] [cursor=pointer]:
+            - generic [ref=e145] [cursor=pointer]: 晚高峰严重拥堵VSS可变限速方案
+            - generic [ref=e146] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e147] [cursor=pointer]:
+            - generic [ref=e148] [cursor=pointer]: P0
+            - generic [ref=e149] [cursor=pointer]: evening高峰
+            - generic [ref=e150] [cursor=pointer]: 简单策略
+            - generic [ref=e151] [cursor=pointer]: VSS
+        - generic [ref=e152] [cursor=pointer]:
+          - generic [ref=e154] [cursor=pointer]:
+            - generic [ref=e155] [cursor=pointer]: 早高峰严重拥堵VSS可变限速方案
+            - generic [ref=e156] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e157] [cursor=pointer]:
+            - generic [ref=e158] [cursor=pointer]: P0
+            - generic [ref=e159] [cursor=pointer]: morning高峰
+            - generic [ref=e160] [cursor=pointer]: 简单策略
+            - generic [ref=e161] [cursor=pointer]: VSS
+        - generic [ref=e162] [cursor=pointer]:
+          - generic [ref=e164] [cursor=pointer]:
+            - generic [ref=e165] [cursor=pointer]: 早高峰单策略VSS限速方案
+            - generic [ref=e166] [cursor=pointer]: "策略数: 1"
+          - generic [ref=e167] [cursor=pointer]:
+            - generic [ref=e168] [cursor=pointer]: P0
+            - generic [ref=e169] [cursor=pointer]: 单策略
+            - generic [ref=e170] [cursor=pointer]: VSS
+            - generic [ref=e171] [cursor=pointer]: 早高峰
+            - generic [ref=e172] [cursor=pointer]: 快速路
+            - generic [ref=e173] [cursor=pointer]: 简单部署
+        - generic [ref=e174] [cursor=pointer]:
+          - generic [ref=e176] [cursor=pointer]:
+            - generic [ref=e177] [cursor=pointer]: 晚高峰高流量拥堵VSS+TEC复合管控方案
+            - generic [ref=e178] [cursor=pointer]: "策略数: 2"
+          - generic [ref=e179] [cursor=pointer]:
+            - generic [ref=e180] [cursor=pointer]: P0
+            - generic [ref=e181] [cursor=pointer]: evening高峰
+            - generic [ref=e182] [cursor=pointer]: 中等策略
+            - generic [ref=e183] [cursor=pointer]: VSS
+            - generic [ref=e184] [cursor=pointer]: TEC
+        - generic [ref=e185] [cursor=pointer]:
+          - generic [ref=e187] [cursor=pointer]:
+            - generic [ref=e188] [cursor=pointer]: 早高峰严重拥堵VSS+TEC复合管控方案
+            - generic [ref=e189] [cursor=pointer]: "策略数: 2"
+          - generic [ref=e190] [cursor=pointer]:
+            - generic [ref=e191] [cursor=pointer]: P0
+            - generic [ref=e192] [cursor=pointer]: morning高峰
+            - generic [ref=e193] [cursor=pointer]: 中等策略
+            - generic [ref=e194] [cursor=pointer]: VSS
+            - generic [ref=e195] [cursor=pointer]: TEC
+        - generic [ref=e196] [cursor=pointer]:
+          - generic [ref=e197] [cursor=pointer]:
+            - generic [ref=e198] [cursor=pointer]:
+              - generic [ref=e199] [cursor=pointer]: E2E测试方案
+              - generic [ref=e200] [cursor=pointer]: "策略数: 0"
+            - generic [ref=e201] [cursor=pointer]: 测试
+          - generic [ref=e202] [cursor=pointer]:
+            - generic [ref=e203] [cursor=pointer]: 测试
+            - generic [ref=e204] [cursor=pointer]: E2E
+        - generic [ref=e206] [cursor=pointer]:
+          - generic [ref=e207] [cursor=pointer]:
+            - generic [ref=e208] [cursor=pointer]: E2E编辑测试方案
+            - generic [ref=e209] [cursor=pointer]: "策略数: 0"
+          - generic [ref=e210] [cursor=pointer]: 基准
+        - generic [ref=e213] [cursor=pointer]:
+          - generic [ref=e214] [cursor=pointer]: E2E删除测试方案
+          - generic [ref=e215] [cursor=pointer]: "策略数: 0"
+```

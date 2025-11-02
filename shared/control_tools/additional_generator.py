@@ -78,8 +78,10 @@ def generate_vss_xml(
     logger.info(f"Generating VSS XML for strategy: {strategy_id}")
 
     try:
-        # Extract parameters
+        # Extract parameters（严格从parameters获取，无回退）
         affected_edges = parameters.get("affected_edges", [])
+        if not affected_edges:
+            raise ValueError(f"VSS strategy {strategy_id} requires 'affected_edges' in parameters")
         speed_steps = parameters.get("speed_steps", [])
 
         # Create root element
@@ -155,8 +157,10 @@ def generate_dhs_xml(
     logger.info(f"Generating DHS XML for strategy: {strategy_id}")
 
     try:
-        # Extract parameters
+        # Extract parameters（严格从parameters获取，无回退）
         affected_edges = parameters.get("affected_edges", [])
+        if not affected_edges:
+            raise ValueError(f"DHS strategy {strategy_id} requires 'affected_edges' in parameters")
         hard_shoulder_lane = parameters.get("hard_shoulder_lane_index", 3)
         intervals = parameters.get("intervals", [])
 
@@ -280,18 +284,10 @@ def _generate_tec_metering_xml(
     """
     logger.debug(f"Generating TEC metering XML: {strategy_id}")
 
-    # Backward compatibility: support both entrance_edge (string) and entrance_edges (array)
+    # 严格从parameters获取entrance_edges（无回退）
     entrance_edges = parameters.get("entrance_edges", [])
-
-    # If entrance_edge (singular) is provided, convert to array
-    if not entrance_edges and "entrance_edge" in parameters:
-        entrance_edge_single = parameters.get("entrance_edge")
-        if entrance_edge_single:
-            entrance_edges = [entrance_edge_single]
-            logger.info(f"Converted legacy entrance_edge '{entrance_edge_single}' to entrance_edges array")
-
     if not entrance_edges:
-        raise ValueError("TEC metering requires entrance_edges (or legacy entrance_edge)")
+        raise ValueError(f"TEC strategy {strategy_id} requires 'entrance_edges' in parameters")
 
     # For now, only use the first entrance edge (single calibrator)
     # Future enhancement: generate multiple calibrators for multiple entrances
@@ -357,14 +353,10 @@ def _generate_tec_closure_xml(
     """Generate TEC closure/restriction XML using rerouter."""
     logger.debug(f"Generating TEC closure/restriction XML: {strategy_id}")
 
-    # Get entrance edges
+    # 严格从parameters获取entrance_edges（无回退）
     entrance_edges = parameters.get("entrance_edges", [])
-    entrance_edge = parameters.get("entrance_edge")
-
-    if entrance_edge:
-        entrance_edges = [entrance_edge]
-    elif not entrance_edges:
-        raise ValueError("TEC closure requires entrance_edge or entrance_edges")
+    if not entrance_edges:
+        raise ValueError(f"TEC strategy {strategy_id} requires 'entrance_edges' in parameters")
 
     # Create rerouter element
     rerouter_elem = Element("rerouter")
@@ -530,6 +522,14 @@ def generate_plan_additional(
                 # Generate strategy XML
                 template = strategy.get("template", {})
                 parameters = strategy.get("parameters", {})
+                
+                # 验证edges在parameters中（严格检查）
+                if "affected_edges" not in parameters:
+                    raise ValueError(
+                        f"VSS strategy {strategy_id} missing 'affected_edges' in parameters. "
+                        f"Available keys: {list(parameters.keys())}"
+                    )
+                
                 strategy_xml = generate_strategy_xml(
                     template_id=strategy.get("template_id", ""),
                     template=template,
@@ -553,6 +553,14 @@ def generate_plan_additional(
             try:
                 template = strategy.get("template", {})
                 parameters = strategy.get("parameters", {})
+                
+                # 验证edges在parameters中（严格检查）
+                if "affected_edges" not in parameters:
+                    raise ValueError(
+                        f"DHS strategy {strategy_id} missing 'affected_edges' in parameters. "
+                        f"Available keys: {list(parameters.keys())}"
+                    )
+                
                 strategy_xml = generate_strategy_xml(
                     template_id=strategy.get("template_id", ""),
                     template=template,
@@ -574,6 +582,14 @@ def generate_plan_additional(
             try:
                 template = strategy.get("template", {})
                 parameters = strategy.get("parameters", {})
+                
+                # 验证entrance_edges在parameters中（严格检查）
+                if "entrance_edges" not in parameters:
+                    raise ValueError(
+                        f"TEC strategy {strategy_id} missing 'entrance_edges' in parameters. "
+                        f"Available keys: {list(parameters.keys())}"
+                    )
+                
                 strategy_xml = generate_strategy_xml(
                     template_id=strategy.get("template_id", ""),
                     template=template,

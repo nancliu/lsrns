@@ -36,8 +36,9 @@ const STATUS_MAP = {
 let currentBatchId = null;
 let currentCaseId = null; // 当前选中的案例ID（用于批次历史加载）
 let progressPollInterval = null;
-let currentView = 'config'; // config, progress, results
+let currentView = 'config'; // config, monitoring, results
 let liveCurveVisible = true; // 动态曲线显示状态（默认显示）
+let expandedBatchId = null; // 当前展开的批次ID（用于批次监控）
 
 // 暴露全局变量给 window 对象（用于E2E测试）
 window.currentBatchId = currentBatchId;
@@ -130,31 +131,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 function switchView(view) {
     currentView = view;
 
-    // Update views
+    // Update views (3-tab structure: config, monitoring, results)
     document.getElementById('configView').classList.toggle('active', view === 'config');
-    document.getElementById('progressView').classList.toggle('active', view === 'progress');
+    document.getElementById('monitoringView').classList.toggle('active', view === 'monitoring');
     document.getElementById('resultsView').classList.toggle('active', view === 'results');
-    document.getElementById('historyView').classList.toggle('active', view === 'history');
 
     // Update tabs
     document.getElementById('configViewTab').classList.toggle('active', view === 'config');
-    document.getElementById('progressViewTab').classList.toggle('active', view === 'progress');
+    document.getElementById('monitoringViewTab').classList.toggle('active', view === 'monitoring');
     document.getElementById('resultsViewTab').classList.toggle('active', view === 'results');
-    document.getElementById('historyViewTab').classList.toggle('active', view === 'history');
 
-    if (view === 'progress' && currentBatchId) {
-        startProgressPolling();
-    } else {
-        stopProgressPolling();
+    // Load data when switching to monitoring view
+    if (view === 'monitoring' && currentCaseId) {
+        loadBatchList();
     }
 
+    // Load results when switching to results view
     if (view === 'results' && currentBatchId) {
         loadResults();
     }
+}
 
-    if (view === 'history' && currentCaseId) {
-        loadBatchHistory();
-    }
+// Placeholder function for loading batch list (Phase 2 implementation)
+function loadBatchList() {
+    // TODO: Phase 2 - Implement batch list loading
+    console.log('loadBatchList() - To be implemented in Phase 2');
+}
+
+// Placeholder functions for filtering and sorting (Phase 5 implementation)
+function filterBatches() {
+    // TODO: Phase 5 - Implement batch filtering
+    console.log('filterBatches() - To be implemented in Phase 5');
+}
+
+function sortBatches() {
+    // TODO: Phase 5 - Implement batch sorting
+    console.log('sortBatches() - To be implemented in Phase 5');
 }
 
 // ========== 数据加载 ==========

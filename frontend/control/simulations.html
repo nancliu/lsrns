@@ -35,9 +35,8 @@
             <!-- View Tabs -->
             <div class="view-tabs">
                 <button class="view-tab active" id="configViewTab" onclick="switchView('config')">配置</button>
-                <button class="view-tab" id="progressViewTab" onclick="switchView('progress')">进度</button>
+                <button class="view-tab" id="monitoringViewTab" onclick="switchView('monitoring')" title="批次监控整合了进度和历史功能">批次监控</button>
                 <button class="view-tab" id="resultsViewTab" onclick="switchView('results')">结果</button>
-                <button class="view-tab" id="historyViewTab" onclick="switchView('history')">批次历史</button>
             </div>
 
             <!-- 配置视图 -->
@@ -87,65 +86,44 @@
                 </div>
             </div>
 
-            <!-- 进度视图 -->
-            <div id="progressView" class="view">
+            <!-- 批次监控视图 (统一进度与历史) -->
+            <div id="monitoringView" class="view">
                 <div class="content-header">
-                    <h2>批量仿真进度</h2>
-                    <p class="content-subtitle">实时监控多方案仿真执行状态</p>
+                    <h2>批次监控</h2>
+                    <p class="content-subtitle">实时监控和历史回顾批量仿真执行状态</p>
                 </div>
 
-                <div class="progress-header" id="batchInfo">
-                    <h3 id="batchTitle">批次信息</h3>
-                    <p id="batchStatus">状态: 等待启动</p>
-
-                    <!-- 任务统计信息 -->
-                    <div id="taskStats" class="task-stats">
-                        <div class="task-stats-grid">
-                            <div class="stat-item">
-                                <strong>总任务数:</strong> <span id="totalTasks">0</span>
-                            </div>
-                            <div class="stat-item stat-completed">
-                                <strong>已完成:</strong> <span id="completedTasks">0</span>
-                            </div>
-                            <div class="stat-item stat-running">
-                                <strong>运行中:</strong> <span id="runningTasks">0</span>
-                            </div>
-                            <div class="stat-item stat-failed">
-                                <strong>失败:</strong> <span id="failedTasks">0</span>
-                            </div>
-                        </div>
-                        <div id="estimatedCompletion" class="estimated-completion">
-                            <!-- 预计完成时间将动态填充 -->
-                        </div>
+                <!-- 筛选和控制栏 -->
+                <div class="monitoring-controls">
+                    <div class="filter-group">
+                        <label for="statusFilter">状态筛选:</label>
+                        <select id="statusFilter" onchange="filterBatches()">
+                            <option value="">全部状态</option>
+                            <option value="running">运行中</option>
+                            <option value="completed">已完成</option>
+                            <option value="failed">失败</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
                     </div>
-
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progressBar">
-                            <span id="progressText">0%</span>
-                        </div>
+                    <div class="filter-group">
+                        <label for="sortOrder">排序:</label>
+                        <select id="sortOrder" onchange="sortBatches()">
+                            <option value="created_desc">最近创建</option>
+                            <option value="completed_desc">最近完成</option>
+                            <option value="duration_desc">耗时最长</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="tasks-container">
-                    <div id="taskList">
-                        <!-- 动态加载 -->
-                    </div>
+                <!-- 批次列表 -->
+                <div id="batchList" class="batch-list">
+                    <!-- 批次卡片将动态加载 -->
                 </div>
 
-                <div class="btn-group">
-                    <button class="btn btn-primary" id="startBatchBtn">启动仿真</button>
-                    <button class="btn btn-danger" id="cancelBatchBtn">取消批量仿真</button>
-                </div>
-
-                <!-- 动态在网车辆曲线控制栏 -->
-                <div id="liveCurveControlBar" class="live-curve-control-bar">
-                    <h4 class="live-curve-title">实时在网车辆数</h4>
-                    <button id="toggleLiveCurveBtn" class="btn btn-secondary btn-sm">隐藏曲线</button>
-                </div>
-
-                <!-- 动态在网车辆曲线图表 -->
-                <div id="liveCurveSection" class="live-curve-section">
-                    <canvas id="liveCurveChart" class="live-curve-chart"></canvas>
+                <!-- 空状态提示 -->
+                <div id="batchListEmpty" class="empty-state" style="display: none;">
+                    <p>暂无批次记录</p>
+                    <p class="text-muted">请在"配置"标签创建批量仿真</p>
                 </div>
             </div>
 
@@ -184,35 +162,6 @@
                 </div>
             </div>
 
-            <!-- 批次历史视图 -->
-            <div id="historyView" class="view">
-                <div class="content-header">
-                    <h2>批次历史</h2>
-                    <p class="content-subtitle">查看和管理历史批次</p>
-                </div>
-
-                <div class="history-filters">
-                    <div class="filter-group">
-                        <label for="historyStatusFilter">状态筛选:</label>
-                        <select id="historyStatusFilter" onchange="filterBatchHistory()">
-                            <option value="">全部状态</option>
-                            <option value="running">运行中</option>
-                            <option value="completed">已完成</option>
-                            <option value="cancelled">已取消</option>
-                            <option value="failed">失败</option>
-                            <option value="archived">已归档</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="batchHistoryList" class="batch-history-list">
-                    <!-- 批次卡片将动态加载 -->
-                </div>
-
-                <div id="batchHistoryEmpty" class="empty-state" style="display: none;">
-                    <p>暂无批次历史</p>
-                </div>
-            </div>
         </div>
     </div>
 

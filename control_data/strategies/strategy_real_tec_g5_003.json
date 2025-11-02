@@ -1,10 +1,10 @@
 {
   "strategy_id": "strategy_real_tec_g5_003",
   "strategy_name": "G5成绵新都站入口流量控制",
-  "description": "针对K1768.55成绵新都站进入K1768.5拥堵区域（峰值流量262 veh/hr，主线速度67km/h显示拥堵迹象），采用早晚高峰双时段入口流量控制。早高峰限流180 veh/hr（削减31%），晚高峰限流150 veh/hr（削减42%）。基于baseline门架数据G000551044001320010（批次20251013_20251019）",
   "template_id": "tec_flow_metering",
+  "template_name": "收费入口 - 流量控制",
   "strategy_type": "TEC",
-  "configured_params": {
+  "parameters": {
     "position": 0,
     "flow_intervals": [
       {
@@ -42,6 +42,14 @@
       "-15818"
     ]
   },
+  "affected_edges": [],
+  "metadata": {
+    "created_at": "2025-10-26T00:00:00Z",
+    "updated_at": "2025-10-26T00:00:00Z",
+    "created_by": "data_analyst",
+    "version": 1
+  },
+  "description": "针对K1768.55成绵新都站进入K1768.5拥堵区域（峰值流量262 veh/hr，主线速度67km/h显示拥堵迹象），采用早晚高峰双时段入口流量控制。早高峰限流180 veh/hr（削减31%），晚高峰限流150 veh/hr（削减42%）。基于baseline门架数据G000551044001320010（批次20251013_20251019）",
   "tags": [
     "G5",
     "成绵高速",
@@ -63,9 +71,159 @@
     "entrance_edge_verified": true,
     "edge_advantage": "2车道入口支持更高计量容量"
   },
-  "created_at": "2025-10-26T00:00:00Z",
-  "updated_at": "2025-10-26T00:00:00Z",
-  "created_by": "data_analyst",
   "status": "active",
-  "referenced_by": []
+  "referenced_by": [],
+  "template": {
+    "template_id": "tec_flow_metering",
+    "template_name": "收费入口 - 流量控制",
+    "description": "通过限制每小时进入车辆数来管理入口流量，适用于日常的拥堵控制和流量均衡。支持灵活的时间段配置，从简单的单时段到复杂的多时段管理，可精确匹配交通需求曲线。",
+    "strategy_type": "TEC",
+    "sumo_element": "calibrator",
+    "version": "2.0",
+    "parameters_schema": [
+      {
+        "parameter_name": "entrance_edges",
+        "parameter_type": "edge_array",
+        "description": "入口匝道edge ID列表（支持1个或多个entrance，系统为每个entrance生成独立的calibrator）",
+        "required": true,
+        "default_value": [],
+        "unit": null,
+        "sumo_mapping": "edge 属性（为每个edge生成单独的calibrator）"
+      },
+      {
+        "parameter_name": "position",
+        "parameter_type": "number",
+        "description": "Calibrator位置（通常为0=入口起点）",
+        "required": false,
+        "default_value": 0,
+        "min_value": 0,
+        "max_value": 1000,
+        "unit": "米"
+      },
+      {
+        "parameter_name": "flow_intervals",
+        "parameter_type": "flow_interval_array",
+        "description": "流量控制的时间段和限流速率（支持1-10个时段，覆盖0-24小时）",
+        "required": true,
+        "default_value": [
+          {
+            "begin_hours": 0,
+            "end_hours": 7,
+            "vehsPerHour": 480,
+            "target_speed": 15
+          },
+          {
+            "begin_hours": 7,
+            "end_hours": 9,
+            "vehsPerHour": 180,
+            "target_speed": 8
+          },
+          {
+            "begin_hours": 9,
+            "end_hours": 17,
+            "vehsPerHour": 480,
+            "target_speed": 15
+          },
+          {
+            "begin_hours": 17,
+            "end_hours": 19,
+            "vehsPerHour": 300,
+            "target_speed": 10
+          },
+          {
+            "begin_hours": 19,
+            "end_hours": 24,
+            "vehsPerHour": 480,
+            "target_speed": 15
+          }
+        ],
+        "unit": null,
+        "constraints": {
+          "min_intervals": 1,
+          "max_intervals": 10,
+          "coverage": "建议覆盖完整的24小时"
+        },
+        "interval_structure": {
+          "begin_display_unit": "hours",
+          "begin_sumo_unit": "seconds",
+          "begin_conversion_factor": 3600,
+          "end_display_unit": "hours",
+          "end_sumo_unit": "seconds",
+          "end_conversion_factor": 3600,
+          "vehsPerHour_display_unit": "vehicles/hour",
+          "vehsPerHour_sumo_format": "直接使用",
+          "target_speed_display_unit": "m/s",
+          "target_speed_sumo_unit": "m/s",
+          "target_speed_constraints": {
+            "min": 5,
+            "max": 20
+          }
+        },
+        "sumo_element": "flow",
+        "sumo_attributes": [
+          "begin",
+          "end",
+          "vehsPerHour",
+          "speed"
+        ]
+      }
+    ],
+    "usage_guidelines": {
+      "simple_case": {
+        "description": "单时段配置 - 全天统一流量限制",
+        "example": "1个时段覆盖0-24小时，不分高低峰"
+      },
+      "medium_case": {
+        "description": "多时段配置 - 高峰与非高峰分别管理",
+        "example": "2-3个时段：夜间低流量→早高峰严格→白天中等→晚高峰→夜间"
+      },
+      "advanced_case": {
+        "description": "精细管理 - 精确匹配需求曲线",
+        "example": "4-10个时段：精确到每个小时或30分钟的流量调整"
+      }
+    },
+    "flow_reference_table": {
+      "description": "常用流量值参考（vehicles/hour ↔ 间隔秒数）",
+      "table": [
+        {
+          "vehsPerHour": 600,
+          "interval_seconds": 6,
+          "level": "正常通行"
+        },
+        {
+          "vehsPerHour": 480,
+          "interval_seconds": 7.5,
+          "level": "轻度限流"
+        },
+        {
+          "vehsPerHour": 360,
+          "interval_seconds": 10,
+          "level": "中度限流"
+        },
+        {
+          "vehsPerHour": 240,
+          "interval_seconds": 15,
+          "level": "严格限流"
+        },
+        {
+          "vehsPerHour": 180,
+          "interval_seconds": 20,
+          "level": "极严格限流"
+        }
+      ]
+    },
+    "visualization_guidance": {
+      "description": "建议在UI中显示流量曲线可视化",
+      "graph_type": "折线图",
+      "x_axis": "时间（小时，0-24）",
+      "y_axis": "流量（vehicles/hour，0-600）",
+      "typical_pattern": "U形曲线或多峰曲线（低→高→低→中→低）"
+    },
+    "notes": {
+      "replaces": "合并了原来的 tec_metering（基础限流）和 tec_metering_advanced（高级限流）",
+      "reason": "两个模板的参数结构完全相同，仅约束条件不同。统一为一个灵活的模板，用户可自由选择时段数"
+    },
+    "created_at": "2025-10-24T12:00:00Z",
+    "updated_at": "2025-10-25T00:00:00Z"
+  }
 }

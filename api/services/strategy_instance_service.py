@@ -291,7 +291,17 @@ class StrategyInstanceService:
         # Process vehicle types expansion (if present)
         processed_parameters = self._process_vehicle_types(request.parameters)
 
-        # Build strategy data
+        # 统一将edges放入parameters（严格格式，无回退）
+        if strategy_type in ["VSS", "DHS"]:
+            # VSS/DHS使用affected_edges
+            processed_parameters["affected_edges"] = request.affected_edges
+        elif strategy_type == "TEC":
+            # TEC使用entrance_edges
+            # 如果前端已放入parameters，使用前端的值；否则使用request.affected_edges
+            if "entrance_edges" not in processed_parameters:
+                processed_parameters["entrance_edges"] = request.affected_edges
+
+        # Build strategy data（不再设置顶层affected_edges）
         strategy = {
             "strategy_id": strategy_id,
             "strategy_name": request.strategy_name,
@@ -299,7 +309,7 @@ class StrategyInstanceService:
             "template_name": template_name,
             "strategy_type": strategy_type,
             "parameters": processed_parameters,
-            "affected_edges": request.affected_edges,
+            # 不再设置顶层affected_edges（严格格式）
             "metadata": {
                 "created_at": current_time,
                 "updated_at": current_time,
@@ -357,22 +367,13 @@ class StrategyInstanceService:
 
         strategy_type = strategy.get("strategy_type", "")
 
-        # Extract edge IDs based on schema type
-        if "affected_edges" in strategy:
-            # API-created schema
-            edge_ids = strategy.get("affected_edges", [])
-        elif "configured_params" in strategy:
-            # Demo schema
-            configured_params = strategy.get("configured_params", {})
-            if strategy_type == "TEC":
-                # TEC uses entrance_edge (single edge)
-                entrance_edge = configured_params.get("entrance_edge", "")
-                edge_ids = [entrance_edge] if entrance_edge else []
-            else:
-                # VSS/DHS use affected_edges array
-                edge_ids = configured_params.get("affected_edges", [])
+        # 严格从parameters获取edges（无回退）
+        parameters = strategy.get("parameters", {})
+        if strategy_type == "TEC":
+            edge_ids = parameters.get("entrance_edges", [])
         else:
-            edge_ids = []
+            # VSS/DHS
+            edge_ids = parameters.get("affected_edges", [])
 
         # Enrich edge data
         enriched_edges = self._enrich_edges(edge_ids)

@@ -1,0 +1,12 @@
+{
+  "plan_id": "plan_20251102_114648_53233",
+  "plan_name": "E2E删除测试方案",
+  "description": "",
+  "strategy_ids": [],
+  "tags": [],
+  "target_scenario": "",
+  "expected_effects": null,
+  "additional_file_path": "control_data/plans/plan_20251102_114648_53233/control.add.xml",
+  "created_at": "2025-11-02T11:46:48.595627",
+  "updated_at": "2025-11-02T11:46:48.595627"
+}
