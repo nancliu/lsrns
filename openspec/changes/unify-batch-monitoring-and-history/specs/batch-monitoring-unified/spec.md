@@ -8,7 +8,7 @@
 
 Provide a unified batch monitoring interface that consolidates real-time progress tracking and historical batch review into a single, coherent view. This capability enables users to monitor all batches (running, completed, failed, cancelled) in one place with detailed monitoring panel for execution history and results access.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Unified Batch List Displays All Batch States
 
