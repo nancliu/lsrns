@@ -657,6 +657,15 @@ class BatchOptimizationService:
         - ✅ ALWAYS: live_curve_cache.json (per-task cache files)
         - ❌ NEVER: progress.json (only contains summary metrics, NOT time series)
 
+        【任务选择策略】
+        - 当所有任务完成时：汇总所有已完成任务（包括超过并发限制的所有任务，如22个任务）
+        - 当批次运行中时：汇总所有运行中任务（保持实时性）
+
+        【时间点对齐策略】
+        - 使用并集（union）而非交集（intersection）来对齐时间点
+        - 对于缺失的时间点，使用最近邻插值（取小于等于该时间点的最大值）
+        - 这样可以确保即使多个任务（如22个）时间点不完全对齐，也能正确汇总所有任务的车辆数
+
         【增量缓存优化】
         优先级：
         1. 运行中任务 → 使用增量缓存（只读最后一步）→ 7倍性能提升
@@ -676,8 +685,8 @@ class BatchOptimizationService:
         Returns:
             Dict: {
                 'time_points': [0, 1, 2, ...],
-                'total_running': [320, 350, ...],
-                'task_count': N,
+                'total_running': [320, 350, ...],  # 所有任务同一时刻车辆数之和
+                'task_count': N,  # 参与汇总的任务数
                 'last_update': '2025-10-29T10:25:00',
                 'data_source': 'incremental_cache'  # 数据源标记
             }
@@ -685,13 +694,26 @@ class BatchOptimizationService:
         from datetime import datetime
         from collections import defaultdict
 
-        # 首先尝试运行中任务，如果没有则使用已完成任务
+        # 策略：当所有任务完成时，汇总所有已完成任务；否则汇总运行中任务
         running_tasks = [t for t in tasks if t.get('status') == 'running']
         completed_tasks = [t for t in tasks if t.get('status') == 'completed']
-
-        # 优先使用运行中任务，其次使用已完成任务
-        data_source_tasks = running_tasks if running_tasks else completed_tasks
-        is_live = len(running_tasks) > 0
+        
+        # 如果所有任务都已完成（无运行中任务），汇总所有已完成任务
+        # 这样可以包含所有超过并发限制的任务（比如22个任务）
+        if not running_tasks and completed_tasks:
+            # 批次已完成：汇总所有已完成任务
+            data_source_tasks = completed_tasks
+            is_live = False
+            logger.debug(f"[_aggregate_live_time_series] Batch completed: aggregating ALL {len(completed_tasks)} completed tasks")
+        elif running_tasks:
+            # 批次运行中：汇总运行中任务（保持实时性）
+            data_source_tasks = running_tasks
+            is_live = True
+            logger.debug(f"[_aggregate_live_time_series] Batch running: aggregating {len(running_tasks)} running tasks")
+        else:
+            # 无运行中或已完成任务
+            data_source_tasks = []
+            is_live = False
 
         logger.debug(f"[_aggregate_live_time_series] Running tasks: {len(running_tasks)}, Completed: {len(completed_tasks)}")
         logger.debug(f"[_aggregate_live_time_series] Using {'running' if is_live else 'completed'} tasks for time series (count: {len(data_source_tasks)})")
@@ -706,8 +728,8 @@ class BatchOptimizationService:
                 'data_source': 'empty'
             }
 
-        # 【数据对齐策略】先收集每个任务的时序数据，然后只保留所有任务都有的时间点
-        # 这样可以避免因为任务进度不一致导致的曲线异常
+        # 【数据对齐策略】收集每个任务的时序数据，使用并集对齐（包含所有任务的所有时间点）
+        # 对于缺失的时间点使用最近邻插值，确保即使多个任务（如22个）时间点不完全对齐也能正确汇总
         task_time_series_map = {}  # {task_id: {time: running_count}}
 
         for task in data_source_tasks:
@@ -761,27 +783,43 @@ class BatchOptimizationService:
 
                 task_time_series_map[task_id] = task_data
 
-        # 找出所有任务共有的时间点（交集）
+        # 【时间点对齐策略】使用并集而非交集，对缺失时间点进行插值
+        # 这样可以确保即使多个任务（如22个）的时间点不完全对齐，也能正确汇总
         if not task_time_series_map:
             logger.debug(f"[_aggregate_live_time_series] No task data available")
-            common_time_points = set()
+            all_time_points = set()
         else:
-            # 获取所有任务的时间点集合的交集
+            # 获取所有任务的时间点集合的并集（而非交集）
             time_point_sets = [set(task_data.keys()) for task_data in task_time_series_map.values()]
-            common_time_points = set.intersection(*time_point_sets) if time_point_sets else set()
+            all_time_points = set.union(*time_point_sets) if time_point_sets else set()
 
             logger.debug(f"[_aggregate_live_time_series] Task count: {len(task_time_series_map)}, "
-                        f"Common time points: {len(common_time_points)}")
-            if len(common_time_points) < len(time_point_sets[0]) if time_point_sets else 0:
-                logger.debug(f"[_aggregate_live_time_series] Data alignment: filtered out non-synchronized time points")
+                        f"All time points (union): {len(all_time_points)}")
+            
+            # 如果是多个任务且使用交集，记录日志
+            if len(task_time_series_map) > 1:
+                intersection_size = len(set.intersection(*time_point_sets)) if time_point_sets else 0
+                if intersection_size < len(all_time_points):
+                    logger.debug(f"[_aggregate_live_time_series] Using union strategy: {len(all_time_points)} points "
+                               f"(intersection would be {intersection_size} points)")
 
-        # 汇总共有时间点的车辆数
+        # 汇总所有时间点的车辆数（使用插值处理缺失值）
         aggregated_data = {}
-        for time_point in common_time_points:
-            total_running = sum(
-                task_data.get(time_point, 0)
-                for task_data in task_time_series_map.values()
-            )
+        for time_point in all_time_points:
+            total_running = 0
+            for task_id, task_data in task_time_series_map.items():
+                if time_point in task_data:
+                    # 任务在该时间点有数据，直接使用
+                    total_running += task_data[time_point]
+                else:
+                    # 任务在该时间点没有数据，使用最近邻插值（取小于等于该时间点的最大值）
+                    # 如果该任务还没有任何数据，使用0
+                    available_times = [t for t in task_data.keys() if t <= time_point]
+                    if available_times:
+                        nearest_time = max(available_times)
+                        total_running += task_data[nearest_time]
+                    # 如果没有可用数据，该任务在该时间点的贡献为0（不累加）
+            
             aggregated_data[time_point] = total_running
 
         # 转换为数组格式
