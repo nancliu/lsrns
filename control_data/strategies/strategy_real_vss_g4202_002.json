@@ -19,11 +19,29 @@
       "-7982",
       "-7982.425",
       "-7982.512"
+    ],
+    "speed_steps": [
+      {
+        "time_hours": 7,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 9,
+        "speed_kmh": 60
+      },
+      {
+        "time_hours": 17,
+        "speed_kmh": 80
+      },
+      {
+        "time_hours": 19,
+        "speed_kmh": 60
+      }
     ]
   },
   "metadata": {
-    "created_at": "",
-    "updated_at": "",
+    "created_at": "2025-10-28T08:00:00Z",
+    "updated_at": "2025-10-28T08:00:00Z",
     "created_by": "system",
     "version": 1
   },
@@ -48,7 +66,9 @@
     "stake": "K42.32"
   },
   "status": "active",
-  "referenced_by": [],
+  "referenced_by": [
+    "plan_20251102_130055_62386"
+  ],
   "template": {
     "template_id": "vss_strict",
     "template_name": "可变限速 - 严格控制",

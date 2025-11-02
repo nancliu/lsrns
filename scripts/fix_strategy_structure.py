@@ -65,18 +65,30 @@ def convert_strategy_to_api_format(strategy: Dict[str, Any]) -> Dict[str, Any]:
     if not template:
         logger.warning(f"无法加载模板 {template_id}，将不添加template字段")
     
-    # 1. 提取configured_params作为parameters（严格格式：edges保留在parameters中）
-    configured_params = strategy.get("configured_params", {})
-    parameters = configured_params.copy()
+    # 1. 提取parameters（支持两种格式：configured_params或已有parameters）
+    if "parameters" in strategy:
+        # 已经是API格式，直接使用parameters
+        parameters = strategy.get("parameters", {}).copy()
+    elif "configured_params" in strategy:
+        # 旧格式，从configured_params转换
+        configured_params = strategy.get("configured_params", {})
+        parameters = configured_params.copy()
+    else:
+        # 格式错误
+        logger.error(f"Strategy {strategy.get('strategy_id')} has neither 'parameters' nor 'configured_params'")
+        parameters = {}
     
     # 2. 确保affected_edges在parameters中（VSS/DHS）
     if strategy_type in ["VSS", "DHS"]:
-        # 确保affected_edges在parameters中（不从parameters移除）
-        if "affected_edges" not in parameters:
-            # 如果parameters中没有，尝试从顶层获取（向后兼容迁移）
+        # 确保affected_edges在parameters中
+        if "affected_edges" not in parameters or not parameters.get("affected_edges"):
+            # 如果parameters中没有，尝试从顶层获取（仅用于迁移）
             if "affected_edges" in strategy:
-                parameters["affected_edges"] = strategy["affected_edges"]
-            else:
+                top_level_edges = strategy["affected_edges"]
+                if top_level_edges:  # 确保不是空数组
+                    parameters["affected_edges"] = top_level_edges
+                    logger.info(f"Migrated affected_edges from top-level to parameters for {strategy.get('strategy_id')}")
+            if "affected_edges" not in parameters:
                 logger.warning(f"Strategy {strategy.get('strategy_id')} missing affected_edges")
     
     # 3. 处理TEC的entrance_edges（确保在parameters中）
@@ -85,12 +97,16 @@ def convert_strategy_to_api_format(strategy: Dict[str, Any]) -> Dict[str, Any]:
         if "entrance_edge" in parameters:
             # 单个入口转换为数组
             entrance_edge = parameters.pop("entrance_edge")
-            parameters["entrance_edges"] = [entrance_edge] if entrance_edge else []
-        elif "entrance_edges" not in parameters:
-            # 如果parameters中没有，尝试从顶层affected_edges获取（向后兼容迁移）
+            if entrance_edge:
+                parameters["entrance_edges"] = [entrance_edge] if isinstance(entrance_edge, str) else entrance_edge
+        elif "entrance_edges" not in parameters or not parameters.get("entrance_edges"):
+            # 如果parameters中没有，尝试从顶层affected_edges获取（仅用于迁移）
             if "affected_edges" in strategy:
-                parameters["entrance_edges"] = strategy["affected_edges"]
-            else:
+                top_level_edges = strategy["affected_edges"]
+                if top_level_edges:  # 确保不是空数组
+                    parameters["entrance_edges"] = top_level_edges
+                    logger.info(f"Migrated entrance_edges from top-level affected_edges for {strategy.get('strategy_id')}")
+            if "entrance_edges" not in parameters:
                 logger.warning(f"Strategy {strategy.get('strategy_id')} missing entrance_edges")
     
     # 4. 构建metadata对象

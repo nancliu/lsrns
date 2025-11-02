@@ -1,15 +1,37 @@
 {
   "strategies": [
     {
+      "strategy_id": "strategy_real_vss_g4202_001",
+      "strategy_name": "G4202绕西双流段早高峰可变限速",
+      "strategy_type": "VSS",
+      "template_id": "vss_moderate",
+      "template_name": "可变限速 - 中等控制",
+      "edges_count": 16,
+      "created_at": "2025-10-28T08:00:00Z",
+      "updated_at": "2025-10-28T08:00:00Z",
+      "file_path": "control_data/strategies/strategy_real_vss_g4202_001.json"
+    },
+    {
+      "strategy_id": "strategy_real_vss_g4202_002",
+      "strategy_name": "G4202绕东锦城湖段晚高峰可变限速",
+      "strategy_type": "VSS",
+      "template_id": "vss_strict",
+      "template_name": "可变限速 - 严格控制",
+      "edges_count": 13,
+      "created_at": "2025-10-28T08:00:00Z",
+      "updated_at": "2025-10-28T08:00:00Z",
+      "file_path": "control_data/strategies/strategy_real_vss_g4202_002.json"
+    },
+    {
       "strategy_id": "strategy_real_dhs_g4202_001",
       "strategy_name": "G4202成雅段早高峰应急车道开放",
       "strategy_type": "DHS",
       "template_id": "dhs_peak_hours",
-      "template_name": "dhs_peak_hours",
-      "edges_count": 0,
-      "created_at": "",
-      "updated_at": "",
-      "file_path": "control_data\\strategies\\strategy_real_dhs_g4202_001.json"
+      "template_name": "应急车道开放",
+      "edges_count": 9,
+      "created_at": "2025-10-28T08:00:00Z",
+      "updated_at": "2025-10-28T08:00:00Z",
+      "file_path": "control_data/strategies/strategy_real_dhs_g4202_001.json"
     },
     {
       "strategy_id": "strategy_real_dhs_g4202_002",
@@ -17,7 +39,7 @@
       "strategy_type": "DHS",
       "template_id": "dhs_peak_hours",
       "template_name": "dhs_peak_hours",
-      "edges_count": 0,
+      "edges_count": 13,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_dhs_g4202_002.json"
@@ -28,7 +50,7 @@
       "strategy_type": "DHS",
       "template_id": "dhs_peak_hours",
       "template_name": "dhs_peak_hours",
-      "edges_count": 0,
+      "edges_count": 12,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_dhs_g4202_003.json"
@@ -39,7 +61,7 @@
       "strategy_type": "DHS",
       "template_id": "dhs_peak_hours",
       "template_name": "dhs_peak_hours",
-      "edges_count": 0,
+      "edges_count": 8,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_dhs_g5_001.json"
@@ -50,7 +72,7 @@
       "strategy_type": "DHS",
       "template_id": "dhs_peak_multi_interval",
       "template_name": "dhs_peak_multi_interval",
-      "edges_count": 0,
+      "edges_count": 14,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_dhs_g5_002.json"
@@ -61,7 +83,7 @@
       "strategy_type": "TEC",
       "template_id": "tec_flow_metering",
       "template_name": "tec_flow_metering",
-      "edges_count": 0,
+      "edges_count": 1,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_tec_g5_001.json"
@@ -72,7 +94,7 @@
       "strategy_type": "TEC",
       "template_id": "tec_flow_metering",
       "template_name": "tec_flow_metering",
-      "edges_count": 0,
+      "edges_count": 1,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_tec_g5_002.json"
@@ -83,32 +105,10 @@
       "strategy_type": "TEC",
       "template_id": "tec_flow_metering",
       "template_name": "tec_flow_metering",
-      "edges_count": 0,
+      "edges_count": 1,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_tec_g5_003.json"
-    },
-    {
-      "strategy_id": "strategy_real_vss_g4202_001",
-      "strategy_name": "G4202绕西双流段早高峰可变限速",
-      "strategy_type": "VSS",
-      "template_id": "vss_moderate",
-      "template_name": "vss_moderate",
-      "edges_count": 0,
-      "created_at": "",
-      "updated_at": "",
-      "file_path": "control_data\\strategies\\strategy_real_vss_g4202_001.json"
-    },
-    {
-      "strategy_id": "strategy_real_vss_g4202_002",
-      "strategy_name": "G4202绕东锦城湖段晚高峰可变限速",
-      "strategy_type": "VSS",
-      "template_id": "vss_strict",
-      "template_name": "vss_strict",
-      "edges_count": 0,
-      "created_at": "",
-      "updated_at": "",
-      "file_path": "control_data\\strategies\\strategy_real_vss_g4202_002.json"
     },
     {
       "strategy_id": "strategy_real_vss_g4202_003",
@@ -116,7 +116,7 @@
       "strategy_type": "VSS",
       "template_id": "vss_moderate",
       "template_name": "vss_moderate",
-      "edges_count": 0,
+      "edges_count": 12,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_vss_g4202_003.json"
@@ -127,7 +127,7 @@
       "strategy_type": "VSS",
       "template_id": "vss_moderate",
       "template_name": "vss_moderate",
-      "edges_count": 0,
+      "edges_count": 8,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_vss_g4202_004.json"
@@ -138,7 +138,7 @@
       "strategy_type": "VSS",
       "template_id": "vss_strict",
       "template_name": "vss_strict",
-      "edges_count": 0,
+      "edges_count": 14,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_vss_g5_001.json"
@@ -149,12 +149,12 @@
       "strategy_type": "VSS",
       "template_id": "vss_moderate",
       "template_name": "vss_moderate",
-      "edges_count": 0,
+      "edges_count": 12,
       "created_at": "",
       "updated_at": "",
       "file_path": "control_data\\strategies\\strategy_real_vss_g5_002.json"
     }
   ],
   "total_count": 14,
-  "last_updated": "2025-11-02T03:57:18.241013+00:00"
+  "last_updated": "2025-11-02T05:01:27.258585+00:00"
 }

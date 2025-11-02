@@ -1,44 +1,41 @@
 {
-  "strategy_id": "strategy_real_vss_g4202_001",
-  "strategy_name": "G4202绕西双流段早高峰可变限速",
-  "template_id": "vss_moderate",
-  "template_name": "可变限速 - 中等控制",
+  "strategy_id": "strategy_real_vss_g4202_002",
+  "strategy_name": "G4202绕东锦城湖段晚高峰可变限速",
+  "template_id": "vss_strict",
+  "template_name": "可变限速 - 严格控制",
   "strategy_type": "VSS",
   "parameters": {
     "affected_edges": [
-      "-8712",
-      "-15452.627",
-      "-9350",
-      "-6906.1080",
-      "-2040",
-      "-13636",
-      "-12970",
-      "-15488",
-      "-12680",
-      "-10376.203",
-      "-10376",
-      "-6906",
-      "-1438",
-      "-3324",
-      "-4360",
-      "-10188"
+      "-7798.460",
+      "-13928",
+      "-7790",
+      "-5220",
+      "-7790.354",
+      "-1842",
+      "-1842.115",
+      "-11526",
+      "-15156",
+      "-15156.326",
+      "-7982",
+      "-7982.425",
+      "-7982.512"
     ],
     "speed_steps": [
       {
         "time_hours": 7,
-        "speed_kmh": 100
+        "speed_kmh": 80
       },
       {
         "time_hours": 9,
-        "speed_kmh": 80
+        "speed_kmh": 60
       },
       {
         "time_hours": 17,
-        "speed_kmh": 100
+        "speed_kmh": 80
       },
       {
         "time_hours": 19,
-        "speed_kmh": 80
+        "speed_kmh": 60
       }
     ]
   },
@@ -48,33 +45,32 @@
     "created_by": "system",
     "version": 1
   },
-  "description": "针对K52.4绕西成新蒲站-双流站早高峰极度拥堵（速度15km/h），采用分时段限速控制。基于baseline门架数据G420151002000220010（批次20251013_20251019）",
+  "description": "针对K42.32锦城湖站-成雅站晚高峰极度拥堵（速度15.65km/h，流量478veh/hr），采用分时段限速控制。基于baseline门架数据G420151001001210010（批次20251013_20251019）。建议配合DHS策略strategy_real_dhs_g4202_002使用",
   "tags": [
     "G4202",
     "绕城高速",
-    "双流段",
-    "早高峰",
+    "锦城湖段",
+    "晚高峰",
     "真实数据",
     "baseline",
-    "P0"
+    "P0",
+    "复合策略"
   ],
   "data_source": {
-    "gantry_id": "G420151002000220010",
+    "gantry_id": "G420151001001210010",
     "batch_id": "20251013_20251019",
     "pattern_type": "workday",
-    "avg_morning_speed": 26.2,
-    "min_speed": 15.14,
-    "max_flow": 445.08,
-    "stake": "K52.4"
+    "avg_evening_speed": 30.3,
+    "min_speed": 15.65,
+    "max_flow": 517.9,
+    "stake": "K42.32"
   },
   "status": "active",
-  "referenced_by": [
-    "plan_20251102_130055_62386"
-  ],
+  "referenced_by": [],
   "template": {
-    "template_id": "vss_moderate",
-    "template_name": "可变限速 - 中等控制",
-    "description": "适用于高峰期的中等强度限速控制，限速值80-100 km/h，适合交通流量中等的高速路段。通过动态调整限速值来平衡交通流量，减少拥堵风险。",
+    "template_id": "vss_strict",
+    "template_name": "可变限速 - 严格控制",
+    "description": "适用于拥堵路段的严格限速控制，限速值60-80 km/h，通过更激进的速度降低策略应对严重拥堵和事故路段。支持3-5个时变步骤实现事件响应。",
     "strategy_type": "VSS",
     "sumo_element": "variableSpeedSign",
     "version": "2.0",
@@ -91,24 +87,24 @@
       {
         "parameter_name": "speed_steps",
         "parameter_type": "step_array",
-        "description": "时间-限速值序列，支持多个步骤实现时变控制",
+        "description": "时间-限速值序列，支持3-5个步骤实现严格控制和事件响应",
         "required": true,
         "default_value": [
           {
             "time_hours": 7,
-            "speed_kmh": 100
+            "speed_kmh": 80
           },
           {
             "time_hours": 9,
-            "speed_kmh": 80
+            "speed_kmh": 60
           },
           {
             "time_hours": 17,
-            "speed_kmh": 100
+            "speed_kmh": 80
           },
           {
             "time_hours": 19,
-            "speed_kmh": 80
+            "speed_kmh": 60
           }
         ],
         "unit": null,

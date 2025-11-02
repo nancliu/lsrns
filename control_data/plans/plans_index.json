@@ -15,21 +15,6 @@
       "created_at": "2025-10-26T09:04:16.034112"
     },
     {
-      "plan_id": "plan_dhs_evening_peak_severe",
-      "plan_name": "晚高峰严重拥堵DHS应急车道开放方案",
-      "is_baseline": false,
-      "strategy_count": 1,
-      "tags": [
-        "P0",
-        "evening高峰",
-        "简单策略",
-        "DHS"
-      ],
-      "complexity_level": "简单",
-      "target_scenario": "16:00-20:00，平均速度 < 30 km/h，持续时长 ≥ 2小时",
-      "created_at": "2025-10-27T12:51:59.754834"
-    },
-    {
       "plan_id": "plan_dhs_morning_peak_severe",
       "plan_name": "早高峰严重拥堵DHS应急车道开放方案",
       "is_baseline": false,
@@ -271,6 +256,14 @@
       "strategy_count": 0,
       "tags": [],
       "created_at": "2025-11-02T11:47:20.193688"
+    },
+    {
+      "plan_id": "plan_20251102_130055_62386",
+      "plan_name": "test方案创建vss",
+      "is_baseline": false,
+      "strategy_count": 2,
+      "tags": [],
+      "created_at": "2025-11-02T13:00:55.840265"
     }
   ],
   "total": 15,

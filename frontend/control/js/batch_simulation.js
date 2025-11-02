@@ -113,13 +113,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 绑定事件
     document.getElementById('caseSelector').addEventListener('change', onCaseChange);
     document.getElementById('createBatchBtn').addEventListener('click', createBatch);
-    document.getElementById('startBatchBtn').addEventListener('click', startBatchExecution);
-    document.getElementById('cancelBatchBtn').addEventListener('click', cancelBatch);
+
+    // TODO Phase 2-3: Re-enable when batch card controls are implemented
+    // document.getElementById('startBatchBtn').addEventListener('click', startBatchExecution);
+    // document.getElementById('cancelBatchBtn').addEventListener('click', cancelBatch);
+    // document.getElementById('toggleLiveCurveBtn').addEventListener('click', toggleLiveCurveVisibility);
+
     document.getElementById('clearConfigBtn').addEventListener('click', clearConfig);
     document.getElementById('backToConfigBtn').addEventListener('click', () => switchView('config'));
     document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
     document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
-    document.getElementById('toggleLiveCurveBtn').addEventListener('click', toggleLiveCurveVisibility);
 
     // 计算预估
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
@@ -152,21 +155,22 @@ function switchView(view) {
     }
 }
 
-// Placeholder function for loading batch list (Phase 2 implementation)
+// Load batch list (unified monitoring view)
+// Phase 1: Reuses loadBatchHistory() with updated element IDs
 function loadBatchList() {
-    // TODO: Phase 2 - Implement batch list loading
-    console.log('loadBatchList() - To be implemented in Phase 2');
+    loadBatchHistory();
 }
 
-// Placeholder functions for filtering and sorting (Phase 5 implementation)
+// Filtering and sorting (Phase 1: Basic implementation)
 function filterBatches() {
-    // TODO: Phase 5 - Implement batch filtering
-    console.log('filterBatches() - To be implemented in Phase 5');
+    // Phase 1: Reuses existing filter logic
+    filterBatchHistory();
 }
 
 function sortBatches() {
     // TODO: Phase 5 - Implement batch sorting
-    console.log('sortBatches() - To be implemented in Phase 5');
+    // For now, just reload the list
+    loadBatchHistory();
 }
 
 // ========== 数据加载 ==========
@@ -316,14 +320,12 @@ async function createBatch() {
             window.currentCaseId = currentCaseId;
         }
 
-        // 切换到进度视图 (批次已创建,等待启动)
+        // Phase 1: Switch to monitoring view to show the new batch
         updateBatchInfo(batch);
-        showElement('startBatchBtn');
-        hideElement('cancelBatchBtn');
-        switchView('progress');
+        switchView('monitoring');
 
-        // 显示提示，引导用户点击启动按钮
-        showSuccess('批次创建成功！请点击"启动仿真"按钮开始执行。');
+        // 显示提示
+        showSuccess('批次创建成功！批次将显示在"批次监控"列表中。');
 
     } catch (error) {
         console.error('Create batch error:', error);
@@ -358,9 +360,18 @@ async function startBatchExecution() {
 }
 
 function updateBatchInfo(batch) {
-    document.getElementById('batchTitle').textContent = `批次: ${batch.batch_id}`;
-    const statusText = STATUS_MAP[batch.status] || batch.status || STATUS_MAP['pending'];
-    document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
+    // Phase 1: These elements are in the old progressView which was removed
+    // Phase 2 will implement batch info display in expandable cards
+    const batchTitle = document.getElementById('batchTitle');
+    const batchStatus = document.getElementById('batchStatus');
+
+    if (batchTitle) {
+        batchTitle.textContent = `批次: ${batch.batch_id}`;
+    }
+    if (batchStatus) {
+        const statusText = STATUS_MAP[batch.status] || batch.status || STATUS_MAP['pending'];
+        batchStatus.textContent = `状态: ${statusText}`;
+    }
 }
 
 // ========== 进度监控 ==========
@@ -1191,13 +1202,16 @@ function viewOptimizationAnalysis() {
 
 async function loadBatchHistory() {
     if (!currentCaseId) {
-        document.getElementById('batchHistoryEmpty').style.display = 'block';
-        document.getElementById('batchHistoryList').innerHTML = '';
+        const emptyState = document.getElementById('batchListEmpty');
+        if (emptyState) emptyState.style.display = 'block';
+        const listContainer = document.getElementById('batchList');
+        if (listContainer) listContainer.innerHTML = '';
         return;
     }
 
     try {
-        const status = document.getElementById('historyStatusFilter').value;
+        const statusFilter = document.getElementById('statusFilter');
+        const status = statusFilter ? statusFilter.value : '';
         const params = new URLSearchParams({
             case_id: currentCaseId,
             page: 1,
@@ -1211,8 +1225,8 @@ async function loadBatchHistory() {
         const data = await response.json();
         const batches = data.batches || [];
 
-        const listContainer = document.getElementById('batchHistoryList');
-        const emptyState = document.getElementById('batchHistoryEmpty');
+        const listContainer = document.getElementById('batchList');
+        const emptyState = document.getElementById('batchListEmpty');
 
         if (batches.length === 0) {
             listContainer.innerHTML = '';
@@ -1281,7 +1295,9 @@ function loadBatchResultsAndSwitch(batchId) {
 function loadBatchProgressAndSwitch(batchId) {
     currentBatchId = batchId;
     window.currentBatchId = batchId;
-    switchView('progress');
+    // Phase 1: Switch to monitoring view instead of removed progress view
+    // Phase 2-3 will implement expandable card with progress details
+    switchView('monitoring');
 }
 
 function getStatusLabel(status) {

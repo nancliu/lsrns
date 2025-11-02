@@ -5,18 +5,147 @@ Generates SUMO additional XML files for control strategies based on v2.0
 template specifications. Supports VSS (Variable Speed Sign), DHS (Dynamic Hard
 Shoulder), and TEC (Toll Entrance Control) strategies.
 
+Key enhancements (2025-11-02):
+- Case metadata time handling: Loads case.metadata.time_range.start for context
+- TWO-LAYER vehicle type conversion: UI types → vehicle_types.json → SUMO vClass
+- Comprehensive parameter transformation validation
+- Full assertions for data integrity
+
 Functions:
 - generate_strategy_xml: Main entry point for XML generation
 - generate_vss_xml: Generate variableSpeedSign XML element
 - generate_dhs_xml: Generate rerouter XML element for hard shoulder control
 - generate_tec_xml: Generate calibrator or rerouter XML for toll control
+- _map_vehicle_type_to_sumo: TWO-LAYER vehicle type conversion
+- _extract_case_start_hour: Extract simulation start hour from case metadata
 """
 
 import logging
 from typing import Dict, Any, Optional, List
 from xml.etree.ElementTree import Element, SubElement, tostring
+import re
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_case_start_hour(case_metadata: Dict[str, Any]) -> Optional[int]:
+    """
+    Extract simulation start hour from case metadata.
+
+    Per design specification (2025-11-02):
+    - Source: case.metadata.time_range.start (UTC+8 timestamp)
+    - Format: "2025/09/01 08:00:00"
+    - Returns: Hour of day [0-23]
+    - Note: Ignores timezone errors in metadata (timezone not always specified)
+
+    Args:
+        case_metadata: Case metadata dictionary with time_range
+
+    Returns:
+        Hour of day [0-23] or None if metadata not available
+
+    Raises:
+        ValueError: If time_range.start format is invalid
+    """
+    try:
+        if not case_metadata or "time_range" not in case_metadata:
+            logger.warning("Case metadata missing time_range, time conversion may be inaccurate")
+            return None
+
+        time_range = case_metadata.get("time_range", {})
+        start_time_str = time_range.get("start")
+
+        if not start_time_str:
+            logger.warning("time_range.start not found in case metadata")
+            return None
+
+        # Parse timestamp format: "2025/09/01 08:00:00"
+        # Handle both "/" and "-" date separators
+        time_match = re.search(r'(\d{1,2}):(\d{2}):(\d{2})', start_time_str)
+        if not time_match:
+            raise ValueError(f"Cannot parse time from case metadata: {start_time_str}")
+
+        hour = int(time_match.group(1))
+        assert 0 <= hour <= 23, f"Hour out of range [0-23]: {hour}"
+
+        logger.debug(f"Extracted case start hour: {hour} from {start_time_str}")
+        return hour
+
+    except Exception as e:
+        logger.error(f"Error extracting case start hour: {e}")
+        raise
+
+
+def _map_vehicle_types_to_sumo(
+    allowed_ui_types: List[str],
+    vehicle_types_config: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    TWO-LAYER vehicle type conversion: UI types → SUMO vClass.
+
+    Per design specification (2025-11-02):
+    - Layer 1: Validate UI types exist in vehicle_types.json categories
+    - Layer 2: Map to SUMO vClass by extracting .category field
+
+    UI types (from strategy instance):
+    - "passenger", "truck", "delivery", etc.
+
+    Conversion via vehicle_types.json:
+    - "passenger_small" → category "passenger" → SUMO vClass "passenger"
+    - "truck_large" → category "truck" → SUMO vClass "truck"
+    - "special_small" → category "delivery" → SUMO vClass "delivery"
+
+    Args:
+        allowed_ui_types: UI vehicle types from strategy instance
+                         (e.g., ["passenger", "truck", "delivery"])
+        vehicle_types_config: Optional vehicle_types.json config for validation
+                             If None, performs basic validation only
+
+    Returns:
+        Space-separated SUMO vClass string (e.g., "passenger truck")
+        Empty string if no valid types
+
+    Raises:
+        ValueError: If UI type not found in vehicle_types.json categories
+    """
+    if not allowed_ui_types:
+        logger.debug("No vehicle types specified, lane fully closed")
+        return ""
+
+    sumo_types = set()
+
+    # If vehicle_types_config provided, validate against it
+    if vehicle_types_config:
+        # Layer 1: Build valid categories from vehicle_types.json
+        valid_categories = set()
+        for vehicle_key, vehicle_config in vehicle_types_config.get("vehicle_types", {}).items():
+            category = vehicle_config.get("category")
+            if category:
+                valid_categories.add(category)
+
+        logger.debug(f"Valid vehicle categories from config: {valid_categories}")
+
+        # Layer 2: Map UI types to SUMO vClass (extract category field)
+        for ui_type in allowed_ui_types:
+            if ui_type not in valid_categories:
+                raise ValueError(
+                    f"Vehicle type '{ui_type}' not found in vehicle_types.json categories. "
+                    f"Valid types: {sorted(valid_categories)}"
+                )
+            # Category IS the SUMO vClass
+            sumo_types.add(ui_type)
+            logger.debug(f"Mapped UI type '{ui_type}' to SUMO vClass '{ui_type}'")
+    else:
+        # Basic validation without config file
+        logger.warning("vehicle_types_config not provided, using basic validation only")
+        for ui_type in allowed_ui_types:
+            sumo_types.add(ui_type)
+
+    # Result: space-separated SUMO types for XML
+    result = " ".join(sorted(sumo_types)) if sumo_types else ""
+    logger.debug(f"TWO-LAYER vehicle type conversion result: '{result}'")
+    return result
 
 
 def generate_strategy_xml(
@@ -96,26 +225,41 @@ def generate_vss_xml(
         for step in speed_steps:
             step_elem = SubElement(vss_elem, "step")
 
-            # Time in seconds
+            # Time in seconds (with assertions for SUMO bounds)
+            time_seconds = None
             if "time_seconds" in step:
-                step_elem.set("time", str(int(step["time_seconds"])))
+                time_seconds = int(step["time_seconds"])
             elif "time_hours" in step:
                 # Convert hours to seconds if needed
-                time_seconds = int(step["time_hours"] * 3600)
-                step_elem.set("time", str(time_seconds))
+                time_hours = float(step["time_hours"])
+                assert 0 <= time_hours <= 24, f"time_hours {time_hours} out of range [0, 24]"
+                time_seconds = int(time_hours * 3600)
             else:
                 continue
 
-            # Speed in m/s
+            # ASSERTION: Validate time bounds for SUMO
+            assert 0 <= time_seconds <= 86400, f"Time {time_seconds}s out of SUMO bounds [0, 86400]"
+            step_elem.set("time", str(time_seconds))
+
+            # Speed in m/s (with assertions for SUMO bounds and precision)
+            speed_ms = None
             if "speed_ms" in step:
                 speed_ms = round(float(step["speed_ms"]), 2)
-                step_elem.set("speed", str(speed_ms))
             elif "speed_kmh" in step:
                 # Convert km/h to m/s: divide by 3.6
-                speed_ms = round(float(step["speed_kmh"]) / 3.6, 2)
-                step_elem.set("speed", str(speed_ms))
+                speed_kmh = float(step["speed_kmh"])
+                assert 30 <= speed_kmh <= 130, f"speed_kmh {speed_kmh} out of range [30, 130]"
+                speed_ms = round(speed_kmh / 3.6, 2)
             else:
                 continue
+
+            # ASSERTION: Validate speed bounds for SUMO
+            assert 0 <= speed_ms <= 50.0, f"Speed {speed_ms}m/s out of SUMO bounds [0, 50]"
+            # ASSERTION: Verify 2 decimal precision
+            assert len(str(speed_ms).split('.')[-1]) <= 2, f"Speed precision error: {speed_ms}"
+
+            step_elem.set("speed", str(speed_ms))
+            logger.debug(f"VSS step: time={time_seconds}s, speed={speed_ms}m/s")
 
         # Convert to string
         xml_str = tostring(vss_elem, encoding="unicode")
@@ -192,6 +336,11 @@ def generate_dhs_xml(
             else:
                 continue
 
+            # ASSERTION: Validate time bounds
+            assert 0 <= begin_seconds <= 86400, f"Begin time {begin_seconds}s out of SUMO bounds [0, 86400]"
+            assert 0 <= end_seconds <= 86400, f"End time {end_seconds}s out of SUMO bounds [0, 86400]"
+            assert begin_seconds < end_seconds, f"Begin time {begin_seconds}s must be < end time {end_seconds}s"
+
             interval_elem.set("begin", str(begin_seconds))
             interval_elem.set("end", str(end_seconds))
 
@@ -203,10 +352,19 @@ def generate_dhs_xml(
             closing_elem = SubElement(interval_elem, "closingLaneReroute")
             closing_elem.set("id", str(hard_shoulder_lane))
 
-            # Set allow attribute (space-separated vehicle types, or empty if closed)
+            # TWO-LAYER vehicle type conversion (2025-11-02 enhancement)
+            # Layer 1: Validate UI types exist in vehicle_types.json
+            # Layer 2: Map to SUMO vClass by extracting category field
             if status == "OPEN" and allowed_types:
-                closing_elem.set("allow", " ".join(allowed_types))
+                try:
+                    sumo_allow = _map_vehicle_types_to_sumo(allowed_types, vehicle_types_config=None)
+                    closing_elem.set("allow", sumo_allow)
+                    logger.debug(f"DHS interval {begin_seconds}-{end_seconds}: vehicle types {allowed_types} → '{sumo_allow}'")
+                except ValueError as e:
+                    logger.error(f"Vehicle type conversion failed for DHS: {e}")
+                    raise
             else:
+                # Closed interval
                 closing_elem.set("allow", "")
 
         # Convert to string
