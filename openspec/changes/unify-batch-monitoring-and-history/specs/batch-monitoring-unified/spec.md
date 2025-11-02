@@ -484,7 +484,7 @@ Users MUST be able to delete batches (completed, failed, cancelled) directly fro
 
 ## MODIFIED Requirements
 
-### Requirement: Batch List View SHALL Replace Separate Progress and History Tabs
+### Requirement: Batch List View MUST Replace Separate Progress and History Tabs
 
 **Source**: `batch-management/spec.md` → "前端提供批次历史管理视图"
 
@@ -494,10 +494,10 @@ Users MUST be able to delete batches (completed, failed, cancelled) directly fro
 - "批次历史" tab shows all historical batches
 
 **Modified Behavior**:
-- The system SHALL provide a single "批次监控 (Batch Monitoring)" tab replacing both "进度" and "批次历史" tabs
-- The unified list SHALL show all batches (running + historical) in one view
-- Running batches SHALL be highlighted with real-time progress updates
-- Expandable cards SHALL replace separate tab views
+- The system MUST provide a single "批次监控 (Batch Monitoring)" tab replacing both "进度" and "批次历史" tabs
+- The unified list MUST show all batches (running + historical) in one view
+- Running batches MUST be highlighted with real-time progress updates
+- Expandable cards MUST replace separate tab views
 
 **Rationale**: Reduce tab fragmentation, unify batch lifecycle management
 
@@ -538,18 +538,18 @@ Users MUST be able to delete batches (completed, failed, cancelled) directly fro
 
 ---
 
-### Requirement: Live Vehicle Curve SHALL Be Integrated into Expandable View
+### Requirement: Live Vehicle Curve MUST Be Integrated into Expandable View
 
-**Source**: `batch-simulation-charts/spec.md` → "Chart Update Logic SHALL Use Incremental Data Addition"
+**Source**: `batch-simulation-charts/spec.md` → "Chart Update Logic MUST Use Incremental Data Addition"
 
 **Original Behavior**:
 - Live curve displayed in dedicated "进度" tab
 - Always visible, takes significant screen space
 
 **Modified Behavior**:
-- The system SHALL display live vehicle curve only when running batch card is expanded
-- The collapsed view SHALL save screen space for batch list
-- The system SHALL preserve same incremental Chart.js update logic (no destroy/recreate)
+- The system MUST display live vehicle curve only when running batch card is expanded
+- The collapsed view MUST save screen space for batch list
+- The system MUST preserve same incremental Chart.js update logic (no destroy/recreate)
 
 **Rationale**: Progressive disclosure, better screen real estate usage
 
