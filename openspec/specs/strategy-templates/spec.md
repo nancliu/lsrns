@@ -521,3 +521,187 @@ The system SHALL preserve all existing strategy instances while upgrading templa
 - **THEN** only v2.0 templates available in template selector
 - **THEN** new strategies automatically use upgraded schema with SUMO validation
 
+### Requirement: SUMO XML Attribute Format Constraints
+
+The system SHALL enforce SUMO-specific XML attribute format requirements for all strategy templates, ensuring generated XML is always SUMO v1.19+ compatible with correct units, ranges, and data types.
+
+**优先级**: P0
+**状态**: 新增
+
+#### Scenario: Time parameter unit conversion verification
+
+- **WHEN** system generates XML for any time-based parameter
+- **THEN** it MUST enforce:
+  - Display format: **hours** (0-24 range, user-facing)
+  - SUMO format: **seconds** (0-86400 range, simulation-facing)
+  - Conversion: `sumo_seconds = display_hours × 3600`
+  - Constraint: Generated time_seconds MUST be [0, 86400]
+  - Example: User enters 9:00 → system converts to 32400 seconds
+
+- **THEN** schema defines unit conversion:
+  ```json
+  {
+    "parameter_name": "time_intervals",
+    "display_unit": "hours",
+    "sumo_unit": "seconds",
+    "conversion_factor": 3600,
+    "min_value": 0,
+    "max_value": 24,
+    "sumo_min": 0,
+    "sumo_max": 86400
+  }
+  ```
+
+#### Scenario: Speed parameter unit conversion verification
+
+- **WHEN** system generates XML for speed parameters
+- **THEN** it MUST enforce:
+  - Display format: **km/h** (30-130 range for highways, user-facing)
+  - SUMO format: **m/s** (8.33-36.11 range, simulation-facing)
+  - Conversion: `sumo_ms = display_kmh ÷ 3.6` (rounded to 2 decimals)
+  - Constraint: Generated speed_ms MUST be [0, 50] (180 km/h max)
+  - Example: User enters 80 km/h → system converts to 22.22 m/s
+
+- **THEN** schema defines unit conversion:
+  ```json
+  {
+    "parameter_name": "speed_value",
+    "display_unit": "km/h",
+    "sumo_unit": "m/s",
+    "conversion_factor": 0.277778,
+    "min_value": 30,
+    "max_value": 130,
+    "sumo_min": 0,
+    "sumo_max": 50
+  }
+  ```
+
+#### Scenario: VSS variableSpeedSign XML attribute constraints
+
+- **WHEN** system generates VSS XML element
+- **THEN** generated XML MUST conform to SUMO v1.19 format:
+  ```xml
+  <variableSpeedSign
+    id="strategy_id"
+    edges="edge_1 edge_2 edge_3"
+    file="vss_file.xml"  (optional)
+  >
+    <step time="T_seconds" speed="S_ms"/>
+    <step time="T_seconds" speed="S_ms"/>
+  </variableSpeedSign>
+  ```
+
+- **THEN** attribute constraints enforced:
+  - `id`: Required, string, unique identifier
+  - `edges`: Required, space-separated edge IDs (must exist in network)
+  - `time`: Required for each step, integer [0-86400] seconds
+  - `speed`: Required for each step, number [0-50] m/s (2 decimal precision)
+  - Steps MUST be in ascending time order
+  - At least 1 step required
+  - No duplicate edges in edges list
+
+#### Scenario: DHS rerouter XML attribute constraints
+
+- **WHEN** system generates DHS XML element
+- **THEN** generated XML MUST conform to SUMO v1.19 format:
+  ```xml
+  <rerouter
+    id="strategy_id"
+    edges="edge_1 edge_2 edge_3"
+    file="dhs_file.xml"  (optional)
+  >
+    <interval begin="B_seconds" end="E_seconds">
+      <closingLaneReroute id="edge_lane_id" allow="vehicle_type vehicle_type"/>
+    </interval>
+  </rerouter>
+  ```
+
+- **THEN** attribute constraints enforced:
+  - `id`: Required, string, unique
+  - `edges`: Required, space-separated edge IDs (must form continuous segment)
+  - `begin`: Required, integer [0-86400] seconds
+  - `end`: Required, integer (0-86400] seconds, MUST be > begin
+  - `allow`: Optional, space-separated SUMO vehicle types
+    - Valid values: passenger, bus, truck, emergency, taxi, tram, rail_urban, rail, rail_electric
+    - If empty/missing: all types allowed
+  - At least 1 interval required
+  - Intervals MUST not overlap (or be explicitly ordered)
+
+#### Scenario: TEC calibrator XML attribute constraints
+
+- **WHEN** system generates TEC XML element
+- **THEN** generated XML MUST conform to SUMO v1.19 format:
+  ```xml
+  <calibrator
+    id="strategy_id"
+    edge="entrance_edge_id"
+    pos="position"  (default: 0)
+    freq="checking_freq"  (optional)
+  >
+    <flow begin="B_seconds" end="E_seconds" vehsPerHour="VPH" speed="S_ms"/>
+  </calibrator>
+  ```
+
+- **THEN** attribute constraints enforced:
+  - `id`: Required, string, unique
+  - `edge`: Required, single edge ID (must exist and be entrance type)
+  - `begin`: Required, integer [0-86400] seconds
+  - `end`: Required, integer (0-86400] seconds, MUST be > begin
+  - `vehsPerHour`: Required, integer [0-3000] vehicles/hour
+  - `speed`: Required, number [0-50] m/s (or 0 for no speed control)
+  - At least 1 flow interval required
+  - Intervals MUST not overlap
+
+#### Scenario: Validation prevents invalid unit conversion
+
+- **GIVEN** a strategy parameter with incorrect unit conversion
+  - User enters time: 25 hours (invalid, exceeds 24)
+  - Or speed: 200 km/h (exceeds highway max of 130 km/h)
+
+- **WHEN** system validates parameters before XML generation
+- **THEN** validation FAILS with error message:
+  ```json
+  {
+    "valid": false,
+    "error_type": "parameter_validation",
+    "errors": [
+      {
+        "parameter": "speed_kmh",
+        "value": 200,
+        "constraint": "30 ≤ value ≤ 130",
+        "message": "Speed 200 km/h exceeds highway maximum of 130 km/h"
+      }
+    ]
+  }
+  ```
+- System blocks XML generation and strategy creation
+
+#### Scenario: XML validation confirms unit conversion correctness
+
+- **WHEN** system generates XML and validates conversion
+- **THEN** XML validation verifies:
+  - All time attributes in range [0-86400] seconds ✓
+  - All speed attributes in range [0-50] m/s ✓
+  - All flow rates in range [0-3000] vehsPerHour ✓
+  - No out-of-bounds values from unit conversion
+  - Precision preserved (no data loss)
+
+- **THEN** if conversion produced out-of-bounds values:
+  ```json
+  {
+    "valid": false,
+    "error_type": "conversion_error",
+    "message": "Speed conversion error: 150 km/h ÷ 3.6 = 41.67 m/s (exceeds SUMO max 50 m/s)"
+  }
+  ```
+
+#### Scenario: Reference table - All SUMO Unit Conversions
+
+| Parameter | Display Unit | SUMO Unit | Conversion Formula | Valid Display Range | Valid SUMO Range |
+|-----------|--------------|-----------|-------------------|----------------------|------------------|
+| Time | hours | seconds | `T_s = T_h × 3600` | 0-24 | 0-86400 |
+| Speed | km/h | m/s | `S_ms = S_kmh ÷ 3.6` | 30-130 (highway) | 0-50 (180 km/h max) |
+| Flow Rate | vehsPerHour | vehsPerHour | (no conversion) | 0-3000 | 0-3000 |
+| Lane Index | integer | integer | (no conversion) | 0-7 (typical) | 0-7 |
+| Vehicle Type | enum string | SUMO vClass | lookup table | user-selected | passenger\|bus\|truck\|... |
+

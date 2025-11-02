@@ -24,7 +24,7 @@ from typing import Dict, List, Tuple
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from shared.control_tools.xml_validator import validate_xml_string, ValidationResult
+from shared.control_tools.xml_validator import validate_xml_string, XMLValidationResult
 
 # Configure logging
 logging.basicConfig(
@@ -42,7 +42,7 @@ class PlanValidationReport:
         plan_id: str,
         case_id: str,
         xml_file_path: str,
-        validation_result: ValidationResult
+        validation_result: XMLValidationResult
     ):
         self.plan_id = plan_id
         self.case_id = case_id

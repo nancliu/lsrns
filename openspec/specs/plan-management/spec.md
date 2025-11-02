@@ -332,3 +332,131 @@ TBD - created by archiving change implement-plan-management-and-batch-optimizati
 
 ---
 
+### Requirement: 系统验证生成的control.add.xml的SUMO兼容性
+
+系统MUST在方案创建、更新或手动重新生成时验证生成的XML文件是否符合SUMO v1.19+ 的格式要求和属性约束。验证包括XML结构完整性检查、元素属性范围验证、时间和速度单位转换的正确性检查。任何验证失败都MUST返回400错误及详细的错误信息，并阻止无效XML文件被保存。
+
+**优先级**: P0
+**状态**: 新增
+
+#### Scenario: 创建方案时自动验证生成的XML
+
+**Given**:
+- 用户创建方案plan_001，包含3个有效的策略实例
+
+**When**:
+- 系统调用additional_generator生成control.add.xml
+- 系统调用xml_validator.validate_sumo_xml()验证XML
+
+**Then**:
+- XML通过以下验证：
+  - XML格式良好（well-formed，可被XML解析器正确解析）
+  - 根元素为`<additional>`
+  - 所有子元素属于有效的SUMO控制元素类型（variableSpeedSign, rerouter, calibrator等）
+  - 所有必需的属性都存在（如VSS的edges, steps；DHS的intervals）
+  - 属性值范围符合SUMO约束：
+    - 时间[seconds]：0-86400范围内
+    - 速度[m/s]：0-50范围内（折合0-180km/h）
+    - 流量[vehsPerHour]：0-3000范围内
+  - 所有数值属性转换正确（hours→seconds, km/h→m/s等）
+- 系统保存XML文件
+- 返回201响应，包含plan_id和验证成功信息
+
+---
+
+#### Scenario: 方案创建时检测到无效的XML属性值
+
+**Given**:
+- 方案包含一个VSS策略，配置了无效的时间值（88000秒 > 86400秒的一天上限）
+
+**When**:
+- 用户创建方案
+- 系统生成control.add.xml
+- 系统验证XML
+
+**Then**:
+- 验证失败，检测到时间属性超出范围
+- 返回400错误响应，包含：
+  - error: "validation_error"
+  - affected_strategies: ["strategy_id"]
+  - details: [
+      {
+        "element": "variableSpeedSign[@id='strategy_001']",
+        "attribute": "time[seconds]",
+        "error": "Value 88000 exceeds maximum 86400",
+        "current_value": 88000,
+        "valid_range": "0-86400"
+      }
+    ]
+- 方案未创建，XML文件未保存
+- 前端显示错误信息，提示用户检查策略参数
+
+---
+
+#### Scenario: 策略更新时自动验证所有引用的方案XML
+
+**Given**:
+- 策略strategy_001已被2个方案引用（plan_001和plan_002）
+
+**When**:
+- 用户更新strategy_001的参数
+- 系统检测到该策略被其他方案引用
+- 系统触发级联重新生成：重新生成plan_001和plan_002的XML
+
+**Then**:
+- 系统对每个重新生成的XML执行完整的SUMO验证
+- 验证plan_001的XML：通过
+- 验证plan_002的XML：通过
+- 系统保存所有新的XML文件
+- 返回200响应，包含级联重新生成的结果：
+  - affected_plans: ["plan_001", "plan_002"]
+  - regenerated: {
+      "plan_001": {"success": true, "validation_status": "valid"},
+      "plan_002": {"success": true, "validation_status": "valid"}
+    }
+
+---
+
+#### Scenario: 手动重新生成时验证失败
+
+**Given**:
+- 方案plan_001的策略参数已被损坏或手动编辑为无效值
+
+**When**:
+- 用户点击"验证XML"按钮，触发POST /api/v1/control/plans/plan_001/generate_additional
+
+**Then**:
+- 系统重新生成control.add.xml
+- 验证XML失败，检测到多个问题：
+  - VSS元素缺少edges属性
+  - DHS元素的时间间隔无效（begin > end）
+- 返回400响应，包含详细的验证错误和警告
+- plan_001原有的control.add.xml保持不变（保存失败不覆盖）
+- 前端显示验证错误列表和修复建议
+
+---
+
+#### Scenario: 验证结果与警告信息
+
+**Given**:
+- 生成的XML通过所有SUMO兼容性验证
+- 但包含一些警告性的问题（如重复的边界ID）
+
+**When**:
+- 系统完成XML验证
+
+**Then**:
+- is_valid为true（验证通过）
+- warnings包含：[
+    {
+      "element": "variableSpeedSign[@id='strategy_001']",
+      "type": "duplicate_edge",
+      "message": "Edge '-8712' appears multiple times in affected_edges list",
+      "severity": "low"
+    }
+  ]
+- 系统保存XML文件
+- 返回201响应，包含是否有警告的标记
+
+---
+

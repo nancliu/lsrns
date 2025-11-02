@@ -605,6 +605,143 @@ validatePlan(planId);
 
 ---
 
+## Phase 3.6: UI Enhancement - Plan Detail Modal Optimization (2025-11-02)
+
+### 3.6.1 Analyze Current UI Issues
+
+- [X] 3.6.1.1 Review current plan detail modal layout (COMPLETED 2025-11-02)
+  - ✅ Modal width too small (800px) for content
+  - ✅ Text-heavy paragraph layout reduces readability
+  - ✅ No visual hierarchy between sections
+  - ✅ Statistics displayed as inline text, hard to scan
+- [X] 3.6.1.2 Identify improvement opportunities (COMPLETED 2025-11-02)
+  - ✅ Increase modal width to 1200px
+  - ✅ Implement card-based layout with sections
+  - ✅ Enhance typography and visual hierarchy
+  - ✅ Add prominent stat display with large numbers
+
+### 3.6.2 Design Card-Based Layout
+
+- [X] 3.6.2.1 Design section card structure (COMPLETED 2025-11-02)
+  - ✅ `.detail-section` - Main card container with border and shadow
+  - ✅ Section headers with blue underline
+  - ✅ Consistent padding (20px) and spacing
+- [X] 3.6.2.2 Design information display components (COMPLETED 2025-11-02)
+  - ✅ `.info-item` - Label/value pair display
+  - ✅ `.detail-grid` - Responsive grid (auto-fit, minmax(300px, 1fr))
+  - ✅ `.stat-row` - Statistics row with prominent values
+- [X] 3.6.2.3 Design strategy card component (COMPLETED 2025-11-02)
+  - ✅ `.strategy-card` - Enhanced card with hover effects
+  - ✅ `.strategy-type-badge` - Gradient badge for strategy type
+  - ✅ Smooth hover transition with blue border and shadow
+
+### 3.6.3 Implement CSS Enhancements
+
+- [X] 3.6.3.1 Update modal width (COMPLETED 2025-11-02)
+  - ✅ File: `frontend/control/plans.html` line 311-320
+  - ✅ Changed width from 90%/800px to 95%/1200px
+- [X] 3.6.3.2 Add card-based layout CSS (~120 lines) (COMPLETED 2025-11-02)
+  - ✅ Section card styles (`.detail-section`, heading styles)
+  - ✅ Grid layout system (`.detail-grid`)
+  - ✅ Information display (`.info-item`, `.info-label`, `.info-value`)
+  - ✅ Strategy cards (`.strategy-card`, `.strategy-header`, `.strategy-type-badge`)
+  - ✅ Statistics display (`.stat-row`, `.stat-item`, `.stat-label`, `.stat-value`)
+  - ✅ Time display (`.time-display` - monospace with green background)
+  - ✅ Action buttons (`.detail-actions` with top border)
+
+### 3.6.4 Update JavaScript Rendering Function
+
+- [X] 3.6.4.1 Refactor `renderPlanDetail()` function (COMPLETED 2025-11-02)
+  - ✅ File: `frontend/control/js/plans.js` lines 416-521
+  - ✅ Updated function length: ~110 lines (reorganized structure)
+- [X] 3.6.4.2 Implement section-based HTML template (COMPLETED 2025-11-02)
+  - ✅ Basic Information section with detail-grid
+  - ✅ Strategy List section with strategy cards
+  - ✅ Impact Statistics section with stat-row
+  - ✅ Validation Status section
+  - ✅ XML Preview section
+  - ✅ Action Buttons with detail-actions wrapper
+- [X] 3.6.4.3 Add visual icons for sections (COMPLETED 2025-11-02)
+  - ✅ 📋 Basic Information
+  - ✅ 🎯 Strategy List
+  - ✅ 📊 Impact Statistics
+  - ✅ ✅ Validation Status
+  - ✅ 📄 XML Preview
+
+### 3.6.5 Create Documentation
+
+- [X] 3.6.5.1 Create Phase 3 UI Enhancement Report (COMPLETED 2025-11-02)
+  - ✅ File: `PHASE3_UI_ENHANCEMENT_REPORT.md` (~450 lines)
+  - ✅ Executive summary with key improvements
+  - ✅ Detailed CSS and JavaScript changes
+  - ✅ Before/After comparison table
+  - ✅ Code quality metrics
+  - ✅ User experience improvements
+  - ✅ Technical implementation details
+  - ✅ Browser compatibility notes
+  - ✅ Performance impact analysis
+  - ✅ Testing recommendations
+  - ✅ Accessibility considerations
+  - ✅ Future enhancement opportunities
+- [X] 3.6.5.2 Update tasks.md with Phase 3.6 section (COMPLETED 2025-11-02)
+  - ✅ Added complete Phase 3.6 task breakdown
+  - ✅ All tasks marked as completed
+
+### 3.6.6 Phase 3.6 Success Criteria
+
+- [X] ✅ Modal width increased to 1200px
+- [X] ✅ Card-based layout implemented with clear section separation
+- [X] ✅ Typography hierarchy enhanced (labels 0.9rem, values 1rem, stats 1.3rem)
+- [X] ✅ Visual icons added for quick section identification
+- [X] ✅ Statistics displayed prominently with large values
+- [X] ✅ Strategy cards have type badges and hover effects
+- [X] ✅ Time ranges displayed in monospace with green background
+- [X] ✅ Responsive grid layout adapts to screen size
+- [X] ✅ All existing functionality preserved (validation button, edit/delete)
+- [X] ✅ XSS protection maintained (escapeHtml() still used)
+- [X] ✅ Code quality maintained (no inline styles, proper separation)
+
+### 3.6.7 Files Modified
+
+| File | Lines Changed | Type | Description |
+|------|--------------|------|-------------|
+| `frontend/control/plans.html` | +120 lines | CSS additions | Card-based layout styles |
+| `frontend/control/js/plans.js` | ~110 lines | Function refactoring | renderPlanDetail() with card layout |
+| `PHASE3_UI_ENHANCEMENT_REPORT.md` | +450 lines | New documentation | Comprehensive enhancement report |
+| `tasks.md` | +80 lines | Documentation update | Phase 3.6 task tracking |
+
+**Total Changes**: ~760 lines (CSS + JS + documentation)
+
+### 3.6.8 Phase 3.6 Summary
+
+**Status**: ✅ **COMPLETE**
+
+**Deliverables**:
+1. ✅ Enhanced CSS with card-based layout (~120 lines)
+2. ✅ Refactored rendering function with semantic sections (~110 lines)
+3. ✅ Comprehensive UI enhancement documentation (~450 lines)
+4. ✅ Updated OpenSpec change documentation
+
+**User Experience Improvements**:
+- 50% wider modal (800px → 1200px)
+- Clear visual hierarchy with section cards
+- 30% larger stat values for better readability
+- Responsive grid layout for flexible display
+- Enhanced strategy cards with type badges
+- Prominent time display with visual highlighting
+
+**Code Quality**:
+- Maintains HTML/CSS/JS separation
+- No inline styles
+- All functions follow single responsibility principle
+- XSS protection preserved
+- Responsive design implemented
+- Backward compatible (no breaking changes)
+
+**Production Ready**: ✅ Yes - All changes are non-breaking and enhance UX
+
+---
+
 ## Phase 4: Optional - Network Topology Validation (Future)
 
 ### 4.1 Edge Existence Check
