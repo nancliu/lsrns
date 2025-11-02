@@ -10,7 +10,8 @@ The system SHALL allow users to create batch optimization jobs with unified outp
 - **AND** baseline_plan is NOT in the list
 - **THEN** system auto-includes baseline_plan at beginning of plan list
 - **AND** generates simulation_config.json with unified output settings:
-  - summary_xml: true
+  - summary_xml: true (always)
+  - e1_detector_data: true (always, pre-configured at gantry locations)
   - tripinfo_xml: true
   - edgedata_xml: true
   - seed_sequence: [66, 67, 68]
@@ -25,9 +26,9 @@ The system SHALL allow users to create batch optimization jobs with unified outp
 - **WHEN** user creates batch with output_level="minimal"
 - **THEN** system creates simulation_config.json with:
   - summary_xml: true (always)
+  - e1_detector_data: true (always, pre-configured at gantry locations)
   - tripinfo_xml: false
   - edgedata_xml: false
-  - e1_detectors: false
 - **AND** configuration applied to ALL plans (no per-plan overrides)
 - **AND** batch created successfully
 

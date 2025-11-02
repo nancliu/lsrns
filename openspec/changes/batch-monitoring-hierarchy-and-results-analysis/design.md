@@ -109,10 +109,14 @@ async def create_batch(
         "base_seed": base_seed,
         "seed_sequence": list(range(base_seed, base_seed + num_seeds)),
         # Output settings based on output_level
-        "summary_xml": True,  # Always enabled
+        # summary.xml: always required for results analysis
+        "summary_xml": True,
+        # E1 detector data: always enabled (pre-configured at gantry locations)
+        "e1_detector_data": True,
+        # tripinfo.xml: only for standard/full (minimal disables for speed/storage)
         "tripinfo_xml": output_level in ["standard", "full"],
+        # edgedata.xml: only for standard/full (minimal disables for speed/storage)
         "edgedata_xml": output_level in ["standard", "full"],
-        "e1_detectors": output_level in ["standard", "full"],
         "created_at": datetime.utcnow().isoformat()
     }
 
@@ -396,10 +400,13 @@ function renderBatchListGroupedByCase(batches, caseMetadata) {
   });
 
   // Sort cases by latest batch time (newest first)
+  // This puts the case with most recent batch activity at the top
   const sortedCases = Object.entries(groupedByCase)
     .sort((a, b) => {
-      const latestA = Math.max(...a[1].map(b => new Date(b.created_at)));
-      const latestB = Math.max(...b[1].map(b => new Date(b.created_at)));
+      // Get the most recent batch time for each case
+      const latestA = Math.max(...a[1].map(batch => new Date(batch.created_at)));
+      const latestB = Math.max(...b[1].map(batch => new Date(batch.created_at)));
+      // Sort descending (newest first)
       return latestB - latestA;
     });
 

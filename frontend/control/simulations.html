@@ -32,8 +32,8 @@
         </div>
 
         <div class="content-area">
-            <!-- View Tabs -->
-            <div class="view-tabs">
+            <!-- Top View Tabs (固定导航栏) -->
+            <div class="view-tabs view-tabs-top">
                 <button class="view-tab active" id="configViewTab" onclick="switchView('config')">配置</button>
                 <button class="view-tab" id="monitoringViewTab" onclick="switchView('monitoring')" title="批次监控整合了进度和历史功能">批次监控</button>
                 <button class="view-tab" id="resultsViewTab" onclick="switchView('results')">结果</button>
@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="estimate-box">
-                        <p><strong>预估:</strong></p>
+                        <p><strong>批次任务数量预估:</strong></p>
                         <p id="estimateText">请选择方案</p>
                     </div>
                 </div>
@@ -226,6 +226,13 @@
                     <button class="btn btn-primary" id="viewOptimizationBtn">查看详细优化分析 →</button>
                     <button class="btn btn-success" id="exportResultsBtn">导出结果</button>
                 </div>
+            </div>
+
+            <!-- Bottom View Tabs (浮动导航栏) -->
+            <div class="view-tabs view-tabs-bottom">
+                <button class="view-tab active" id="configViewTabBottom" onclick="switchView('config')">配置</button>
+                <button class="view-tab" id="monitoringViewTabBottom" onclick="switchView('monitoring')" title="批次监控整合了进度和历史功能">批次监控</button>
+                <button class="view-tab" id="resultsViewTabBottom" onclick="switchView('results')">结果</button>
             </div>
 
         </div>

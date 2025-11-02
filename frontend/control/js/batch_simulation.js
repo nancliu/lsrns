@@ -139,10 +139,15 @@ function switchView(view) {
     document.getElementById('monitoringView').classList.toggle('active', view === 'monitoring');
     document.getElementById('resultsView').classList.toggle('active', view === 'results');
 
-    // Update tabs
+    // Update tabs (顶部标签栏)
     document.getElementById('configViewTab').classList.toggle('active', view === 'config');
     document.getElementById('monitoringViewTab').classList.toggle('active', view === 'monitoring');
     document.getElementById('resultsViewTab').classList.toggle('active', view === 'results');
+
+    // Update tabs (底部标签栏 - 保持同步)
+    document.getElementById('configViewTabBottom').classList.toggle('active', view === 'config');
+    document.getElementById('monitoringViewTabBottom').classList.toggle('active', view === 'monitoring');
+    document.getElementById('resultsViewTabBottom').classList.toggle('active', view === 'results');
 
     // Load data when switching to monitoring view
     if (view === 'monitoring' && currentCaseId) {
@@ -246,7 +251,7 @@ function updateEstimate() {
     const totalTasks = selectedPlans.length * numSeeds;
 
     document.getElementById('estimateText').textContent =
-        `${selectedPlans.length} 个方案 × ${numSeeds} 次随机 = ${totalTasks} 次仿真`;
+        `${selectedPlans.length}个方案 × ${numSeeds} 个随机种子 = ${totalTasks} 个并行仿真任务`;
 }
 
 async function onCaseChange() {
@@ -1439,18 +1444,27 @@ async function loadBatchHistory() {
                     ${batch.success_rate !== undefined ? `<p><strong>成功率:</strong> ${(batch.success_rate * 100).toFixed(1)}%</p>` : ''}
                 </div>
                 <div class="batch-card-actions">
-                    ${batch.status === 'pending' ? `
+                    ${batch.status === 'running' ? `
+                        <button class="btn btn-small btn-success" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">监控进度</button>
+                        <button class="btn btn-small btn-warning" onclick="cancelBatchById('${batch.batch_id}')">取消</button>
+                    ` : ''}
+                    ${batch.status === 'cancelled' ? `
                         <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
+                        <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
                     ` : ''}
                     ${batch.status === 'completed' ? `
-                        <button class="btn btn-small" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
-                    ` : ''}
-                    ${batch.status === 'running' ? `
-                        <button class="btn btn-small" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">监控进度</button>
-                        <button class="btn btn-small btn-danger" onclick="cancelBatchById('${batch.batch_id}')">取消</button>
-                    ` : ''}
-                    ${batch.status !== 'running' ? `
+                        <button class="btn btn-small btn-info" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">查看进度</button>
+                        <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
                         <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+                    ` : ''}
+                    ${batch.status === 'failed' ? `
+                        <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">重新启动</button>
+                        <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+                    ` : ''}
+                    ${batch.status === 'pending' ? `
+                        <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
                     ` : ''}
                 </div>
             </div>

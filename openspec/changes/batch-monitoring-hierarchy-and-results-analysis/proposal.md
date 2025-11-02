@@ -68,6 +68,16 @@
    - Configuration saved as `simulation_config.json` in batch directory
    - Validation to ensure no plan has different output settings
 
+   **Output Levels**:
+   - **minimal**: summary.xml + E1 detector data (always) - Fast batch screening
+   - **standard**: summary.xml + E1 detector data + tripinfo.xml + edgedata.xml - Detailed analysis
+   - **full**: All of above - Research/demonstration
+
+   **Key Notes**:
+   - `summary.xml` and **E1 detector data** are **always enabled** (已配置在门架位置)
+   - `tripinfo.xml` and `edgedata.xml` are optional based on output level selection
+   - E1 detectors at gantry locations are pre-configured in network topology, no per-batch configuration needed
+
 4. **Baseline Plan Enforcement**
    - System automatically includes baseline_plan in every batch
    - If user doesn't select baseline, system adds it automatically
@@ -199,12 +209,27 @@
 
 ---
 
+## Clarifications (Resolved)
+
+1. ✅ **Output Configuration Details**
+   - `summary.xml`: **Always enabled** (必需, required for results analysis)
+   - **E1 detector data**: **Always enabled** (已配置在门架位置, pre-configured at gantry locations)
+   - `tripinfo.xml`: Enabled for standard/full, disabled for minimal
+   - `edgedata.xml`: Enabled for standard/full, disabled for minimal
+   - Note: E1 detectors are pre-configured in network topology, no per-batch configuration needed
+
+2. ✅ **Case Group Sort Order**
+   - Sort by **latest batch creation time** (newest first)
+   - Case with most recent batch appears at top
+   - Enables quick discovery of latest work
+
+---
+
 ## Open Questions
 
 1. **Layer 2 detailed analysis scope** - To be determined after Layer 1 user feedback
-2. **Case group sort order** - By latest batch time or by case_id?
-3. **Improvement rate thresholds** - Significant improvement color threshold (e.g., >5%)?
-4. **Summary.xml parsing robustness** - Error handling if a plan's summary.xml is missing/malformed?
+2. **Improvement rate thresholds** - Significant improvement color threshold (e.g., >5% darker color)?
+3. **Summary.xml parsing robustness** - Error handling if a plan's summary.xml is missing/malformed?
 
 ---
 

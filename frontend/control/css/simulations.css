@@ -618,9 +618,11 @@
     background: white;
     border: 1px solid var(--color-light-border);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-15);
+    padding: 12px 14px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     transition: all var(--transition-base);
+    display: flex;
+    flex-direction: column;
 }
 
 .batch-history-card:hover {
@@ -631,17 +633,19 @@
 .batch-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-12);
-    padding-bottom: var(--spacing-12);
-    border-bottom: 1px solid var(--color-light-border);
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 8px;
 }
 
 .batch-card-header h4 {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: var(--color-dark);
     font-family: var(--font-family-mono);
+    flex: 1;
+    word-break: break-all;
+    line-height: 1.3;
 }
 
 /* 批次状态徽章 */
@@ -685,68 +689,233 @@
 
 /* 批次卡片信息 */
 .batch-card-info {
-    margin-bottom: var(--spacing-12);
-    font-size: 0.9rem;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    flex: 1;
 }
 
 .batch-card-info p {
-    margin: var(--spacing-6) 0;
-    color: #555;
+    margin: 3px 0;
+    color: #666;
     display: flex;
     justify-content: space-between;
+    line-height: 1.4;
 }
 
 .batch-card-info strong {
     color: var(--color-dark);
+    font-weight: 600;
 }
 
 /* 批次卡片操作 */
 .batch-card-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: nowrap;
+    align-items: center;
 }
 
+/* 基础按钮样式 */
 .btn-small {
-    padding: var(--spacing-6) 8px;
-    font-size: 0.8rem;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
     border: 1px solid var(--color-border);
     background: white;
-    color: var(--color-info);
+    color: #666;
     border-radius: var(--radius-base);
     cursor: pointer;
     transition: all var(--transition-fast);
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
+    line-height: 1.4;
 }
 
-.btn-small:hover {
-    background: var(--color-info);
-    color: var(--color-text-white);
-    border-color: var(--color-info);
+/* 默认按钮 Hover - 中性灰色 */
+.btn-small:hover:not(:disabled) {
+    background: #f5f5f5;
+    color: #333;
+    border-color: #999;
+    transform: translateY(-1px);
 }
 
+.btn-small:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* ============================================
+   主色按钮 (Primary) - 蓝色
+   用途: 启动仿真、重新启动
+   ============================================ */
 .btn-small.btn-primary {
-    background: var(--color-primary);
-    color: var(--color-text-white);
-    border-color: var(--color-primary);
-    font-weight: var(--font-weight-500);
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+    font-weight: 600;
 }
 
-.btn-small.btn-primary:hover {
-    background: var(--color-info);
-    border-color: var(--color-info);
+.btn-small.btn-primary:hover:not(:disabled) {
+    background: #0052a3;
+    border-color: #0052a3;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.4);
 }
 
+/* ============================================
+   信息按钮 (Info) - 蓝绿色
+   用途: 查看进度
+   ============================================ */
+.btn-small.btn-info {
+    background: white;
+    color: #17a2b8;
+    border: 1.5px solid #17a2b8;
+    font-weight: 500;
+}
+
+.btn-small.btn-info:hover:not(:disabled) {
+    background: #e0f7fa;
+    color: #0d7a8f;
+    border-color: #0d7a8f;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+}
+
+/* ============================================
+   成功按钮 (Success) - 绿色
+   用途: 查看结果
+   ============================================ */
+.btn-small.btn-success {
+    background: white;
+    color: #28a745;
+    border: 1.5px solid #28a745;
+    font-weight: 500;
+}
+
+.btn-small.btn-success:hover:not(:disabled) {
+    background: #e8f5e9;
+    color: #1e7e34;
+    border-color: #1e7e34;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* ============================================
+   警告/取消按钮 (Warning) - 橙色
+   用途: 取消批次
+   ============================================ */
+.btn-small.btn-warning {
+    background: white;
+    color: #ff9800;
+    border: 1.5px solid #ff9800;
+    font-weight: 500;
+}
+
+.btn-small.btn-warning:hover:not(:disabled) {
+    background: #fff3e0;
+    color: #e65100;
+    border-color: #e65100;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+/* ============================================
+   危险按钮 (Danger) - 红色
+   用途: 删除批次
+   ============================================ */
 .btn-small.btn-danger {
-    color: var(--color-danger);
-    border-color: var(--color-danger);
+    background: white;
+    color: #dc3545;
+    border: 1.5px solid #dc3545;
+    font-weight: 500;
 }
 
-.btn-small.btn-danger:hover {
-    background: var(--color-danger);
-    color: var(--color-text-white);
+.btn-small.btn-danger:hover:not(:disabled) {
+    background: #ffe5e8;
+    color: #b02a37;
+    border-color: #b02a37;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-small:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 按钮宽度优化 - 根据按钮数量自动分配 */
+.batch-card-actions .btn-small {
+    flex-basis: calc(25% - 6px);
+    max-width: 140px;
+}
+
+/* 两个按钮情况 */
+.batch-card-actions:has(.btn-small:nth-child(1)):has(.btn-small:nth-child(2)):not(:has(.btn-small:nth-child(3))) .btn-small {
+    flex-basis: calc(50% - 4px);
+}
+
+/* 三个按钮情况 */
+.batch-card-actions:has(.btn-small:nth-child(1)):has(.btn-small:nth-child(2)):has(.btn-small:nth-child(3)):not(:has(.btn-small:nth-child(4))) .btn-small {
+    flex-basis: calc(33.333% - 5.33px);
+}
+
+/* 响应式设计 - 小屏幕 */
+@media (max-width: 768px) {
+    .batch-card-actions {
+        gap: 6px;
+    }
+
+    .btn-small {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        flex-basis: calc(25% - 4.5px);
+    }
+
+    .batch-card-actions:has(.btn-small:nth-child(1)):has(.btn-small:nth-child(2)):not(:has(.btn-small:nth-child(3))) .btn-small {
+        flex-basis: calc(50% - 3px);
+    }
+}
+
+/* ==================== 顶部和底部标签栏样式 ==================== */
+
+/* 顶部标签栏 (普通静态定位，不浮动) */
+.view-tabs-top {
+    position: static;
+    z-index: auto;
+    background: white;
+    box-shadow: none;
+    margin-bottom: var(--spacing-20);
+    border-radius: 0;
+}
+
+/* 底部浮动标签栏 (Fixed) */
+.view-tabs-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: white;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    margin: 0;
+    border-radius: 0;
+    border-top: 1px solid var(--color-light-border);
+
+    /* 调整宽度以适应 sidebar 偏移 */
+    margin-left: var(--size-sidebar-width);
+    padding: 0 var(--spacing-30);
+}
+
+/* 为了防止内容被底部标签栏遮挡，添加 padding */
+.content-area {
+    padding-bottom: 70px;
+}
+
+/* 响应式设计 - 隐藏小屏幕上的底部标签栏 */
+@media (max-width: 768px) {
+    .view-tabs-bottom {
+        display: none;
+    }
+
+    .content-area {
+        padding-bottom: 0;
+    }
 }

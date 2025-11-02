@@ -41,4 +41,5 @@ class BatchSimulationStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
+    CANCELLED = "cancelled"
     FAILED = "failed"
