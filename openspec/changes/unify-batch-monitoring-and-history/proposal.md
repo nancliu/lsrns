@@ -2,12 +2,12 @@
 
 **Change ID**: `unify-batch-monitoring-and-history`
 
-**Status**: ✅ Implemented (Phase 1 & 1.5)
+**Status**: ✅ Implemented (Phase 1-1.9 Complete, MVP Ready)
 
 **Priority**: Medium (P1 - UX improvement, not blocking)
 
 **Created**: 2025-11-02
-**Implemented**: 2025-11-02 (Phase 1 & 1.5 completed in ~5-6 hours)
+**Implemented**: 2025-11-02 (Phase 1-1.9 completed in ~8 hours, MVP complete)
 
 ---
 
@@ -479,27 +479,49 @@ Clicking a batch card expands it to show details **in-place** (no tab switch):
 
 ## 📊 Implementation Status (2025-11-02)
 
-### ✅ Completed
+### ✅ Completed (MVP - Phases 1-1.9)
 
-**Phase 1: Frontend Structure Refactoring** (~3-4 hours)
+**Phase 1: Frontend Structure Refactoring** (~3-4 hours) ✅
 - 3-tab navigation structure (配置 → 批次监控 → 结果)
 - Two-panel monitoring view HTML structure (上栏监控 + 下栏列表)
 - CSS updates for two-panel layout
 - JavaScript state management for 3 tabs
 - Null-safety fixes for removed elements
 
-**Phase 1.5: Batch Control & Progress Monitoring** (~2 hours)
+**Phase 1.5: Batch Control & Progress Monitoring** (~2 hours) ✅
 - Batch card control buttons (启动/取消/监控进度/查看结果/删除)
 - `startBatchById()`, `cancelBatchById()`, `closeCurrentMonitor()` functions
 - Upper panel progress monitoring integration
 - Real-time polling with live vehicle count curve
 - Updated `updateProgress()` and `renderLiveCurve()` for monitor elements
 
+**Phase 1.6: Bug Fixes & Optimization** (~2 hours) ✅
+- Added missing `estimatedCompletion` element
+- Fixed task list height and live curve height
+- Fixed "隐藏曲线" button functionality
+- Fixed time calculation for proper monitoring
+
+**Phase 1.7: Live Curve Canvas Dynamic Height** (~0.5 hours) ✅
+- Removed fixed aspect-ratio conflict
+- Implemented dynamic height calculation based on data points
+- Added `resizeLiveCurveCanvas()` for responsive sizing
+
+**Phase 1.8: Live Curve Control Bar Separation** (~0.25 hours) ✅
+- Separated control bar from curve section for always-visible toggle
+- Curve section independently toggles display
+
+**Phase 1.9: Task Progress Percentage Fix** (~0.5 hours) ✅
+- Fixed progress percentage display in task list details
+- Proper null/undefined checks and value conversion
+- Boundary checks for valid range [0%, 100%]
+
 **Key Achievement**:
-- Fully restored original "进度" tab functionality within the unified monitoring view
-- Two-panel layout addresses user feedback: "批次监控和正在监看的运行的批次可以分上下两栏"
-- Users can now start/monitor/cancel batches directly from batch cards
-- Real-time progress monitoring works in upper panel while browsing batch list below
+- MVP complete with fully functional batch monitoring
+- Two-panel layout provides clear separation: monitoring (top) + batch list (bottom)
+- All real-time features working: task list, progress bar, live curves
+- Batch management: start, cancel, monitor, view results, delete operations
+- Users can start/monitor/cancel batches directly from batch cards
+- Real-time progress monitoring works while browsing batch list
 
 ### ⏸️ Deferred (Future Enhancements)
 
@@ -515,13 +537,13 @@ Clicking a batch card expands it to show details **in-place** (no tab switch):
 
 **Original Proposal**: Expandable batch cards (click card → expands inline to show details)
 
-**Actual Implementation**: Two-panel layout (上下两栏)
+**Actual Implementation**: Two-panel layout (上下两栏) - MVP Ready ✅
 - Upper panel (`currentBatchMonitor`): Hidden by default, shows when "监控进度" clicked
 - Lower panel (`batch-list-section`): Always visible, shows all batches
 - **Rationale**: User feedback indicated preference for traditional upper/lower separation vs. inline expansion
-- **Benefit**: Matches original UI paradigm, easier to understand
+- **Benefit**: Matches original UI paradigm, easier to understand, MVP-ready
 
 **Files Modified**:
-- `frontend/control/simulations.html` - Two-panel HTML structure
-- `frontend/control/css/simulations.css` - Panel styles, button styles
-- `frontend/control/js/batch_simulation.js` - View switching, batch controls, progress monitoring
+- `frontend/control/simulations.html` - Two-panel HTML structure, 3-tab navigation
+- `frontend/control/css/simulations.css` - Panel styles, button styles, live curve styling
+- `frontend/control/js/batch_simulation.js` - View switching, batch controls, progress monitoring, live updates
