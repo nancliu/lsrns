@@ -244,21 +244,27 @@ def generate_strategy_xml(
 def generate_vss_xml(
     strategy_id: str,
     template: Dict[str, Any],
-    parameters: Dict[str, Any]
+    parameters: Dict[str, Any],
+    network_file_path: Optional[str] = None
 ) -> str:
     """
     Generate SUMO variableSpeedSign XML element.
 
     Structure:
-        <variableSpeedSign id="strategy_id" edges="edge1 edge2 ...">
+        <variableSpeedSign id="strategy_id" lanes="edge1_0 edge1_1 edge1_2 edge2_0 edge2_1 ...">
             <step time="0" speed="27.78"/>
             <step time="25200" speed="22.22"/>
         </variableSpeedSign>
+
+    IMPORTANT: 根据SUMO文档，variableSpeedSign必须使用lanes属性（列出所有lane ID），
+    而不是edges属性。edges属性在当前SUMO版本中不可用。
 
     Args:
         strategy_id: Strategy identifier (becomes element id)
         template: VSS template dictionary
         parameters: Strategy parameters with affected_edges and speed_steps
+        network_file_path: Optional path to SUMO network file (.net.xml)
+                          If None, uses default: templates/network_files/sichuan202508v7.net.xml
 
     Returns:
         XML string of variableSpeedSign element
@@ -272,13 +278,42 @@ def generate_vss_xml(
             raise ValueError(f"VSS strategy {strategy_id} requires 'affected_edges' in parameters")
         speed_steps = parameters.get("speed_steps", [])
 
+        # Determine network file path
+        if network_file_path is None:
+            # Use default network file
+            network_file_path = "templates/network_files/sichuan202508v7.net.xml"
+            logger.debug(f"Using default network file: {network_file_path}")
+
+        # Convert to absolute path if relative
+        net_path = Path(network_file_path)
+        if not net_path.is_absolute():
+            # Assume relative to project root
+            project_root = Path(__file__).parent.parent.parent
+            net_path = project_root / network_file_path
+
+        # Get all lane IDs for all affected edges (include all lanes including index 0)
+        # VSS should control all lanes, not excluding hard shoulder, as not all locations have hard shoulder lanes
+        lane_ids = _get_all_lane_ids_from_network(
+            str(net_path),
+            affected_edges,
+            exclude_hard_shoulder=False
+        )
+
+        if not lane_ids:
+            raise ValueError(
+                f"No valid lanes found for edges {affected_edges} "
+                f"in network file {network_file_path}"
+            )
+
+        logger.info(f"Generated {len(lane_ids)} lane IDs for VSS: {lane_ids[:5]}..." if len(lane_ids) > 5 else f"Generated lane IDs: {lane_ids}")
+
         # Create root element
         vss_elem = Element("variableSpeedSign")
         vss_elem.set("id", strategy_id)
 
-        # Add edges attribute (space-separated)
-        if affected_edges:
-            vss_elem.set("edges", " ".join(affected_edges))
+        # Add lanes attribute (space-separated) - MUST use lanes, not edges
+        if lane_ids:
+            vss_elem.set("lanes", " ".join(lane_ids))
 
         # Add speed steps
         for step in speed_steps:
@@ -331,13 +366,74 @@ def generate_vss_xml(
         raise
 
 
+def _get_all_lane_ids_from_network(
+    network_file_path: str,
+    edge_ids: List[str],
+    exclude_hard_shoulder: bool = True
+) -> List[str]:
+    """
+    从SUMO网络文件读取所有edges的所有车道ID。
+
+    SUMO lane ID格式: {edge_id}_{lane_index}
+    例如: "-9292_0", "-9292_1", "-9292_2"
+
+    Args:
+        network_file_path: SUMO网络文件路径（.net.xml）
+        edge_ids: Edge ID列表
+        exclude_hard_shoulder: 是否排除应急车道（最右侧车道，索引0），默认True
+
+    Returns:
+        所有车道ID列表，格式为["edge_id_lane_index", ...]
+    """
+    lane_ids = []
+
+    try:
+        # 尝试解析网络文件
+        tree = parse(network_file_path)
+        root = tree.getroot()
+
+        for edge_id in edge_ids:
+            # 查找edge元素
+            edge_elem = root.find(f".//edge[@id='{edge_id}']")
+            if edge_elem is None:
+                logger.warning(f"Edge {edge_id} not found in network file {network_file_path}")
+                continue
+
+            # 获取所有lane元素
+            lanes = edge_elem.findall('lane')
+            if not lanes:
+                logger.warning(f"Edge {edge_id} has no lanes in network file")
+                continue
+
+            # 遍历所有lane，生成lane ID
+            for i in range(len(lanes)):
+                # 如果排除应急车道且是索引0，跳过
+                if exclude_hard_shoulder and i == 0:
+                    logger.debug(f"Skipping hard shoulder lane (index 0) for edge {edge_id}")
+                    continue
+
+                # 生成完整的lane ID
+                lane_id = f"{edge_id}_{i}"
+                lane_ids.append(lane_id)
+                logger.debug(f"Generated lane ID: {lane_id} for edge {edge_id}")
+
+    except FileNotFoundError:
+        logger.error(f"Network file not found: {network_file_path}")
+        raise
+    except Exception as e:
+        logger.error(f"Error reading network file {network_file_path}: {e}", exc_info=True)
+        raise
+
+    return lane_ids
+
+
 def _get_lane_ids_from_network(
     network_file_path: str,
     edge_ids: List[str],
     lane_index: int
 ) -> List[str]:
     """
-    从SUMO网络文件读取指定edge的车道ID。
+    从SUMO网络文件读取指定edge的指定车道ID。
 
     SUMO lane ID格式: {edge_id}_{lane_index}
     例如: "-9292_0", "-8014_0"

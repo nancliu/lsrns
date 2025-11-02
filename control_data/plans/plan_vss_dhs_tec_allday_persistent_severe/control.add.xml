@@ -2,18 +2,18 @@
 <additional>
     <!--
     方案: 全天持续拥堵VSS+DHS+TEC三策略立体管控方案 (plan_vss_dhs_tec_allday_persistent_severe)
-    生成时间: 2025-11-02 20:04:26
+    生成时间: 2025-11-02 21:48:19
     -->
 
     <!-- ==================== VSS策略组 ==================== -->
 
     <!-- 策略: strategy_real_vss_g5_001 - G5成雅双流段全天可变限速 -->
-    <variableSpeedSign id="strategy_real_vss_g5_001" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476"><step time="25200" speed="22.22" /><step time="32400" speed="16.67" /><step time="61200" speed="22.22" /><step time="68400" speed="16.67" /></variableSpeedSign>
+    <variableSpeedSign id="strategy_real_vss_g5_001" lanes="-8174_0 -8174_1 -8174_2 -14036_0 -14036_1 -14036_2 -7854_0 -7854_1 -7854_2 -15664_0 -15664_1 -15664_2 -4878_0 -4878_1 -4878_2 -13916_0 -13916_1 -13916_2 -10274_0 -10274_1 -10274_2 -2092_0 -2092_1 -2092_2 -9480_0 -9480_1 -9480_2 -11518_0 -11518_1 -11518_2 -4878.749_0 -4878.749_1 -4878.749_2 -4878.924_0 -4878.924_1 -4878.924_2 -14628_0 -14628_1 -14628_2 -6476_0 -6476_1 -6476_2"><step time="25200" speed="22.22" /><step time="32400" speed="16.67" /><step time="61200" speed="22.22" /><step time="68400" speed="16.67" /></variableSpeedSign>
 
     <!-- ==================== DHS策略组 ==================== -->
 
     <!-- 策略: strategy_real_dhs_g5_002 - G5成雅双流段高峰应急车道开放 -->
-    <rerouter id="strategy_real_dhs_g5_002" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476"><interval begin="0" end="25200"><closingLaneReroute id="0" allow="" /></interval><interval begin="25200" end="32400" /><interval begin="32400" end="61200"><closingLaneReroute id="0" allow="" /></interval><interval begin="61200" end="68400" /><interval begin="68400" end="86400"><closingLaneReroute id="0" allow="" /></interval></rerouter>
+    <rerouter id="strategy_real_dhs_g5_002" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476"><interval begin="0" end="25200"><closingLaneReroute id="-8174_0" allow="" /><closingLaneReroute id="-14036_0" allow="" /><closingLaneReroute id="-7854_0" allow="" /><closingLaneReroute id="-15664_0" allow="" /><closingLaneReroute id="-4878_0" allow="" /><closingLaneReroute id="-13916_0" allow="" /><closingLaneReroute id="-10274_0" allow="" /><closingLaneReroute id="-2092_0" allow="" /><closingLaneReroute id="-9480_0" allow="" /><closingLaneReroute id="-11518_0" allow="" /><closingLaneReroute id="-4878.749_0" allow="" /><closingLaneReroute id="-4878.924_0" allow="" /><closingLaneReroute id="-14628_0" allow="" /><closingLaneReroute id="-6476_0" allow="" /></interval><interval begin="25200" end="32400" /><interval begin="32400" end="61200"><closingLaneReroute id="-8174_0" allow="" /><closingLaneReroute id="-14036_0" allow="" /><closingLaneReroute id="-7854_0" allow="" /><closingLaneReroute id="-15664_0" allow="" /><closingLaneReroute id="-4878_0" allow="" /><closingLaneReroute id="-13916_0" allow="" /><closingLaneReroute id="-10274_0" allow="" /><closingLaneReroute id="-2092_0" allow="" /><closingLaneReroute id="-9480_0" allow="" /><closingLaneReroute id="-11518_0" allow="" /><closingLaneReroute id="-4878.749_0" allow="" /><closingLaneReroute id="-4878.924_0" allow="" /><closingLaneReroute id="-14628_0" allow="" /><closingLaneReroute id="-6476_0" allow="" /></interval><interval begin="61200" end="68400" /><interval begin="68400" end="86400"><closingLaneReroute id="-8174_0" allow="" /><closingLaneReroute id="-14036_0" allow="" /><closingLaneReroute id="-7854_0" allow="" /><closingLaneReroute id="-15664_0" allow="" /><closingLaneReroute id="-4878_0" allow="" /><closingLaneReroute id="-13916_0" allow="" /><closingLaneReroute id="-10274_0" allow="" /><closingLaneReroute id="-2092_0" allow="" /><closingLaneReroute id="-9480_0" allow="" /><closingLaneReroute id="-11518_0" allow="" /><closingLaneReroute id="-4878.749_0" allow="" /><closingLaneReroute id="-4878.924_0" allow="" /><closingLaneReroute id="-14628_0" allow="" /><closingLaneReroute id="-6476_0" allow="" /></interval></rerouter>
 
     <!-- ==================== TEC策略组 ==================== -->
 
