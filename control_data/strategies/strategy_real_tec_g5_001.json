@@ -5,48 +5,12 @@
   "template_name": "收费入口 - 流量控制",
   "strategy_type": "TEC",
   "parameters": {
-    "position": 0,
-    "flow_intervals": [
-      {
-        "begin_hours": 0,
-        "end_hours": 6,
-        "vehsPerHour": 300,
-        "target_speed": 15
-      },
-      {
-        "begin_hours": 6,
-        "end_hours": 10,
-        "vehsPerHour": 120,
-        "target_speed": 8
-      },
-      {
-        "begin_hours": 10,
-        "end_hours": 16,
-        "vehsPerHour": 250,
-        "target_speed": 12
-      },
-      {
-        "begin_hours": 16,
-        "end_hours": 20,
-        "vehsPerHour": 100,
-        "target_speed": 6
-      },
-      {
-        "begin_hours": 20,
-        "end_hours": 24,
-        "vehsPerHour": 300,
-        "target_speed": 15
-      }
-    ],
-    "entrance_edges": [
-      "-1232"
-    ]
+    "entrance_edges": []
   },
-  "affected_edges": [],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K1820.15成雅双流南站严重拥堵（入口即瓶颈，速度21-25km/h），采用严格的入口流量控制。早高峰限流120 veh/hr（削减60%），晚高峰限流100 veh/hr（削减68%）。基于baseline门架数据G000551005000220010（批次20251013_20251019）。配合VSS和DHS策略使用",

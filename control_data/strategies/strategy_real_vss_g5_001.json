@@ -5,61 +5,27 @@
   "template_name": "可变限速 - 严格控制",
   "strategy_type": "VSS",
   "parameters": {
-    "speed_steps": [
-      {
-        "time_hours": 0,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 6,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 7,
-        "speed_kmh": 50
-      },
-      {
-        "time_hours": 10,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 16,
-        "speed_kmh": 60
-      },
-      {
-        "time_hours": 17,
-        "speed_kmh": 40
-      },
-      {
-        "time_hours": 20,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 23,
-        "speed_kmh": 100
-      }
+    "affected_edges": [
+      "-8174",
+      "-14036",
+      "-7854",
+      "-15664",
+      "-4878",
+      "-13916",
+      "-10274",
+      "-2092",
+      "-9480",
+      "-11518",
+      "-4878.749",
+      "-4878.924",
+      "-14628",
+      "-6476"
     ]
   },
-  "affected_edges": [
-    "-8174",
-    "-14036",
-    "-7854",
-    "-15664",
-    "-4878",
-    "-13916",
-    "-10274",
-    "-2092",
-    "-9480",
-    "-11518",
-    "-4878.749",
-    "-4878.924",
-    "-14628",
-    "-6476"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K1820双流南北站全天持续拥堵（最低速度17.97km/h，持续12小时），采用全天分时段限速控制。基于baseline门架数据G000551005000220010（批次20251013_20251019）。建议配合DHS策略strategy_real_dhs_g5_002使用",

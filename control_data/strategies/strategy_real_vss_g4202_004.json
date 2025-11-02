@@ -5,47 +5,21 @@
   "template_name": "可变限速 - 中等控制",
   "strategy_type": "VSS",
   "parameters": {
-    "speed_steps": [
-      {
-        "time_hours": 0,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 6,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 7,
-        "speed_kmh": 60
-      },
-      {
-        "time_hours": 10,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 16,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 23,
-        "speed_kmh": 100
-      }
+    "affected_edges": [
+      "-12324",
+      "-9794",
+      "-15220",
+      "-13798",
+      "-8656",
+      "-4680",
+      "-7352",
+      "-14872"
     ]
   },
-  "affected_edges": [
-    "-12324",
-    "-9794",
-    "-15220",
-    "-13798",
-    "-8656",
-    "-4680",
-    "-7352",
-    "-14872"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K59.8绕西光华大道站-成温邛枢纽早高峰拥堵（速度19.88km/h），采用分时段限速控制。基于baseline门架数据G420151002000410010（批次20251013_20251019）",

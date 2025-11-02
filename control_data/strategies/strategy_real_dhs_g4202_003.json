@@ -5,59 +5,25 @@
   "template_name": "应急车道开放",
   "strategy_type": "DHS",
   "parameters": {
-    "hard_shoulder_lane_index": 0,
-    "intervals": [
-      {
-        "begin_hours": 0,
-        "end_hours": 7,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 7,
-        "end_hours": 10,
-        "status": "OPEN",
-        "allowed_vehicle_types": [
-          "passenger",
-          "truck",
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 10,
-        "end_hours": 24,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      }
-    ],
-    "allowed_vehicle_types": [
-      "passenger",
-      "truck",
-      "delivery"
+    "affected_edges": [
+      "-10896",
+      "-9428",
+      "-15632",
+      "-7106",
+      "-14192",
+      "-8370",
+      "-9938",
+      "-13154",
+      "-5004",
+      "-9292",
+      "-8014",
+      "-10702"
     ]
   },
-  "affected_edges": [
-    "-10896",
-    "-9428",
-    "-15632",
-    "-7106",
-    "-14192",
-    "-8370",
-    "-9938",
-    "-13154",
-    "-5004",
-    "-9292",
-    "-8014",
-    "-10702"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K32.51机场段早高峰超高流量（489-500 veh/hr）问题，早高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g4202_003使用，形成VSS+DHS复合管控方案。基于baseline门架数据G420151001000910010",

@@ -279,8 +279,7 @@ def _generate_tec_metering_xml(
 ) -> str:
     """Generate TEC metering (ramp metering) XML with flow control.
 
-    Supports both legacy entrance_edge (string) and new entrance_edges (array) formats.
-    For backward compatibility, entrance_edge is automatically converted to entrance_edges.
+    Requires entrance_edges in parameters (strict format, no fallback).
     """
     logger.debug(f"Generating TEC metering XML: {strategy_id}")
 

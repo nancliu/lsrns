@@ -5,51 +5,25 @@
   "template_name": "可变限速 - 中等控制",
   "strategy_type": "VSS",
   "parameters": {
-    "speed_steps": [
-      {
-        "time_hours": 0,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 7,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 8,
-        "speed_kmh": 50
-      },
-      {
-        "time_hours": 10,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 16,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 23,
-        "speed_kmh": 100
-      }
+    "affected_edges": [
+      "-10896",
+      "-9428",
+      "-15632",
+      "-7106",
+      "-14192",
+      "-8370",
+      "-9938",
+      "-13154",
+      "-5004",
+      "-9292",
+      "-8014",
+      "-10702"
     ]
   },
-  "affected_edges": [
-    "-10896",
-    "-9428",
-    "-15632",
-    "-7106",
-    "-14192",
-    "-8370",
-    "-9938",
-    "-13154",
-    "-5004",
-    "-9292",
-    "-8014",
-    "-10702"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K32.51天府国际机场枢纽-成自泸枢纽早高峰极度拥堵（速度18.22km/h，超高流量489veh/hr），采用分时段限速控制。基于baseline门架数据G420151001000910010（批次20251013_20251019）。建议配合DHS策略strategy_real_dhs_g4202_003使用",

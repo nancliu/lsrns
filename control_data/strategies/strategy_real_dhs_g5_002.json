@@ -5,79 +5,27 @@
   "template_name": "应急车道 - 多时段管理",
   "strategy_type": "DHS",
   "parameters": {
-    "hard_shoulder_lane_index": 0,
-    "intervals": [
-      {
-        "begin_hours": 0,
-        "end_hours": 7,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 7,
-        "end_hours": 10,
-        "status": "OPEN",
-        "allowed_vehicle_types": [
-          "passenger",
-          "truck",
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 10,
-        "end_hours": 16,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 16,
-        "end_hours": 20,
-        "status": "OPEN",
-        "allowed_vehicle_types": [
-          "passenger",
-          "truck",
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 20,
-        "end_hours": 24,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      }
-    ],
-    "allowed_vehicle_types": [
-      "passenger",
-      "truck",
-      "delivery"
+    "affected_edges": [
+      "-8174",
+      "-14036",
+      "-7854",
+      "-15664",
+      "-4878",
+      "-13916",
+      "-10274",
+      "-2092",
+      "-9480",
+      "-11518",
+      "-4878.749",
+      "-4878.924",
+      "-14628",
+      "-6476"
     ]
   },
-  "affected_edges": [
-    "-8174",
-    "-14036",
-    "-7854",
-    "-15664",
-    "-4878",
-    "-13916",
-    "-10274",
-    "-2092",
-    "-9480",
-    "-11518",
-    "-4878.749",
-    "-4878.924",
-    "-14628",
-    "-6476"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K1820双流段全天持续拥堵，早晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g5_001使用，形成VSS+DHS复合管控方案。基于baseline门架数据G000551005000220010",

@@ -5,47 +5,25 @@
   "template_name": "可变限速 - 中等控制",
   "strategy_type": "VSS",
   "parameters": {
-    "speed_steps": [
-      {
-        "time_hours": 0,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 16,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 17,
-        "speed_kmh": 60
-      },
-      {
-        "time_hours": 20,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 23,
-        "speed_kmh": 100
-      }
+    "affected_edges": [
+      "-14748",
+      "-4956",
+      "-13450",
+      "-8466",
+      "-6184",
+      "-15818",
+      "-10590",
+      "-13074",
+      "-2866",
+      "-11914",
+      "-7642",
+      "-9700"
     ]
   },
-  "affected_edges": [
-    "-14748",
-    "-4956",
-    "-13450",
-    "-8466",
-    "-6184",
-    "-15818",
-    "-10590",
-    "-13074",
-    "-2866",
-    "-11914",
-    "-7642",
-    "-9700"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K1768.5成绵新都北站-新都站晚高峰拥堵（速度27.11km/h），采用分时段限速控制。基于baseline门架数据G000551044001310010（批次20251013_20251019）",

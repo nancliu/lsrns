@@ -5,48 +5,26 @@
   "template_name": "可变限速 - 严格控制",
   "strategy_type": "VSS",
   "parameters": {
-    "speed_steps": [
-      {
-        "time_hours": 0,
-        "speed_kmh": 100
-      },
-      {
-        "time_hours": 16,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 17,
-        "speed_kmh": 50
-      },
-      {
-        "time_hours": 20,
-        "speed_kmh": 80
-      },
-      {
-        "time_hours": 23,
-        "speed_kmh": 100
-      }
+    "affected_edges": [
+      "-7798.460",
+      "-13928",
+      "-7790",
+      "-5220",
+      "-7790.354",
+      "-1842",
+      "-1842.115",
+      "-11526",
+      "-15156",
+      "-15156.326",
+      "-7982",
+      "-7982.425",
+      "-7982.512"
     ]
   },
-  "affected_edges": [
-    "-7798.460",
-    "-13928",
-    "-7790",
-    "-5220",
-    "-7790.354",
-    "-1842",
-    "-1842.115",
-    "-11526",
-    "-15156",
-    "-15156.326",
-    "-7982",
-    "-7982.425",
-    "-7982.512"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K42.32锦城湖站-成雅站晚高峰极度拥堵（速度15.65km/h，流量478veh/hr），采用分时段限速控制。基于baseline门架数据G420151001001210010（批次20251013_20251019）。建议配合DHS策略strategy_real_dhs_g4202_002使用",

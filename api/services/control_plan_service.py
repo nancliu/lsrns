@@ -379,15 +379,16 @@ class ControlPlanService:
                 strategy_type = strategy.get("strategy_type")
                 strategy_types_count[strategy_type] = strategy_types_count.get(strategy_type, 0) + 1
 
-                # 提取影响的边
+                # 提取影响的边（严格从parameters获取）
                 parameters = strategy.get("parameters", {})
-                affected_edges = parameters.get("affected_edges", [])
-                if "entrance_edge" in parameters:
-                    affected_edges.append(parameters["entrance_edge"])
-                if "entrance_edges" in parameters:
-                    affected_edges.extend(parameters["entrance_edges"])
-
-                affected_edges_set.update(affected_edges)
+                if strategy_type == "TEC":
+                    # TEC使用entrance_edges
+                    entrance_edges = parameters.get("entrance_edges", [])
+                    affected_edges_set.update(entrance_edges)
+                else:
+                    # VSS/DHS使用affected_edges
+                    affected_edges = parameters.get("affected_edges", [])
+                    affected_edges_set.update(affected_edges)
 
                 # 提取时间范围
                 # VSS: speed_steps

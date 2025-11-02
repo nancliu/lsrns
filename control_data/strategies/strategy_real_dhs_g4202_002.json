@@ -5,60 +5,26 @@
   "template_name": "应急车道开放",
   "strategy_type": "DHS",
   "parameters": {
-    "hard_shoulder_lane_index": 0,
-    "intervals": [
-      {
-        "begin_hours": 0,
-        "end_hours": 17,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 17,
-        "end_hours": 20,
-        "status": "OPEN",
-        "allowed_vehicle_types": [
-          "passenger",
-          "truck",
-          "delivery"
-        ]
-      },
-      {
-        "begin_hours": 20,
-        "end_hours": 24,
-        "status": "CLOSED",
-        "allowed_vehicle_types": [
-          "delivery"
-        ]
-      }
-    ],
-    "allowed_vehicle_types": [
-      "passenger",
-      "truck",
-      "delivery"
+    "affected_edges": [
+      "-7798.460",
+      "-13928",
+      "-7790",
+      "-5220",
+      "-7790.354",
+      "-1842",
+      "-1842.115",
+      "-11526",
+      "-15156",
+      "-15156.326",
+      "-7982",
+      "-7982.425",
+      "-7982.512"
     ]
   },
-  "affected_edges": [
-    "-7798.460",
-    "-13928",
-    "-7790",
-    "-5220",
-    "-7790.354",
-    "-1842",
-    "-1842.115",
-    "-11526",
-    "-15156",
-    "-15156.326",
-    "-7982",
-    "-7982.425",
-    "-7982.512"
-  ],
   "metadata": {
-    "created_at": "2025-10-26T00:00:00Z",
-    "updated_at": "2025-10-26T00:00:00Z",
-    "created_by": "data_analyst",
+    "created_at": "",
+    "updated_at": "",
+    "created_by": "system",
     "version": 1
   },
   "description": "针对K42.32锦城湖段晚高峰高流量（478-517 veh/hr）问题，晚高峰时段开放应急车道增加通行能力。配合VSS策略strategy_real_vss_g4202_002使用，形成VSS+DHS复合管控方案。基于baseline门架数据G420151001001210010",
