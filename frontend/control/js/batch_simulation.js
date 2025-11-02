@@ -1114,17 +1114,20 @@ async function startBatchById(batchId) {
 async function cancelBatchById(batchId) {
     if (!batchId) return;
 
-    if (!confirm('确定要取消该批次吗？')) return;
+    if (!confirm('确定要取消该批次吗？取消后可以保留仿真目录并重新启动。')) return;
 
     try {
         const response = await fetch(
-            `${API_BASE}/control/batch-optimization/batch/${batchId}`,
-            { method: 'DELETE' }
+            `${API_BASE}/control/batch-optimization/batch/${batchId}/cancel`,
+            { method: 'POST' }
         );
 
         if (!response.ok) throw new Error('Failed to cancel batch');
 
-        showSuccess('批次已取消');
+        const result = await response.json();
+        const data = result.data || {};
+
+        showSuccess(`批次已取消 (${data.cancelled_count || 0} 个任务被取消)`);
 
         // 刷新批次列表以更新状态
         loadBatchHistory();

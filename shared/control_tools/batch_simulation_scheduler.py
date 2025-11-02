@@ -11,7 +11,7 @@ import multiprocessing
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 
 logger = logging.getLogger(__name__)
@@ -214,15 +214,18 @@ class BatchSimulationScheduler:
         running = sum(1 for t in tasks if t.status == "running")
 
         # 基于实际仿真进度的计算：汇总所有任务的progress字段
-        # completed: 100%, running: 使用实际progress, pending/failed: 0%
+        # completed: 100%, failed: 100% (认为已处理完毕), running: 使用实际progress, pending: 0%
         if total > 0:
             total_progress = 0
             for task in tasks:
                 if task.status == "completed":
                     total_progress += 100
+                elif task.status == "failed":
+                    # 失败任务计为已完成（已处理完毕），不改变分母
+                    total_progress += 100
                 elif task.status == "running":
                     total_progress += task.progress  # 使用实际进度 (0-100)
-                # pending和failed都是0
+                # pending: 0
             progress = total_progress / (total * 100)  # 归一化到0-1
         else:
             progress = 0.0
@@ -643,41 +646,134 @@ class BatchSimulationScheduler:
 
         return simulation_id, config_file
 
-    def cancel_batch(self, case_id: str, batch_id: str) -> None:
+    def cancel_batch(self, case_id: str, batch_id: str) -> Dict[str, Any]:
         """
-        取消批量仿真（取消所有pending任务）
+        取消批量仿真（取消所有pending和running任务，杀死运行中的SUMO进程）
+
+        注意：此方法只更新状态，不删除目录。目录保留以便之后重新启动。
 
         Args:
             case_id: 案例ID
             batch_id: 批次ID
+
+        Returns:
+            Dict: 取消结果，包含cancelled_count和killed_count
         """
-        progress_data = self.get_batch_progress(case_id, batch_id)
-        tasks = [BatchTask.from_dict(t) for t in progress_data["tasks"]]
+        import os
+        import signal
+        import time
 
-        # 取消所有pending任务
-        cancelled_count = 0
-        for task in tasks:
-            if task.status == "pending":
-                task.status = "failed"
-                task.error = "Cancelled by user"
-                cancelled_count += 1
-
-        # 更新批次状态
         batch_dir = self.base_dir / case_id / "simulations" / "plan_opti" / batch_id
         metadata_path = batch_dir / "batch_metadata.json"
+
+        # 加载批次元数据
+        if not metadata_path.exists():
+            raise FileNotFoundError(f"Batch metadata not found: {metadata_path}")
 
         with open(metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
-        metadata["status"] = "failed"
-        metadata["completed_at"] = datetime.now().isoformat()
+        # 如果批次已经完成，无法取消
+        if metadata.get("status") in ["completed", "archived"]:
+            raise ValueError(f"Cannot cancel batch with status: {metadata.get('status')}")
+
+        # 如果已取消或失败，直接返回（幂等性）
+        if metadata.get("status") in ["cancelled", "failed"]:
+            return {
+                "batch_id": batch_id,
+                "status": "cancelled",
+                "cancelled_count": 0,
+                "killed_count": 0,
+                "message": f"Batch already {metadata.get('status')}"
+            }
+
+        # 尝试获取任务列表
+        try:
+            progress_data = self.get_batch_progress(case_id, batch_id)
+            tasks = [BatchTask.from_dict(t) for t in progress_data["tasks"]]
+        except FileNotFoundError:
+            # 如果还没有进度文件（批次为pending），从batch_metadata.json重建任务列表
+            batch_params = metadata.get("batch_params", {})
+            plan_ids = batch_params.get("plan_ids", [])
+            num_seeds = batch_params.get("num_seeds", 1)
+            base_seed = batch_params.get("base_seed", 66)
+
+            tasks = []
+            task_id = 1
+            for plan_id in plan_ids:
+                for seed_idx in range(num_seeds):
+                    seed = base_seed + seed_idx
+                    task = BatchTask(
+                        task_id=f"task_{task_id:03d}",
+                        plan_id=plan_id,
+                        seed=seed,
+                        status="pending",
+                        progress=0
+                    )
+                    tasks.append(task)
+                    task_id += 1
+
+        # 杀死所有running任务的SUMO进程
+        killed_count = 0
+        for task in tasks:
+            if task.status == "running":
+                # 从task的sim_metadata中获取PID
+                # 遍历所有plan_id来找到正确的sim目录
+                for plan_id in metadata.get("batch_params", {}).get("plan_ids", []):
+                    sim_dir = batch_dir / plan_id / f"sim_{task.seed}"
+                    if sim_dir.exists():
+                        try:
+                            # 尝试从progress.json获取PID
+                            progress_file = sim_dir / "progress.json"
+                            if progress_file.exists():
+                                with open(progress_file, "r", encoding="utf-8") as f:
+                                    progress = json.load(f)
+                                    pid = progress.get("pid")
+
+                                    if pid:
+                                        try:
+                                            # Windows上使用taskkill
+                                            os.system(f"taskkill /PID {pid} /F")
+                                            killed_count += 1
+                                        except Exception:
+                                            pass
+                        except Exception:
+                            pass
+                        break
+
+        # 取消所有pending和running任务的状态
+        cancelled_count = 0
+        for task in tasks:
+            if task.status in ["pending", "running"]:
+                task.status = "cancelled"
+                task.error = "Cancelled by user"
+                cancelled_count += 1
+
+        # 更新批次状态为cancelled
+        metadata["status"] = "cancelled"
+        metadata["cancelled_at"] = datetime.now().isoformat()
 
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-        self._update_batch_progress(case_id, batch_id, tasks, "failed")
+        # 如果有进度文件，更新它
+        try:
+            self._update_batch_progress(case_id, batch_id, tasks, "cancelled")
+        except Exception:
+            pass  # 如果进度文件不存在，忽略
 
-        logger.info(f"Cancelled batch {batch_id}: {cancelled_count} tasks cancelled")
+        # 给予SUMO进程时间关闭
+        time.sleep(1)
+
+        logger.info(f"Cancelled batch {batch_id}: {cancelled_count} tasks cancelled, {killed_count} processes killed")
+
+        return {
+            "batch_id": batch_id,
+            "status": "cancelled",
+            "cancelled_count": cancelled_count,
+            "killed_count": killed_count,
+            "cancelled_at": metadata["cancelled_at"]
+        }
 
     def _calculate_estimated_completion(
         self, tasks: List[BatchTask], avg_task_duration_seconds: float = 300.0

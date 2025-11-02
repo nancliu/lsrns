@@ -215,10 +215,59 @@ async def get_batch_results(
         raise HTTPException(status_code=500, detail=f"获取批次结果失败: {str(e)}")
 
 
+@router.post("/batch/{batch_id}/cancel")
+async def cancel_batch(batch_id: str):
+    """
+    取消运行中的批量仿真
+
+    路径参数:
+    - batch_id: 批次ID
+
+    返回:
+    - 取消确认信息
+
+    说明:
+    - 取消所有pending和running任务
+    - 杀死运行中的SUMO进程
+    - 保留仿真目录，之后可以重新启动
+    """
+    try:
+        # 从batch_id查找case_id
+        import json
+        from pathlib import Path
+
+        cases_dir = Path("cases")
+        case_id = None
+
+        for case_dir in cases_dir.iterdir():
+            if case_dir.is_dir():
+                possible_path = case_dir / "simulations" / "plan_opti" / batch_id / "batch_metadata.json"
+                if possible_path.exists():
+                    case_id = case_dir.name
+                    break
+
+        if not case_id:
+            raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        # 取消批次
+        result = batch_service.cancel_batch(case_id, batch_id)
+        return result
+
+    except FileNotFoundError as e:
+        logger.warning(f"Batch not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        logger.warning(f"Cannot cancel batch {batch_id}: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error cancelling batch: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"取消批次失败: {str(e)}")
+
+
 @router.delete("/batch/{batch_id}")
 async def delete_batch(batch_id: str):
     """
-    取消或删除批量仿真
+    删除批量仿真批次
 
     路径参数:
     - batch_id: 批次ID
@@ -227,8 +276,8 @@ async def delete_batch(batch_id: str):
     - 删除确认信息
 
     说明:
-    - 如果批次正在运行，将取消所有pending任务
     - 删除批次目录和所有相关文件
+    - 如果批次正在运行，会先进行取消
     """
     try:
         # 从batch_id查找case_id
@@ -251,8 +300,12 @@ async def delete_batch(batch_id: str):
         # 先取消批次（如果正在运行）
         try:
             batch_service.cancel_batch(case_id, batch_id)
-        except:
-            pass  # 如果取消失败（可能已完成），继续删除
+        except (ValueError, FileNotFoundError) as e:
+            # 如果批次已完成或不存在，继续删除
+            logger.info(f"Cannot cancel batch {batch_id}: {str(e)}")
+        except Exception as e:
+            # 其他错误也继续删除
+            logger.warning(f"Error cancelling batch {batch_id}: {str(e)}", exc_info=True)
 
         # 删除批次
         result = batch_service.delete_batch(case_id, batch_id)

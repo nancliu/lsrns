@@ -23,9 +23,10 @@ logger = logging.getLogger(__name__)
 
 class SimulationProcessor:
     """仿真处理器类"""
-    
+
     def __init__(self):
         self.sumo_binary = "sumo"  # 默认SUMO二进制文件路径
+        self.last_process = None  # 存储最后启动的SUMO进程对象，用于进程管理
         
     def set_sumo_binary(self, binary_path: str):
         """
@@ -112,6 +113,9 @@ class SimulationProcessor:
                 universal_newlines=True,
                 cwd=config_dir
             )
+
+            # 保存进程对象，用于后续的进程管理（如取消仿真）
+            self.last_process = proc
 
             # 异步读取stdout，避免主循环阻塞在readline
             stdout_queue: Queue[str] = Queue(maxsize=1000)

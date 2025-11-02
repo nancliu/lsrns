@@ -84,3 +84,17 @@ async def delete_simulation(simulation_id: str):
     """
     await delete_simulation_service(simulation_id)
     return create_success_response("删除仿真成功")
+
+
+@router.post("/cancel_simulation/", response_model=BaseResponse)
+@handle_service_errors
+async def cancel_simulation(case_id: str, simulation_id: str):
+    """
+    取消运行中的仿真，杀死SUMO子进程
+    """
+    from ..services import simulation_service
+    result = await simulation_service.cancel_simulation(case_id, simulation_id)
+    if result.get("success"):
+        return create_success_response("仿真已取消", result)
+    else:
+        return create_success_response(result.get("message", "取消仿真失败"), result)

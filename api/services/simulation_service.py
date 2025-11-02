@@ -4,10 +4,12 @@
 
 import os
 import json
+import signal
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+import subprocess
 
 from ..models import SimulationRequest, SimulationType, CaseStatus
 from .base_service import BaseService, MetadataManager, DirectoryManager
@@ -15,7 +17,15 @@ from .base_service import BaseService, MetadataManager, DirectoryManager
 
 class SimulationService(BaseService):
     """仿真运行服务类"""
-    
+
+    def __init__(self):
+        """初始化仿真服务，添加进程跟踪"""
+        super().__init__()
+        # 跟踪活跃的SUMO进程：{simulation_id: (process_obj, case_id)}
+        self.active_processes: Dict[str, tuple] = {}
+        # 进程跟踪锁（线程安全）
+        self._process_lock = threading.Lock()
+
     async def prepare_simulation(self, request: SimulationRequest) -> Dict[str, Any]:
         """准备仿真：仅创建目录与生成 sumocfg，不启动仿真。
 
@@ -87,6 +97,7 @@ class SimulationService(BaseService):
                 "mesoscopic": sim_metadata.get("simulation_type") == "mesoscopic",
                 "config_file": cfg_file,
                 "expected_duration": sim_metadata.get("simulation_params", {}).get("expected_duration"),
+                "case_id": case_id,  # 添加case_id用于进程跟踪
             }
             self._init_progress_file(simulation_folder)
 
@@ -290,19 +301,33 @@ class SimulationService(BaseService):
         except Exception:
             pass
     
-    def _start_background_simulation(self, sim_processor, request_params: Dict[str, Any], 
+    def _start_background_simulation(self, sim_processor, request_params: Dict[str, Any],
                                    case_path: Path, simulation_id: str, simulation_folder: Path) -> None:
         """在后台线程启动仿真"""
         def _run_and_finalize():
+            proc_obj = None
             try:
+                # 获取进程对象（如果sim_processor返回）
                 result = sim_processor.process_simulation_request(request_params)
+
+                # 尝试从sim_processor中获取进程对象
+                if hasattr(sim_processor, 'last_process') and sim_processor.last_process:
+                    proc_obj = sim_processor.last_process
+                    # 记录进程到活跃进程字典
+                    with self._process_lock:
+                        self.active_processes[simulation_id] = (proc_obj, request_params.get('case_id', str(case_path)))
+
                 if result.get("success"):
                     self._handle_simulation_success(case_path, simulation_id, simulation_folder)
                 else:
                     self._handle_simulation_failure(case_path, simulation_id, simulation_folder, "仿真执行失败")
             except Exception as e:
                 self._handle_simulation_failure(case_path, simulation_id, simulation_folder, str(e))
-        
+            finally:
+                # 仿真完成或失败时，从活跃进程中移除
+                with self._process_lock:
+                    self.active_processes.pop(simulation_id, None)
+
         threading.Thread(target=_run_and_finalize, daemon=True).start()
     
     def _handle_simulation_success(self, case_path: Path, simulation_id: str, simulation_folder: Path) -> None:
@@ -393,7 +418,132 @@ class SimulationService(BaseService):
             "started_at": datetime.now().isoformat(),
             "status": "started"
         }
-    
+
+    async def cancel_simulation(self, case_id: str, simulation_id: str) -> Dict[str, Any]:
+        """
+        取消运行中的仿真，杀死SUMO子进程
+
+        Args:
+            case_id: 案例ID
+            simulation_id: 仿真ID
+
+        Returns:
+            取消结果
+        """
+        try:
+            simulation_folder = Path("cases") / case_id / "simulations" / simulation_id
+
+            # 检查仿真目录是否存在
+            if not simulation_folder.exists():
+                return {
+                    "success": False,
+                    "message": f"仿真目录不存在: {simulation_id}",
+                    "simulation_id": simulation_id
+                }
+
+            # 加载仿真元数据
+            sim_metadata = MetadataManager.load_simulation_metadata(simulation_folder)
+            sim_status = sim_metadata.get("status", "unknown")
+
+            # 如果不在运行状态，无法取消
+            if sim_status not in ["running", "pending"]:
+                return {
+                    "success": False,
+                    "message": f"仿真状态为 {sim_status}，无法取消",
+                    "simulation_id": simulation_id
+                }
+
+            # 尝试从活跃进程中获取进程对象
+            proc_obj = None
+            pid = None
+
+            with self._process_lock:
+                if simulation_id in self.active_processes:
+                    proc_obj, _ = self.active_processes[simulation_id]
+
+            # 如果没有进程对象，从progress.json中读取PID
+            if proc_obj is None:
+                try:
+                    progress_file = simulation_folder / "progress.json"
+                    if progress_file.exists():
+                        with open(progress_file, "r", encoding="utf-8") as f:
+                            progress_data = json.load(f)
+                            pid = progress_data.get("pid")
+                except Exception as e:
+                    pass  # 继续尝试其他方法
+
+            # 方法1：如果有进程对象，直接杀死
+            if proc_obj is not None:
+                try:
+                    proc_obj.terminate()  # 优雅关闭
+                    try:
+                        proc_obj.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        # 2秒后仍未结束，强制杀死
+                        proc_obj.kill()
+                except Exception as e:
+                    pass  # 继续
+
+            # 方法2：如果有PID，尝试系统级杀死
+            if pid:
+                try:
+                    os.kill(pid, signal.SIGTERM)  # Windows上使用SIGTERM，Unix上使用SIGTERM
+                    # 等待一下，检查进程是否结束
+                    import time
+                    time.sleep(1)
+                    try:
+                        os.kill(pid, 0)  # 检查进程是否还活着
+                        # 还活着，强制杀死
+                        if hasattr(signal, 'SIGKILL'):
+                            os.kill(pid, signal.SIGKILL)
+                        else:
+                            # Windows上，使用taskkill命令
+                            os.system(f"taskkill /PID {pid} /F")
+                    except ProcessLookupError:
+                        # 进程已经死亡
+                        pass
+                except Exception as e:
+                    pass  # 继续
+
+            # 更新仿真状态为cancelled
+            sim_metadata["status"] = "cancelled"
+            sim_metadata["cancelled_at"] = datetime.now().isoformat()
+            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+            MetadataManager.update_simulations_index(Path("cases") / case_id, simulation_id, sim_metadata)
+
+            # 更新进度文件
+            try:
+                progress_file = simulation_folder / "progress.json"
+                progress_data = {
+                    "status": "cancelled",
+                    "percent": 0,
+                    "message": "仿真已取消",
+                    "updated_at": datetime.now().isoformat(),
+                    "pid": None
+                }
+                with open(progress_file, "w", encoding="utf-8") as f:
+                    json.dump(progress_data, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
+            # 从活跃进程字典中移除
+            with self._process_lock:
+                self.active_processes.pop(simulation_id, None)
+
+            return {
+                "success": True,
+                "message": "仿真已成功取消",
+                "simulation_id": simulation_id,
+                "status": "cancelled"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"取消仿真失败: {str(e)}",
+                "simulation_id": simulation_id
+            }
+
     async def get_simulation_progress(self, case_id: str) -> Dict[str, Any]:
         """获取仿真进度"""
         try:

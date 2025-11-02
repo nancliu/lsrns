@@ -1375,33 +1375,38 @@ class BatchOptimizationService:
         """
         取消批量仿真
 
+        注意：只取消任务，不删除目录。目录保留以便之后重新启动。
+
         Args:
             case_id: 案例ID
             batch_id: 批次ID
 
         Returns:
-            Dict: 取消响应数据
+            Dict: 取消响应数据，包含cancelled_count和killed_count
 
         Raises:
             FileNotFoundError: 批次不存在
+            ValueError: 批次状态不允许取消
         """
         logger.info(f"Cancelling batch {batch_id}")
 
         try:
-            self.scheduler.cancel_batch(case_id, batch_id)
+            result = self.scheduler.cancel_batch(case_id, batch_id)
 
-            response = {
-                "batch_id": batch_id,
-                "status": "cancelled",
-                "cancelled_at": datetime.now().isoformat(),
-            }
+            # 更新批次索引
+            try:
+                self._update_batches_index_on_status_change(case_id, batch_id, "cancelled")
+            except Exception as e:
+                logger.warning(f"Failed to update batches index: {e}")
 
-            logger.info(f"Batch {batch_id} cancelled")
+            logger.info(f"Batch {batch_id} cancelled: {result.get('cancelled_count')} tasks, {result.get('killed_count')} processes")
 
-            return response
+            return result
 
         except FileNotFoundError as e:
             raise FileNotFoundError(f"批次不存在: {batch_id}") from e
+        except ValueError as e:
+            raise ValueError(str(e)) from e
 
     def delete_batch(self, case_id: str, batch_id: str) -> Dict[str, Any]:
         """
@@ -1424,16 +1429,43 @@ class BatchOptimizationService:
         if not batch_dir.exists():
             raise FileNotFoundError(f"批次不存在: {batch_id}")
 
-        # 删除批次目录
+        # 删除批次目录，重试3次以处理文件锁定问题
         import shutil
+        import time
 
-        shutil.rmtree(batch_dir)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                shutil.rmtree(batch_dir)
+                response = {"batch_id": batch_id, "deleted": True, "deleted_at": datetime.now().isoformat()}
+                logger.info(f"Batch {batch_id} deleted")
+                return response
+            except PermissionError as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Permission denied deleting batch {batch_id}, retrying ({attempt + 1}/{max_retries}): {e}")
+                    time.sleep(0.5)  # 等待0.5秒后重试
+                else:
+                    # 最后一次尝试失败，返回警告但认为删除成功
+                    logger.warning(f"Failed to delete batch directory after {max_retries} retries: {e}")
+                    # 更新批次索引以标记为已删除
+                    try:
+                        self._update_batches_index_on_delete(case_id, batch_id)
+                    except Exception:
+                        pass
+                    response = {
+                        "batch_id": batch_id,
+                        "deleted": True,
+                        "deleted_at": datetime.now().isoformat(),
+                        "warning": "目录删除失败，但批次已标记为已删除"
+                    }
+                    logger.info(f"Batch {batch_id} marked as deleted (directory not fully removed)")
+                    return response
+            except Exception as e:
+                logger.error(f"Error deleting batch {batch_id}: {e}", exc_info=True)
+                raise
 
-        response = {"batch_id": batch_id, "deleted": True, "deleted_at": datetime.now().isoformat()}
-
-        logger.info(f"Batch {batch_id} deleted")
-
-        return response
+        # 不应到达这里
+        raise RuntimeError(f"无法删除批次 {batch_id}")
 
     def _get_batches_index_path(self, case_id: str) -> Path:
         """获取批次索引文件路径"""
