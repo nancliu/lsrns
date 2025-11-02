@@ -1,8 +1,12 @@
 # batch-monitoring-unified Specification
 
+**Status**: ✅ Phase 1 & 1.5 Implemented (2025-11-02)
+
+**Implementation Note**: Actual implementation uses **two-panel layout** (上下两栏) instead of expandable cards based on user feedback. Upper panel shows detailed monitoring, lower panel shows batch list.
+
 ## Purpose
 
-Provide a unified batch monitoring interface that consolidates real-time progress tracking and historical batch review into a single, coherent view. This capability enables users to monitor all batches (running, completed, failed, cancelled) in one place with expandable details for execution history and results access.
+Provide a unified batch monitoring interface that consolidates real-time progress tracking and historical batch review into a single, coherent view. This capability enables users to monitor all batches (running, completed, failed, cancelled) in one place with detailed monitoring panel for execution history and results access.
 
 ## Requirements
 

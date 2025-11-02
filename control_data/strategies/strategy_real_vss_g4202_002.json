@@ -66,9 +66,7 @@
     "stake": "K42.32"
   },
   "status": "active",
-  "referenced_by": [
-    "plan_20251102_130055_62386"
-  ],
+  "referenced_by": [],
   "template": {
     "template_id": "vss_strict",
     "template_name": "可变限速 - 严格控制",

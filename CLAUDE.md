@@ -1011,6 +1011,78 @@ The system supports traffic control strategies based on real baseline data analy
 }
 ```
 
+### Plan XML Validation (v0.9.0+)
+
+**Feature**: Automated SUMO XML validation for control plans with frontend validation button
+
+**Backend Validation**:
+- **Module**: `shared/control_tools/xml_validator.py` (600+ lines)
+- **Function**: `validate_xml_string(xml_content: str) -> ValidationResult`
+- **API Endpoint**: `POST /api/v1/control/plans/{plan_id}/generate_additional`
+- **Validation Coverage**:
+  - XML well-formedness (syntax checking)
+  - SUMO v1.19+ attribute compatibility
+  - Parameter constraints (time: 0-86400s, speed: 0-200 km/h)
+  - Edge list validation (empty/duplicate warnings)
+  - Strategy-specific rules (VSS steps, DHS intervals, TEC flow rates)
+
+**Response Format**:
+```json
+{
+  "regenerated": true,
+  "plan_id": "plan_001",
+  "validation": {
+    "is_valid": true,
+    "warnings": ["Edge list has duplicates: [-8712]"],
+    "errors": []
+  }
+}
+```
+
+**Frontend Implementation** (HTML/CSS/JS Three-Layer Separation):
+- **UI Components**: `frontend/control/js/ui-utils.js` - Toast notifications, Modal dialogs
+- **Validation UI**: `frontend/control/js/plan-validation-ui.js` - Status display updates
+- **Business Logic**: `frontend/control/js/plan-validation.js` - API orchestration
+- **Styles**: `frontend/control/css/plan-validation.css`, `frontend/control/css/ui-utils.css`
+
+**Frontend Integration**:
+```html
+<!-- CSS -->
+<link rel="stylesheet" href="css/ui-utils.css">
+<link rel="stylesheet" href="css/plan-validation.css">
+
+<!-- JavaScript (order matters) -->
+<script src="js/ui-utils.js"></script>
+<script src="js/plan-validation-ui.js"></script>
+<script src="js/plan-validation.js"></script>
+
+<!-- Validation status display -->
+<span id="validation-status-{plan_id}" class="validation-status pending">
+  <i class="status-icon">⏳</i> 未验证
+</span>
+
+<!-- Validation button -->
+<button class="btn-validate" onclick="validatePlan('{plan_id}')">验证XML</button>
+```
+
+**Cascade Regeneration** (Phase 2):
+- When a strategy is updated, all referencing plans automatically regenerate XML
+- Each regeneration includes validation check
+- Audit logging: CASCADE_START, CASCADE_REGEN, CASCADE_COMPLETE, CASCADE_FAIL events
+- Validation failures block XML save and propagate error to user
+
+**Code Quality Standards**:
+- ✅ HTML/CSS/JS three-layer separation (no inline styles/events)
+- ✅ Single responsibility principle (functions ≤30 lines, parameters ≤5)
+- ✅ XSS protection via `escapeHTML()` function
+- ✅ Event delegation for scalability
+- ✅ Responsive design (mobile/tablet/desktop)
+
+**Related Documentation**:
+- **OpenSpec Change**: `openspec/changes/validate-strategy-xml-generation/`
+- **Phase 1 Report**: `openspec/changes/validate-strategy-xml-generation/PHASE1_FINAL_REPORT.md`
+- **Phase 2 Report**: `openspec/changes/validate-strategy-xml-generation/PHASE2_COMPLETION_REPORT.md`
+
 ### Documentation
 
 Detailed analysis and strategy recommendations:

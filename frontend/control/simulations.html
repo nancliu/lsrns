@@ -93,37 +93,103 @@
                     <p class="content-subtitle">实时监控和历史回顾批量仿真执行状态</p>
                 </div>
 
-                <!-- 筛选和控制栏 -->
-                <div class="monitoring-controls">
-                    <div class="filter-group">
-                        <label for="statusFilter">状态筛选:</label>
-                        <select id="statusFilter" onchange="filterBatches()">
-                            <option value="">全部状态</option>
-                            <option value="running">运行中</option>
-                            <option value="completed">已完成</option>
-                            <option value="failed">失败</option>
-                            <option value="cancelled">已取消</option>
-                        </select>
+                <!-- 当前监控区域 (上栏) -->
+                <div id="currentBatchMonitor" class="current-batch-monitor" style="display: none;">
+                    <div class="monitor-header">
+                        <h3 id="monitorBatchTitle">当前监控批次</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="closeCurrentMonitor()">关闭监控</button>
                     </div>
-                    <div class="filter-group">
-                        <label for="sortOrder">排序:</label>
-                        <select id="sortOrder" onchange="sortBatches()">
-                            <option value="created_desc">最近创建</option>
-                            <option value="completed_desc">最近完成</option>
-                            <option value="duration_desc">耗时最长</option>
-                        </select>
+
+                    <div class="monitor-content">
+                        <!-- 批次信息和进度条 -->
+                        <div id="monitorBatchInfo" class="monitor-batch-info">
+                            <p id="monitorBatchStatus">状态: 等待中</p>
+                            <div id="monitorTaskStats" class="task-stats">
+                                <div class="task-stats-grid">
+                                    <div class="stat-item">
+                                        <strong>总任务数:</strong> <span id="monitorTotalTasks">0</span>
+                                    </div>
+                                    <div class="stat-item stat-completed">
+                                        <strong>已完成:</strong> <span id="monitorCompletedTasks">0</span>
+                                    </div>
+                                    <div class="stat-item stat-running">
+                                        <strong>运行中:</strong> <span id="monitorRunningTasks">0</span>
+                                    </div>
+                                    <div class="stat-item stat-failed">
+                                        <strong>失败:</strong> <span id="monitorFailedTasks">0</span>
+                                    </div>
+                                </div>
+                                <div id="estimatedCompletion" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #d4e4f7; font-size: 0.95em; color: #2c3e50;">
+                                    <!-- 预计完成时间将动态填充 -->
+                                </div>
+                            </div>
+
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="monitorProgressBar">
+                                    <span id="monitorProgressText">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 任务进度详情 -->
+                        <div id="monitorTaskListSection" class="task-list-section" style="display: none;">
+                            <h4 class="section-title">任务进度详情</h4>
+                            <div id="monitorTaskList" class="task-list-container">
+                                <!-- 任务列表将动态加载 -->
+                            </div>
+                        </div>
+
+                        <!-- 实时在网车辆曲线控制栏 (始终可见，用于切换显示/隐藏) -->
+                        <div id="monitorLiveCurveControlBar" class="live-curve-control-bar" style="display: none;">
+                            <h4 class="live-curve-title">实时在网车辆数</h4>
+                            <button id="toggleMonitorCurveBtn" class="btn btn-secondary btn-sm" onclick="toggleLiveCurveVisibility()">隐藏曲线</button>
+                        </div>
+
+                        <!-- 实时在网车辆曲线 (可选显示) -->
+                        <div id="monitorLiveCurveSection" class="live-curve-section" style="display: none;">
+                            <canvas id="monitorLiveCurveChart" class="live-curve-chart"></canvas>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 批次列表 -->
-                <div id="batchList" class="batch-list">
-                    <!-- 批次卡片将动态加载 -->
-                </div>
+                <!-- 批次列表区域 (下栏) -->
+                <div class="batch-list-section">
+                    <div class="list-header">
+                        <h3>批次列表</h3>
 
-                <!-- 空状态提示 -->
-                <div id="batchListEmpty" class="empty-state" style="display: none;">
-                    <p>暂无批次记录</p>
-                    <p class="text-muted">请在"配置"标签创建批量仿真</p>
+                        <!-- 筛选和控制栏 -->
+                        <div class="monitoring-controls">
+                            <div class="filter-group">
+                                <label for="statusFilter">状态筛选:</label>
+                                <select id="statusFilter" onchange="filterBatches()">
+                                    <option value="">全部状态</option>
+                                    <option value="running">运行中</option>
+                                    <option value="completed">已完成</option>
+                                    <option value="failed">失败</option>
+                                    <option value="cancelled">已取消</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="sortOrder">排序:</label>
+                                <select id="sortOrder" onchange="sortBatches()">
+                                    <option value="created_desc">最近创建</option>
+                                    <option value="completed_desc">最近完成</option>
+                                    <option value="duration_desc">耗时最长</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 批次列表 -->
+                    <div id="batchList" class="batch-list">
+                        <!-- 批次卡片将动态加载 -->
+                    </div>
+
+                    <!-- 空状态提示 -->
+                    <div id="batchListEmpty" class="empty-state" style="display: none;">
+                        <p>暂无批次记录</p>
+                        <p class="text-muted">请在"配置"标签创建批量仿真</p>
+                    </div>
                 </div>
             </div>
 

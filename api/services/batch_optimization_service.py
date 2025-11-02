@@ -481,6 +481,8 @@ class BatchOptimizationService:
             result = {
                 'current_step': current_step,
                 'total_steps': total_steps,
+                'end_time': total_steps,  # CLARIFICATION: 'total_steps' is actually simulation end time in seconds
+                'current_time': current_step,  # CLARIFICATION: 'current_step' is actually current simulation time in seconds
                 'progress_percent': round(progress_percent, 2),
                 'running_vehicles': summary.get('running_vehicles', 0),
                 'ended_vehicles': summary.get('ended_vehicles', 0),

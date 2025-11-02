@@ -283,16 +283,32 @@
 .live-curve-control-bar {
     display: none;
     margin-top: var(--spacing-20);
+    margin-bottom: var(--spacing-10);
     padding: var(--spacing-10) var(--spacing-15);
     background: #f0f8ff;
     border-radius: var(--radius-lg);
     border: 1px solid #d4e4f7;
     justify-content: space-between;
     align-items: center;
+    flex-direction: row;
 }
 
 .live-curve-control-bar.active {
     display: flex;
+}
+
+/* 新的分离控制栏样式 (Phase 1.8) */
+#monitorLiveCurveControlBar {
+    display: none;
+    margin-top: var(--spacing-20);
+    margin-bottom: var(--spacing-10);
+    padding: var(--spacing-12) var(--spacing-15);
+    background: #f0f8ff;
+    border-radius: var(--radius-md);
+    border: 1px solid #d4e4f7;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
 }
 
 .live-curve-title {
@@ -315,12 +331,15 @@
 
 .live-curve-section {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    /* Dynamic height controlled by JavaScript */
 }
 
 .live-curve-chart {
     width: 100%;
-    height: 100%;
+    height: auto;
+    max-height: 350px;
+    min-height: 250px;
+    display: block;
 }
 
 .btn-sm {
@@ -428,6 +447,130 @@
 }
 
 /* 批次监控样式 */
+/* 当前监控区域 (上栏) */
+.current-batch-monitor {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-base);
+    margin-bottom: var(--spacing-30);
+    padding: var(--spacing-20);
+}
+
+.monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-15);
+    border-bottom: 2px solid var(--color-primary);
+    margin-bottom: var(--spacing-20);
+}
+
+.monitor-header h3 {
+    margin: 0;
+    color: var(--color-dark);
+    font-size: var(--font-size-xl);
+}
+
+.monitor-batch-info {
+    background: #f0f8ff;
+    padding: var(--spacing-20);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-20);
+}
+
+.monitor-batch-info p {
+    margin: 0 0 var(--spacing-10) 0;
+    font-weight: var(--font-weight-500);
+    color: var(--color-dark);
+}
+
+/* 任务进度详情 */
+.task-list-section {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-20);
+    margin-bottom: var(--spacing-20);
+    border: 1px solid var(--color-light-border);
+}
+
+.task-list-section .section-title {
+    margin: 0 0 var(--spacing-15) 0;
+    font-size: var(--font-size-md);
+    color: var(--color-dark);
+    border-bottom: 1px solid var(--color-light-border);
+    padding-bottom: var(--spacing-10);
+}
+
+.task-list-container {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.plan-tasks {
+    margin-bottom: var(--spacing-20);
+}
+
+.plan-tasks h4 {
+    margin: 0 0 var(--spacing-10) 0;
+    font-size: var(--font-size-base);
+    color: var(--color-primary);
+    font-weight: var(--font-weight-600);
+}
+
+.task-item {
+    padding: var(--spacing-12) var(--spacing-15);
+    margin-bottom: var(--spacing-base);
+    border-radius: var(--radius-base);
+    border-left: 3px solid;
+    background: var(--color-light-bg);
+    font-size: 0.95rem;
+}
+
+.task-item.task-pending {
+    border-left-color: #95a5a6;
+    background: #ecf0f1;
+}
+
+.task-item.task-running {
+    border-left-color: var(--color-primary);
+    background: #e3f2fd;
+}
+
+.task-item.task-completed {
+    border-left-color: var(--color-success);
+    background: #e8f5e9;
+}
+
+.task-item.task-failed {
+    border-left-color: var(--color-danger);
+    background: #ffebee;
+}
+
+.task-icon {
+    margin-right: var(--spacing-base);
+    font-size: 1.1em;
+}
+
+/* 批次列表区域 (下栏) */
+.batch-list-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-base);
+    padding: var(--spacing-20);
+}
+
+.list-header {
+    margin-bottom: var(--spacing-20);
+}
+
+.list-header h3 {
+    margin: 0 0 var(--spacing-15) 0;
+    color: var(--color-dark);
+    font-size: var(--font-size-lg);
+    padding-bottom: var(--spacing-10);
+    border-bottom: 1px solid var(--color-light-border);
+}
+
 .monitoring-controls {
     margin-bottom: var(--spacing-20);
     padding: var(--spacing-15);
@@ -580,6 +723,18 @@
 .btn-small:hover {
     background: var(--color-info);
     color: var(--color-text-white);
+    border-color: var(--color-info);
+}
+
+.btn-small.btn-primary {
+    background: var(--color-primary);
+    color: var(--color-text-white);
+    border-color: var(--color-primary);
+    font-weight: var(--font-weight-500);
+}
+
+.btn-small.btn-primary:hover {
+    background: var(--color-info);
     border-color: var(--color-info);
 }
 

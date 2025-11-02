@@ -862,10 +862,10 @@ class StrategyInstanceService:
 
     def _propagate_strategy_update_to_plans(self, strategy_id: str) -> None:
         """
-        Propagate strategy updates to all referencing plans (Task 3.2).
+        Propagate strategy updates to all referencing plans (Phase 2: Cascade Regeneration).
 
         After a strategy is updated, regenerate control.add.xml for all plans
-        that reference this strategy.
+        that reference this strategy with XML validation.
 
         Args:
             strategy_id: The updated strategy ID
@@ -877,6 +877,7 @@ class StrategyInstanceService:
             get_plan_strategies,
             regenerate_plan_xml,
         )
+        from datetime import datetime, timezone
 
         # Load strategy metadata to get referenced_by list
         strategy = load_strategy(strategy_id, self.strategies_dir)
@@ -892,40 +893,91 @@ class StrategyInstanceService:
             )
             return
 
+        # Phase 2: Audit log - Cascade start
+        cascade_start_time = datetime.now(timezone.utc)
+        logger.info(
+            f"CASCADE_START: Strategy update propagation initiated",
+            extra={
+                "event_type": "cascade_regeneration_started",
+                "strategy_id": strategy_id,
+                "plan_count": len(referenced_by),
+                "timestamp": cascade_start_time.isoformat(),
+            },
+        )
+
         # Regenerate XML for each referencing plan
         success_count = 0
         failure_count = 0
+        validation_warnings = []
 
         for plan_id in referenced_by:
             try:
-                regenerate_plan_xml(plan_id)
+                # Phase 2: Regenerate with validation
+                result = regenerate_plan_xml(plan_id)
+
                 success_count += 1
+
+                # Phase 2: Audit log - Individual plan regeneration success
                 logger.info(
-                    f"Regenerated XML for plan {plan_id} after strategy update",
+                    f"CASCADE_REGEN: Plan XML regenerated successfully",
                     extra={
+                        "event_type": "plan_regenerated",
                         "plan_id": plan_id,
                         "strategy_id": strategy_id,
+                        "validation_passed": result.get("validation", {}).get("is_valid", True),
+                        "warnings_count": len(result.get("validation", {}).get("warnings", [])),
+                    },
+                )
+
+                # Collect validation warnings for summary
+                warnings = result.get("validation", {}).get("warnings", [])
+                if warnings:
+                    validation_warnings.extend(
+                        [{"plan_id": plan_id, "warning": w} for w in warnings]
+                    )
+
+            except ValueError as e:
+                # XML validation failed
+                failure_count += 1
+                logger.error(
+                    f"CASCADE_FAIL: XML validation failed for plan",
+                    extra={
+                        "event_type": "plan_regeneration_failed",
+                        "plan_id": plan_id,
+                        "strategy_id": strategy_id,
+                        "error_type": "validation_error",
+                        "error": str(e),
                     },
                 )
             except Exception as e:
+                # Other regeneration error
                 failure_count += 1
                 logger.error(
-                    f"Failed to regenerate XML for plan {plan_id}: {e}",
+                    f"CASCADE_FAIL: Failed to regenerate XML for plan",
                     extra={
+                        "event_type": "plan_regeneration_failed",
                         "plan_id": plan_id,
                         "strategy_id": strategy_id,
+                        "error_type": "regeneration_error",
                         "error": str(e),
                     },
                 )
 
-        # Log summary
+        # Phase 2: Audit log - Cascade completion summary
+        cascade_end_time = datetime.now(timezone.utc)
+        duration_seconds = (cascade_end_time - cascade_start_time).total_seconds()
+
         logger.info(
-            f"Strategy update propagated to {success_count}/{len(referenced_by)} plans",
+            f"CASCADE_COMPLETE: Strategy update propagation finished",
             extra={
+                "event_type": "cascade_regeneration_completed",
                 "strategy_id": strategy_id,
                 "success_count": success_count,
                 "failure_count": failure_count,
                 "total_plans": len(referenced_by),
+                "duration_seconds": round(duration_seconds, 2),
+                "validation_warnings_count": len(validation_warnings),
+                "timestamp": cascade_end_time.isoformat(),
             },
         )
 

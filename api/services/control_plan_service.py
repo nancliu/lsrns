@@ -286,24 +286,43 @@ class ControlPlanService:
 
     def regenerate_plan_xml(self, plan_id: str) -> Dict[str, Any]:
         """
-        重新生成方案的control.add.xml
+        重新生成方案的control.add.xml并验证
 
         Args:
             plan_id: 方案ID
 
         Returns:
-            Dict: 操作结果
+            Dict: 操作结果，包含validation状态
 
         Raises:
             FileNotFoundError: 方案不存在
+            ValueError: XML验证失败
         """
         logger.info(f"Regenerating XML for plan: {plan_id}")
 
         try:
-            plan_file_manager.regenerate_plan_xml(plan_id)
+            # Phase 2: regenerate_plan_xml now returns validation result
+            result = plan_file_manager.regenerate_plan_xml(plan_id)
 
-            return {"regenerated": True, "plan_id": plan_id, "message": "XML文件已重新生成"}
+            # Add success message
+            result["message"] = "XML文件已重新生成并验证通过"
 
+            # Log successful regeneration
+            logger.info(
+                f"Plan XML regenerated successfully: {plan_id}",
+                extra={
+                    "plan_id": plan_id,
+                    "validation_passed": result["validation"]["is_valid"],
+                    "warnings_count": len(result["validation"]["warnings"]),
+                },
+            )
+
+            return result
+
+        except ValueError as e:
+            # XML validation failed
+            logger.error(f"XML validation failed for plan [{plan_id}]: {e}")
+            raise
         except Exception as e:
             logger.error(f"Failed to regenerate XML [{plan_id}]: {e}", exc_info=True)
             raise
@@ -383,8 +402,8 @@ class ControlPlanService:
                 parameters = strategy.get("parameters", {})
                 if strategy_type == "TEC":
                     # TEC使用entrance_edges
-                    entrance_edges = parameters.get("entrance_edges", [])
-                    affected_edges_set.update(entrance_edges)
+                    affected_edges = parameters.get("entrance_edges", [])
+                    affected_edges_set.update(affected_edges)
                 else:
                     # VSS/DHS使用affected_edges
                     affected_edges = parameters.get("affected_edges", [])
@@ -438,7 +457,16 @@ class ControlPlanService:
                 )
 
             # 读取XML内容（前500行）
+            # 如果XML不存在或为空，先生成
             xml_file = Path(self.plans_base_dir) / plan_id / "control.add.xml"
+            if not xml_file.exists() or xml_file.stat().st_size == 0:
+                logger.info(f"XML file not found or empty for plan [{plan_id}], generating...")
+                try:
+                    plan_file_manager.regenerate_plan_xml(plan_id)
+                except Exception as e:
+                    logger.warning(f"Failed to auto-generate XML for plan [{plan_id}]: {e}")
+                    # Continue with empty preview if generation fails
+
             xml_preview = ""
             if xml_file.exists():
                 with open(xml_file, "r", encoding="utf-8") as f:

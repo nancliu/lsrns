@@ -66,11 +66,11 @@ def validate_xml_string(xml_content: str) -> XMLValidationResult:
         root = ET.fromstring(xml_content)
         logger.debug(f"XML parsed successfully. Root element: {root.tag}")
 
-        # Validate root element type
-        if root.tag not in ["variableSpeedSign", "rerouter", "calibrator"]:
+        # Validate root element type - accept 'additional' as valid root
+        if root.tag not in ["variableSpeedSign", "rerouter", "calibrator", "additional"]:
             errors.append({
                 "type": "invalid_root_element",
-                "message": f"Expected VSS/DHS/TEC root element, got: {root.tag}",
+                "message": f"Expected valid SUMO root element (additional, variableSpeedSign, rerouter, calibrator), got: {root.tag}",
                 "element": root.tag
             })
             return XMLValidationResult(
@@ -189,17 +189,18 @@ def _validate_root_attributes(root: Element) -> Tuple[List[Dict], List[Dict]]:
     errors = []
     warnings = []
 
-    # Check required id attribute
-    strategy_id = root.get("id")
-    if not strategy_id:
-        errors.append({
-            "type": "missing_attribute",
-            "element": root.tag,
-            "attribute": "id",
-            "message": f"{root.tag} element requires 'id' attribute"
-        })
-    else:
-        logger.debug(f"Strategy ID: {strategy_id}")
+    # Check required id attribute (not required for 'additional' root element)
+    if root.tag != "additional":
+        strategy_id = root.get("id")
+        if not strategy_id:
+            errors.append({
+                "type": "missing_attribute",
+                "element": root.tag,
+                "attribute": "id",
+                "message": f"{root.tag} element requires 'id' attribute"
+            })
+        else:
+            logger.debug(f"Strategy ID: {strategy_id}")
 
     # Validate edges attribute (for VSS and rerouter)
     if root.tag in ["variableSpeedSign", "rerouter"]:

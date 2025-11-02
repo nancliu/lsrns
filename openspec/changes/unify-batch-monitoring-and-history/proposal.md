@@ -2,11 +2,12 @@
 
 **Change ID**: `unify-batch-monitoring-and-history`
 
-**Status**: Proposed
+**Status**: ✅ Implemented (Phase 1 & 1.5)
 
 **Priority**: Medium (P1 - UX improvement, not blocking)
 
 **Created**: 2025-11-02
+**Implemented**: 2025-11-02 (Phase 1 & 1.5 completed in ~5-6 hours)
 
 ---
 
@@ -473,3 +474,54 @@ Clicking a batch card expands it to show details **in-place** (no tab switch):
 
 4. Should we add batch comparison mode (select 2+ batches, compare results)?
    - **Decision Deferred**: Results tab already supports multi-batch comparison, not needed in monitoring view
+
+---
+
+## 📊 Implementation Status (2025-11-02)
+
+### ✅ Completed
+
+**Phase 1: Frontend Structure Refactoring** (~3-4 hours)
+- 3-tab navigation structure (配置 → 批次监控 → 结果)
+- Two-panel monitoring view HTML structure (上栏监控 + 下栏列表)
+- CSS updates for two-panel layout
+- JavaScript state management for 3 tabs
+- Null-safety fixes for removed elements
+
+**Phase 1.5: Batch Control & Progress Monitoring** (~2 hours)
+- Batch card control buttons (启动/取消/监控进度/查看结果/删除)
+- `startBatchById()`, `cancelBatchById()`, `closeCurrentMonitor()` functions
+- Upper panel progress monitoring integration
+- Real-time polling with live vehicle count curve
+- Updated `updateProgress()` and `renderLiveCurve()` for monitor elements
+
+**Key Achievement**:
+- Fully restored original "进度" tab functionality within the unified monitoring view
+- Two-panel layout addresses user feedback: "批次监控和正在监看的运行的批次可以分上下两栏"
+- Users can now start/monitor/cancel batches directly from batch cards
+- Real-time progress monitoring works in upper panel while browsing batch list below
+
+### ⏸️ Deferred (Future Enhancements)
+
+**Phase 2-8**: Expandable cards, advanced filtering, responsive design, testing
+- Not critical for MVP functionality
+- Can be implemented incrementally based on user feedback
+- Current implementation uses simple two-panel layout instead of expandable cards
+  - Upper panel: Shows detailed monitoring when "监控进度" clicked
+  - Lower panel: Always shows batch list
+  - Simpler implementation, same functionality
+
+### 📝 Actual Design Changes
+
+**Original Proposal**: Expandable batch cards (click card → expands inline to show details)
+
+**Actual Implementation**: Two-panel layout (上下两栏)
+- Upper panel (`currentBatchMonitor`): Hidden by default, shows when "监控进度" clicked
+- Lower panel (`batch-list-section`): Always visible, shows all batches
+- **Rationale**: User feedback indicated preference for traditional upper/lower separation vs. inline expansion
+- **Benefit**: Matches original UI paradigm, easier to understand
+
+**Files Modified**:
+- `frontend/control/simulations.html` - Two-panel HTML structure
+- `frontend/control/css/simulations.css` - Panel styles, button styles
+- `frontend/control/js/batch_simulation.js` - View switching, batch controls, progress monitoring

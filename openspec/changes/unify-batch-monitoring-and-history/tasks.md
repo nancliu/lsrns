@@ -4,171 +4,274 @@
 
 ---
 
+## 📋 Implementation Summary
+
+**Status**: Phase 1, 1.5, 1.6, 1.7, & 1.8 COMPLETED ✅ | Phases 2-8 DEFERRED ⏸️
+
+### Completed Phases
+
+- **Phase 1**: Frontend Structure Refactoring (3-4 hours) ✅
+  - 3-tab navigation (配置 → 批次监控 → 结果)
+  - Two-panel monitoring view (上下两栏布局)
+  - CSS updates for new layout
+  - JavaScript state management updates
+
+- **Phase 1.5**: Batch Control & Progress Monitoring (2 hours) ✅
+  - Batch card control buttons (启动/取消/监控进度/查看结果/删除)
+  - Upper panel progress monitoring integration
+  - Real-time polling and live curve display
+
+- **Phase 1.6**: Bug Fixes & Optimization (2025-11-02) ✅
+  - Added missing `estimatedCompletion` element in HTML
+  - Fixed task list height (400px → 250px for better layout)
+  - Fixed live curve height (`height: 100%` → `max-height: 300px`)
+  - Fixed "隐藏曲线" button functionality (added onclick handler)
+  - Fixed time calculation to use longest running task time (instead of batch-level estimate)
+  - Added all three monitoring sections: overall progress, task details, live curve
+
+- **Phase 1.7**: Live Curve Canvas Dynamic Height Control (0.5 hours) ✅
+  - Removed fixed `aspect-ratio: 16/9` conflict
+  - Implemented dynamic height calculation based on data points
+  - Added `resizeLiveCurveCanvas()` function for responsive sizing
+  - Integrated resize calls after chart creation/update/toggle
+  - Result: No excessive whitespace, responsive layout
+
+- **Phase 1.8**: Live Curve Control Bar Separation (0.25 hours) ✅
+  - Separated control bar from curve section (user feedback issue: hidden button)
+  - Control bar always visible when data exists, shows/hides toggle button
+  - Curve section independently toggles display based on user action
+  - Updated HTML, CSS, and JavaScript to manage two elements
+  - Result: Users can always toggle curve visibility
+
+- **Phase 1.9**: Task Progress Percentage Fix (0.5 hours) ✅
+  - Fixed incorrect progress percentage display in task list details
+  - Issue 1: Using OR operator treated 0% as falsy, falling back to wrong value
+    - Solution: Explicit null/undefined checks instead of falsy checks
+  - Issue 2: Progress value might be in different units (0-100% vs 0-14400 steps)
+    - Solution: Auto-detect and convert if value > 100
+  - Boundary checks: Ensure progress always in valid range [0%, 100%]
+  - Result: Task progress bar and percentage text now accurate for all cases
+
+**Total Time**: ~8 hours (vs. estimated 5-7 hours)
+
+**Key Achievement**: Fully restored original progress monitoring功能 while integrating batch history, using a two-panel layout based on user feedback. All three monitoring sections (progress, tasks, curve) are now functional.
+
+---
+
 ## Prerequisites
 
-- [ ] **BLOCKER**: Complete `fix-batch-history-data-display` change
-  - Dependency: `currentCaseId` global variable must exist
-  - Dependency: Batch status updates must work correctly
-  - Validate: Batch history tab loads correctly in current 4-tab structure
+- [x] **BLOCKER**: Complete `fix-batch-history-data-display` change
+  - Dependency: `currentCaseId` global variable must exist ✅
+  - Dependency: Batch status updates must work correctly ✅
+  - Validate: Batch history tab loads correctly in current 4-tab structure ✅
 
 ---
 
-## Phase 1: Frontend Structure Refactoring (5-7 hours)
+## Phase 1: Frontend Structure Refactoring (5-7 hours) ✅ COMPLETED
 
-### 1.1 Update Tab Navigation Structure
+**Status**: Completed on 2025-11-02
+**Actual Time**: ~3-4 hours
+
+### 1.1 Update Tab Navigation Structure ✅
 
 **File**: `frontend/control/simulations.html`
 
-- [ ] Remove "进度 (Progress)" tab button (line 38)
-- [ ] Remove "批次历史 (Batch History)" tab button (line 40)
-- [ ] Add new "批次监控 (Batch Monitoring)" tab button:
+- [x] Remove "进度 (Progress)" tab button (line 38)
+- [x] Remove "批次历史 (Batch History)" tab button (line 40)
+- [x] Add new "批次监控 (Batch Monitoring)" tab button with tooltip:
   ```html
-  <button class="view-tab" id="monitoringViewTab" onclick="switchView('monitoring')">批次监控</button>
+  <button class="view-tab" id="monitoringViewTab" onclick="switchView('monitoring')" title="批次监控整合了进度和历史功能">批次监控</button>
   ```
-- [ ] Reorder tabs: 配置 → 批次监控 → 结果 (3 tabs total)
+- [x] Reorder tabs: 配置 → 批次监控 → 结果 (3 tabs total)
 
-**Validation**: Tab navigation renders 3 buttons, "批次监控" is second tab
+**Validation**: ✅ Tab navigation renders 3 buttons, "批次监控" is second tab
 
 ---
 
-### 1.2 Create Unified Monitoring View Container
+### 1.2 Create Unified Monitoring View Container ✅
 
 **File**: `frontend/control/simulations.html`
 
-- [ ] Remove `<div id="progressView">` container (lines 90-150)
-- [ ] Remove `<div id="historyView">` container (lines 187-215)
-- [ ] Create new `<div id="monitoringView" class="view">` container
-- [ ] Add structure:
-  ```html
-  <div id="monitoringView" class="view">
-      <div class="content-header">
-          <h2>批次监控</h2>
-          <p class="content-subtitle">实时监控和历史回顾批量仿真执行状态</p>
-      </div>
+- [x] Remove `<div id="progressView">` container (lines 90-150)
+- [x] Remove `<div id="historyView">` container (lines 187-215)
+- [x] Create new `<div id="monitoringView" class="view">` container with **two-panel layout**:
 
-      <!-- Filters and Controls -->
-      <div class="monitoring-controls">
-          <div class="filter-group">
-              <label for="statusFilter">状态筛选:</label>
-              <select id="statusFilter" onchange="filterBatches()">
-                  <option value="">全部状态</option>
-                  <option value="running">运行中</option>
-                  <option value="completed">已完成</option>
-                  <option value="failed">失败</option>
-                  <option value="cancelled">已取消</option>
-              </select>
-          </div>
-          <div class="filter-group">
-              <label for="sortOrder">排序:</label>
-              <select id="sortOrder" onchange="sortBatches()">
-                  <option value="created_desc">最近创建</option>
-                  <option value="completed_desc">最近完成</option>
-                  <option value="duration_desc">耗时最长</option>
-              </select>
-          </div>
-      </div>
+**Actual Implementation** (Phase 1.5 - Enhanced with user feedback):
 
-      <!-- Batch List -->
-      <div id="batchList" class="batch-list">
-          <!-- Batch cards dynamically rendered here -->
-      </div>
+```html
+<div id="monitoringView" class="view">
+    <!-- Upper Panel: Current Batch Monitor -->
+    <div id="currentBatchMonitor" class="current-batch-monitor" style="display: none;">
+        <div class="monitor-header">
+            <h3 id="monitorBatchTitle">当前监控批次</h3>
+            <button onclick="closeCurrentMonitor()">关闭监控</button>
+        </div>
+        <div class="monitor-content">
+            <!-- Batch info, progress bar, task stats -->
+            <!-- Live vehicle count curve -->
+        </div>
+    </div>
 
-      <!-- Empty State -->
-      <div id="batchListEmpty" class="empty-state" style="display: none;">
-          <p>暂无批次记录</p>
-          <p class="text-muted">请在"配置"标签创建批量仿真</p>
-      </div>
-  </div>
-  ```
+    <!-- Lower Panel: Batch List -->
+    <div class="batch-list-section">
+        <div class="list-header">
+            <h3>批次列表</h3>
+            <!-- Filters and controls -->
+        </div>
+        <div id="batchList" class="batch-list">
+            <!-- Batch cards -->
+        </div>
+    </div>
+</div>
+```
 
-**Validation**: New monitoring view container exists, no duplicate IDs
+**Key Enhancement**: Two-panel layout (上下两栏) based on user requirement:
+- Upper panel shows detailed monitoring when "监控进度" is clicked
+- Lower panel always shows all batches in a list
+- Restores the original progress monitoring functionality
+
+**Validation**: ✅ Two-panel structure exists, upper panel hidden by default, no duplicate IDs
 
 ---
 
-### 1.3 Update CSS for Unified Monitoring View
+### 1.3 Update CSS for Unified Monitoring View ✅
 
 **File**: `frontend/control/css/simulations.css`
 
-- [ ] Rename `.batch-history-list` to `.batch-list`
-- [ ] Rename `.batch-history-card` to `.batch-card`
-- [ ] Rename `.history-filters` to `.monitoring-controls`
-- [ ] Add styles for expandable cards:
+- [x] Add `.batch-list` class (kept `.batch-history-list` for backward compatibility)
+- [x] Rename `.history-filters` to `.monitoring-controls`
+- [x] Add `.text-muted` utility class for empty state
+- [x] Add styles for two-panel layout (actual implementation):
   ```css
-  .batch-card {
-      transition: all 0.25s ease-in-out;
-      cursor: pointer;
+  /* Upper Panel: Current Batch Monitor */
+  .current-batch-monitor {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-base);
+      margin-bottom: var(--spacing-30);
+      padding: var(--spacing-20);
   }
 
-  .batch-card.expanded {
-      cursor: default;
-  }
-
-  .batch-card-header {
+  .monitor-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
+      padding-bottom: var(--spacing-15);
+      border-bottom: 2px solid var(--color-primary);
   }
 
-  .batch-card-details {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease-in-out;
+  .monitor-batch-info {
+      background: #f0f8ff;
+      padding: var(--spacing-20);
+      border-radius: var(--radius-md);
   }
 
-  .batch-card.expanded .batch-card-details {
-      max-height: 1000px; /* Adjust based on content */
+  /* Lower Panel: Batch List */
+  .batch-list-section {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-base);
+      padding: var(--spacing-20);
+  }
+
+  .btn-small.btn-primary {
+      background: var(--color-primary);
+      color: white;
+      font-weight: 500;
   }
   ```
-- [ ] Add responsive breakpoints:
-  ```css
-  @media (min-width: 1200px) {
-      .batch-list { grid-template-columns: repeat(4, 1fr); }
-  }
-  @media (min-width: 768px) and (max-width: 1199px) {
-      .batch-list { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 767px) {
-      .batch-list { grid-template-columns: 1fr; }
-  }
-  ```
+- [x] Responsive grid layout (inherited from existing `.batch-history-list`)
 
-**Validation**: Styles apply correctly, grid layout responsive
+**Validation**: ✅ Two-panel styles applied, upper panel hidden by default
 
 ---
 
-### 1.4 Update JavaScript Global State
+### 1.4 Update JavaScript Global State ✅
 
 **File**: `frontend/control/js/batch_simulation.js`
 
-- [ ] Update `currentView` initialization: `let currentView = 'config';`
-- [ ] Add `expandedBatchId` state: `let expandedBatchId = null;`
-- [ ] Update `switchView()` function:
+- [x] Update `currentView` comment: `let currentView = 'config'; // config, monitoring, results`
+- [x] Add `expandedBatchId` state: `let expandedBatchId = null; // 当前展开的批次ID`
+- [x] Update `switchView()` function for 3-tab structure:
   ```javascript
   function switchView(view) {
-      // Hide all views
-      ['config', 'monitoring', 'results'].forEach(v => {
-          document.getElementById(`${v}View`).classList.remove('active');
-          document.getElementById(`${v}ViewTab`).classList.remove('active');
-      });
-
-      // Show selected view
-      document.getElementById(`${view}View`).classList.add('active');
-      document.getElementById(`${view}ViewTab`).classList.add('active');
       currentView = view;
 
-      // Load data if needed
+      // Update views (3-tab structure: config, monitoring, results)
+      document.getElementById('configView').classList.toggle('active', view === 'config');
+      document.getElementById('monitoringView').classList.toggle('active', view === 'monitoring');
+      document.getElementById('resultsView').classList.toggle('active', view === 'results');
+
+      // Update tabs
+      document.getElementById('configViewTab').classList.toggle('active', view === 'config');
+      document.getElementById('monitoringViewTab').classList.toggle('active', view === 'monitoring');
+      document.getElementById('resultsViewTab').classList.toggle('active', view === 'results');
+
+      // Load data when switching to monitoring view
       if (view === 'monitoring' && currentCaseId) {
           loadBatchList();
       }
+
+      // Load results when switching to results view
+      if (view === 'results' && currentBatchId) {
+          loadResults();
+      }
   }
   ```
+- [x] Connect placeholder functions: `loadBatchList()` → `loadBatchHistory()`, `filterBatches()` → `filterBatchHistory()`
+- [x] Update `loadBatchHistory()` to use new element IDs (`batchList`, `batchListEmpty`, `statusFilter`)
+- [x] Comment out removed button event listeners (`startBatchBtn`, `cancelBatchBtn`, `toggleLiveCurveBtn`)
+- [x] Add null-safety to `updateBatchInfo()` for removed elements
 
-**Validation**: View switching works for 3 tabs, no console errors
+**Validation**: ✅ View switching works for 3 tabs, no console errors, null-safety prevents errors
 
 ---
 
-## Phase 2: Batch Card Component Implementation (8-10 hours)
+## Phase 1.5: Batch Control Buttons & Progress Monitoring (2-3 hours) ✅ COMPLETED
+
+**Status**: Completed on 2025-11-02 (user-requested enhancement)
+**Actual Time**: ~2 hours
+
+### 1.5.1 Add Batch Card Control Buttons ✅
+
+**File**: `frontend/control/js/batch_simulation.js`
+
+- [x] Update batch card rendering to include state-specific buttons:
+  - **pending** status: "启动仿真" button (blue primary style)
+  - **running** status: "监控进度" + "取消" buttons
+  - **completed** status: "查看结果" button
+  - All non-running states: "删除" button
+
+- [x] Create `startBatchById(batchId)` function - Start batch from card
+- [x] Create `cancelBatchById(batchId)` function - Cancel batch from card
+- [x] Update `loadBatchProgressAndSwitch(batchId)` - Show upper panel monitoring
+- [x] Create `closeCurrentMonitor()` function - Close upper panel
+
+**CSS**: Added `.btn-small.btn-primary` style for blue start button
+
+**Validation**: ✅ Buttons appear correctly based on batch status, all functions work
+
+---
+
+### 1.5.2 Integrate Progress Monitoring into Upper Panel ✅
+
+**File**: `frontend/control/js/batch_simulation.js`
+
+- [x] Update `updateProgress()` to use monitor element IDs:
+  - `monitorBatchStatus`, `monitorTotalTasks`, `monitorCompletedTasks`, etc.
+  - `monitorProgressBar`, `monitorProgressText`
+
+- [x] Update `renderLiveCurve()` to use monitor canvas:
+  - `monitorLiveCurveSection`, `monitorLiveCurveChart`, `toggleMonitorCurveBtn`
+
+- [x] Connect "监控进度" button to show upper panel
+- [x] Enable real-time progress polling when monitoring
+- [x] Show live vehicle count curve in upper panel
+
+**Validation**: ✅ Upper panel shows real-time progress, curves render correctly, polling works
+
+---
+
+## Phase 2: Batch Card Component Implementation (8-10 hours) ⏸️ DEFERRED
 
 ### 2.1 Create Batch Card Rendering Function
 

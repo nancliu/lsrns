@@ -452,12 +452,22 @@ function renderPlanDetail(plan, preview) {
             ` : ''}
         </div>
 
+        <div style="margin-bottom: 20px;">
+            <h3>XML验证状态</h3>
+            <span id="validation-status-${plan.plan_id}" class="validation-status pending">
+                <i class="status-icon">⏳</i> 未验证
+            </span>
+        </div>
+
         <div>
             <h3>XML配置预览</h3>
             <div class="xml-preview">${escapeHtml(preview.xml_preview)}</div>
         </div>
 
         <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary btn-validate" onclick="validatePlan('${plan.plan_id}')">
+                验证XML
+            </button>
             ${!plan.is_baseline ? `
                 <button class="btn btn-primary" onclick="closeDetailModal(); editPlan('${plan.plan_id}')">编辑方案</button>
                 <button class="btn btn-danger" onclick="closeDetailModal(); deletePlan('${plan.plan_id}')">删除方案</button>

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # 常量定义
 PLANS_BASE_DIR = Path("control_data/plans")
+STRATEGIES_DIR = "control_data/strategies"
 BASELINE_PLAN_ID = "baseline_plan"
 PLANS_INDEX_FILE = "plans_index.json"
 
@@ -350,7 +351,7 @@ def get_plan_strategies(plan_id: str) -> List[Dict[str, Any]]:
     strategies = []
     for sid in strategy_ids:
         try:
-            strategy = load_strategy(sid)
+            strategy = load_strategy(sid, STRATEGIES_DIR)
             strategies.append(strategy)
         except FileNotFoundError:
             logger.warning(f"策略不存在，已跳过: {sid}")
@@ -360,17 +361,22 @@ def get_plan_strategies(plan_id: str) -> List[Dict[str, Any]]:
     return strategies
 
 
-def regenerate_plan_xml(plan_id: str) -> None:
+def regenerate_plan_xml(plan_id: str) -> Dict[str, Any]:
     """
-    重新生成方案的control.add.xml
+    重新生成方案的control.add.xml并验证
 
     Args:
         plan_id: 方案ID
 
+    Returns:
+        Dict with regeneration result and validation status
+
     Raises:
         FileNotFoundError: 方案不存在
+        ValueError: XML validation failed
     """
     from shared.control_tools.additional_generator import generate_plan_additional
+    from shared.control_tools.xml_validator import validate_xml_string
 
     metadata = get_plan(plan_id)
     strategies = get_plan_strategies(plan_id)
@@ -380,6 +386,14 @@ def regenerate_plan_xml(plan_id: str) -> None:
         plan_id=plan_id, plan_name=metadata["plan_name"], strategies=strategies
     )
 
+    # Phase 2: Validate generated XML
+    validation_result = validate_xml_string(xml_content)
+
+    if not validation_result.is_valid:
+        error_message = f"Generated XML validation failed: {', '.join([e.get('message', str(e)) for e in validation_result.errors])}"
+        logger.error(f"XML validation failed for plan [{plan_id}]: {error_message}")
+        raise ValueError(error_message)
+
     # 保存XML
     plan_dir = _get_plan_dir(plan_id)
     xml_file = plan_dir / "control.add.xml"
@@ -387,7 +401,24 @@ def regenerate_plan_xml(plan_id: str) -> None:
     try:
         with open(xml_file, "w", encoding="utf-8") as f:
             f.write(xml_content)
-        logger.info(f"方案XML重新生成成功: {plan_id}")
+        logger.info(
+            f"方案XML重新生成成功: {plan_id}",
+            extra={
+                "plan_id": plan_id,
+                "validation_status": "passed",
+                "strategies_count": len(strategies),
+            },
+        )
+
+        return {
+            "regenerated": True,
+            "plan_id": plan_id,
+            "validation": {
+                "is_valid": True,
+                "warnings": [w.get('message', str(w)) for w in validation_result.warnings] if validation_result.warnings else [],
+            },
+        }
+
     except Exception as e:
         logger.error(f"保存方案XML失败 [{plan_id}]: {e}")
         raise

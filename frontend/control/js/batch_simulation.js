@@ -320,12 +320,11 @@ async function createBatch() {
             window.currentCaseId = currentCaseId;
         }
 
-        // Phase 1: Switch to monitoring view to show the new batch
+        // Phase 1: Stay on config view, don't auto-switch
         updateBatchInfo(batch);
-        switchView('monitoring');
 
-        // 显示提示
-        showSuccess('批次创建成功！批次将显示在"批次监控"列表中。');
+        // 显示提示，引导用户查看批次监控
+        showSuccess('批次创建成功！可在"批次监控"标签查看和管理批次。');
 
     } catch (error) {
         console.error('Create batch error:', error);
@@ -419,36 +418,57 @@ async function updateProgress() {
             live_time_series: data.live_time_series
         });
 
-        // 更新批次信息
+        // 更新批次信息 (监控区域)
         const statusText = STATUS_MAP[data.status] || data.status;
-        document.getElementById('batchStatus').textContent = `状态: ${statusText}`;
+        const monitorStatus = document.getElementById('monitorBatchStatus');
+        if (monitorStatus) {
+            monitorStatus.textContent = `状态: ${statusText}`;
+        }
 
-        // 更新任务统计信息
-        const taskStatsDiv = document.getElementById('taskStats');
+        // 更新任务统计信息 (监控区域)
+        const taskStatsDiv = document.getElementById('monitorTaskStats');
         if (taskStatsDiv && data.status !== 'pending') {
-            showElement('taskStats');
-            document.getElementById('totalTasks').textContent = data.total_tasks || 0;
-            document.getElementById('completedTasks').textContent = data.completed_tasks || 0;
-            document.getElementById('runningTasks').textContent = data.running_tasks || 0;
-            document.getElementById('failedTasks').textContent = data.failed_tasks || 0;
+            taskStatsDiv.style.display = 'block';
+            const totalElem = document.getElementById('monitorTotalTasks');
+            const completedElem = document.getElementById('monitorCompletedTasks');
+            const runningElem = document.getElementById('monitorRunningTasks');
+            const failedElem = document.getElementById('monitorFailedTasks');
 
-            // 显示预计完成时间
+            if (totalElem) totalElem.textContent = data.total_tasks || 0;
+            if (completedElem) completedElem.textContent = data.completed_tasks || 0;
+            if (runningElem) runningElem.textContent = data.running_tasks || 0;
+            if (failedElem) failedElem.textContent = data.failed_tasks || 0;
+
+            // 显示预计完成时间 - 使用运行中任务的最长剩余时间
             const estimatedCompletionDiv = document.getElementById('estimatedCompletion');
-            if (estimatedCompletionDiv && data.status === 'running') {
-                if (data.estimated_remaining_seconds && data.estimated_remaining_seconds > 0) {
-                    const remainingDisplay = formatDuration(data.estimated_remaining_seconds);
-                    const completionTime = data.estimated_completion ?
-                        new Date(data.estimated_completion).toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'}) :
-                        '计算中...';
-                    estimatedCompletionDiv.innerHTML = `
-                        <strong>⏱️ 预计剩余:</strong> ${remainingDisplay}
-                        <span style="margin-left: 15px;"><strong>📅 预计完成:</strong> ${completionTime}</span>
-                    `;
+            if (estimatedCompletionDiv) {
+                if (data.status === 'running' && data.tasks) {
+                    // 找出运行中任务的最长剩余时间
+                    const runningTasks = data.tasks.filter(t => t.status === 'running');
+                    let maxRemainingSeconds = 0;
+
+                    runningTasks.forEach(task => {
+                        const liveStatus = task.live_status || {};
+                        const remainingSec = liveStatus.estimated_remaining_seconds;
+                        if (remainingSec && remainingSec > maxRemainingSeconds) {
+                            maxRemainingSeconds = remainingSec;
+                        }
+                    });
+
+                    if (maxRemainingSeconds > 0) {
+                        const remainingDisplay = formatDuration(maxRemainingSeconds);
+                        const completionTime = new Date(Date.now() + maxRemainingSeconds * 1000)
+                            .toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+                        estimatedCompletionDiv.innerHTML = `
+                            <strong>⏱️ 预计剩余:</strong> ${remainingDisplay}
+                            <span style="margin-left: 15px;"><strong>📅 预计完成:</strong> ${completionTime}</span>
+                        `;
+                    } else {
+                        estimatedCompletionDiv.innerHTML = '<strong>⏱️ 正在估算剩余时间...</strong>';
+                    }
                 } else {
-                    estimatedCompletionDiv.innerHTML = '<strong>⏱️ 正在估算剩余时间...</strong>';
+                    estimatedCompletionDiv.innerHTML = '';
                 }
-            } else {
-                estimatedCompletionDiv.innerHTML = '';
             }
         }
 
@@ -460,20 +480,16 @@ async function updateProgress() {
         const taskProgressInfo = runningTasks.map(t => `${t.task_id}:${t.progress}%`).join(', ');
         debugLog(`Batch progress: ${progressPct}% | Running: [${taskProgressInfo}]`);
 
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('monitorProgressBar');
+        const progressText = document.getElementById('monitorProgressText');
 
         if (progressBar) {
             progressBar.style.width = `${progressPct}%`;
-        } else {
-            console.error('progressBar element not found!');
         }
 
         if (progressText) {
             // 显示进度百分比（剩余时间已在上方taskStats中显示）
             progressText.textContent = `${progressPct}%`;
-        } else {
-            console.error('progressText element not found!');
         }
 
         // 更新任务详情
@@ -522,13 +538,25 @@ function renderTaskList(tasks) {
         grouped[task.plan_id].tasks.push(task);
     });
 
-    const container = document.getElementById('taskList');
+    // Phase 1.5: Render to monitor panel
+    const container = document.getElementById('monitorTaskList');
+    const section = document.getElementById('monitorTaskListSection');
+
+    if (!container) {
+        console.warn('monitorTaskList element not found');
+        return;
+    }
+
     container.innerHTML = '';
 
     if (tasks.length === 0) {
-        container.innerHTML = '<p class="empty-state">暂无任务</p>';
+        // Hide the section if no tasks
+        if (section) section.style.display = 'none';
         return;
     }
+
+    // Show the section when there are tasks
+    if (section) section.style.display = 'block';
 
     for (const [planId, planData] of Object.entries(grouped)) {
         const planDiv = document.createElement('div');
@@ -551,7 +579,31 @@ function renderTaskList(tasks) {
             // 如果任务正在运行，显示进度条和实时状态
             if (task.status === 'running') {
                 const liveStatus = task.live_status || {};
-                const progressPct = liveStatus.progress_percent || task.progress || 0;
+                // Fix: Use explicit null/undefined check to avoid 0 being treated as falsy
+                let progressValue = (liveStatus.progress_percent !== null && liveStatus.progress_percent !== undefined)
+                    ? liveStatus.progress_percent
+                    : (task.progress !== null && task.progress !== undefined ? task.progress : 0);
+
+                // Ensure progress is in valid range [0, 100]
+                // CORRECTED: If progressValue > 100, it's in simulation seconds (current_time), not percentage
+                // Numerator: current_time (simulation seconds from summary.xml <step time="...">)
+                // Denominator: end_time (configured simulation duration)
+                let progressPct = progressValue;
+                if (progressValue > 100) {
+                    // Backend returns raw simulation time in seconds
+                    // Get end_time from backend response (should be included in live_status)
+                    const endTime = liveStatus.end_time || 600;  // Default to 600 if not provided
+
+                    // Correct formula: (current_time / end_time) × 100
+                    // But since progressValue is NOT yet multiplied by 100, we need:
+                    // progressPct = (progressValue / endTime) × 100
+                    const divisor = endTime / 100;  // Correct divisor based on actual end_time
+                    progressPct = Math.min((progressValue / divisor), 100);
+                } else if (progressValue < 0) {
+                    progressPct = 0;
+                }
+                progressPct = Math.max(0, Math.min(100, progressPct));
+
                 const runningVeh = liveStatus.running_vehicles;
                 const remainingSec = liveStatus.estimated_remaining_seconds;
 
@@ -780,42 +832,45 @@ function renderLiveCurve(liveTimeSeries) {
         }
     }
 
-    const controlBar = document.getElementById('liveCurveControlBar');
-    const section = document.getElementById('liveCurveSection');
-    const canvas = document.getElementById('liveCurveChart');
-    const toggleBtn = document.getElementById('toggleLiveCurveBtn');
+    // Phase 1.5: Use monitor canvas elements
+    const section = document.getElementById('monitorLiveCurveSection');
+    const canvas = document.getElementById('monitorLiveCurveChart');
+    const controlBar = document.getElementById('monitorLiveCurveControlBar');
+    const toggleBtn = document.getElementById('toggleMonitorCurveBtn');
 
     // 检查是否有数据
     const hasData = liveTimeSeries && liveTimeSeries.time_points && liveTimeSeries.time_points.length > 0;
 
     if (hasData) {
         debugLog('Showing live curve section with', liveTimeSeries.time_points.length, 'data points');
-        // 有数据时，始终显示控制栏，根据用户的toggle状态显示或隐藏图表
-        showElement('liveCurveControlBar');
-        if (liveCurveVisible) {
-            showElement('liveCurveSection');
-        } else {
-            hideElement('liveCurveSection');
+
+        // 显示控制栏（始终可见，用于切换曲线显示/隐藏）
+        if (controlBar) {
+            controlBar.style.display = 'flex';
         }
+
+        // 根据liveCurveVisible显示/隐藏曲线区域
+        if (section) {
+            section.style.display = liveCurveVisible ? 'block' : 'none';
+        }
+
         // 更新按钮文本
         if (toggleBtn) {
             toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
         }
     } else {
         debugLog('No live time series data');
-        // 无数据时，始终显示控制栏（允许用户切换），根据toggle状态显示提示或隐藏
-        showElement('liveCurveControlBar');
+
+        // 无数据时隐藏控制栏和曲线区域
+        if (controlBar) {
+            controlBar.style.display = 'none';
+        }
+        if (section) {
+            section.style.display = 'none';
+        }
+
         if (liveCurveVisible) {
-            showElement('liveCurveSection');
-        } else {
-            hideElement('liveCurveSection');
-        }
-        // 无数据时按钮允许用户显示空的图表区域
-        if (toggleBtn) {
-            toggleBtn.textContent = liveCurveVisible ? '隐藏曲线' : '显示曲线';
-        }
-        if (!hasData && liveCurveVisible) {
-            // 显示"加载中"或"无数据"提示
+            // 显示"加载中"提示
             if (canvas) {
                 canvas.style.display = 'none';
             }
@@ -828,7 +883,7 @@ function renderLiveCurve(liveTimeSeries) {
                 section.appendChild(notice);
             }
             return;
-        } else if (!hasData && !liveCurveVisible) {
+        } else {
             return;
         }
     }
@@ -867,6 +922,10 @@ function renderLiveCurve(liveTimeSeries) {
     if (!liveCurveChartInstance) {
         // 首次创建或重置后重新创建
         liveCurveChartInstance = createLiveCurveChart(canvas, liveTimeSeries);
+        // 创建后调整高度
+        setTimeout(() => {
+            resizeLiveCurveCanvas();
+        }, 50);
     } else {
         // 增量更新
         const updateSuccess = updateLiveCurveChart(liveCurveChartInstance, liveTimeSeries);
@@ -876,6 +935,14 @@ function renderLiveCurve(liveTimeSeries) {
             debugLog('Chart update failed, recreating chart');
             liveCurveChartInstance.destroy();
             liveCurveChartInstance = createLiveCurveChart(canvas, liveTimeSeries);
+            setTimeout(() => {
+                resizeLiveCurveCanvas();
+            }, 50);
+        } else {
+            // 更新成功后调整高度
+            setTimeout(() => {
+                resizeLiveCurveCanvas();
+            }, 50);
         }
     }
 
@@ -886,18 +953,55 @@ function renderLiveCurve(liveTimeSeries) {
     };
 }
 
+// 动态调整 Live Curve Canvas 的高度 (基于数据点数量和上下文)
+function resizeLiveCurveCanvas() {
+    const canvas = document.getElementById('monitorLiveCurveChart');
+    if (!canvas) return;
+
+    // 根据图表实例数据点计算高度
+    if (liveCurveChartInstance && liveCurveChartInstance.data && liveCurveChartInstance.data.datasets[0]) {
+        const dataPoints = liveCurveChartInstance.data.datasets[0].data.length;
+
+        // 动态高度计算：数据点越多，给予更多空间，但有最大限制
+        let calculatedHeight = 250 + Math.min(dataPoints * 2, 150);
+
+        // 应用高度限制
+        calculatedHeight = Math.min(calculatedHeight, 400);
+        calculatedHeight = Math.max(calculatedHeight, 250);
+
+        canvas.style.maxHeight = calculatedHeight + 'px';
+        debugLog('Canvas height adjusted to:', calculatedHeight, 'px for', dataPoints, 'data points');
+
+        // 触发图表resize事件以重新绘制
+        if (liveCurveChartInstance) {
+            setTimeout(() => {
+                liveCurveChartInstance.resize();
+            }, 50);
+        }
+    }
+}
+
 // 切换动态在网车辆曲线的显示/隐藏
 function toggleLiveCurveVisibility() {
     liveCurveVisible = !liveCurveVisible;
     debugLog('Toggle live curve visibility to:', liveCurveVisible);
 
-    const toggleBtn = document.getElementById('toggleLiveCurveBtn');
+    // 使用新的分离式控制栏
+    const section = document.getElementById('monitorLiveCurveSection');
+    const controlBar = document.getElementById('monitorLiveCurveControlBar');
+    const toggleBtn = document.getElementById('toggleMonitorCurveBtn');
 
-    // 更新chart section显示状态
-    if (liveCurveVisible) {
-        showElement('liveCurveSection');
-    } else {
-        hideElement('liveCurveSection');
+    // 控制栏始终保持显示（因为它包含切换按钮）
+    // 曲线区域根据toggle状态显示/隐藏
+    if (section) {
+        section.style.display = liveCurveVisible ? 'block' : 'none';
+
+        // 显示后调整高度
+        if (liveCurveVisible) {
+            setTimeout(() => {
+                resizeLiveCurveCanvas();
+            }, 100);
+        }
     }
 
     // 更新按钮文本
@@ -945,6 +1049,64 @@ async function cancelBatch() {
     } catch (error) {
         console.error('Cancel batch error:', error);
         showError('取消批量仿真失败');
+    }
+}
+
+// ========== 批次卡片操作 (Phase 1.5 - 添加卡片级别控制) ==========
+
+/**
+ * 启动指定批次的仿真
+ * @param {string} batchId - 批次ID
+ */
+async function startBatchById(batchId) {
+    if (!batchId) return;
+
+    try {
+        const startResponse = await fetch(
+            `${API_BASE}/control/batch-optimization/batch/${batchId}/start`,
+            { method: 'POST' }
+        );
+
+        if (!startResponse.ok) {
+            throw new Error('Failed to start batch');
+        }
+
+        showSuccess('批次启动成功！');
+
+        // 刷新批次列表以更新状态
+        loadBatchHistory();
+
+    } catch (error) {
+        console.error('Start batch error:', error);
+        showError('启动批次失败: ' + error.message);
+    }
+}
+
+/**
+ * 取消指定批次的仿真
+ * @param {string} batchId - 批次ID
+ */
+async function cancelBatchById(batchId) {
+    if (!batchId) return;
+
+    if (!confirm('确定要取消该批次吗？')) return;
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/control/batch-optimization/batch/${batchId}`,
+            { method: 'DELETE' }
+        );
+
+        if (!response.ok) throw new Error('Failed to cancel batch');
+
+        showSuccess('批次已取消');
+
+        // 刷新批次列表以更新状态
+        loadBatchHistory();
+
+    } catch (error) {
+        console.error('Cancel batch error:', error);
+        showError('取消批次失败: ' + error.message);
     }
 }
 
@@ -1249,13 +1411,19 @@ async function loadBatchHistory() {
                     ${batch.success_rate !== undefined ? `<p><strong>成功率:</strong> ${(batch.success_rate * 100).toFixed(1)}%</p>` : ''}
                 </div>
                 <div class="batch-card-actions">
+                    ${batch.status === 'pending' ? `
+                        <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
+                    ` : ''}
                     ${batch.status === 'completed' ? `
                         <button class="btn btn-small" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
                     ` : ''}
                     ${batch.status === 'running' ? `
                         <button class="btn btn-small" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">监控进度</button>
+                        <button class="btn btn-small btn-danger" onclick="cancelBatchById('${batch.batch_id}')">取消</button>
                     ` : ''}
-                    <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+                    ${batch.status !== 'running' ? `
+                        <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+                    ` : ''}
                 </div>
             </div>
         `).join('');
@@ -1295,9 +1463,37 @@ function loadBatchResultsAndSwitch(batchId) {
 function loadBatchProgressAndSwitch(batchId) {
     currentBatchId = batchId;
     window.currentBatchId = batchId;
-    // Phase 1: Switch to monitoring view instead of removed progress view
-    // Phase 2-3 will implement expandable card with progress details
-    switchView('monitoring');
+
+    // Phase 1.5: Show current batch monitor (上栏)
+    const monitor = document.getElementById('currentBatchMonitor');
+    if (monitor) {
+        monitor.style.display = 'block';
+        document.getElementById('monitorBatchTitle').textContent = `当前监控批次: ${batchId}`;
+
+        // Start polling for this batch
+        startProgressPolling();
+    }
+
+    // Stay on monitoring view
+    if (currentView !== 'monitoring') {
+        switchView('monitoring');
+    }
+}
+
+/**
+ * 关闭当前批次监控区域
+ */
+function closeCurrentMonitor() {
+    const monitor = document.getElementById('currentBatchMonitor');
+    if (monitor) {
+        monitor.style.display = 'none';
+    }
+
+    // Stop polling
+    stopProgressPolling();
+
+    currentBatchId = null;
+    window.currentBatchId = null;
 }
 
 function getStatusLabel(status) {

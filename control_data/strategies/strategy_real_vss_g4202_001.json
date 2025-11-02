@@ -68,9 +68,7 @@
     "stake": "K52.4"
   },
   "status": "active",
-  "referenced_by": [
-    "plan_20251102_130055_62386"
-  ],
+  "referenced_by": [],
   "template": {
     "template_id": "vss_moderate",
     "template_name": "可变限速 - 中等控制",
