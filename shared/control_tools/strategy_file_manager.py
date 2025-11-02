@@ -296,17 +296,17 @@ def regenerate_index(strategies_dir: str, templates_dir: Optional[str] = None) -
                 else:
                     template_name = template_id
 
-                # Calculate edges count based on strategy type
-                configured_params = strategy.get("configured_params", {})
+                # 严格从parameters计算edges_count（无回退）
+                parameters = strategy.get("parameters", {})
                 strategy_type = strategy.get("strategy_type", "")
 
                 if strategy_type == "TEC":
-                    # TEC uses entrance_edge (single edge)
-                    entrance_edge = configured_params.get("entrance_edge", "")
-                    edges_count = 1 if entrance_edge else 0
+                    # TEC uses entrance_edges (array)
+                    entrance_edges = parameters.get("entrance_edges", [])
+                    edges_count = len(entrance_edges) if isinstance(entrance_edges, list) else 0
                 else:
                     # VSS and DHS use affected_edges (array)
-                    affected_edges = configured_params.get("affected_edges", [])
+                    affected_edges = parameters.get("affected_edges", [])
                     edges_count = len(affected_edges) if isinstance(affected_edges, list) else 0
 
                 strategies.append(
@@ -480,22 +480,16 @@ def _update_index_after_save(strategy: Dict[str, Any], strategies_dir: str) -> N
             except Exception:
                 template_name = template_id
 
-        # Calculate edges count based on strategy structure
-        # Support both schemas: API-created (affected_edges) and demo (configured_params)
+        # 严格从parameters计算edges_count（无回退）
+        parameters = strategy.get("parameters", {})
         edges_count = 0
-        if "affected_edges" in strategy:
-            # API-created strategy schema
-            affected_edges = strategy.get("affected_edges", [])
+        if strategy_type == "TEC":
+            entrance_edges = parameters.get("entrance_edges", [])
+            edges_count = len(entrance_edges) if isinstance(entrance_edges, list) else 0
+        else:
+            # VSS/DHS
+            affected_edges = parameters.get("affected_edges", [])
             edges_count = len(affected_edges) if isinstance(affected_edges, list) else 0
-        elif "configured_params" in strategy:
-            # Demo strategy schema
-            configured_params = strategy.get("configured_params", {})
-            if strategy_type == "TEC":
-                entrance_edge = configured_params.get("entrance_edge", "")
-                edges_count = 1 if entrance_edge else 0
-            else:
-                affected_edges = configured_params.get("affected_edges", [])
-                edges_count = len(affected_edges) if isinstance(affected_edges, list) else 0
 
         # Handle both metadata schemas
         if "metadata" in strategy:

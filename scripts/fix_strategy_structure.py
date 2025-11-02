@@ -65,35 +65,33 @@ def convert_strategy_to_api_format(strategy: Dict[str, Any]) -> Dict[str, Any]:
     if not template:
         logger.warning(f"无法加载模板 {template_id}，将不添加template字段")
     
-    # 1. 提取configured_params作为parameters
+    # 1. 提取configured_params作为parameters（严格格式：edges保留在parameters中）
     configured_params = strategy.get("configured_params", {})
     parameters = configured_params.copy()
     
-    # 2. 提取affected_edges（VSS和DHS）
-    affected_edges = []
+    # 2. 确保affected_edges在parameters中（VSS/DHS）
     if strategy_type in ["VSS", "DHS"]:
-        # 优先从configured_params中提取
-        if "affected_edges" in configured_params:
-            affected_edges = configured_params["affected_edges"]
-            # 从parameters中移除（因为API格式中affected_edges在顶层）
-            parameters.pop("affected_edges", None)
-        # 如果configured_params中没有，检查顶层（虽然应该没有）
-        elif "affected_edges" in strategy:
-            affected_edges = strategy["affected_edges"]
+        # 确保affected_edges在parameters中（不从parameters移除）
+        if "affected_edges" not in parameters:
+            # 如果parameters中没有，尝试从顶层获取（向后兼容迁移）
+            if "affected_edges" in strategy:
+                parameters["affected_edges"] = strategy["affected_edges"]
+            else:
+                logger.warning(f"Strategy {strategy.get('strategy_id')} missing affected_edges")
     
-    # 3. 处理TEC的entrance_edges
-    # TEC策略在parameters中保留entrance_edges（这是正确的）
+    # 3. 处理TEC的entrance_edges（确保在parameters中）
     if strategy_type == "TEC":
-        # entrance_edges应该在parameters中，不需要提取到顶层
-        # 但需要确保字段名正确
+        # entrance_edges必须在parameters中
         if "entrance_edge" in parameters:
             # 单个入口转换为数组
             entrance_edge = parameters.pop("entrance_edge")
             parameters["entrance_edges"] = [entrance_edge] if entrance_edge else []
         elif "entrance_edges" not in parameters:
-            # 尝试从旧字段读取
-            if "entrance_edges" in configured_params:
-                parameters["entrance_edges"] = configured_params["entrance_edges"]
+            # 如果parameters中没有，尝试从顶层affected_edges获取（向后兼容迁移）
+            if "affected_edges" in strategy:
+                parameters["entrance_edges"] = strategy["affected_edges"]
+            else:
+                logger.warning(f"Strategy {strategy.get('strategy_id')} missing entrance_edges")
     
     # 4. 构建metadata对象
     metadata = {
@@ -103,15 +101,15 @@ def convert_strategy_to_api_format(strategy: Dict[str, Any]) -> Dict[str, Any]:
         "version": strategy.get("version", 1),
     }
     
-    # 5. 构建新的策略结构（API格式）
+    # 5. 构建新的策略结构（严格格式：edges只在parameters中）
     new_strategy = {
         "strategy_id": strategy["strategy_id"],
         "strategy_name": strategy["strategy_name"],
         "template_id": template_id,
         "template_name": strategy.get("template_name", template.get("template_name", "") if template else ""),
         "strategy_type": strategy_type,
-        "parameters": parameters,
-        "affected_edges": affected_edges,
+        "parameters": parameters,  # edges已包含在parameters中
+        # 不再设置顶层affected_edges（严格格式）
         "metadata": metadata,
     }
     
@@ -124,6 +122,10 @@ def convert_strategy_to_api_format(strategy: Dict[str, Any]) -> Dict[str, Any]:
     # 7. 添加template字段（方案生成需要）
     if template:
         new_strategy["template"] = template
+    
+    # 8. 确保移除顶层affected_edges字段（严格格式）
+    # 注意：不在这里删除，而是在构建时就不包含它
+    # 但为了安全，确保旧文件中的顶层字段不影响新格式
     
     return new_strategy
 

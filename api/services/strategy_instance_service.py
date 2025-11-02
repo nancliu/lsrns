@@ -389,14 +389,10 @@ class StrategyInstanceService:
             for edge in enriched_edges
         ]
 
-        # Extract parameters based on schema type
-        if "parameters" in strategy:
-            # API-created schema
-            parameters = strategy.get("parameters", {})
-        elif "configured_params" in strategy:
-            # Demo schema - use configured_params as parameters
-            parameters = strategy.get("configured_params", {})
-        else:
+        # 严格从parameters获取（无回退）
+        parameters = strategy.get("parameters", {})
+        if not parameters:
+            logger.warning(f"Strategy {strategy_id} has no 'parameters' field")
             parameters = {}
 
         # Extract template_name
