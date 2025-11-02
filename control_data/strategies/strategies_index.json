@@ -1,6 +1,28 @@
 {
   "strategies": [
     {
+      "strategy_id": "strat_20251102003706_7aefed",
+      "strategy_name": "G5 K1528-K1528 限速?km/h (定时管控)",
+      "strategy_type": "VSS",
+      "template_id": "vss_upstream_warning",
+      "template_name": "可变限速 - 上游预警",
+      "edges_count": 1,
+      "created_at": "2025-11-02T00:37:06.868736+00:00",
+      "updated_at": "2025-11-02T00:37:06.868736+00:00",
+      "file_path": "control_data/strategies/strat_20251102003706_7aefed.json"
+    },
+    {
+      "strategy_id": "strat_20251101232830_0a691a",
+      "strategy_name": "G4202 K1-K0 限速?km/h (定时管控)",
+      "strategy_type": "VSS",
+      "template_id": "vss_moderate",
+      "template_name": "可变限速 - 中等控制",
+      "edges_count": 1,
+      "created_at": "2025-11-01T23:28:30.964115+00:00",
+      "updated_at": "2025-11-01T23:28:30.964115+00:00",
+      "file_path": "control_data/strategies/strat_20251101232830_0a691a.json"
+    },
+    {
       "strategy_id": "strat_20251101215347_5000e8",
       "strategy_name": "G4202 K1-K1 应急车道开放 (定时管控) (4)",
       "strategy_type": "DHS",
@@ -606,6 +628,6 @@
       "file_path": "control_data\\strategies\\strategy_real_vss_g5_002.json"
     }
   ],
-  "total_count": 55,
-  "last_updated": "2025-11-01T21:53:47.513674+00:00"
+  "total_count": 57,
+  "last_updated": "2025-11-02T00:37:06.871732+00:00"
 }

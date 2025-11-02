@@ -243,9 +243,9 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
         console.log(`Parameters found: ${parameterNames.join(', ')}`);
 
         // Check 1: Parameter count validation
-        // Note: affected_edges is handled in Step 2, so we don't count it here
+        // Note: All edge-related parameters (affected_edges, entrance_edge, entrance_edges) are handled in Step 2, so we exclude them here
         const expectedParamsExcludingEdges = metadata.expectedParams.filter(p =>
-          !p.includes('edge') || p === 'entrance_edge' || p === 'entrance_edges'
+          !p.includes('edge') && !p.includes('edges')
         );
 
         console.log(`Expected parameters (excluding affected_edges): ${expectedParamsExcludingEdges.join(', ')}`);
@@ -270,8 +270,8 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
 
           console.log(`  - Validating ${paramName} (${paramType})`);
 
-          // Check label exists
-          const label = formGroup.locator('label');
+          // Check label exists (use .first() for enum_array which may have multiple labels)
+          const label = formGroup.locator('label').first();
           await expect(label).toBeVisible();
 
           // Check control exists based on type
@@ -312,9 +312,9 @@ test.describe('Strategy Template Parameter Configuration Tests', () => {
             } else {
               throw new Error(`No checkboxes or multi-select found for enum_array parameter ${paramName}`);
             }
-          } else if (paramType === 'step_array' || paramType === 'flow_interval_array' || paramType === 'dhs_interval_array') {
+          } else if (paramType === 'step_array' || paramType === 'flow_interval_array' || paramType === 'dhs_interval_array' || paramType === 'tec_interval_array') {
             // Array controls should have add/remove buttons
-            const arrayContainer = formGroup.locator('.array-control-container, .step-array-control, .step-array-control-enhanced, .interval-array-control, .dhs-interval-array-control, .flow-interval-array-control');
+            const arrayContainer = formGroup.locator('.array-control-container, .step-array-control, .step-array-control-enhanced, .interval-array-control, .dhs-interval-control-enhanced, .flow-interval-control-enhanced, .tec-interval-control-enhanced');
             await expect(arrayContainer).toBeVisible();
             console.log(`    ✓ Array control found for ${paramName}`);
           }

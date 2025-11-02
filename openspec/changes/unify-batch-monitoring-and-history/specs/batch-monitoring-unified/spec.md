@@ -1,0 +1,729 @@
+# batch-monitoring-unified Specification
+
+## Purpose
+
+Provide a unified batch monitoring interface that consolidates real-time progress tracking and historical batch review into a single, coherent view. This capability enables users to monitor all batches (running, completed, failed, cancelled) in one place with expandable details for execution history and results access.
+
+## Requirements
+
+### Requirement: Unified Batch List Displays All Batch States
+
+The system MUST display all batches in a unified list view with status indicators, filtering, and sorting capabilities. The list MUST show running batches with real-time progress updates and completed/failed batches with final status.
+
+**Priority**: P0
+**Status**: New
+
+#### Scenario: Display All Batches in Unified List
+
+**Given**:
+- System has 15 batches:
+  - 2 running (batch_001, batch_002)
+  - 10 completed (batch_003 to batch_012)
+  - 2 failed (batch_013, batch_014)
+  - 1 cancelled (batch_015)
+
+**When**:
+- User navigates to "批次监控 (Batch Monitoring)" tab
+
+**Then**:
+- List displays all 15 batches as cards in grid layout
+- Each card shows:
+  - batch_id (abbreviated, e.g., "batch_...001")
+  - case_name
+  - plan_count (e.g., "3个方案")
+  - status badge: "运行中 ⏳" | "已完成 ✓" | "失败 ✗" | "已取消 ❌"
+  - created_at (relative time, e.g., "2小时前")
+  - For running batches: real-time progress (e.g., "5/9 tasks completed")
+  - For completed batches: total duration (e.g., "耗时: 44分钟")
+
+---
+
+#### Scenario: Real-Time Progress Display for Running Batches
+
+**Given**:
+- batch_001 is running with 3/9 tasks completed
+- User is viewing batch list
+
+**When**:
+- API polling returns updated progress (5/9 tasks completed)
+
+**Then**:
+- batch_001 card updates to show "5/9 tasks completed"
+- Progress bar on card updates to 55% width
+- No full page refresh required
+
+---
+
+#### Scenario: Filter Batches by Status
+
+**Given**:
+- Batch list displays 15 batches
+- Status filter dropdown shows: "全部 | 运行中 | 已完成 | 失败 | 已取消"
+
+**When**:
+- User selects "已完成" filter
+
+**Then**:
+- List displays only 10 completed batches
+- Running, failed, and cancelled batches hidden
+- Empty state shown if no completed batches exist
+
+---
+
+#### Scenario: Sort Batches by Creation Time
+
+**Given**:
+- Batch list displays all batches
+
+**When**:
+- User selects sort option "最近创建"
+
+**Then**:
+- Batches sorted by created_at descending (newest first)
+- batch_015 (newest) appears at top
+- batch_001 (oldest) appears at bottom
+
+---
+
+#### Scenario: Sort Batches by Duration
+
+**Given**:
+- Batch list displays completed batches
+
+**When**:
+- User selects sort option "耗时最长"
+
+**Then**:
+- Batches sorted by duration_seconds descending
+- Longest-running batch appears first
+- Batches without duration (pending/running) appear last
+
+---
+
+### Requirement: Expandable Batch Cards Show Detailed Execution Information
+
+Users MUST be able to click a batch card to expand it in-place and view detailed execution information. Running batches MUST show real-time task list and live vehicle curves. Completed batches MUST show execution timeline with task durations.
+
+**Priority**: P0
+**Status**: New
+
+#### Scenario: Expand Running Batch to Show Live Monitoring
+
+**Given**:
+- batch_001 is running with status "running"
+- User views batch list
+
+**When**:
+- User clicks batch_001 card
+
+**Then**:
+- Card expands smoothly (animation <300ms)
+- Expanded view shows:
+  - Real-time task list with status for each task:
+    - Task name (e.g., "baseline_plan_seed66")
+    - Status: "pending" | "running" | "completed" | "failed"
+    - Start time (if started)
+    - Duration (if running/completed)
+  - Live progress bar with percentage (e.g., "5/9 tasks - 55%")
+  - Estimated completion time (e.g., "预计还需: 12分钟")
+  - Live vehicle count curve (updates every 10s)
+  - Action buttons: "取消批次" (red), "刷新" (secondary)
+
+---
+
+#### Scenario: Expand Completed Batch to Show Execution History
+
+**Given**:
+- batch_003 is completed with all tasks succeeded
+- User views batch list
+
+**When**:
+- User clicks batch_003 card
+
+**Then**:
+- Card expands smoothly
+- Expanded view shows:
+  - Execution timeline (task timeline visualization):
+    - Each task as horizontal bar showing start/end times
+    - Task duration in minutes (e.g., "4分30秒")
+    - Color-coded by status (green=success, red=failed)
+  - Summary metrics:
+    - Total duration: "44分18秒"
+    - Success rate: "9/9 tasks succeeded (100%)"
+    - Average task duration: "4分55秒"
+  - Peak vehicle count curve (static snapshot from final results)
+  - Action buttons: "查看详细结果 →" (primary), "删除批次" (danger)
+
+---
+
+#### Scenario: Expand Failed Batch to Show Error Information
+
+**Given**:
+- batch_013 failed with 2/9 tasks failed
+- User views batch list
+
+**When**:
+- User clicks batch_013 card
+
+**Then**:
+- Card expands smoothly
+- Expanded view shows:
+  - Execution timeline highlighting failed tasks:
+    - Failed tasks shown in red with error icon
+    - Completed tasks shown in green
+    - Pending tasks shown in gray (not executed)
+  - Error logs for failed tasks:
+    - Task name: "plan_001_seed67"
+    - Error message: "Simulation timeout after 30 minutes"
+    - Timestamp: "2025-11-02 10:35:42"
+  - Summary metrics:
+    - Total duration: "12分30秒" (partial execution)
+    - Success rate: "7/9 tasks succeeded (77.8%)"
+  - Action buttons: "重新运行" (primary), "删除批次" (danger)
+
+---
+
+#### Scenario: Collapse Expanded Batch Card
+
+**Given**:
+- batch_001 card is expanded
+
+**When**:
+- User clicks batch_001 card header again
+
+**Then**:
+- Card collapses smoothly (animation <300ms)
+- Returns to compact list view
+- Other cards remain in their state (expanded/collapsed)
+
+---
+
+### Requirement: Live Monitoring Data Updates in Expanded View
+
+The system MUST automatically update task status, progress bar, and vehicle count curve for running batches in expanded view without manual refresh. Update interval MUST be configurable (default: 10 seconds).
+
+**Priority**: P0
+**Status**: New
+
+#### Scenario: Automatic Task Status Update
+
+**Given**:
+- batch_001 is expanded and running
+- Task "plan_001_seed66" has status "running"
+- Update interval is 10 seconds
+
+**When**:
+- API polling detects task "plan_001_seed66" status changed to "completed"
+
+**Then**:
+- Task status updates to "completed" with green checkmark
+- Task duration displayed (e.g., "4分30秒")
+- Progress bar updates (6/9 = 67%)
+- No full card re-render (smooth update)
+
+---
+
+#### Scenario: Live Vehicle Curve Auto-Update
+
+**Given**:
+- batch_001 is expanded and running
+- Live vehicle curve displayed with 50 data points
+- Last update: 10 seconds ago
+
+**When**:
+- Update interval triggers (10 seconds elapsed)
+- API returns new vehicle count data (55 data points)
+
+**Then**:
+- Chart.js updates incrementally with 5 new points
+- X-axis extends to show new time range
+- Y-axis adjusts if new data exceeds current max
+- Update completes in <70ms (no destroy/recreate)
+
+---
+
+#### Scenario: Stop Auto-Update When Batch Completes
+
+**Given**:
+- batch_001 is expanded and running with auto-update polling
+- Polling interval: 10 seconds
+
+**When**:
+- API returns batch status "completed"
+
+**Then**:
+- Polling stops automatically
+- Final task status displayed
+- Live vehicle curve becomes static (no more updates)
+- "取消批次" button hidden
+- "查看详细结果" button appears
+
+---
+
+### Requirement: Results Tab Integration from Expanded View
+
+Users MUST be able to navigate to the "结果 (Results)" tab from an expanded completed batch with a single click. The Results tab MUST auto-load the selected batch's summary results (summary.xml-based task analysis and peak curves).
+
+**Priority**: P0
+**Status**: New
+
+**Note**: The Results tab provides simple batch summary analysis. Advanced optimization analysis (deep comparisons, recommendations) is handled in a separate "方案优化 (Plan Optimization)" page, not in scope for this change.
+
+#### Scenario: Jump to Results Tab from Completed Batch
+
+**Given**:
+- batch_003 is completed and expanded
+- "查看结果" button is visible
+
+**When**:
+- User clicks "查看结果" button
+
+**Then**:
+- Tab switches to "结果 (Results)" tab
+- Results tab loads batch_003 summary data:
+  - Peak vehicle count curve (aggregated from summary.xml)
+  - Task comparison table (task-level metrics)
+  - Summary statistics (total duration, success rate)
+- Batch monitoring view remains in background (no state loss)
+- User can return to "批次监控" tab and see batch_003 still expanded
+
+---
+
+#### Scenario: Navigate to Results Tab from Batch Card Action
+
+**Given**:
+- batch_003 is completed (not expanded, just card view)
+- Card has "查看结果" button
+
+**When**:
+- User clicks "查看结果" button on card
+
+**Then**:
+- Tab switches to "结果 (Results)" tab
+- Results tab loads batch_003 summary data (summary.xml-based)
+- Same behavior as expanded view "查看结果" button
+
+---
+
+### Requirement: Execution Timeline Visualization for Historical Batches
+
+The system MUST provide a visual execution timeline for completed/failed batches showing task start/end times, durations, and status. Timeline MUST be sortable by task name, start time, or duration.
+
+**Priority**: P1
+**Status**: New
+
+#### Scenario: Display Execution Timeline for Completed Batch
+
+**Given**:
+- batch_003 has 9 completed tasks with the following data:
+  - Task "baseline_plan_seed66": started 10:30:00, ended 10:34:30, duration 270s
+  - Task "plan_001_seed66": started 10:30:05, ended 10:35:10, duration 305s
+  - ... (7 more tasks)
+
+**When**:
+- User expands batch_003
+
+**Then**:
+- Execution timeline displays:
+  - Gantt-chart-style horizontal bars for each task
+  - X-axis: absolute time (10:30 to 11:15)
+  - Each bar labeled with task name and duration (e.g., "baseline_plan_seed66 (4分30秒)")
+  - Color: green for completed, red for failed
+  - Bars aligned by start time (showing parallelism)
+
+---
+
+#### Scenario: Sort Timeline by Task Duration
+
+**Given**:
+- Execution timeline displayed for batch_003
+- Timeline has sort dropdown: "按开始时间 | 按任务名 | 按耗时"
+
+**When**:
+- User selects "按耗时" (descending)
+
+**Then**:
+- Tasks reordered with longest-running task at top
+- Task "plan_002_seed68" (duration 320s) appears first
+- Task "baseline_plan_seed66" (duration 270s) appears lower
+
+---
+
+### Requirement: Responsive Layout for Batch Monitoring View
+
+The system MUST adapt batch card layout to screen size. Desktop MUST show 3-4 cards per row. Tablet MUST show 2 cards per row. Mobile MUST show 1 card per row. Expanded view MUST switch to modal dialog on mobile (<768px width).
+
+**Priority**: P1
+**Status**: New
+
+#### Scenario: Desktop Layout (>1200px)
+
+**Given**:
+- User views batch monitoring on desktop (1920px width)
+
+**When**:
+- Batch list renders
+
+**Then**:
+- Grid layout shows 4 cards per row
+- Card width: ~450px
+- Cards have comfortable spacing (15-20px gap)
+
+---
+
+#### Scenario: Tablet Layout (768px - 1200px)
+
+**Given**:
+- User views batch monitoring on tablet (1024px width)
+
+**When**:
+- Batch list renders
+
+**Then**:
+- Grid layout shows 2 cards per row
+- Card width: ~480px
+- Cards maintain aspect ratio
+
+---
+
+#### Scenario: Mobile Layout (<768px)
+
+**Given**:
+- User views batch monitoring on mobile (375px width)
+
+**When**:
+- Batch list renders
+
+**Then**:
+- Grid layout shows 1 card per row
+- Card width: 100% (minus padding)
+- Cards stack vertically
+
+---
+
+#### Scenario: Mobile Expanded View as Modal
+
+**Given**:
+- User on mobile device (375px width)
+- Batch card clicked to expand
+
+**When**:
+- Card expansion triggers
+
+**Then**:
+- Instead of inline expansion, modal dialog opens
+- Modal covers full screen (90% height)
+- Modal has close button (X)
+- Modal body scrolls if content overflows
+- Background dimmed with overlay
+
+---
+
+### Requirement: Batch Deletion from Monitoring View
+
+Users MUST be able to delete batches (completed, failed, cancelled) directly from the monitoring view. System MUST confirm deletion and update the list without page refresh.
+
+**Priority**: P1
+**Status**: New
+
+#### Scenario: Delete Completed Batch
+
+**Given**:
+- batch_003 is completed and expanded
+- "删除批次" button visible
+
+**When**:
+- User clicks "删除批次"
+- Confirmation dialog appears: "确认删除该批次吗？此操作不可撤销。"
+- User clicks "确认"
+
+**Then**:
+- DELETE API call sent: `/api/v1/control/batch-optimization/batches/batch_003`
+- API returns 204 No Content
+- batch_003 card removed from list with fade-out animation
+- Success notification: "批次已删除"
+- List updates without page refresh
+
+---
+
+#### Scenario: Cancel Batch Deletion
+
+**Given**:
+- User clicks "删除批次" on batch_003
+- Confirmation dialog appears
+
+**When**:
+- User clicks "取消"
+
+**Then**:
+- Dialog closes
+- No API call sent
+- batch_003 remains in list
+
+---
+
+#### Scenario: Prevent Deletion of Running Batch
+
+**Given**:
+- batch_001 is running (status: "running")
+- User attempts to delete via API directly (no "删除批次" button shown for running batches)
+
+**When**:
+- DELETE request sent to `/api/v1/control/batch-optimization/batches/batch_001`
+
+**Then**:
+- API returns 409 Conflict
+- Error message: "无法删除运行中的批次，请先取消批次"
+- Frontend shows error notification
+
+---
+
+## MODIFIED Requirements
+
+### Requirement: Batch List View SHALL Replace Separate Progress and History Tabs
+
+**Source**: `batch-management/spec.md` → "前端提供批次历史管理视图"
+
+**Original Behavior**:
+- Two separate tabs: "进度 (Progress)" and "批次历史 (Batch History)"
+- "进度" tab shows only current running batch
+- "批次历史" tab shows all historical batches
+
+**Modified Behavior**:
+- The system SHALL provide a single "批次监控 (Batch Monitoring)" tab replacing both "进度" and "批次历史" tabs
+- The unified list SHALL show all batches (running + historical) in one view
+- Running batches SHALL be highlighted with real-time progress updates
+- Expandable cards SHALL replace separate tab views
+
+**Rationale**: Reduce tab fragmentation, unify batch lifecycle management
+
+**Priority**: P0
+**Status**: Modified
+
+#### Scenario: Single Batch Monitoring Tab Replaces Two Tabs
+
+**Given**:
+- Previous system had 4 tabs: "配置", "进度", "结果", "批次历史"
+- "进度" showed only current batch, "批次历史" showed all historical batches
+
+**When**:
+- User navigates to batch simulation page
+
+**Then**:
+- Tab bar displays only 3 tabs: "配置", "批次监控", "结果"
+- "批次监控" tab contains unified batch list
+- All batches (running + historical) visible in single view
+- No separate "进度" or "批次历史" tabs exist
+
+---
+
+#### Scenario: Running Batches Highlighted in Unified List
+
+**Given**:
+- System has 2 running batches and 10 completed batches
+- User opens "批次监控" tab
+
+**When**:
+- Batch list renders
+
+**Then**:
+- 2 running batches appear at top with blue/teal status badges
+- 10 completed batches appear below with green status badges
+- Running batches show real-time progress (e.g., "5/9 tasks")
+- Completed batches show final status (e.g., "耗时: 44分钟")
+
+---
+
+### Requirement: Live Vehicle Curve SHALL Be Integrated into Expandable View
+
+**Source**: `batch-simulation-charts/spec.md` → "Chart Update Logic SHALL Use Incremental Data Addition"
+
+**Original Behavior**:
+- Live curve displayed in dedicated "进度" tab
+- Always visible, takes significant screen space
+
+**Modified Behavior**:
+- The system SHALL display live vehicle curve only when running batch card is expanded
+- The collapsed view SHALL save screen space for batch list
+- The system SHALL preserve same incremental Chart.js update logic (no destroy/recreate)
+
+**Rationale**: Progressive disclosure, better screen real estate usage
+
+**Priority**: P0
+**Status**: Modified
+
+#### Scenario: Live Curve Appears Only When Running Batch Expanded
+
+**Given**:
+- batch_001 is running
+- User views batch list (all cards collapsed)
+
+**When**:
+- User views collapsed batch_001 card
+
+**Then**:
+- No live curve visible (card height ~120px)
+- Card shows only summary: status, progress bar, metadata
+
+**When**:
+- User clicks batch_001 card to expand
+
+**Then**:
+- Card expands smoothly (~600px height)
+- Live vehicle curve becomes visible
+- Curve updates every 10 seconds with new data points
+- Same incremental Chart.js update logic as old "进度" tab
+
+---
+
+#### Scenario: Collapsed View Saves Screen Space
+
+**Given**:
+- User has 12 batches (2 running, 10 completed)
+- All cards collapsed
+
+**When**:
+- User views batch list
+
+**Then**:
+- Desktop (1920px width): 4 cards visible per row, 3 rows total
+- Tablet (1024px width): 2 cards visible per row, 6 rows total
+- Each card ~120px height (compact view)
+- User can see all 12 batches without scrolling (on desktop)
+
+---
+
+## REMOVED Requirements
+
+### Requirement: Separate Progress Tab for Current Batch
+
+**Source**: Current implementation (not in specs)
+
+**Removed Behavior**:
+- Dedicated "进度 (Progress)" tab that shows only the most recently created batch
+- Assumption: only one batch runs at a time
+
+**Rationale**:
+- Unified monitoring view supports multiple concurrent batches
+- Expandable cards provide same functionality with better scalability
+
+---
+
+### Requirement: Batch History as Separate Tab
+
+**Source**: `batch-management/spec.md` → "前端提供批次历史管理视图"
+
+**Removed Behavior**:
+- Dedicated "批次历史 (Batch History)" tab
+- Click batch card → switch to "结果" tab (no in-place details)
+
+**Rationale**:
+- Merged into unified "批次监控" view
+- Expandable cards provide better UX than tab switching
+
+---
+
+## Related Capabilities
+
+- **batch-management**: Provides API endpoints for batch querying, filtering, deletion
+- **batch-simulation-charts**: Provides live vehicle curve rendering logic
+- **result-page-separation**: Provides Results tab for deep analysis (remains independent)
+
+---
+
+## Design Notes
+
+### Expandable Card Component
+
+**Collapsed State** (120px height):
+```
+┌─────────────────────────────────────┐
+│ batch_20251030_170601  [运行中 ⏳] │
+│ 案例: 成都绕城早高峰               │
+│ 3个方案 | 创建于: 2小时前           │
+│ ████████████░░░░░░░░ 5/9 tasks    │
+│ [查看结果]         [删除]         │
+└─────────────────────────────────────┘
+```
+
+**Expanded State** (running batch, ~600px height):
+```
+┌─────────────────────────────────────┐
+│ batch_20251030_170601  [运行中 ⏳] │ ← Click to collapse
+│ 案例: 成都绕城早高峰               │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│ 任务进度 (5/9 completed - 55%)    │
+│ 预计还需: 12分钟                   │
+│                                     │
+│ [✓] baseline_plan_seed66  4分30秒 │
+│ [✓] plan_001_seed66       5分10秒 │
+│ [⏳] plan_002_seed66      运行中  │
+│ [ ] plan_001_seed67       等待中  │
+│ ... (5 more tasks)                 │
+│                                     │
+│ 实时在网车辆数:                    │
+│ ┌─────────────────────────────┐   │
+│ │  [Live curve chart]         │   │
+│ └─────────────────────────────┘   │
+│                                     │
+│ [取消批次]           [刷新]       │
+└─────────────────────────────────────┘
+```
+
+**Expanded State** (completed batch, ~700px height):
+```
+┌─────────────────────────────────────┐
+│ batch_20251030_170601  [已完成 ✓] │ ← Click to collapse
+│ 案例: 成都绕城早高峰               │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│ 执行摘要:                          │
+│ ✓ 总耗时: 44分18秒                │
+│ ✓ 成功率: 9/9 tasks (100%)        │
+│ ✓ 平均耗时: 4分55秒                │
+│                                     │
+│ 执行时间线:                        │
+│ ┌─────────────────────────────┐   │
+│ │ baseline │████│ 4分30秒    │   │
+│ │ plan_001 │█████│ 5分10秒   │   │
+│ │ plan_002 │████│ 4分20秒    │   │
+│ │ ... (6 more)                │   │
+│ └─────────────────────────────┘   │
+│                                     │
+│ 峰值在网车辆曲线 (预览):          │
+│ ┌─────────────────────────────┐   │
+│ │  [Static curve chart]       │   │
+│ └─────────────────────────────┘   │
+│                                     │
+│ [查看详细结果 →]      [删除批次] │
+└─────────────────────────────────────┘
+```
+
+### Color Coding
+
+- **Running**: Blue/Teal (`#00ACC1`)
+- **Completed**: Green (`#43A047`)
+- **Failed**: Red (`#E53935`)
+- **Cancelled**: Orange (`#FB8C00`)
+- **Pending**: Gray (`#757575`)
+
+### Animation Guidelines
+
+- **Expand/Collapse**: 250ms ease-in-out
+- **Card Removal** (deletion): 300ms fade-out + slide-up
+- **Task Status Update**: 150ms color transition
+- **Progress Bar**: 200ms width transition
+
+---
+
+## Acceptance Criteria Summary
+
+- [ ] Unified batch list displays all batches (running, completed, failed, cancelled)
+- [ ] Status filter and sort work correctly
+- [ ] Batch cards expand/collapse smoothly (<300ms animation)
+- [ ] Running batch details show live task list and vehicle curve with auto-update
+- [ ] Completed batch details show execution timeline and peak curve
+- [ ] "查看详细结果" button navigates to Results tab and loads batch data
+- [ ] Responsive layout adapts to desktop/tablet/mobile
+- [ ] Mobile uses modal dialog for expanded view
+- [ ] Batch deletion works with confirmation dialog
+- [ ] No console errors, smooth UX, <1s initial load time for 50 batches

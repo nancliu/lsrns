@@ -313,9 +313,14 @@
     display: block;
 }
 
-.live-curve-chart {
-    max-height: 300px;
+.live-curve-section {
     width: 100%;
+    aspect-ratio: 16 / 9;
+}
+
+.live-curve-chart {
+    width: 100%;
+    height: 100%;
 }
 
 .btn-sm {

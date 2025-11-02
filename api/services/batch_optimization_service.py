@@ -34,7 +34,10 @@ class BatchOptimizationService:
         """初始化服务"""
         self.cases_base_dir = CASES_BASE_DIR
         self.plans_base_dir = PLANS_BASE_DIR
-        self.scheduler = BatchSimulationScheduler(base_dir=CASES_BASE_DIR)
+        self.scheduler = BatchSimulationScheduler(
+            base_dir=CASES_BASE_DIR,
+            completion_callback=self._on_batch_completed
+        )
 
     def create_batch(
         self,
@@ -161,13 +164,20 @@ class BatchOptimizationService:
             )
         )
 
+        # 更新批次索引状态为running
+        self._update_batches_index_on_status_change(
+            case_id=case_id,
+            batch_id=batch_id,
+            status="running"
+        )
+
         response = {
             "batch_id": batch_id,
             "status": "running",
             "started_at": datetime.now().isoformat(),
         }
 
-        logger.info(f"Batch {batch_id} started")
+        logger.info(f"Batch {batch_id} started and index updated")
 
         return response
 
@@ -561,6 +571,16 @@ class BatchOptimizationService:
         """
         汇总所有任务（运行中或已完成）的时序数据，生成动态曲线数据
 
+        【数据源说明】CRITICAL - Data Source Documentation
+        ==========================================
+        此聚合使用 ONLY `live_curve_cache.json` 从已完成或运行中的任务
+        This is the SINGLE SOURCE OF TRUTH for all time series vehicle count data
+        Both runtime and completion charts use the same data source (per-task cache files)
+
+        数据来源:
+        - ✅ ALWAYS: live_curve_cache.json (per-task cache files)
+        - ❌ NEVER: progress.json (only contains summary metrics, NOT time series)
+
         【增量缓存优化】
         优先级：
         1. 运行中任务 → 使用增量缓存（只读最后一步）→ 7倍性能提升
@@ -568,8 +588,9 @@ class BatchOptimizationService:
         3. 如果没有数据 → 返回空
 
         数据流：
-        - 运行中: summary.xml(尾部) → cache.json(追加) → 曲线渲染 ✓ 实时性
-        - 已完成: summary.xml(完整) → cache.json(替换) → 曲线渲染 ✓ 完整性
+        - 运行中: summary.xml(尾部) → live_curve_cache.json(追加) → 曲线渲染 ✓ 实时性
+        - 已完成: summary.xml(完整) → live_curve_cache.json(替换) → 曲线渲染 ✓ 完整性
+        - Both use SAME cache file format and aggregation logic
 
         Args:
             tasks: 任务列表
@@ -582,7 +603,7 @@ class BatchOptimizationService:
                 'total_running': [320, 350, ...],
                 'task_count': N,
                 'last_update': '2025-10-29T10:25:00',
-                'data_source': 'incremental_cache'  # 新增：数据源标记
+                'data_source': 'incremental_cache'  # 数据源标记
             }
         """
         from datetime import datetime
@@ -609,8 +630,9 @@ class BatchOptimizationService:
                 'data_source': 'empty'
             }
 
-        # 按时间步汇总所有任务的在网车辆数
-        aggregated_data = defaultdict(int)
+        # 【数据对齐策略】先收集每个任务的时序数据，然后只保留所有任务都有的时间点
+        # 这样可以避免因为任务进度不一致导致的曲线异常
+        task_time_series_map = {}  # {task_id: {time: running_count}}
 
         for task in data_source_tasks:
             simulation_id = task.get('simulation_id')
@@ -634,11 +656,14 @@ class BatchOptimizationService:
                 continue
 
             summary_file = simulation_dir / "summary.xml"
-            cache_file = simulation_dir / "live_curve_cache.json"  # 缓存文件
+            cache_file = simulation_dir / "live_curve_cache.json"  # 缓存文件 - SINGLE SOURCE OF TRUTH
 
             logger.debug(f"[_aggregate_live_time_series] Task {task_id}: summary={summary_file.exists()}, cache={cache_file.exists()}")
+            logger.debug(f"[_aggregate_live_time_series] Data Source: Reading from cache file: {cache_file}")
 
             # 【增量缓存策略】使用缓存读取（性能优化）
+            # CRITICAL: This is the ONLY source of time series data
+            # Data flows: summary.xml → live_curve_cache.json → API response → chart
             is_completed = (task_status == 'completed')
             time_series = self._read_or_update_cache(
                 cache_file_path=cache_file,
@@ -647,14 +672,41 @@ class BatchOptimizationService:
                 is_completed=is_completed
             )
 
-            logger.debug(f"[_aggregate_live_time_series] Task {task_id}: Extracted {len(time_series) if time_series else 0} data points from cache")
-
-            # 汇总到aggregated_data
+            logger.debug(f"[_aggregate_live_time_series] Task {task_id}: Extracted {len(time_series) if time_series else 0} data points from live_curve_cache.json")
             if time_series:
+                logger.debug(f"[_aggregate_live_time_series] Task {task_id}: Time range: {time_series[0].get('time', 0)} - {time_series[-1].get('time', 0)} seconds")
+
+                # 将此任务的时序数据转换为字典格式
+                task_data = {}
                 for entry in time_series:
                     time_step = entry.get('time', 0)
                     running_vehicles = entry.get('running', 0)
-                    aggregated_data[time_step] += running_vehicles
+                    task_data[time_step] = running_vehicles
+
+                task_time_series_map[task_id] = task_data
+
+        # 找出所有任务共有的时间点（交集）
+        if not task_time_series_map:
+            logger.debug(f"[_aggregate_live_time_series] No task data available")
+            common_time_points = set()
+        else:
+            # 获取所有任务的时间点集合的交集
+            time_point_sets = [set(task_data.keys()) for task_data in task_time_series_map.values()]
+            common_time_points = set.intersection(*time_point_sets) if time_point_sets else set()
+
+            logger.debug(f"[_aggregate_live_time_series] Task count: {len(task_time_series_map)}, "
+                        f"Common time points: {len(common_time_points)}")
+            if len(common_time_points) < len(time_point_sets[0]) if time_point_sets else 0:
+                logger.debug(f"[_aggregate_live_time_series] Data alignment: filtered out non-synchronized time points")
+
+        # 汇总共有时间点的车辆数
+        aggregated_data = {}
+        for time_point in common_time_points:
+            total_running = sum(
+                task_data.get(time_point, 0)
+                for task_data in task_time_series_map.values()
+            )
+            aggregated_data[time_point] = total_running
 
         # 转换为数组格式
         logger.debug(f"[_aggregate_live_time_series] Total data points: {len(aggregated_data)}")
@@ -674,6 +726,12 @@ class BatchOptimizationService:
         total_running = [aggregated_data[t] for t in sorted_times]
 
         logger.debug(f"[_aggregate_live_time_series] Returning {len(time_points)} time points from incremental cache")
+        logger.info(
+            f"[_aggregate_live_time_series] Summary: Aggregated {len(data_source_tasks)} tasks, "
+            f"{len(time_points)} time points, "
+            f"time range: {time_points[0]}-{time_points[-1]}s, "
+            f"data source: live_curve_cache.json (per-task files)"
+        )
 
         return {
             'time_points': time_points,
@@ -1323,6 +1381,55 @@ class BatchOptimizationService:
             index["batches"].append(batch_summary)
             self._save_batches_index(case_id, index)
             logger.debug(f"Updated batches index for case {case_id} on batch creation")
+
+    async def _on_batch_completed(self, case_id: str, batch_id: str) -> None:
+        """
+        批次完成时的回调函数
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+        """
+        try:
+            # 加载批次元数据
+            batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+            metadata_file = batch_dir / "batch_metadata.json"
+
+            if not metadata_file.exists():
+                logger.warning(f"Batch metadata not found for {batch_id}")
+                return
+
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            # 计算成功率
+            total_tasks = metadata.get('total_tasks', 0)
+            completed_tasks = metadata.get('completed_tasks', 0)
+            success_rate = (completed_tasks / total_tasks) if total_tasks > 0 else 0.0
+
+            # 更新元数据
+            metadata['status'] = 'completed'
+            metadata['completed_at'] = datetime.now().isoformat()
+            metadata['success_rate'] = round(success_rate, 4)
+
+            with open(metadata_file, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+            # 更新批次索引
+            self._update_batches_index_on_status_change(
+                case_id=case_id,
+                batch_id=batch_id,
+                status='completed',
+                metadata=metadata
+            )
+
+            logger.info(
+                f"Batch {batch_id} completed: {completed_tasks}/{total_tasks} tasks "
+                f"({success_rate*100:.2f}% success rate)"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in batch completion callback for {batch_id}: {e}")
 
     def _update_batches_index_on_status_change(self, case_id: str, batch_id: str, status: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """批次状态变更时更新索引"""

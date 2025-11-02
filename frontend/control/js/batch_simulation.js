@@ -34,9 +34,14 @@ const STATUS_MAP = {
 
 // 全局状态
 let currentBatchId = null;
+let currentCaseId = null; // 当前选中的案例ID（用于批次历史加载）
 let progressPollInterval = null;
 let currentView = 'config'; // config, progress, results
 let liveCurveVisible = true; // 动态曲线显示状态（默认显示）
+
+// 暴露全局变量给 window 对象（用于E2E测试）
+window.currentBatchId = currentBatchId;
+window.currentCaseId = currentCaseId;
 
 // ========== CSS 动态样式辅助函数 (Phase 2c-Extended) ==========
 
@@ -84,6 +89,25 @@ function hideElement(elementId) {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadCases();
     await loadPlans();
+
+    // 恢复案例ID（从URL参数或localStorage）
+    const urlParams = new URLSearchParams(window.location.search);
+    const caseIdFromUrl = urlParams.get('case_id');
+
+    if (caseIdFromUrl) {
+        // 优先使用URL参数
+        currentCaseId = caseIdFromUrl;
+        window.currentCaseId = currentCaseId;
+        document.getElementById('caseSelector').value = caseIdFromUrl;
+    } else {
+        // 回退到localStorage
+        const savedCaseId = localStorage.getItem('lastSelectedCaseId');
+        if (savedCaseId) {
+            currentCaseId = savedCaseId;
+            window.currentCaseId = currentCaseId;
+            document.getElementById('caseSelector').value = savedCaseId;
+        }
+    }
 
     // 绑定事件
     document.getElementById('caseSelector').addEventListener('change', onCaseChange);
@@ -211,6 +235,19 @@ function updateEstimate() {
 
 async function onCaseChange() {
     const caseId = document.getElementById('caseSelector').value;
+
+    // 更新全局案例ID状态
+    currentCaseId = caseId;
+    window.currentCaseId = currentCaseId;
+
+    // 保存到 localStorage 以便页面刷新后恢复
+    if (caseId) {
+        localStorage.setItem('lastSelectedCaseId', caseId);
+        console.log('Case selected:', currentCaseId);
+    } else {
+        localStorage.removeItem('lastSelectedCaseId');
+    }
+
     // 可以在这里加载case的特定配置
 }
 
@@ -259,6 +296,13 @@ async function createBatch() {
 
         const batch = await createResponse.json();
         currentBatchId = batch.batch_id;
+        window.currentBatchId = currentBatchId;
+
+        // 保存案例ID（从API响应或当前选择）
+        if (batch.case_id) {
+            currentCaseId = batch.case_id;
+            window.currentCaseId = currentCaseId;
+        }
 
         // 切换到进度视图 (批次已创建,等待启动)
         updateBatchInfo(batch);
@@ -313,7 +357,7 @@ function startProgressPolling() {
     if (progressPollInterval) return;
 
     updateProgress(); // 立即更新一次
-    progressPollInterval = setInterval(updateProgress, 10000); // 每10秒更新（平衡实时性与性能）
+    progressPollInterval = setInterval(updateProgress, 1000); // 每1秒更新（提升曲线平滑度）
 }
 
 function stopProgressPolling() {
@@ -543,11 +587,175 @@ function formatDuration(seconds) {
     }
 }
 
-// 动态在网车辆曲线
+// 动态在网车辆曲线 - 状态管理
 let liveCurveChartInstance = null;
+let liveCurveLastDataState = null;  // 存储上次数据状态用于增量更新
+
+// 创建新图表实例
+function createLiveCurveChart(canvas, liveTimeSeries) {
+    debugLog('Creating new live curve chart with', liveTimeSeries.time_points.length, 'data points');
+
+    // 将数据转换为 {x, y} 格式以使用线性x轴
+    const chartData = liveTimeSeries.time_points.map((time, index) => ({
+        x: time,
+        y: liveTimeSeries.total_running[index]
+    }));
+
+    const ctx = canvas.getContext('2d');
+    const chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: '总在网车辆数',
+                data: chartData,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 0,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,  // 允许容器控制尺寸
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const seconds = tooltipItems[0].parsed.x;
+                            // 转换为可读的HH:MM:SS格式
+                            const hours = Math.floor(seconds / 3600);
+                            const minutes = Math.floor((seconds % 3600) / 60);
+                            const secs = seconds % 60;
+                            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                            return `时间: ${timeStr} (${seconds}秒)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',  // 使用线性刻度处理数值
+                    title: {
+                        display: true,
+                        text: '仿真时间 (秒)'
+                    },
+                    ticks: {
+                        maxTicksLimit: 15,  // 增加刻度限制以避免拥挤
+                        callback: function(value, index, ticks) {
+                            // 显示整数秒
+                            return Math.round(value);
+                        }
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '在网车辆数'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    return chartInstance;
+}
+
+// 增量更新现有图表数据
+function updateLiveCurveChart(chartInstance, liveTimeSeries) {
+    debugLog('Updating live curve chart with', liveTimeSeries.time_points.length, 'data points');
+
+    try {
+        // 将数据转换为 {x, y} 格式
+        const chartData = liveTimeSeries.time_points.map((time, index) => ({
+            x: time,
+            y: liveTimeSeries.total_running[index]
+        }));
+
+        // 直接替换数据数组（Chart.js会自动处理）
+        chartInstance.data.datasets[0].data = chartData;
+
+        // 使用'none'模式避免动画，提升性能
+        chartInstance.update('none');
+
+        debugLog('Chart updated successfully');
+    } catch (error) {
+        console.error('Error updating chart:', error);
+        // 更新失败时返回false，让调用者重新创建图表
+        return false;
+    }
+
+    return true;
+}
+
+// 检测数据是否发生变化
+function hasDataChanged(oldData, newData) {
+    if (!oldData) return true;
+    if (!newData) return false;
+
+    // 检查数据点数量是否变化
+    if (oldData.time_points.length !== newData.time_points.length) {
+        return true;
+    }
+
+    // 检查最后一个时间点是否不同（快速检测）
+    const oldLastTime = oldData.time_points[oldData.time_points.length - 1];
+    const newLastTime = newData.time_points[newData.time_points.length - 1];
+    if (oldLastTime !== newLastTime) {
+        return true;
+    }
+
+    // 检查最后一个车辆数是否不同
+    const oldLastCount = oldData.total_running[oldData.total_running.length - 1];
+    const newLastCount = newData.total_running[newData.total_running.length - 1];
+    if (oldLastCount !== newLastCount) {
+        return true;
+    }
+
+    return false;
+}
+
+// 检测是否需要重置图表（数据回退或仿真重启）
+function shouldResetChart(oldData, newData) {
+    if (!oldData) return false;
+    if (!newData) return true;
+
+    // 如果新数据点少于旧数据，说明仿真可能被重启
+    if (newData.time_points.length < oldData.time_points.length) {
+        debugLog('Data reset detected: new length', newData.time_points.length, '< old length', oldData.time_points.length);
+        return true;
+    }
+
+    return false;
+}
 
 function renderLiveCurve(liveTimeSeries) {
     debugLogObject('renderLiveCurve', { liveTimeSeries, liveCurveVisible });
+
+    // 数据源日志：确认来自live_curve_cache.json聚合
+    if (liveTimeSeries && liveTimeSeries.time_points && liveTimeSeries.time_points.length > 0) {
+        console.log('[Live Curve] Vehicle count data aggregated from task cache files (live_curve_cache.json)');
+        console.log('[Live Curve] Data points:', liveTimeSeries.time_points.length);
+        console.log('[Live Curve] Sample time_points:', liveTimeSeries.time_points.slice(0, 5));
+        console.log('[Live Curve] Sample total_running:', liveTimeSeries.total_running ? liveTimeSeries.total_running.slice(0, 5) : 'undefined');
+        console.log('[Live Curve] Time range:', liveTimeSeries.time_points[0], '-',
+                    liveTimeSeries.time_points[liveTimeSeries.time_points.length - 1], 'seconds');
+    } else {
+        console.log('[Live Curve] No data yet - simulation may not have started or no data generated');
+        if (liveTimeSeries) {
+            console.log('[Live Curve] Debug: liveTimeSeries =', JSON.stringify(liveTimeSeries));
+        } else {
+            console.log('[Live Curve] Debug: liveTimeSeries is null/undefined');
+        }
+    }
 
     const controlBar = document.getElementById('liveCurveControlBar');
     const section = document.getElementById('liveCurveSection');
@@ -612,75 +820,47 @@ function renderLiveCurve(liveTimeSeries) {
     // 确保canvas显示
     if (canvas) canvas.style.display = 'block';
 
-    // 转换时间点为时:分格式
-    const timeLabels = liveTimeSeries.time_points.map(t => {
-        const hours = Math.floor(t / 3600);
-        const minutes = Math.floor((t % 3600) / 60);
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    });
+    // Dispatcher逻辑：决定创建新图表还是更新现有图表
 
-    // 销毁旧图表实例
-    if (liveCurveChartInstance) {
-        liveCurveChartInstance.destroy();
+    // 检查数据是否变化
+    const dataChanged = hasDataChanged(liveCurveLastDataState, liveTimeSeries);
+
+    if (!dataChanged) {
+        debugLog('Data unchanged, skipping chart update');
+        return;
     }
 
-    // 创建简单折线图
-    const ctx = canvas.getContext('2d');
-    liveCurveChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: timeLabels,
-            datasets: [{
-                label: '总在网车辆数',
-                data: liveTimeSeries.total_running,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 0,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top'
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        title: function(tooltipItems) {
-                            const index = tooltipItems[0].dataIndex;
-                            const seconds = liveTimeSeries.time_points[index];
-                            return `时间: ${timeLabels[index]} (${seconds}秒)`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: '仿真时间'
-                    },
-                    ticks: {
-                        maxTicksLimit: 10
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: '在网车辆数'
-                    },
-                    beginAtZero: true
-                }
-            }
+    // 检查是否需要重置图表
+    const needsReset = shouldResetChart(liveCurveLastDataState, liveTimeSeries);
+
+    if (needsReset && liveCurveChartInstance) {
+        debugLog('Resetting chart due to data reset/simulation restart');
+        liveCurveChartInstance.destroy();
+        liveCurveChartInstance = null;
+        liveCurveLastDataState = null;
+    }
+
+    // 创建或更新图表
+    if (!liveCurveChartInstance) {
+        // 首次创建或重置后重新创建
+        liveCurveChartInstance = createLiveCurveChart(canvas, liveTimeSeries);
+    } else {
+        // 增量更新
+        const updateSuccess = updateLiveCurveChart(liveCurveChartInstance, liveTimeSeries);
+
+        if (!updateSuccess) {
+            // 更新失败，fallback到重新创建
+            debugLog('Chart update failed, recreating chart');
+            liveCurveChartInstance.destroy();
+            liveCurveChartInstance = createLiveCurveChart(canvas, liveTimeSeries);
         }
-    });
+    }
+
+    // 保存当前数据状态
+    liveCurveLastDataState = {
+        time_points: [...liveTimeSeries.time_points],
+        total_running: [...liveTimeSeries.total_running]
+    };
 }
 
 // 切换动态在网车辆曲线的显示/隐藏
@@ -737,6 +917,7 @@ async function cancelBatch() {
         stopProgressPolling();
         switchView('config');
         currentBatchId = null;
+        window.currentBatchId = null;
 
     } catch (error) {
         console.error('Cancel batch error:', error);
@@ -1081,11 +1262,13 @@ async function deleteBatchHistory(batchId) {
 
 function loadBatchResultsAndSwitch(batchId) {
     currentBatchId = batchId;
+    window.currentBatchId = batchId;
     switchView('results');
 }
 
 function loadBatchProgressAndSwitch(batchId) {
     currentBatchId = batchId;
+    window.currentBatchId = batchId;
     switchView('progress');
 }
 

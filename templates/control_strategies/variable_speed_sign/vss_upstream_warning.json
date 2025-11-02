@@ -1,7 +1,7 @@
 {
   "template_id": "vss_upstream_warning",
   "template_name": "可变限速 - 上游预警",
-  "description": "在下游事件前的上游路段提前降速，通常提前3-15分钟。例如在DHS开放前5分钟，从120 km/h降至80 km/h，防止车辆因突然变化而紧急制动。",
+  "description": "在下游事件前的上游路段提前降速，通常提前3-15分钟。例如在DHS开放前15分钟（6:45），从120 km/h降至80 km/h，在7:00恢复，防止车辆因突然变化而紧急制动。",
   "strategy_type": "VSS",
   "sumo_element": "variableSpeedSign",
   "version": "2.0",
@@ -20,7 +20,7 @@
       "parameter_type": "integer",
       "description": "提前多少分钟开始降速（3-15分钟）",
       "required": true,
-      "default_value": 5,
+      "default_value": 15,
       "min_value": 3,
       "max_value": 15,
       "unit": "分钟"
@@ -40,7 +40,7 @@
       "required": true,
       "default_value": [
         {"time_hours": 0, "speed_kmh": 120},
-        {"time_hours": 6.917, "speed_kmh": 80},
+        {"time_hours": 6.75, "speed_kmh": 80},
         {"time_hours": 7, "speed_kmh": 120}
       ],
       "unit": null,

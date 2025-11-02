@@ -73,16 +73,18 @@ class BatchTask:
 class BatchSimulationScheduler:
     """批量仿真调度器"""
 
-    def __init__(self, base_dir: str = "cases"):
+    def __init__(self, base_dir: str = "cases", completion_callback=None):
         """
         初始化调度器
 
         Args:
             base_dir: 案例基础目录路径
+            completion_callback: 批次完成时的回调函数（可选）
         """
         self.base_dir = Path(base_dir)
         self.running_tasks: Dict[str, asyncio.Task] = {}  # task_id -> asyncio.Task
         self.semaphore: Optional[asyncio.Semaphore] = None
+        self.completion_callback = completion_callback
 
     def create_batch(
         self,
@@ -313,6 +315,13 @@ class BatchSimulationScheduler:
             self._update_batch_progress(case_id, batch_id, tasks, final_status)
 
             logger.info(f"Batch {batch_id} {final_status}: {len(tasks)} tasks processed")
+
+            # 调用完成回调（如果已注册）
+            if self.completion_callback and final_status == "completed":
+                try:
+                    await self.completion_callback(case_id, batch_id)
+                except Exception as e:
+                    logger.error(f"Error in completion callback for batch {batch_id}: {e}")
 
     async def _run_task(
         self,

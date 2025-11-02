@@ -778,6 +778,16 @@ function renderStepArrayControl(paramName, schema) {
   table.appendChild(tbody);
   container.appendChild(table);
 
+  // [FIX] Initialize timeline visualization with default data
+  // This ensures the timeline shows the default steps immediately when the form loads
+  if (defaultSteps.length > 0) {
+    // Wait for DOM to be ready, then update timeline
+    setTimeout(() => {
+      updateTimelineByType(tbody, 'vss');
+      console.log(`[renderStepArrayControl] Initialized timeline with ${defaultSteps.length} default steps`);
+    }, 100);
+  }
+
   // Add/Remove buttons
   const buttonDiv = document.createElement("div");
   buttonDiv.className = "step-buttons";
@@ -1327,6 +1337,14 @@ function renderDHSIntervalControl(paramName, schema) {
   table.appendChild(tbody);
   container.appendChild(table);
 
+  // [FIX] Initialize timeline visualization with default data
+  if (defaultIntervals.length > 0) {
+    setTimeout(() => {
+      updateTimelineByType(tbody, 'dhs');
+      console.log(`[renderDHSIntervalControl] Initialized timeline with ${defaultIntervals.length} default intervals`);
+    }, 100);
+  }
+
   // Add button
   const buttonDiv = document.createElement("div");
   buttonDiv.className = "interval-buttons";
@@ -1530,6 +1548,14 @@ function renderFlowIntervalControl(paramName, schema) {
 
   table.appendChild(tbody);
   container.appendChild(table);
+
+  // [FIX] Initialize timeline visualization with default data
+  if (defaultIntervals.length > 0) {
+    setTimeout(() => {
+      updateTimelineByType(tbody, 'flow');
+      console.log(`[renderFlowIntervalControl] Initialized timeline with ${defaultIntervals.length} default intervals`);
+    }, 100);
+  }
 
   // Add button
   const buttonDiv = document.createElement("div");

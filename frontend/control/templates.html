@@ -919,14 +919,20 @@
                                  </select>`;
                 } else if (param.parameter_type === 'step_array') {
                     // VSS speed_steps 参数 - 使用交互式时间选择器
-                    console.log('[generateParamsForm] step_array param:', {
+                    console.log('🔵🔵🔵 [generateParamsForm] MODERN CODE PATH - step_array param:', {
                         name: param.parameter_name,
                         hasDefaultValue: !!param.default_value,
                         defaultValueType: typeof param.default_value,
                         defaultValue: param.default_value,
                         defaultLength: Array.isArray(param.default_value) ? param.default_value.length : 0,
-                        firstStep: Array.isArray(param.default_value) && param.default_value.length > 0 ? param.default_value[0] : null
+                        firstStep: Array.isArray(param.default_value) && param.default_value.length > 0 ? param.default_value[0] : null,
+                        windowRenderFunctionExists: !!window.renderStepArrayControl
                     });
+
+                    if (!window.renderStepArrayControl) {
+                        console.error('❌❌❌ [generateParamsForm] ERROR: window.renderStepArrayControl is NOT defined! Falling back to legacy code.');
+                    }
+
                     inputHtml = window.renderStepArrayControl(param.parameter_name, param);
                 } else if (param.parameter_type === 'dhs_interval_array') {
                     // DHS intervals 参数 - 使用增强的DHS区间编辑器（包含时间轴可视化）
@@ -1006,7 +1012,28 @@
                     group.appendChild(inputContainer.firstElementChild || inputContainer);
                 } else if (inputHtml instanceof HTMLElement) {
                     // DOM 元素：直接添加
+                    console.log('🟢🟢🟢 [generateParamsForm] 添加DOM元素到表单:', {
+                        paramName: param.parameter_name,
+                        elementType: inputHtml.tagName,
+                        className: inputHtml.className,
+                        hasTable: !!inputHtml.querySelector('table'),
+                        rowCount: inputHtml.querySelectorAll('.step-row').length,
+                        firstInputValue: inputHtml.querySelector('.step-time')?.value
+                    });
                     group.appendChild(inputHtml);
+
+                    // 验证添加后的状态
+                    setTimeout(() => {
+                        const addedElement = group.querySelector('.step-array-control-enhanced');
+                        const firstInput = addedElement?.querySelector('.step-time');
+                        console.log('🟡🟡🟡 [generateParamsForm] DOM添加后验证:', {
+                            paramName: param.parameter_name,
+                            elementStillExists: !!addedElement,
+                            rowCount: addedElement?.querySelectorAll('.step-row').length,
+                            firstInputValue: firstInput?.value,
+                            firstInputHTML: firstInput?.outerHTML.substring(0, 150)
+                        });
+                    }, 100);
                 }
 
                 // 创建 hint
@@ -1391,7 +1418,7 @@
             addBtn.type = 'button';
             addBtn.className = 'btn-add-interval';
             addBtn.textContent = '+ 添加时间段';
-            addBtn.onclick = () => addStepRow(tbody);
+            addBtn.onclick = () => addStepRowLegacy(tbody);
 
             container.appendChild(label);
             container.appendChild(table);
@@ -1401,10 +1428,11 @@
         }
 
         /**
-         * 为 Step Array 表格添加新行
+         * [LEGACY] 为 Step Array 表格添加新行 - 仅用于旧版 createStepArrayControl 回退
+         * 注意：现代代码应使用 parameter_form.js 中的 window.addStepRow
          * @param {HTMLTableSectionElement} tbody - 表体元素
          */
-        function addStepRow(tbody) {
+        function addStepRowLegacy(tbody) {
             const row = document.createElement('tr');
             row.className = 'step-row';
 
@@ -1532,10 +1560,17 @@
                     control = createSelectControl(param);
                     break;
                 case 'step_array':
-                    control = createStepArrayControl(param);
+                    // [FIX] Use modern renderStepArrayControl from parameter_form.js with timeline and default values
+                    console.log('🔴🔴🔴 [renderParameterControl] LEGACY CODE PATH - step_array:', {
+                        paramName: param.parameter_name,
+                        hasModernFunction: !!window.renderStepArrayControl,
+                        willUseLegacy: !window.renderStepArrayControl
+                    });
+                    control = window.renderStepArrayControl ? window.renderStepArrayControl(param.parameter_name, param) : createStepArrayControl(param);
                     break;
                 case 'dhs_interval_array':
-                    control = createDHSIntervalControl(param);
+                    // [FIX] Use modern renderDHSIntervalControl from parameter_form.js with timeline and default values
+                    control = window.renderDHSIntervalControl ? window.renderDHSIntervalControl(param.parameter_name, param) : createDHSIntervalControl(param);
                     break;
                 case 'tec_interval_array':
                     // [FIX] TEC intervals 使用专门的控件（只有时间，无流量/速度）

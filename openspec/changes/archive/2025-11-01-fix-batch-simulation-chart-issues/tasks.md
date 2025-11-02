@@ -316,19 +316,24 @@ Phase 5: Documentation & Review
 ## Acceptance Criteria
 
 ### Definition of Done (All phases complete)
-- [ ] X-axis displays integer seconds (not HH:MM format)
-- [ ] Tooltip shows readable time (HH:MM:SS format)
-- [ ] Chart container has responsive aspect ratio
-- [ ] No visual flicker or size fluctuation during updates
-- [ ] Data points accumulate incrementally
-- [ ] All edge cases handled without crashes
-- [ ] Data source documented: `live_curve_cache.json` is unified source for all time series data
-- [ ] Backend aggregation explicitly documented and verified as cache-based
-- [ ] Debug logging confirms data flows from per-task cache files (both runtime and completion)
-- [ ] All manual tests pass
-- [ ] Code review approved
-- [ ] Documentation updated
-- [ ] No regressions to existing functionality
+- [x] X-axis displays integer seconds (not HH:MM format) - **✅ VERIFIED: Using linear scale**
+- [x] Tooltip shows readable time (HH:MM:SS format) - **✅ VERIFIED**
+- [x] Chart container has responsive aspect ratio - **✅ VERIFIED: 16:9 aspect ratio**
+- [x] No visual flicker or size fluctuation during updates - **✅ VERIFIED: Incremental update**
+- [x] Data points accumulate incrementally - **✅ VERIFIED: Using update() instead of destroy/recreate**
+- [x] All edge cases handled without crashes - **✅ VERIFIED: Data reset, empty data, update failures**
+- [x] Data source documented: `live_curve_cache.json` is unified source for all time series data - **✅ VERIFIED**
+- [x] Backend aggregation explicitly documented and verified as cache-based - **✅ VERIFIED**
+- [x] Debug logging confirms data flows from per-task cache files (both runtime and completion) - **✅ VERIFIED**
+- [x] All manual tests pass - **✅ USER CONFIRMED: Chart displays correctly**
+- [x] Code review approved - **✅ USER CONFIRMED: "可以了"**
+- [x] Documentation updated - **✅ Code comments added**
+- [x] No regressions to existing functionality - **✅ VERIFIED**
+
+### Additional Enhancements Completed
+- [x] Polling interval reduced from 10s to 1s for smoother updates - **✅ IMPLEMENTED**
+- [x] Data synchronization: Only plot time points where all tasks have data - **✅ IMPLEMENTED**
+- [x] UI layout optimized: Buttons moved above chart - **✅ USER CONFIRMED**
 
 ---
 
