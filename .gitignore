@@ -541,6 +541,8 @@ config.ini
 settings.json
 .env.local
 .env.production
+config/system_config.json
+!config/system_config.json.example
 
 # 日志文件
 logs/

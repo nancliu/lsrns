@@ -21,27 +21,90 @@ def get_max_concurrent_simulations() -> int:
     """
     计算最大并发仿真数
 
-    优先级：
-    1. 环境变量 MAX_CONCURRENT_SIMULATIONS
-    2. CPU线程数 * 0.75
-    3. 最小值4，最大值80
+    优先级（从高到低）：
+    1. 环境变量 MAX_CONCURRENT_SIMULATIONS（绝对数值，优先级最高）
+    2. 环境变量 MAX_CONCURRENT_SIMULATIONS_RATIO（比例系数，如 0.75, 1.0, 1.2）
+    3. 配置文件 config/system_config.json 中的 concurrent_simulations_ratio
+    4. 默认值：CPU线程数 * 0.75
+    5. 约束：最小值4，最大值80
+
+    配置文件示例（config/system_config.json）：
+    {
+        "batch_simulation": {
+            "concurrent_simulations_ratio": 0.75,
+            "min_concurrent": 4,
+            "max_concurrent": 80
+        }
+    }
 
     Returns:
         int: 最大并发仿真数
     """
+    # 优先级1: 环境变量绝对数值（保持向后兼容）
     if env_value := os.getenv("MAX_CONCURRENT_SIMULATIONS"):
         try:
             value = int(env_value)
-            return max(4, min(80, value))
+            result = max(4, min(80, value))
+            logger.info(f"Using MAX_CONCURRENT_SIMULATIONS={value} -> {result}")
+            return result
         except ValueError:
             logger.warning(f"Invalid MAX_CONCURRENT_SIMULATIONS value: {env_value}")
 
-    cpu_count = multiprocessing.cpu_count()
-    concurrent = int(cpu_count * 0.75)
-    result = max(4, min(80, concurrent))
+    # 优先级2: 环境变量比例系数
+    ratio = None
+    if env_ratio := os.getenv("MAX_CONCURRENT_SIMULATIONS_RATIO"):
+        try:
+            ratio = float(env_ratio)
+            if ratio <= 0:
+                logger.warning(f"Invalid MAX_CONCURRENT_SIMULATIONS_RATIO value: {ratio}, must be > 0")
+                ratio = None
+        except ValueError:
+            logger.warning(f"Invalid MAX_CONCURRENT_SIMULATIONS_RATIO value: {env_ratio}")
 
-    # 只在DEBUG级别记录（避免频繁日志）
-    logger.debug(f"Dynamic concurrency: {cpu_count} CPUs * 0.75 = {concurrent}, using {result}")
+    # 优先级3: 配置文件（如果环境变量未设置）
+    if ratio is None:
+        config_path = Path(__file__).parent.parent.parent / "config" / "system_config.json"
+        if config_path.exists():
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    batch_config = config.get("batch_simulation", {})
+                    config_ratio = batch_config.get("concurrent_simulations_ratio")
+                    if config_ratio is not None:
+                        ratio = float(config_ratio)
+                        logger.info(f"Loaded concurrent_simulations_ratio={ratio} from {config_path}")
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                logger.warning(f"Failed to load config from {config_path}: {e}")
+
+    # 优先级4: 默认值 0.75
+    if ratio is None:
+        ratio = 0.75
+
+    # 读取配置的 min/max 值（如果存在）
+    min_concurrent = 4
+    max_concurrent = 80
+    config_path = Path(__file__).parent.parent.parent / "config" / "system_config.json"
+    if config_path.exists():
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                batch_config = config.get("batch_simulation", {})
+                if "min_concurrent" in batch_config:
+                    min_concurrent = int(batch_config["min_concurrent"])
+                if "max_concurrent" in batch_config:
+                    max_concurrent = int(batch_config["max_concurrent"])
+        except (json.JSONDecodeError, KeyError, ValueError):
+            pass  # 使用默认值
+
+    # 计算并发数
+    cpu_count = multiprocessing.cpu_count()
+    concurrent = int(cpu_count * ratio)
+    result = max(min_concurrent, min(max_concurrent, concurrent))
+
+    logger.info(
+        f"Concurrency calculation: {cpu_count} CPUs * {ratio} = {concurrent}, "
+        f"clamped to [{min_concurrent}, {max_concurrent}] -> {result}"
+    )
     return result
 
 

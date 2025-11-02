@@ -1,0 +1,13 @@
+{
+  "batch_simulation": {
+    "concurrent_simulations_ratio": 0.75,
+    "min_concurrent": 4,
+    "max_concurrent": 80,
+    "_comment": "并发仿真配置说明",
+    "_ratio_note": "concurrent_simulations_ratio: CPU线程数的比例系数，例如 0.75 = 75%，1.0 = 100%，1.2 = 120%",
+    "_min_note": "min_concurrent: 最小并发数，即使CPU数量很少也会保证至少这个数量的并发",
+    "_max_note": "max_concurrent: 最大并发数，防止在高CPU服务器上创建过多任务",
+    "_priority": "配置优先级：环境变量 MAX_CONCURRENT_SIMULATIONS > 环境变量 MAX_CONCURRENT_SIMULATIONS_RATIO > 此配置文件 > 默认值 0.75"
+  }
+}
+
