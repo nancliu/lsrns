@@ -2,17 +2,22 @@
 <additional>
     <!--
     方案: 全天持续拥堵三策略立体管控方案 (plan_vss_dhs_tec_allday_complex)
-    生成时间: 2025-11-02 17:10:00
+    生成时间: 2025-11-02 20:04:26
     -->
 
     <!-- ==================== VSS策略组 ==================== -->
 
     <!-- 策略: strategy_real_vss_g5_001 - G5成雅双流段全天可变限速 -->
-    <variableSpeedSign id="vss_strict" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476"><step time="25200" speed="22.22" /><step time="32400" speed="16.67" /><step time="61200" speed="22.22" /><step time="68400" speed="16.67" /></variableSpeedSign>
+    <variableSpeedSign id="strategy_real_vss_g5_001" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476"><step time="25200" speed="22.22" /><step time="32400" speed="16.67" /><step time="61200" speed="22.22" /><step time="68400" speed="16.67" /></variableSpeedSign>
+
+    <!-- ==================== DHS策略组 ==================== -->
+
+    <!-- 策略: strategy_real_dhs_g5_002 - G5成雅双流段高峰应急车道开放 -->
+    <rerouter id="strategy_real_dhs_g5_002" edges="-8174 -14036 -7854 -15664 -4878 -13916 -10274 -2092 -9480 -11518 -4878.749 -4878.924 -14628 -6476"><interval begin="0" end="25200"><closingLaneReroute id="0" allow="" /></interval><interval begin="25200" end="32400" /><interval begin="32400" end="61200"><closingLaneReroute id="0" allow="" /></interval><interval begin="61200" end="68400" /><interval begin="68400" end="86400"><closingLaneReroute id="0" allow="" /></interval></rerouter>
 
     <!-- ==================== TEC策略组 ==================== -->
 
     <!-- 策略: strategy_real_tec_g5_001 - G5成雅双流南站入口流量控制 -->
-    <calibrator id="tec_flow_metering" edge="-1232" pos="0"><flow begin="0" end="21600" vehsPerHour="300" speed="15" /><flow begin="21600" end="36000" vehsPerHour="120" speed="8" /><flow begin="36000" end="57600" vehsPerHour="250" speed="12" /><flow begin="57600" end="72000" vehsPerHour="100" speed="6" /><flow begin="72000" end="86400" vehsPerHour="300" speed="15" /></calibrator>
+    <calibrator id="strategy_real_tec_g5_001" edge="-1232" pos="0"><flow begin="0" end="21600" vehsPerHour="300" speed="15" /><flow begin="21600" end="36000" vehsPerHour="120" speed="8" /><flow begin="36000" end="57600" vehsPerHour="250" speed="12" /><flow begin="57600" end="72000" vehsPerHour="100" speed="6" /><flow begin="72000" end="86400" vehsPerHour="300" speed="15" /></calibrator>
 
 </additional>

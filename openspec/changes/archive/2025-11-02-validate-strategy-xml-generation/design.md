@@ -634,3 +634,27 @@ class ValidationResult:
 **Design Version**: 1.0
 **Last Updated**: 2025-11-02
 **Status**: Ready for Implementation
+
+## DELTAS
+
+### ADDED
+
+#### plan-management spec
+- **Requirement**: 系统验证生成的control.add.xml的SUMO兼容性
+  - Validates XML well-formedness and SUMO v1.19+ compliance
+  - 6 detailed scenarios for validation workflows
+  - API responses with validation errors and warnings
+  - Cascade regeneration on strategy updates
+
+#### strategy-templates spec
+- **Requirement**: SUMO XML Attribute Format Constraints
+  - Specifies unit conversions (hours→seconds, km/h→m/s)
+  - Documents VSS, DHS, TEC XML attribute constraints
+  - Reference table for all SUMO conversions
+  - 8 scenarios covering validation and attribute constraints
+
+### MODIFIED
+None - This change adds new requirements without modifying existing ones
+
+### REMOVED
+None

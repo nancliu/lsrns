@@ -2,12 +2,12 @@
 <additional>
     <!--
     方案: 早高峰单策略VSS限速方案 (plan_vss_morning_peak_simple)
-    生成时间: 2025-11-02 17:10:18
+    生成时间: 2025-11-02 19:46:23
     -->
 
     <!-- ==================== VSS策略组 ==================== -->
 
     <!-- 策略: strategy_real_vss_g4202_001 - G4202绕西双流段早高峰可变限速 -->
-    <variableSpeedSign id="vss_moderate" edges="-8712 -15452.627 -9350 -6906.1080 -2040 -13636 -12970 -15488 -12680 -10376.203 -10376 -6906 -1438 -3324 -4360 -10188"><step time="25200" speed="27.78" /><step time="32400" speed="22.22" /><step time="61200" speed="27.78" /><step time="68400" speed="22.22" /></variableSpeedSign>
+    <variableSpeedSign id="strategy_real_vss_g4202_001" edges="-8712 -15452.627 -9350 -6906.1080 -2040 -13636 -12970 -15488 -12680 -10376.203 -10376 -6906 -1438 -3324 -4360 -10188"><step time="25200" speed="27.78" /><step time="32400" speed="22.22" /><step time="61200" speed="27.78" /><step time="68400" speed="22.22" /></variableSpeedSign>
 
 </additional>

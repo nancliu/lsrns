@@ -22,9 +22,10 @@ Functions:
 
 import logging
 from typing import Dict, Any, Optional, List
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring, parse
 import re
 from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -204,17 +205,19 @@ def _map_vehicle_types_to_sumo(
 def generate_strategy_xml(
     template_id: str,
     template: Dict[str, Any],
-    parameters: Dict[str, Any]
+    parameters: Dict[str, Any],
+    strategy_type: str = None
 ) -> str:
     """
     Generate SUMO XML content for a strategy based on template and parameters.
 
-    Dispatches to type-specific generators (VSS, DHS, TEC) based on template.
+    Dispatches to type-specific generators (VSS, DHS, TEC) based on strategy_type.
 
     Args:
-        template_id: Unique template identifier
-        template: Template dictionary with strategy_type and schema
+        template_id: Unique template identifier (strategy_id)
+        template: Template dictionary with schema
         parameters: Validated and converted parameters
+        strategy_type: Strategy type (VSS, DHS, TEC) - overrides template.strategy_type
 
     Returns:
         XML string representation of the strategy
@@ -222,7 +225,10 @@ def generate_strategy_xml(
     Raises:
         ValueError: If strategy type is unsupported or parameters invalid
     """
-    strategy_type = template.get("strategy_type")
+    # Use provided strategy_type, fallback to template.strategy_type for backward compatibility
+    if strategy_type is None:
+        strategy_type = template.get("strategy_type")
+
     logger.info(f"Generating XML for {strategy_type} strategy: {template_id}")
 
     if strategy_type == "VSS":
@@ -325,10 +331,73 @@ def generate_vss_xml(
         raise
 
 
+def _get_lane_ids_from_network(
+    network_file_path: str,
+    edge_ids: List[str],
+    lane_index: int
+) -> List[str]:
+    """
+    从SUMO网络文件读取指定edge的车道ID。
+
+    SUMO lane ID格式: {edge_id}_{lane_index}
+    例如: "-9292_0", "-8014_0"
+
+    Args:
+        network_file_path: SUMO网络文件路径（.net.xml）
+        edge_ids: Edge ID列表
+        lane_index: 车道索引（0=最右侧/应急车道）
+
+    Returns:
+        车道ID列表，格式为["edge_id_lane_index", ...]
+    """
+    lane_ids = []
+
+    try:
+        # 尝试解析网络文件
+        tree = parse(network_file_path)
+        root = tree.getroot()
+
+        for edge_id in edge_ids:
+            # 查找edge元素
+            edge_elem = root.find(f".//edge[@id='{edge_id}']")
+            if edge_elem is None:
+                logger.warning(f"Edge {edge_id} not found in network file {network_file_path}")
+                continue
+
+            # 获取所有lane元素
+            lanes = edge_elem.findall('lane')
+            if not lanes:
+                logger.warning(f"Edge {edge_id} has no lanes in network file")
+                continue
+
+            # 验证lane_index是否有效
+            if lane_index >= len(lanes):
+                logger.warning(
+                    f"Lane index {lane_index} out of range for edge {edge_id} "
+                    f"(has {len(lanes)} lanes, indices 0-{len(lanes)-1})"
+                )
+                continue
+
+            # 生成完整的lane ID
+            lane_id = f"{edge_id}_{lane_index}"
+            lane_ids.append(lane_id)
+            logger.debug(f"Generated lane ID: {lane_id} for edge {edge_id}")
+
+    except FileNotFoundError:
+        logger.error(f"Network file not found: {network_file_path}")
+        raise
+    except Exception as e:
+        logger.error(f"Error reading network file {network_file_path}: {e}", exc_info=True)
+        raise
+
+    return lane_ids
+
+
 def generate_dhs_xml(
     strategy_id: str,
     template: Dict[str, Any],
-    parameters: Dict[str, Any]
+    parameters: Dict[str, Any],
+    network_file_path: Optional[str] = None
 ) -> str:
     """
     Generate SUMO rerouter XML element for hard shoulder control.
@@ -336,17 +405,24 @@ def generate_dhs_xml(
     Structure:
         <rerouter id="strategy_id" edges="edge1 edge2 ...">
             <interval begin="0" end="25200">
-                <closingLaneReroute id="0" allow="passenger bus truck emergency"/>
+                <closingLaneReroute id="-9292_0" allow=""/>
+                <closingLaneReroute id="-8014_0" allow=""/>
+                ...
             </interval>
-            <interval begin="25200" end="32400">
-                <closingLaneReroute id="0" allow=""/>
+            <interval begin="25200" end="36000">
+                <!-- OPEN状态: 不包含closingLaneReroute -->
             </interval>
         </rerouter>
 
+    IMPORTANT: closingLaneReroute的id必须是完整的lane ID格式: {edge_id}_{lane_index}
+    不能只是数字索引"0"。
+
     Args:
         strategy_id: Strategy identifier (becomes element id)
-        template: DHS template dictionary
-        parameters: Strategy parameters with affected_edges, intervals, etc.
+        template: DHS template dictionary with parameters_schema
+        parameters: Strategy parameters with affected_edges, intervals, hard_shoulder_lane_index, etc.
+        network_file_path: Optional path to SUMO network file (.net.xml)
+                          If None, uses default: templates/network_files/sichuan202508v7.net.xml
 
     Returns:
         XML string of rerouter element
@@ -354,12 +430,54 @@ def generate_dhs_xml(
     logger.info(f"Generating DHS XML for strategy: {strategy_id}")
 
     try:
-        # Extract parameters（严格从parameters获取，无回退）
+        # Extract parameters from strategy instance
         affected_edges = parameters.get("affected_edges", [])
         if not affected_edges:
             raise ValueError(f"DHS strategy {strategy_id} requires 'affected_edges' in parameters")
-        hard_shoulder_lane = parameters.get("hard_shoulder_lane_index", 3)
+
+        # Get hard_shoulder_lane_index from strategy parameters, or from template default_value
+        hard_shoulder_lane_index = parameters.get("hard_shoulder_lane_index")
+        if hard_shoulder_lane_index is None:
+            # Fallback to template default_value if not in parameters
+            template_schema = template.get("parameters_schema", [])
+            for param_schema in template_schema:
+                if param_schema.get("parameter_name") == "hard_shoulder_lane_index":
+                    hard_shoulder_lane_index = param_schema.get("default_value", 0)
+                    logger.debug(f"Using default hard_shoulder_lane_index from template: {hard_shoulder_lane_index}")
+                    break
+            if hard_shoulder_lane_index is None:
+                hard_shoulder_lane_index = 0  # Final fallback
+                logger.warning(f"No hard_shoulder_lane_index found in parameters or template, using default 0")
+
         intervals = parameters.get("intervals", [])
+
+        # Determine network file path
+        if network_file_path is None:
+            # Use default network file
+            network_file_path = "templates/network_files/sichuan202508v7.net.xml"
+            logger.debug(f"Using default network file: {network_file_path}")
+
+        # Convert to absolute path if relative
+        net_path = Path(network_file_path)
+        if not net_path.is_absolute():
+            # Assume relative to project root
+            project_root = Path(__file__).parent.parent.parent
+            net_path = project_root / network_file_path
+
+        # Get lane IDs for all affected edges
+        lane_ids = _get_lane_ids_from_network(
+            str(net_path),
+            affected_edges,
+            hard_shoulder_lane_index
+        )
+
+        if not lane_ids:
+            raise ValueError(
+                f"No valid lanes found for edges {affected_edges} "
+                f"with lane_index {hard_shoulder_lane_index} in network file {network_file_path}"
+            )
+
+        logger.info(f"Generated {len(lane_ids)} lane IDs: {lane_ids[:3]}..." if len(lane_ids) > 3 else f"Generated lane IDs: {lane_ids}")
 
         # Create root element
         rerouter_elem = Element("rerouter")
@@ -397,28 +515,23 @@ def generate_dhs_xml(
             interval_elem.set("begin", str(begin_seconds))
             interval_elem.set("end", str(end_seconds))
 
-            # Add closingLaneReroute element for hard shoulder
+            # Add closingLaneReroute elements for hard shoulder
+            # NOTE: DHS uses closingLaneReroute to control lane availability
+            # - When CLOSED: include <closingLaneReroute id="{edge_id}_0" allow="" /> for each edge (prohibits all vehicles)
+            # - When OPEN: do NOT include closingLaneReroute element (allows all vehicles)
             status = interval.get("status", "CLOSED")
-            allowed_types = interval.get("allowed_vehicle_types", [])
 
-            # Create closingLaneReroute for the hard shoulder lane
-            closing_elem = SubElement(interval_elem, "closingLaneReroute")
-            closing_elem.set("id", str(hard_shoulder_lane))
-
-            # TWO-LAYER vehicle type conversion (2025-11-02 enhancement)
-            # Layer 1: Validate UI types exist in vehicle_types.json
-            # Layer 2: Map to SUMO vClass by extracting category field
-            if status == "OPEN" and allowed_types:
-                try:
-                    sumo_allow = _map_vehicle_types_to_sumo(allowed_types, vehicle_types_config=None)
-                    closing_elem.set("allow", sumo_allow)
-                    logger.debug(f"DHS interval {begin_seconds}-{end_seconds}: vehicle types {allowed_types} → '{sumo_allow}'")
-                except ValueError as e:
-                    logger.error(f"Vehicle type conversion failed for DHS: {e}")
-                    raise
+            if status == "CLOSED":
+                # Create closingLaneReroute for each lane (each edge's hard shoulder)
+                for lane_id in lane_ids:
+                    closing_elem = SubElement(interval_elem, "closingLaneReroute")
+                    closing_elem.set("id", lane_id)  # Full lane ID: {edge_id}_{lane_index}
+                    closing_elem.set("allow", "")  # Empty allow = prohibit all vehicles
+                logger.debug(f"DHS interval {begin_seconds}-{end_seconds}: {len(lane_ids)} lanes CLOSED")
             else:
-                # Closed interval
-                closing_elem.set("allow", "")
+                # When OPEN: omit closingLaneReroute element entirely
+                # This allows the lane to function normally (available to all vehicle types)
+                logger.debug(f"DHS interval {begin_seconds}-{end_seconds}: {len(lane_ids)} lanes OPEN (no closingLaneReroute)")
 
         # Convert to string
         xml_str = tostring(rerouter_elem, encoding="unicode")
@@ -706,7 +819,8 @@ def generate_plan_additional(
     tec_strategies = []
 
     for strategy in strategies:
-        strategy_type = strategy.get("template", {}).get("strategy_type")
+        # Strategy type is at top level, not in template
+        strategy_type = strategy.get("strategy_type")
         if strategy_type == "VSS":
             vss_strategies.append(strategy)
         elif strategy_type == "DHS":
@@ -732,18 +846,19 @@ def generate_plan_additional(
                 # Generate strategy XML
                 template = strategy.get("template", {})
                 parameters = strategy.get("parameters", {})
-                
+
                 # 验证edges在parameters中（严格检查）
                 if "affected_edges" not in parameters:
                     raise ValueError(
                         f"VSS strategy {strategy_id} missing 'affected_edges' in parameters. "
                         f"Available keys: {list(parameters.keys())}"
                     )
-                
+
                 strategy_xml = generate_strategy_xml(
-                    template_id=strategy.get("template_id", ""),
+                    template_id=strategy_id,
                     template=template,
-                    parameters=parameters
+                    parameters=parameters,
+                    strategy_type="VSS"
                 )
 
                 # Format and indent the XML
@@ -763,18 +878,19 @@ def generate_plan_additional(
             try:
                 template = strategy.get("template", {})
                 parameters = strategy.get("parameters", {})
-                
+
                 # 验证edges在parameters中（严格检查）
                 if "affected_edges" not in parameters:
                     raise ValueError(
                         f"DHS strategy {strategy_id} missing 'affected_edges' in parameters. "
                         f"Available keys: {list(parameters.keys())}"
                     )
-                
+
                 strategy_xml = generate_strategy_xml(
-                    template_id=strategy.get("template_id", ""),
+                    template_id=strategy_id,
                     template=template,
-                    parameters=parameters
+                    parameters=parameters,
+                    strategy_type="DHS"
                 )
                 xml_parts.append(f"    {strategy_xml}")
 
@@ -792,18 +908,19 @@ def generate_plan_additional(
             try:
                 template = strategy.get("template", {})
                 parameters = strategy.get("parameters", {})
-                
+
                 # 验证entrance_edges在parameters中（严格检查）
                 if "entrance_edges" not in parameters:
                     raise ValueError(
                         f"TEC strategy {strategy_id} missing 'entrance_edges' in parameters. "
                         f"Available keys: {list(parameters.keys())}"
                     )
-                
+
                 strategy_xml = generate_strategy_xml(
-                    template_id=strategy.get("template_id", ""),
+                    template_id=strategy_id,
                     template=template,
-                    parameters=parameters
+                    parameters=parameters,
+                    strategy_type="TEC"
                 )
                 xml_parts.append(f"    {strategy_xml}")
 

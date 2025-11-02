@@ -2,7 +2,12 @@
 <additional>
     <!--
     方案: 早高峰严重拥堵DHS应急车道开放方案 (plan_dhs_morning_peak_severe)
-    生成时间: 2025-11-02 17:08:58
+    生成时间: 2025-11-02 20:56:46
     -->
+
+    <!-- ==================== DHS策略组 ==================== -->
+
+    <!-- 策略: strategy_real_dhs_g4202_001 - G4202成雅段早高峰应急车道开放 -->
+    <rerouter id="strategy_real_dhs_g4202_001" edges="-9292 -8014 -10702 -13404 -4166 -1504 -15360 -7798.460 -13928"><interval begin="0" end="25200"><closingLaneReroute id="-9292_0" allow="" /><closingLaneReroute id="-8014_0" allow="" /><closingLaneReroute id="-10702_0" allow="" /><closingLaneReroute id="-13404_0" allow="" /><closingLaneReroute id="-4166_0" allow="" /><closingLaneReroute id="-1504_0" allow="" /><closingLaneReroute id="-15360_0" allow="" /><closingLaneReroute id="-7798.460_0" allow="" /><closingLaneReroute id="-13928_0" allow="" /></interval><interval begin="25200" end="36000" /><interval begin="36000" end="61200"><closingLaneReroute id="-9292_0" allow="" /><closingLaneReroute id="-8014_0" allow="" /><closingLaneReroute id="-10702_0" allow="" /><closingLaneReroute id="-13404_0" allow="" /><closingLaneReroute id="-4166_0" allow="" /><closingLaneReroute id="-1504_0" allow="" /><closingLaneReroute id="-15360_0" allow="" /><closingLaneReroute id="-7798.460_0" allow="" /><closingLaneReroute id="-13928_0" allow="" /></interval><interval begin="61200" end="68400" /><interval begin="68400" end="86400"><closingLaneReroute id="-9292_0" allow="" /><closingLaneReroute id="-8014_0" allow="" /><closingLaneReroute id="-10702_0" allow="" /><closingLaneReroute id="-13404_0" allow="" /><closingLaneReroute id="-4166_0" allow="" /><closingLaneReroute id="-1504_0" allow="" /><closingLaneReroute id="-15360_0" allow="" /><closingLaneReroute id="-7798.460_0" allow="" /><closingLaneReroute id="-13928_0" allow="" /></interval></rerouter>
 
 </additional>

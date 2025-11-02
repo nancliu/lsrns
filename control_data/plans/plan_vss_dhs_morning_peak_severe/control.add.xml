@@ -2,12 +2,17 @@
 <additional>
     <!--
     方案: 早高峰严重拥堵VSS+DHS复合管控方案 (plan_vss_dhs_morning_peak_severe)
-    生成时间: 2025-11-02 17:09:54
+    生成时间: 2025-11-02 20:04:26
     -->
 
     <!-- ==================== VSS策略组 ==================== -->
 
     <!-- 策略: strategy_real_vss_g4202_002 - G4202绕东锦城湖段晚高峰可变限速 -->
-    <variableSpeedSign id="vss_strict" edges="-7798.460 -13928 -7790 -5220 -7790.354 -1842 -1842.115 -11526 -15156 -15156.326 -7982 -7982.425 -7982.512"><step time="25200" speed="22.22" /><step time="32400" speed="16.67" /><step time="61200" speed="22.22" /><step time="68400" speed="16.67" /></variableSpeedSign>
+    <variableSpeedSign id="strategy_real_vss_g4202_002" edges="-7798.460 -13928 -7790 -5220 -7790.354 -1842 -1842.115 -11526 -15156 -15156.326 -7982 -7982.425 -7982.512"><step time="25200" speed="22.22" /><step time="32400" speed="16.67" /><step time="61200" speed="22.22" /><step time="68400" speed="16.67" /></variableSpeedSign>
+
+    <!-- ==================== DHS策略组 ==================== -->
+
+    <!-- 策略: strategy_real_dhs_g4202_002 - G4202绕东锦城湖段晚高峰应急车道开放 -->
+    <rerouter id="strategy_real_dhs_g4202_002" edges="-7798.460 -13928 -7790 -5220 -7790.354 -1842 -1842.115 -11526 -15156 -15156.326 -7982 -7982.425 -7982.512"><interval begin="0" end="25200"><closingLaneReroute id="0" allow="" /></interval><interval begin="25200" end="36000" /><interval begin="36000" end="61200"><closingLaneReroute id="0" allow="" /></interval><interval begin="61200" end="68400" /><interval begin="68400" end="86400"><closingLaneReroute id="0" allow="" /></interval></rerouter>
 
 </additional>

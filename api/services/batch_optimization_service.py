@@ -358,6 +358,68 @@ class BatchOptimizationService:
                 logger.warning(f"[_extract_summary_last_step] Failed to parse summary.xml: {e}")
                 return None
 
+    def _extract_simulation_end_time(self, sumocfg_file_path: Path) -> Optional[int]:
+        """
+        从simulation.sumocfg中提取仿真结束时间
+
+        策略：
+        1. 读取simulation.sumocfg文件
+        2. 解析XML查找 <time><end value="..."/>
+        3. 返回end_time值（单位：秒）
+
+        Args:
+            sumocfg_file_path: simulation.sumocfg文件路径
+
+        Returns:
+            int: 仿真结束时间（秒），如果无法提取则返回None
+        """
+        import re
+        import io
+
+        logger.debug(f"Extracting end_time from: {sumocfg_file_path}")
+
+        if not sumocfg_file_path.exists():
+            logger.debug(f"sumocfg file not found: {sumocfg_file_path}")
+            return None
+
+        max_retries = 3
+        retry_count = 0
+
+        while retry_count < max_retries:
+            try:
+                # 读取整个sumocfg文件（通常很小）
+                with io.open(str(sumocfg_file_path), 'rb') as f:
+                    content = f.read().decode('utf-8', errors='ignore')
+
+                # 正则匹配: <time>...<end value="600"/>
+                pattern = r'<time>\s*(?:<begin[^>]*>\s*)?<end\s+value="([^"]+)"'
+                match = re.search(pattern, content)
+
+                if match:
+                    end_time_str = match.group(1)
+                    try:
+                        end_time = int(float(end_time_str))
+                        logger.debug(f"Successfully extracted end_time: {end_time} seconds from {sumocfg_file_path.name}")
+                        return end_time
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Failed to parse end_time value '{end_time_str}': {e}")
+                        return None
+                else:
+                    logger.debug(f"No <time><end> pattern found in {sumocfg_file_path.name}")
+                    return None
+
+            except (IOError, OSError) as e:
+                retry_count += 1
+                if retry_count >= max_retries:
+                    logger.warning(f"Failed to read {sumocfg_file_path.name} after {max_retries} retries: {e}")
+                    return None
+                logger.debug(f"Retry {retry_count}/{max_retries} for {sumocfg_file_path.name}")
+                import time
+                time.sleep(0.05)  # 等待50ms再重试
+            except Exception as e:
+                logger.warning(f"Error extracting end_time: {e}")
+                return None
+
     def _get_simulation_live_status(
         self, case_id: str, batch_id: str, task: Dict[str, Any], total_steps: int = 14400
     ) -> Dict[str, Any]:
@@ -368,7 +430,7 @@ class BatchOptimizationService:
             case_id: 案例ID
             batch_id: 批次ID
             task: 任务信息字典，包含simulation_id
-            total_steps: 仿真总步数（默认4小时=14400秒）
+            total_steps: 仿真总步数（默认4小时=14400秒，将被实际配置覆盖）
 
         Returns:
             Dict: 实时状态数据
@@ -400,6 +462,16 @@ class BatchOptimizationService:
             simulation_dir = Path(self.cases_base_dir) / case_id / "simulations" / simulation_id
 
         progress_file = simulation_dir / "progress.json"
+        summary_file = simulation_dir / "summary.xml"
+
+        # 尝试从simulation.sumocfg提取实际的仿真结束时间，以替换硬编码的total_steps
+        sumocfg_file = simulation_dir / "simulation.sumocfg"
+        extracted_end_time = self._extract_simulation_end_time(sumocfg_file)
+        if extracted_end_time is not None:
+            total_steps = extracted_end_time
+            logger.debug(f"[_get_simulation_live_status] Using extracted end_time from simulation.sumocfg: {total_steps} seconds")
+        else:
+            logger.debug(f"[_get_simulation_live_status] Using default total_steps: {total_steps} seconds")
 
         # 调试日志
         logger.debug(f"Looking for progress.json at: {progress_file}")
@@ -409,7 +481,6 @@ class BatchOptimizationService:
         if not progress_file.exists():
             logger.debug(f"progress.json not found at {progress_file}, trying summary.xml")
             # 对于已完成的任务，从summary.xml读取最后一步数据
-            summary_file = simulation_dir / "summary.xml"
             last_step = self._extract_summary_last_step(summary_file)
             if last_step:
                 logger.debug(f"Found last step in summary.xml: {last_step}")
@@ -441,7 +512,6 @@ class BatchOptimizationService:
             if not summary:
                 # 如果progress.json中没有summary数据，尝试从summary.xml提取最后一步数据
                 logger.debug(f"No summary in progress.json, trying summary.xml")
-                summary_file = simulation_dir / "summary.xml"
                 last_step = self._extract_summary_last_step(summary_file)
                 if last_step:
                     logger.debug(f"Found last step in summary.xml: {last_step}")
@@ -478,11 +548,15 @@ class BatchOptimizationService:
                 except Exception:
                     pass
 
+            # 确保 end_time 被正确设置为实际的 total_steps（已经过 summary.xml 动态提取或默认值）
+            # 这个值是由调用处传入，或在本函数内从 summary.xml 提取的
+            actual_end_time = total_steps
+
             result = {
                 'current_step': current_step,
-                'total_steps': total_steps,
-                'end_time': total_steps,  # CLARIFICATION: 'total_steps' is actually simulation end time in seconds
-                'current_time': current_step,  # CLARIFICATION: 'current_step' is actually current simulation time in seconds
+                'total_steps': actual_end_time,  # 实际的仿真结束时间（秒）
+                'end_time': actual_end_time,     # 供前端使用，仿真结束时间（秒）
+                'current_time': current_step,    # 当前仿真时间（秒）
                 'progress_percent': round(progress_percent, 2),
                 'running_vehicles': summary.get('running_vehicles', 0),
                 'ended_vehicles': summary.get('ended_vehicles', 0),
@@ -816,11 +890,38 @@ class BatchOptimizationService:
             # 对每个任务添加live_status（运行中任务使用实时数据，已完成任务使用最后一步数据）
             for task_dict in progress_data["tasks"]:
                 if task_dict.get('status') in ['running', 'completed']:
+                    # 为每个任务从其 summary.xml 提取实际的 end_time（仿真时长）
+                    # 如果提取失败，使用默认值 14400
+                    simulation_id = task_dict.get('simulation_id')
+                    plan_id = task_dict.get('plan_id')
+                    seed = task_dict.get('seed')
+                    task_id = task_dict.get('task_id', 'unknown')
+
+                    # 定位 simulation.sumocfg 文件
+                    if plan_id and seed:
+                        # 批量仿真：使用 plan_opti 路径
+                        sumocfg_file = (
+                            Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" /
+                            batch_id / plan_id / f"sim_{seed}" / "simulation.sumocfg"
+                        )
+                    else:
+                        # 单次仿真：使用标准路径
+                        sumocfg_file = (
+                            Path(self.cases_base_dir) / case_id / "simulations" / simulation_id / "simulation.sumocfg"
+                        )
+
+                    # 提取实际的 end_time，如果失败则使用默认值
+                    extracted_end_time = self._extract_simulation_end_time(sumocfg_file)
+                    task_total_steps = extracted_end_time if extracted_end_time is not None else 14400
+
+                    if extracted_end_time is None:
+                        logger.debug(f"Task {task_id}: Using default end_time 14400 seconds")
+
                     live_status = self._get_simulation_live_status(
                         case_id=case_id,
                         batch_id=batch_id,
                         task=task_dict,
-                        total_steps=14400  # TODO: 从配置或元数据读取
+                        total_steps=task_total_steps  # 使用每个任务的实际仿真时长
                     )
                     task_dict['live_status'] = live_status
 
@@ -1404,9 +1505,13 @@ class BatchOptimizationService:
             with open(metadata_file, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
 
-            # 计算成功率
-            total_tasks = metadata.get('total_tasks', 0)
-            completed_tasks = metadata.get('completed_tasks', 0)
+            # 获取批次进度数据，统计已完成的任务
+            progress_data = self.scheduler.get_batch_progress(case_id, batch_id)
+            total_tasks = len(progress_data.get("tasks", []))
+            completed_tasks = sum(
+                1 for task in progress_data.get("tasks", [])
+                if task.get("status") == "completed"
+            )
             success_rate = (completed_tasks / total_tasks) if total_tasks > 0 else 0.0
 
             # 更新元数据
@@ -1425,9 +1530,9 @@ class BatchOptimizationService:
                 metadata=metadata
             )
 
-            logger.info(
+            logger.debug(
                 f"Batch {batch_id} completed: {completed_tasks}/{total_tasks} tasks "
-                f"({success_rate*100:.2f}% success rate)"
+                f"({success_rate*100:.1f}% success rate)"
             )
 
         except Exception as e:

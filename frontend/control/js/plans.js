@@ -416,10 +416,13 @@ async function showPlanDetail(planId) {
 function renderPlanDetail(plan, preview) {
     document.getElementById('detailTitle').textContent = plan.plan_name;
 
+    // Format strategies with enhanced card layout
     const strategiesHtml = (plan.strategies || []).map(s => `
-        <div style="padding: 10px; border: 1px solid #ecf0f1; border-radius: 4px; margin-bottom: 8px;">
-            <strong>${escapeHtml(s.strategy_name)}</strong>
-            <span style="color: #7f8c8d;"> - ${s.strategy_type}</span>
+        <div class="strategy-card">
+            <div class="strategy-header">
+                <span class="strategy-name">${escapeHtml(s.strategy_name)}</span>
+                <span class="strategy-type-badge">${s.strategy_type}</span>
+            </div>
         </div>
     `).join('');
 
@@ -427,44 +430,82 @@ function renderPlanDetail(plan, preview) {
         `<span class="tag">${tag}</span>`
     ).join('');
 
+    // Format time range display
+    const timeRangeHtml = preview.summary.time_range ? `
+        <span class="time-display">
+            ${Math.floor(preview.summary.time_range.earliest / 3600)}:${Math.floor((preview.summary.time_range.earliest % 3600) / 60).toString().padStart(2, '0')}
+            →
+            ${Math.floor(preview.summary.time_range.latest / 3600)}:${Math.floor((preview.summary.time_range.latest % 3600) / 60).toString().padStart(2, '0')}
+        </span>
+    ` : '<span style="color: #7f8c8d;">无时间限制</span>';
+
     const content = `
-        <div style="margin-bottom: 20px;">
-            <h3>基本信息</h3>
-            <p><strong>描述:</strong> ${escapeHtml(plan.description || '无')}</p>
-            <p><strong>目标场景:</strong> ${escapeHtml(plan.target_scenario || '无')}</p>
-            ${tagsHtml ? `<p><strong>标签:</strong> ${tagsHtml}</p>` : ''}
-            <p><strong>创建时间:</strong> ${new Date(plan.created_at).toLocaleString('zh-CN')}</p>
+        <!-- Basic Information Section -->
+        <div class="detail-section">
+            <h3>📋 基本信息</h3>
+            <div class="detail-grid">
+                <div class="info-item">
+                    <span class="info-label">方案描述</span>
+                    <span class="info-value">${escapeHtml(plan.description || '无描述')}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">目标场景</span>
+                    <span class="info-value">${escapeHtml(plan.target_scenario || '无')}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">创建时间</span>
+                    <span class="info-value">${new Date(plan.created_at).toLocaleString('zh-CN')}</span>
+                </div>
+                ${tagsHtml ? `
+                <div class="info-item">
+                    <span class="info-label">标签</span>
+                    <div class="info-value">${tagsHtml}</div>
+                </div>
+                ` : ''}
+            </div>
         </div>
 
-        <div style="margin-bottom: 20px;">
-            <h3>包含策略 (${preview.summary.total_strategies}个)</h3>
+        <!-- Strategy List Section -->
+        <div class="detail-section">
+            <h3>🎯 包含策略 (${preview.summary.total_strategies}个)</h3>
             ${strategiesHtml || '<p style="color: #7f8c8d;">无策略（基准方案）</p>'}
         </div>
 
-        <div style="margin-bottom: 20px;">
-            <h3>影响范围统计</h3>
-            <p><strong>影响边数:</strong> ${preview.summary.affected_edge_count}</p>
-            ${preview.summary.time_range ? `
-                <p><strong>时间范围:</strong>
-                   ${Math.floor(preview.summary.time_range.earliest / 3600)}:${Math.floor((preview.summary.time_range.earliest % 3600) / 60).toString().padStart(2, '0')} -
-                   ${Math.floor(preview.summary.time_range.latest / 3600)}:${Math.floor((preview.summary.time_range.latest % 3600) / 60).toString().padStart(2, '0')}
-                </p>
-            ` : ''}
+        <!-- Impact Statistics Section -->
+        <div class="detail-section">
+            <h3>📊 影响范围统计</h3>
+            <div class="stat-row">
+                <div class="stat-item">
+                    <span class="stat-label">影响边数</span>
+                    <span class="stat-value">${preview.summary.affected_edge_count}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">策略数量</span>
+                    <span class="stat-value">${preview.summary.total_strategies}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">时间范围</span>
+                    <div class="stat-value" style="font-size: 1rem;">${timeRangeHtml}</div>
+                </div>
+            </div>
         </div>
 
-        <div style="margin-bottom: 20px;">
-            <h3>XML验证状态</h3>
+        <!-- Validation Status Section -->
+        <div class="detail-section">
+            <h3>✅ XML验证状态</h3>
             <span id="validation-status-${plan.plan_id}" class="validation-status pending">
                 <i class="status-icon">⏳</i> 未验证
             </span>
         </div>
 
-        <div>
-            <h3>XML配置预览</h3>
+        <!-- XML Preview Section -->
+        <div class="detail-section">
+            <h3>📄 XML配置预览</h3>
             <div class="xml-preview">${escapeHtml(preview.xml_preview)}</div>
         </div>
 
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <!-- Action Buttons -->
+        <div class="detail-actions">
             <button class="btn btn-primary btn-validate" onclick="validatePlan('${plan.plan_id}')">
                 验证XML
             </button>

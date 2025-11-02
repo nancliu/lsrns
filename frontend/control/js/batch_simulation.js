@@ -475,9 +475,42 @@ async function updateProgress() {
         // 更新总进度
         const progressPct = (data.progress * 100).toFixed(0);
 
-        // 计算并显示详细的任务进度
-        const runningTasks = data.tasks.filter(t => t.status === 'running');
-        const taskProgressInfo = runningTasks.map(t => `${t.task_id}:${t.progress}%`).join(', ');
+        // 计算并显示详细的任务进度（使用与 renderTaskList() 相同的逻辑）
+        const runningTasks = data.tasks ? data.tasks.filter(t => t.status === 'running') : [];
+        const taskProgressInfo = runningTasks.map(t => {
+            const liveStatus = t.live_status || {};
+            let progressPct = 0;
+
+            // 优先使用后端已计算的 progress_percent（0-100之间的百分比）
+            if (liveStatus.progress_percent !== null && liveStatus.progress_percent !== undefined) {
+                // 后端返回的是已计算的百分比（0-100），直接使用
+                progressPct = liveStatus.progress_percent;
+            } else if (liveStatus.current_time !== null && liveStatus.current_time !== undefined &&
+                       liveStatus.end_time !== null && liveStatus.end_time !== undefined) {
+                // 如果没有 progress_percent，但有 current_time 和 end_time，使用它们计算
+                progressPct = (liveStatus.current_time / liveStatus.end_time) * 100;
+            } else if (t.progress !== null && t.progress !== undefined) {
+                // 最后的备选：使用 task.progress
+                let progressValue = t.progress;
+                if (progressValue > 100) {
+                    // 如果 > 100，说明是原始仿真时间（秒），需要转换
+                    const endTime = liveStatus.end_time || 600;
+                    const divisor = endTime / 100;
+                    progressPct = (progressValue / divisor);
+                } else {
+                    // 否则已经是百分比
+                    progressPct = progressValue;
+                }
+            }
+
+            // 确保进度在有效范围内 [0, 100]
+            progressPct = Math.max(0, Math.min(100, progressPct));
+
+            return `${t.task_id}:${progressPct.toFixed(0)}%`;
+        }).join(', ');
+
+        // 进度日志输出
+        console.log(`[Progress] ${progressPct}% | Tasks: [${taskProgressInfo}]`);
         debugLog(`Batch progress: ${progressPct}% | Running: [${taskProgressInfo}]`);
 
         const progressBar = document.getElementById('monitorProgressBar');
@@ -579,29 +612,32 @@ function renderTaskList(tasks) {
             // 如果任务正在运行，显示进度条和实时状态
             if (task.status === 'running') {
                 const liveStatus = task.live_status || {};
-                // Fix: Use explicit null/undefined check to avoid 0 being treated as falsy
-                let progressValue = (liveStatus.progress_percent !== null && liveStatus.progress_percent !== undefined)
-                    ? liveStatus.progress_percent
-                    : (task.progress !== null && task.progress !== undefined ? task.progress : 0);
 
-                // Ensure progress is in valid range [0, 100]
-                // CORRECTED: If progressValue > 100, it's in simulation seconds (current_time), not percentage
-                // Numerator: current_time (simulation seconds from summary.xml <step time="...">)
-                // Denominator: end_time (configured simulation duration)
-                let progressPct = progressValue;
-                if (progressValue > 100) {
-                    // Backend returns raw simulation time in seconds
-                    // Get end_time from backend response (should be included in live_status)
-                    const endTime = liveStatus.end_time || 600;  // Default to 600 if not provided
+                // 优先使用后端已计算的 progress_percent（0-100之间的百分比，已由后端计算）
+                let progressPct = 0;
 
-                    // Correct formula: (current_time / end_time) × 100
-                    // But since progressValue is NOT yet multiplied by 100, we need:
-                    // progressPct = (progressValue / endTime) × 100
-                    const divisor = endTime / 100;  // Correct divisor based on actual end_time
-                    progressPct = Math.min((progressValue / divisor), 100);
-                } else if (progressValue < 0) {
-                    progressPct = 0;
+                if (liveStatus.progress_percent !== null && liveStatus.progress_percent !== undefined) {
+                    // 后端返回的是已计算的百分比（0-100），直接使用
+                    progressPct = liveStatus.progress_percent;
+                } else if (liveStatus.current_time !== null && liveStatus.current_time !== undefined &&
+                           liveStatus.end_time !== null && liveStatus.end_time !== undefined) {
+                    // 如果没有 progress_percent，但有 current_time 和 end_time，使用它们计算
+                    progressPct = (liveStatus.current_time / liveStatus.end_time) * 100;
+                } else if (task.progress !== null && task.progress !== undefined) {
+                    // 最后的备选：使用 task.progress
+                    let progressValue = task.progress;
+                    if (progressValue > 100) {
+                        // 如果 > 100，说明是原始仿真时间（秒），需要转换
+                        const endTime = liveStatus.end_time || 600;
+                        const divisor = endTime / 100;
+                        progressPct = (progressValue / divisor);
+                    } else {
+                        // 否则已经是百分比
+                        progressPct = progressValue;
+                    }
                 }
+
+                // 确保进度在有效范围内 [0, 100]
                 progressPct = Math.max(0, Math.min(100, progressPct));
 
                 const runningVeh = liveStatus.running_vehicles;
@@ -815,21 +851,10 @@ function shouldResetChart(oldData, newData) {
 function renderLiveCurve(liveTimeSeries) {
     debugLogObject('renderLiveCurve', { liveTimeSeries, liveCurveVisible });
 
-    // 数据源日志：确认来自live_curve_cache.json聚合
+    // 动态曲线数据来源日志
     if (liveTimeSeries && liveTimeSeries.time_points && liveTimeSeries.time_points.length > 0) {
-        console.log('[Live Curve] Vehicle count data aggregated from task cache files (live_curve_cache.json)');
-        console.log('[Live Curve] Data points:', liveTimeSeries.time_points.length);
-        console.log('[Live Curve] Sample time_points:', liveTimeSeries.time_points.slice(0, 5));
-        console.log('[Live Curve] Sample total_running:', liveTimeSeries.total_running ? liveTimeSeries.total_running.slice(0, 5) : 'undefined');
-        console.log('[Live Curve] Time range:', liveTimeSeries.time_points[0], '-',
-                    liveTimeSeries.time_points[liveTimeSeries.time_points.length - 1], 'seconds');
-    } else {
-        console.log('[Live Curve] No data yet - simulation may not have started or no data generated');
-        if (liveTimeSeries) {
-            console.log('[Live Curve] Debug: liveTimeSeries =', JSON.stringify(liveTimeSeries));
-        } else {
-            console.log('[Live Curve] Debug: liveTimeSeries is null/undefined');
-        }
+        const timeRange = `${liveTimeSeries.time_points[0]}-${liveTimeSeries.time_points[liveTimeSeries.time_points.length - 1]}s`;
+        console.log(`[Live Curve] ${liveTimeSeries.time_points.length} data points (${timeRange})`);
     }
 
     // Phase 1.5: Use monitor canvas elements
