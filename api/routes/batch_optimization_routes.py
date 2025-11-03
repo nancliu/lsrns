@@ -353,6 +353,28 @@ async def list_batches(
         raise HTTPException(status_code=500, detail=f"获取批次列表失败: {str(e)}")
 
 
+@router.get("/templates/vehicle-types", tags=["Configuration"])
+async def list_vehicle_templates():
+    """
+    获取可用的车辆模板列表 (Revision 2: 新增)
+
+    返回:
+    - templates: 可用模板列表，包含filename、display_name和path
+    - total: 总模板数
+
+    说明:
+    - 动态扫描templates/config_templates/vehicle_templates/目录
+    - 查找所有vehicle_types*.json文件
+    - 前端可用此列表动态填充车辆模板下拉菜单
+    """
+    try:
+        result = batch_service.list_vehicle_templates()
+        return result
+    except Exception as e:
+        logger.error(f"Error listing vehicle templates: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取车辆模板列表失败: {str(e)}")
+
+
 @router.get("/batches/{batch_id}/detail")
 async def get_batch_detail(batch_id: str):
     """

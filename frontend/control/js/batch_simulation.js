@@ -90,6 +90,7 @@ function hideElement(elementId) {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadCases();
     await loadPlans();
+    await loadVehicleTemplates(); // Revision 2: 动态加载车辆模板
 
     // 恢复案例ID（从URL参数或localStorage）
     const urlParams = new URLSearchParams(window.location.search);
@@ -127,10 +128,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
     document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
 
-    // 计算预估 (Phase 1-4: 包含output, template, duration, seed变化)
+    // 计算预估 (Phase 1-4: 包含seed变化)
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
     document.getElementById('baseSeed').addEventListener('input', updateEstimate);
-    document.getElementById('outputLevel').addEventListener('change', updateEstimate);
 });
 
 // ========== 视图切换 ==========
@@ -263,20 +263,11 @@ function getSelectedPlans() {
 function updateEstimate() {
     const selectedPlans = getSelectedPlans();
     const numSeeds = parseInt(document.getElementById('numSeeds').value) || 3;
-    const baseSeed = parseInt(document.getElementById('baseSeed').value) || 66;
-    const outputLevel = document.getElementById('outputLevel').value || 'standard';
     const totalTasks = selectedPlans.length * numSeeds;
 
     // 更新任务数预估
     document.getElementById('estimateText').textContent =
         `${selectedPlans.length}个方案 × ${numSeeds} 个随机种子 = ${totalTasks} 个并行仿真任务`;
-
-    // Phase 3: 更新种子序列预览
-    const seedSequence = [];
-    for (let i = 0; i < numSeeds; i++) {
-        seedSequence.push(baseSeed + i);
-    }
-    document.getElementById('seedSequencePreview').textContent = seedSequence.join(', ');
 }
 
 async function onCaseChange() {
@@ -365,6 +356,48 @@ function getSimulationDuration() {
     }
 
     return null;
+}
+
+/**
+ * 动态加载车辆模板列表
+ * Revision 2: 从API获取可用的vehicle_types*.json文件
+ */
+async function loadVehicleTemplates() {
+    try {
+        const response = await fetch(`${API_BASE}/control/batch-optimization/templates/vehicle-types`);
+        if (!response.ok) {
+            throw new Error(`Failed to load templates: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const selectElement = document.getElementById('vehicleTypesTemplate');
+
+        if (!selectElement) {
+            console.warn('vehicleTypesTemplate element not found');
+            return;
+        }
+
+        // 清空现有选项（保留第一个作为默认）
+        selectElement.innerHTML = '';
+
+        // 添加模板选项
+        if (data.templates && Array.isArray(data.templates)) {
+            data.templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.filename;
+                option.textContent = template.display_name;
+                selectElement.appendChild(option);
+            });
+
+            console.log(`Loaded ${data.templates.length} vehicle template(s)`);
+        } else {
+            console.warn('No templates found in response');
+        }
+    } catch (error) {
+        console.error('Load vehicle templates error:', error);
+        // 回退到默认模板（HTML中已有）
+        console.log('Using default vehicle template');
+    }
 }
 
 /**

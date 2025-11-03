@@ -165,20 +165,22 @@ tests/
     <div class="form-section form-col-2 output-box">
       <label>仿真输出配置：</label>
       <div class="output-checkboxes">
-        <div class="checkbox-group">
+        <div class="checkbox-item">
           <input type="checkbox" id="outputSummary" checked disabled />
-          <label for="outputSummary">summary ☑</label>
+          <label for="outputSummary">summary</label>
+          <span class="status-badge checked">☑</span>
         </div>
-        <div class="checkbox-group">
+        <div class="checkbox-item">
           <input type="checkbox" id="outputE1" checked disabled />
-          <label for="outputE1">E1检测器 ☑</label>
+          <label for="outputE1">E1检测器</label>
+          <span class="status-badge checked">☑</span>
         </div>
-        <div class="checkbox-group inline-warning">
+        <div class="checkbox-item">
           <input type="checkbox" id="outputEdgedata" />
           <label for="outputEdgedata">edgedata</label>
           <span class="warning-badge">+20%</span>
         </div>
-        <div class="checkbox-group inline-warning">
+        <div class="checkbox-item">
           <input type="checkbox" id="outputTripinfo" />
           <label for="outputTripinfo">tripinfo</label>
           <span class="warning-badge">+30%</span>
@@ -486,29 +488,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 .output-checkboxes {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
-/* 单行输出项（含性能提示） */
-.output-checkboxes .checkbox-group {
+/* 单个输出项（网格排列） */
+.checkbox-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 4px 0;
+  padding: 4px 6px;
+  font-size: 0.9em;
 }
 
-.output-checkboxes .checkbox-group.inline-warning {
-  position: relative;
+.checkbox-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
 }
 
+.checkbox-item label {
+  cursor: pointer;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* 状态徽章（已启用） */
+.status-badge {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #4caf50;
+  margin-left: 2px;
+}
+
+.status-badge.checked {
+  color: #4caf50;
+}
+
+/* 性能警告徽章 */
 .warning-badge {
   background-color: #ffccbc;
   color: #e64a19;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.8em;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 0.7em;
   font-weight: 600;
   white-space: nowrap;
+  margin-left: 2px;
 }
 
 /* 复选框样式 */
@@ -636,7 +662,9 @@ input:disabled + label {
   }
 
   .output-checkboxes {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 

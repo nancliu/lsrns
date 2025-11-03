@@ -1205,11 +1205,11 @@
 
 /* ==================== Phase 1: 仿真输出配置样式 ==================== */
 
-/* 输出配置容器 (2列网格布局) */
+/* 输出配置容器 (Revision 1: 改为单行flex布局) */
 .output-checkboxes {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-top: 8px;
     margin-bottom: 12px;
 }
@@ -1251,37 +1251,10 @@
     cursor: not-allowed;
 }
 
-/* 状态徽章 (已启用) */
-.status-badge {
-    font-size: 0.85em;
-    font-weight: 600;
-    color: #4caf50;
-    margin-left: 2px;
-    flex-shrink: 0;
-}
-
-.status-badge.checked {
-    color: #4caf50;
-}
-
-/* 性能警告徽章 */
-.warning-badge {
-    background-color: #ffccbc;
-    color: #e64a19;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.75em;
-    font-weight: 600;
-    white-space: nowrap;
-    margin-left: 2px;
-    flex-shrink: 0;
-}
-
 /* 响应式: 小屏幕时调整布局 */
 @media (max-width: 768px) {
     .output-checkboxes {
-        grid-template-columns: 1fr;
-        gap: 4px;
+        gap: 8px;
     }
 
     .checkbox-item {
