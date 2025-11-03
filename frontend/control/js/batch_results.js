@@ -74,32 +74,29 @@ function renderBatchResultsView() {
         return;
     }
 
-    // Phase 8.4修复：支持新的 API 响应格式
-    // 新格式：直接有 plan_results（列表），而不是 analysis.plan_results
+    // Phase 8.4: 统一使用新的 API 响应格式
+    // 新格式：plan_results（列表）、created_at、completed_at 都在顶级
     const planResults = batchResultsData.plan_results || [];
     const metadata = {
-        output_level: 'standard',
-        num_seeds: 3,
-        base_seed: 66,
+        output_level: batchResultsData.output_level || 'standard',
+        num_seeds: batchResultsData.num_seeds || 3,
+        base_seed: batchResultsData.base_seed || 66,
         created_at: batchResultsData.created_at,
-        completed_at: batchResultsData.completed_at
+        completed_at: batchResultsData.completed_at,
+        analyzed_at: batchResultsData.analyzed_at
     };
 
     // 渲染摘要信息
     renderResultsSummary(metadata);
 
-    // Phase 8.4修复：新的数据格式需要新的处理逻辑
+    // Phase 8.4: 完全使用新的实现（不降级）
     if (planResults && planResults.length > 0) {
         renderNewBatchResults(planResults);
     } else {
-        // 降级：尝试使用旧格式（analysis）
-        const analysis = batchResultsData.analysis || {};
-        const comparisonSummary = analysis.comparison_summary || {};
-        if (comparisonSummary.rows && comparisonSummary.rows.length > 0) {
-            renderComparisonTable(comparisonSummary, analysis.improvement_rates || {});
-        }
-        // 渲染性能图表 (T6.3)
-        renderPerformanceCharts(analysis);
+        // 如果没有 plan_results，显示错误信息而不是降级
+        const container = document.getElementById('comparisonTable') || createComparisonTableContainer();
+        container.innerHTML = '<p style="color: #e74c3c; padding: 20px;">❌ 结果数据格式错误或为空</p>';
+        console.error('Expected plan_results in API response, but got:', batchResultsData);
     }
 }
 
@@ -111,84 +108,30 @@ function renderResultsSummary(metadata) {
     const summaryContainer = document.querySelector('.results-summary');
     if (!summaryContainer) return;
 
+    // Phase 8.4: 适配新的数据格式
+    const analyzedAt = metadata.analyzed_at ? new Date(metadata.analyzed_at).toLocaleString() : '未知';
+    const completedAt = metadata.completed_at ? new Date(metadata.completed_at).toLocaleString() : '未知';
+
     const html = `
         <h3>📊 分析摘要</h3>
         <p><strong>输出级别:</strong> ${metadata.output_level || 'standard'}</p>
         <p><strong>随机种子数:</strong> ${metadata.num_seeds || 1} (起始: ${metadata.base_seed || 66})</p>
-        <p><strong>分析时间:</strong> ${new Date(metadata.analyzed_at).toLocaleString()}</p>
-        ${metadata.completed_at ? `<p><strong>完成时间:</strong> ${new Date(metadata.completed_at).toLocaleString()}</p>` : ''}
+        ${metadata.analyzed_at ? `<p><strong>分析时间:</strong> ${analyzedAt}</p>` : ''}
+        <p><strong>完成时间:</strong> ${completedAt}</p>
     `;
 
     summaryContainer.innerHTML = html;
 }
 
 /**
- * T6.2: 构建并渲染对比表格
- * @param {Object} comparisonSummary - 对比总结数据
- * @param {Object} improvementRates - 改进率数据
+ * [已弃用] T6.2: 旧的对比表格渲染函数
+ * Phase 8.4: 替换为 renderNewBatchResults()
+ * 保留此函数以防降级使用，但不应该被调用
+ * @deprecated 使用 renderNewBatchResults() 代替
  */
 function renderComparisonTable(comparisonSummary, improvementRates) {
-    const container = document.getElementById('comparisonTable') || createComparisonTableContainer();
-
-    if (!comparisonSummary.rows || comparisonSummary.rows.length === 0) {
-        container.innerHTML = '<p style="color: #999; padding: 20px;">暂无对比数据</p>';
-        return;
-    }
-
-    // 获取所有方案ID（除baseline）
-    const planIds = Object.keys(improvementRates);
-
-    // 构建表格HTML
-    let tableHtml = '<div class="comparison-table-container"><table class="comparison-table"><thead><tr>';
-
-    // 表头
-    tableHtml += '<th>指标</th>';
-    tableHtml += '<th>基准方案</th>';
-
-    // 每个test方案两列（值 + 改进率）
-    planIds.forEach(planId => {
-        tableHtml += `<th colspan="2">${planId}</th>`;
-    });
-
-    tableHtml += '</tr><tr>';
-    tableHtml += '<th></th><th>值</th>';
-
-    planIds.forEach(() => {
-        tableHtml += '<th>值</th><th>改进率%</th>';
-    });
-
-    tableHtml += '</tr></thead><tbody>';
-
-    // 表体
-    comparisonSummary.rows.forEach(row => {
-        tableHtml += '<tr class="plan-row baseline">';
-        tableHtml += `<td><strong>${row.metric_name}</strong></td>`;
-        tableHtml += `<td>${formatMetricValue(row.baseline_value, row.metric)} ${row.unit}</td>`;
-
-        // 各test方案的值和改进率
-        planIds.forEach(planId => {
-            const testData = row.test_values[planId] || {};
-            const testValue = testData.value;
-            const improvementRate = testData.improvement_rate;
-
-            tableHtml += `<td>${formatMetricValue(testValue, row.metric)} ${row.unit}</td>`;
-
-            // 改进率显示（带色彩）
-            if (improvementRate !== null && improvementRate !== undefined) {
-                const improvementClass = improvementRate > 0 ? 'positive' : 'negative';
-                const sign = improvementRate > 0 ? '+' : '';
-                tableHtml += `<td><span class="improvement ${improvementClass}">${sign}${improvementRate.toFixed(1)}%</span></td>`;
-            } else {
-                tableHtml += '<td>-</td>';
-            }
-        });
-
-        tableHtml += '</tr>';
-    });
-
-    tableHtml += '</tbody></table></div>';
-
-    container.innerHTML = tableHtml;
+    // Phase 8.4: 此函数已被弃用，应使用 renderNewBatchResults()
+    console.warn('[Deprecated] renderComparisonTable() is deprecated. Use renderNewBatchResults() instead.');
 }
 
 /**
@@ -234,135 +177,15 @@ function formatMetricValue(value, metric) {
     return String(value);
 }
 
-// ========== T6.3: 性能图表渲染 ==========
+// ========== [已弃用] T6.3: 性能图表渲染 ==========
 
 /**
- * T6.3: 渲染性能对比图表
- * @param {Object} analysis - 分析数据
+ * [已弃用] T6.3: 旧的性能对比图表渲染
+ * Phase 8.4: 此函数已被弃用
+ * @deprecated 新的实现应该直接使用 renderNewBatchResults()
  */
 function renderPerformanceCharts(analysis) {
-    const comparisonSummary = analysis.comparison_summary || {};
-
-    if (!comparisonSummary.rows || comparisonSummary.rows.length === 0) {
-        return;
-    }
-
-    // 获取关键性能指标：avgSpeed, waiting, teleports
-    const performanceMetrics = comparisonSummary.rows.filter(row =>
-        ['avgSpeed', 'waiting', 'teleports'].includes(row.metric)
-    );
-
-    if (performanceMetrics.length === 0) {
-        return;
-    }
-
-    // 为每个性能指标创建图表
-    performanceMetrics.forEach(metric => {
-        renderMetricChart(metric, analysis.improvement_rates || {});
-    });
-}
-
-/**
- * 为单个指标渲染图表
- * @param {Object} metricRow - 指标行数据
- * @param {Object} improvementRates - 改进率数据
- */
-function renderMetricChart(metricRow, improvementRates) {
-    const chartContainerId = `chart-${metricRow.metric}`;
-    let chartContainer = document.getElementById(chartContainerId);
-
-    if (!chartContainer) {
-        const chartsSection = document.querySelector('.results-charts') || createChartsSection();
-        chartContainer = document.createElement('div');
-        chartContainer.id = chartContainerId;
-        chartContainer.className = 'metric-chart';
-        chartContainer.style.marginBottom = '30px';
-        chartsSection.appendChild(chartContainer);
-    }
-
-    // 准备数据
-    const planIds = Object.keys(improvementRates);
-    const labels = ['基准', ...planIds];
-    const values = [
-        metricRow.baseline_value,
-        ...planIds.map(id => metricRow.test_values[id]?.value || 0)
-    ];
-
-    // 确定图表类型和配置
-    const isHigherBetter = ['avgSpeed'].includes(metricRow.metric);
-    const colors = [
-        'rgba(200, 200, 200, 0.7)',  // 基准灰色
-        ...planIds.map((_, i) => {
-            const improvementRate = improvementRates[planIds[i]]?.[metricRow.metric];
-            if (improvementRate === null || improvementRate === undefined) {
-                return 'rgba(52, 152, 219, 0.7)';
-            }
-            // 改进为绿色，恶化为红色
-            const isImprovement = (improvementRate > 0 && isHigherBetter) ||
-                                 (improvementRate < 0 && !isHigherBetter);
-            return isImprovement ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)';
-        })
-    ];
-
-    // 销毁旧图表
-    if (window[`chart_${metricRow.metric}`]) {
-        window[`chart_${metricRow.metric}`].destroy();
-    }
-
-    // 创建新图表
-    const ctx = document.createElement('canvas');
-    chartContainer.innerHTML = '';
-    chartContainer.appendChild(ctx);
-
-    window[`chart_${metricRow.metric}`] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: metricRow.metric_name,
-                data: values,
-                backgroundColor: colors,
-                borderColor: colors.map(c => c.replace('0.7', '1')),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: `${metricRow.metric_name} (${metricRow.unit})`
-                },
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-}
-
-/**
- * 创建图表容器
- */
-function createChartsSection() {
-    const resultsContainer = document.querySelector('.results-container');
-    if (!resultsContainer) return null;
-
-    const chartsSection = document.createElement('div');
-    chartsSection.className = 'results-charts config-section';
-
-    const heading = document.createElement('h3');
-    heading.textContent = '性能对比图表';
-
-    chartsSection.appendChild(heading);
-    resultsContainer.appendChild(chartsSection);
-
-    return chartsSection;
+    console.warn('[Deprecated] renderPerformanceCharts() is deprecated. Use renderNewBatchResults() instead.');
 }
 
 // ========== T6.4: 改进率显示 ==========
