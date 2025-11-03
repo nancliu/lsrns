@@ -71,17 +71,69 @@
 
                 <div class="config-section">
                     <h3>仿真配置</h3>
+
+                    <!-- 仿真输出配置 (Phase 1: 新增) -->
                     <div class="form-group">
-                        <label for="outputLevel">输出级别 (Phase 3新增):</label>
-                        <select id="outputLevel">
-                            <option value="minimal">minimal - 最小化输出（快速筛选）</option>
-                            <option value="standard" selected>standard - 标准输出（详细分析）</option>
-                            <option value="full">full - 完整输出（研究/演示）</option>
+                        <label>仿真输出配置:</label>
+                        <div class="output-checkboxes">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="outputSummary" checked disabled />
+                                <label for="outputSummary">summary</label>
+                                <span class="status-badge checked">☑</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="outputE1" checked disabled />
+                                <label for="outputE1">E1检测器</label>
+                                <span class="status-badge checked">☑</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="outputEdgedata" />
+                                <label for="outputEdgedata">edgedata</label>
+                                <span class="warning-badge">+20%</span>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="outputTripinfo" />
+                                <label for="outputTripinfo">tripinfo</label>
+                                <span class="warning-badge">+30%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 车辆类型模板 (Phase 2: 新增) -->
+                    <div class="form-group">
+                        <label for="vehicleTypesTemplate">车辆类型模板:</label>
+                        <select id="vehicleTypesTemplate">
+                            <option value="vehicle_types.json">vehicle_types.json (默认参数)</option>
                         </select>
                         <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-                            <strong>说明:</strong> 所有方案将使用相同的输出配置以确保对比的一致性
+                            <strong>说明:</strong> 选择不同参数配置（动力学、跟驰、换道参数）
                         </p>
                     </div>
+
+                    <!-- 仿真时长设置 (Phase 3: 新增) -->
+                    <div class="form-group">
+                        <label>仿真时长设置:</label>
+                        <div class="duration-config">
+                            <div class="duration-option">
+                                <input type="radio" id="durationDefault" name="durationMode" value="default" checked />
+                                <label for="durationDefault">使用输入数据时长</label>
+                                <span id="currentDurationInfo" class="duration-info">当前: 计算中...</span>
+                            </div>
+                            <div class="duration-option">
+                                <input type="radio" id="durationCustom" name="durationMode" value="custom" />
+                                <label for="durationCustom">自定义仿真时长</label>
+                                <div id="customDurationInputs" class="duration-inputs" style="display: none;">
+                                    <input type="number" id="simHours" min="0" max="24" placeholder="0" disabled />
+                                    <span class="unit">小时</span>
+                                    <input type="number" id="simMinutes" min="0" max="59" placeholder="0" disabled />
+                                    <span class="unit">分钟</span>
+                                    <span class="hint">范围: 1分钟 - 24小时</span>
+                                </div>
+                                <div id="durationError" class="error-text" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="numSeeds">随机种子数 (每个方案):</label>
                         <input type="number" id="numSeeds" value="3" min="1" max="10">
@@ -94,9 +146,6 @@
                     <div class="estimate-box">
                         <p><strong>批次任务数量预估:</strong></p>
                         <p id="estimateText">请选择方案</p>
-                        <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
-                            <strong>种子序列:</strong> <span id="seedSequencePreview">66</span>
-                        </p>
                     </div>
                 </div>
 

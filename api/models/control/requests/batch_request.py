@@ -6,6 +6,30 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
 
 
+class OutputConfig(BaseModel):
+    """仿真输出配置 (Phase 1: 新增)"""
+
+    summary_xml: bool = Field(
+        default=True,
+        description="是否启用summary.xml输出（基础统计，总是启用）"
+    )
+
+    e1_detector_data: bool = Field(
+        default=True,
+        description="是否启用E1检测器数据输出（门架流量，总是启用）"
+    )
+
+    edgedata_xml: bool = Field(
+        default=False,
+        description="是否启用edgedata.xml输出（路段流量统计，性能提示：+20%仿真时间）"
+    )
+
+    tripinfo_xml: bool = Field(
+        default=False,
+        description="是否启用tripinfo.xml输出（车辆行程信息，性能提示：+30%仿真时间）"
+    )
+
+
 class CreateBatchRequest(BaseModel):
     """创建批量仿真批次请求 (Phase 3: 添加output_level配置)"""
 
@@ -37,19 +61,24 @@ class CreateBatchRequest(BaseModel):
         examples=[66]
     )
 
-    output_level: Literal["minimal", "standard", "full"] = Field(
-        default="standard",
+    output_level: Optional[Literal["minimal", "standard", "full"]] = Field(
+        default=None,
         description="""
-        仿真输出级别（Phase 3新增）
+        仿真输出级别（已弃用，保留向后兼容）
 
-        输出级别说明：
-        - minimal: 最小化输出 - summary.xml + E1探测器数据（快速批量筛选）
-        - standard: 标准输出 - summary.xml + E1探测器数据 + tripinfo.xml + edgedata.xml（详细分析）
-        - full: 完整输出 - 所有输出文件（研究/演示用）
-
-        注：summary.xml和E1探测器数据在所有级别均启用（预配置在网络拓扑中的门架位置）
+        使用 output_config 替代此字段。
+        如果同时提供了两者，output_config 优先。
         """,
         examples=["standard"]
+    )
+
+    output_config: Optional[OutputConfig] = Field(
+        default_factory=OutputConfig,
+        description="""
+        仿真输出配置 (Phase 1: 新增)
+
+        详细指定哪些输出文件需要生成，包括性能提示。
+        """
     )
 
     simulation_config: Optional[Dict[str, Any]] = Field(
@@ -73,7 +102,12 @@ class CreateBatchRequest(BaseModel):
                 ],
                 "num_seeds": 3,
                 "base_seed": 66,
-                "output_level": "standard",
+                "output_config": {
+                    "summary_xml": True,
+                    "e1_detector_data": True,
+                    "edgedata_xml": False,
+                    "tripinfo_xml": False
+                },
                 "simulation_config": {
                     "begin": 0,
                     "end": 14400,

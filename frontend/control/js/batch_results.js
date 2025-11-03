@@ -38,7 +38,7 @@ async function loadBatchResults(batchId, caseId) {
 
         batchResultsData = await response.json();
 
-        logger.info(`Loaded results for batch ${batchId}:`, batchResultsData);
+        console.log(`Loaded results for batch ${batchId}:`, batchResultsData);
 
         // 渲染结果视图
         renderBatchResultsView();

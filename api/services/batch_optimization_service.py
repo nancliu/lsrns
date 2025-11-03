@@ -40,24 +40,54 @@ class BatchOptimizationService:
             completion_callback=self._on_batch_completed
         )
 
+    @staticmethod
+    def _output_level_to_config(output_level: str) -> Dict[str, bool]:
+        """
+        将旧的output_level映射到新的output_config格式
+        向后兼容函数
+        """
+        level_map = {
+            'minimal': {
+                'summary_xml': True,
+                'e1_detector_data': True,
+                'edgedata_xml': False,
+                'tripinfo_xml': False
+            },
+            'standard': {
+                'summary_xml': True,
+                'e1_detector_data': True,
+                'edgedata_xml': True,
+                'tripinfo_xml': True
+            },
+            'full': {
+                'summary_xml': True,
+                'e1_detector_data': True,
+                'edgedata_xml': True,
+                'tripinfo_xml': True
+            }
+        }
+        return level_map.get(output_level, level_map['standard'])
+
     def create_batch(
         self,
         case_id: str,
         plan_ids: List[str],
         num_seeds: int = 3,
         base_seed: int = 66,
-        output_level: str = "standard",
+        output_config: Optional[Dict[str, Any]] = None,
+        output_level: Optional[str] = None,
         simulation_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        创建批量仿真批次 (Phase 3: 支持output_level配置)
+        创建批量仿真批次 (Phase 1: 支持output_config配置)
 
         Args:
             case_id: 案例ID
             plan_ids: 方案ID列表（必须包含baseline_plan）
             num_seeds: 每个方案的随机种子数量
             base_seed: 起始随机种子值
-            output_level: 仿真输出级别 ("minimal", "standard", "full")
+            output_config: 仿真输出配置 (Phase 1新增)
+            output_level: 仿真输出级别（已弃用，保留向后兼容）
             simulation_config: 仿真配置参数（可选）
 
         Returns:
@@ -67,13 +97,21 @@ class BatchOptimizationService:
             ValueError: 验证失败
             FileNotFoundError: 案例或方案不存在
         """
-        logger.info(f"Creating batch for case {case_id} with {len(plan_ids)} plans, output_level={output_level}")
+        logger.info(f"Creating batch for case {case_id} with {len(plan_ids)} plans")
 
-        # 1. 验证output_level
-        valid_output_levels = ["minimal", "standard", "full"]
-        if output_level not in valid_output_levels:
-            logger.warning(f"Invalid output_level: {output_level}, using default 'standard'")
-            output_level = "standard"
+        # 1. 处理output_config和output_level（优先使用output_config）
+        if output_config is None:
+            output_config = self._output_level_to_config(output_level or "standard")
+        elif isinstance(output_config, dict):
+            # 如果output_config已经是dict，确保它包含所有必需字段
+            output_config = {
+                'summary_xml': output_config.get('summary_xml', True),
+                'e1_detector_data': output_config.get('e1_detector_data', True),
+                'edgedata_xml': output_config.get('edgedata_xml', False),
+                'tripinfo_xml': output_config.get('tripinfo_xml', False)
+            }
+
+        logger.info(f"Using output_config: {output_config}")
 
         # 2. 验证case_id存在
         case_dir = Path(self.cases_base_dir) / case_id

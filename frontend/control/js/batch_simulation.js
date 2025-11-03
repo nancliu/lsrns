@@ -110,6 +110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // 初始化仿真配置事件监听 (Phase 2, 3)
+    initSimulationConfigListeners();
+
     // 绑定事件
     document.getElementById('caseSelector').addEventListener('change', onCaseChange);
     document.getElementById('createBatchBtn').addEventListener('click', createBatch);
@@ -124,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
     document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
 
-    // 计算预估 (Phase 3: 包含output_level变化)
+    // 计算预估 (Phase 1-4: 包含output, template, duration, seed变化)
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
     document.getElementById('baseSeed').addEventListener('input', updateEstimate);
     document.getElementById('outputLevel').addEventListener('change', updateEstimate);
@@ -303,12 +306,146 @@ function clearConfig() {
     updateEstimate();
 }
 
+/**
+ * 获取仿真输出配置
+ * Phase 1: 从output checkboxes收集配置
+ * @returns {Object} 输出配置对象 {summary_xml, e1_detector_data, edgedata_xml, tripinfo_xml}
+ */
+function getOutputConfig() {
+    return {
+        summary_xml: document.getElementById('outputSummary').checked,
+        e1_detector_data: document.getElementById('outputE1').checked,
+        edgedata_xml: document.getElementById('outputEdgedata').checked,
+        tripinfo_xml: document.getElementById('outputTripinfo').checked
+    };
+}
+
+/**
+ * 获取车辆类型模板
+ * Phase 2: 获取选中的template
+ * @returns {string} 选中的template文件名
+ */
+function getVehicleTemplate() {
+    return document.getElementById('vehicleTypesTemplate').value || 'vehicle_types.json';
+}
+
+/**
+ * 获取仿真时长配置
+ * Phase 3: 从radio和输入框收集时长配置
+ * @returns {Object|null} 时长配置对象或null
+ */
+function getSimulationDuration() {
+    const mode = document.querySelector('input[name="durationMode"]:checked')?.value;
+
+    if (mode === 'default') {
+        return {
+            use_default: true
+        };
+    } else if (mode === 'custom') {
+        const hours = parseInt(document.getElementById('simHours').value) || 0;
+        const minutes = parseInt(document.getElementById('simMinutes').value) || 0;
+        const totalMinutes = hours * 60 + minutes;
+
+        // 验证
+        if (totalMinutes < 1) {
+            showError('仿真时长至少为1分钟');
+            return null;
+        }
+        if (totalMinutes > 1440) {
+            showError('仿真时长不能超过24小时');
+            return null;
+        }
+
+        return {
+            use_default: false,
+            hours: hours,
+            minutes: minutes,
+            total_minutes: totalMinutes
+        };
+    }
+
+    return null;
+}
+
+/**
+ * 初始化仿真配置事件监听
+ * Phase 2 & 3: 添加交互事件
+ */
+function initSimulationConfigListeners() {
+    // Phase 2: 车辆模板选择
+    const vehicleTemplateSelect = document.getElementById('vehicleTypesTemplate');
+    if (vehicleTemplateSelect) {
+        vehicleTemplateSelect.addEventListener('change', () => {
+            debugLog('Vehicle template changed:', getVehicleTemplate());
+        });
+    }
+
+    // Phase 3: 仿真时长配置
+    const durationRadios = document.querySelectorAll('input[name="durationMode"]');
+    durationRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const isCustom = e.target.value === 'custom';
+            const customInputs = document.getElementById('customDurationInputs');
+            const simHours = document.getElementById('simHours');
+            const simMinutes = document.getElementById('simMinutes');
+
+            if (customInputs) {
+                customInputs.style.display = isCustom ? 'flex' : 'none';
+                simHours.disabled = !isCustom;
+                simMinutes.disabled = !isCustom;
+            }
+
+            const durationError = document.getElementById('durationError');
+            if (durationError) {
+                durationError.style.display = 'none';
+            }
+        });
+    });
+
+    // 时长输入验证
+    const simHours = document.getElementById('simHours');
+    const simMinutes = document.getElementById('simMinutes');
+    const durationError = document.getElementById('durationError');
+
+    if (simHours) {
+        simHours.addEventListener('change', validateDuration);
+    }
+    if (simMinutes) {
+        simMinutes.addEventListener('change', validateDuration);
+    }
+}
+
+/**
+ * 验证并显示仿真时长错误
+ * Phase 3: 验证输入
+ */
+function validateDuration() {
+    const hours = parseInt(document.getElementById('simHours').value) || 0;
+    const minutes = parseInt(document.getElementById('simMinutes').value) || 0;
+    const totalMinutes = hours * 60 + minutes;
+    const errorElem = document.getElementById('durationError');
+
+    if (!errorElem) return;
+
+    if (totalMinutes > 0 && totalMinutes < 1) {
+        errorElem.textContent = '仿真时长至少为1分钟';
+        errorElem.style.display = 'block';
+    } else if (totalMinutes > 1440) {
+        errorElem.textContent = '仿真时长不能超过24小时';
+        errorElem.style.display = 'block';
+    } else {
+        errorElem.style.display = 'none';
+    }
+}
+
 async function createBatch() {
     const caseId = document.getElementById('caseSelector').value;
     const planIds = getSelectedPlans();
     const numSeeds = parseInt(document.getElementById('numSeeds').value) || 3;
     const baseSeed = parseInt(document.getElementById('baseSeed').value) || 66;
-    const outputLevel = document.getElementById('outputLevel').value || 'standard';
+    const outputConfig = getOutputConfig();
+    const vehicleTemplate = getVehicleTemplate();
+    const simulationDuration = getSimulationDuration();
 
     if (!caseId) {
         showError('请选择案例');
@@ -320,18 +457,31 @@ async function createBatch() {
         return;
     }
 
+    if (simulationDuration === null) {
+        // Error already shown in getSimulationDuration()
+        return;
+    }
+
     try {
-        // 创建批次 (Phase 3: 包含output_level参数)
+        // 创建批次 (Phase 1-3: 使用output_config, vehicle_template, simulation_duration)
+        const requestBody = {
+            case_id: caseId,
+            plan_ids: planIds,
+            num_seeds: numSeeds,
+            base_seed: baseSeed,
+            output_config: outputConfig,
+            vehicle_types_template: vehicleTemplate
+        };
+
+        // 仅在需要时添加simulation_duration
+        if (simulationDuration) {
+            requestBody.simulation_duration = simulationDuration;
+        }
+
         const createResponse = await fetch(`${API_BASE}/control/batch-optimization/batch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                case_id: caseId,
-                plan_ids: planIds,
-                num_seeds: numSeeds,
-                base_seed: baseSeed,
-                output_level: outputLevel
-            })
+            body: JSON.stringify(requestBody)
         });
 
         if (!createResponse.ok) {
@@ -349,7 +499,7 @@ async function createBatch() {
             window.currentCaseId = currentCaseId;
         }
 
-        // Phase 1: Stay on config view, don't auto-switch
+        // Stay on config view, don't auto-switch
         updateBatchInfo(batch);
 
         // 显示提示，引导用户查看批次监控
@@ -1192,6 +1342,18 @@ async function loadResults() {
 
 function renderResults(data) {
     const container = document.getElementById('comparisonTable');
+
+    // 检查容器是否存在
+    if (!container) {
+        console.warn('comparisonTable container not found, skipping renderResults');
+        return;
+    }
+
+    // 检查数据
+    if (!data || !data.plan_results) {
+        container.innerHTML = '<p style="color: #999; padding: 20px;">暂无结果数据</p>';
+        return;
+    }
 
     // 创建表格
     let html = `
