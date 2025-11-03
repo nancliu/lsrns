@@ -44,26 +44,32 @@ class BatchOptimizationService:
     def _output_level_to_config(output_level: str) -> Dict[str, bool]:
         """
         将旧的output_level映射到新的output_config格式
-        向后兼容函数
+        向后兼容函数（P0-1: 使用新的output_*键名）
         """
         level_map = {
             'minimal': {
-                'summary_xml': True,
-                'e1_detector_data': True,
-                'edgedata_xml': False,
-                'tripinfo_xml': False
+                'output_tripinfo': False,
+                'output_vehroute': False,
+                'output_netstate': False,
+                'output_fcd': False,
+                'output_emission': False,
+                'output_edgedata': False,
             },
             'standard': {
-                'summary_xml': True,
-                'e1_detector_data': True,
-                'edgedata_xml': True,
-                'tripinfo_xml': True
+                'output_tripinfo': True,
+                'output_vehroute': True,
+                'output_netstate': True,
+                'output_fcd': True,
+                'output_emission': True,
+                'output_edgedata': True,
             },
             'full': {
-                'summary_xml': True,
-                'e1_detector_data': True,
-                'edgedata_xml': True,
-                'tripinfo_xml': True
+                'output_tripinfo': True,
+                'output_vehroute': True,
+                'output_netstate': True,
+                'output_fcd': True,
+                'output_emission': True,
+                'output_edgedata': True,
             }
         }
         return level_map.get(output_level, level_map['standard'])
