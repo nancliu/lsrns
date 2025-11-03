@@ -99,16 +99,18 @@ class BatchOptimizationService:
         """
         logger.info(f"Creating batch for case {case_id} with {len(plan_ids)} plans")
 
-        # 1. 处理output_config和output_level（优先使用output_config）
+        # 1. 处理output_config和output_level（优先使用output_config）(P0-2: 扩展output_config支持所有输出参数)
         if output_config is None:
             output_config = self._output_level_to_config(output_level or "standard")
         elif isinstance(output_config, dict):
-            # 如果output_config已经是dict，确保它包含所有必需字段
+            # 如果output_config已经是dict，确保它包含所有必需字段（支持新的output_*键名）
             output_config = {
-                'summary_xml': output_config.get('summary_xml', True),
-                'e1_detector_data': output_config.get('e1_detector_data', True),
-                'edgedata_xml': output_config.get('edgedata_xml', False),
-                'tripinfo_xml': output_config.get('tripinfo_xml', False)
+                'output_tripinfo': output_config.get('output_tripinfo', output_config.get('tripinfo_xml', False)),
+                'output_vehroute': output_config.get('output_vehroute', False),
+                'output_netstate': output_config.get('output_netstate', False),
+                'output_fcd': output_config.get('output_fcd', False),
+                'output_emission': output_config.get('output_emission', False),
+                'output_edgedata': output_config.get('output_edgedata', output_config.get('edgedata_xml', False))
             }
 
         logger.info(f"Using output_config: {output_config}")
@@ -142,17 +144,19 @@ class BatchOptimizationService:
             base_seed=base_seed,
         )
 
-        # 6. 生成统一的仿真配置 (Phase 3: 输出级别配置)
+        # 6. 生成统一的仿真配置 (Phase 3: 输出级别配置) (P0-1: 修复键名映射) (P0-2: 从output_config读取)
         unified_simulation_config = {
             "output_level": output_level,
             "num_seeds": num_seeds,
             "base_seed": base_seed,
             "seed_sequence": list(range(base_seed, base_seed + num_seeds)),
-            # 根据output_level确定输出文件
-            "summary_xml": True,  # 始终启用（结果分析必需）
-            "e1_detector_data": True,  # 始终启用（预配置在门架位置）
-            "tripinfo_xml": output_level in ["standard", "full"],  # standard和full级别启用
-            "edgedata_xml": output_level in ["standard", "full"],  # standard和full级别启用
+            # 从output_config读取输出参数配置
+            "output_tripinfo": output_config.get('output_tripinfo', False),
+            "output_vehroute": output_config.get('output_vehroute', False),
+            "output_netstate": output_config.get('output_netstate', False),
+            "output_fcd": output_config.get('output_fcd', False),
+            "output_emission": output_config.get('output_emission', False),
+            "output_edgedata": output_config.get('output_edgedata', False),
             "created_at": datetime.now().isoformat()
         }
 
@@ -169,6 +173,23 @@ class BatchOptimizationService:
             unified_simulation_config.update(simulation_config)
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(unified_simulation_config, f, ensure_ascii=False, indent=2)
+
+        # P0-3: 构造simulation_params (包含所有输出参数)
+        simulation_params = {
+            'output_tripinfo': unified_simulation_config.get('output_tripinfo', False),
+            'output_vehroute': unified_simulation_config.get('output_vehroute', False),
+            'output_netstate': unified_simulation_config.get('output_netstate', False),
+            'output_fcd': unified_simulation_config.get('output_fcd', False),
+            'output_emission': unified_simulation_config.get('output_emission', False),
+            'output_edgedata': unified_simulation_config.get('output_edgedata', False),
+        }
+
+        # 保存simulation_params到unified_simulation_config中
+        unified_simulation_config['simulation_params'] = simulation_params
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(unified_simulation_config, f, ensure_ascii=False, indent=2)
+
+        logger.info(f"Simulation params constructed and saved: {simulation_params}")
 
         # 9. 构建响应
         total_tasks = len(plan_ids) * num_seeds

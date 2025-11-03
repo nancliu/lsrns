@@ -590,9 +590,30 @@ class BatchSimulationScheduler:
         from api.models.requests.simulation_requests import SimulationRequest
         from api.models.enums import SimulationType
 
+        # P0-4: 从batch目录的simulation_config.json读取输出参数
+        batch_dir = Path(self.base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+        batch_simulation_config = {}
+
+        if batch_dir.exists():
+            config_file = batch_dir / "simulation_config.json"
+            if config_file.exists():
+                try:
+                    with open(config_file, "r", encoding="utf-8") as f:
+                        batch_config_data = json.load(f)
+                        batch_simulation_config = batch_config_data.get("simulation_params", {})
+                    logger.info(f"Loaded simulation_params from batch config: {batch_simulation_config}")
+                except Exception as e:
+                    logger.warning(f"Failed to load batch simulation_config: {e}")
+
         simulation_params = {
             "random_seed": task.seed,
         }
+
+        # 添加来自batch的output参数
+        if batch_simulation_config:
+            for key in ['output_tripinfo', 'output_vehroute', 'output_netstate', 'output_fcd', 'output_emission', 'output_edgedata']:
+                if key in batch_simulation_config:
+                    simulation_params[key] = batch_simulation_config[key]
 
         # 如果方案有additional_file，添加到仿真参数中
         if additional_file_path:

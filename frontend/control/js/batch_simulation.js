@@ -90,7 +90,6 @@ function hideElement(elementId) {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadCases();
     await loadPlans();
-    await loadVehicleTemplates(); // Revision 2: 动态加载车辆模板
 
     // 恢复案例ID（从URL参数或localStorage）
     const urlParams = new URLSearchParams(window.location.search);
@@ -383,15 +382,6 @@ function getOutputConfig() {
 }
 
 /**
- * 获取车辆类型模板
- * Phase 2: 获取选中的template
- * @returns {string} 选中的template文件名
- */
-function getVehicleTemplate() {
-    return document.getElementById('vehicleTypesTemplate').value || 'vehicle_types.json';
-}
-
-/**
  * 获取仿真时长配置
  * Phase 3: 从case元数据读取时长（Revision 3: 改为只读）
  * @returns {Object|null} 时长配置对象或null
@@ -419,59 +409,11 @@ function getSimulationDuration() {
 }
 
 /**
- * 动态加载车辆模板列表
- * Revision 2: 从API获取可用的vehicle_types*.json文件
- */
-async function loadVehicleTemplates() {
-    try {
-        const response = await fetch(`${API_BASE}/control/batch-optimization/templates/vehicle-types`);
-        if (!response.ok) {
-            throw new Error(`Failed to load templates: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const selectElement = document.getElementById('vehicleTypesTemplate');
-
-        if (!selectElement) {
-            console.warn('vehicleTypesTemplate element not found');
-            return;
-        }
-
-        // 清空现有选项（保留第一个作为默认）
-        selectElement.innerHTML = '';
-
-        // 添加模板选项
-        if (data.templates && Array.isArray(data.templates)) {
-            data.templates.forEach(template => {
-                const option = document.createElement('option');
-                option.value = template.filename;
-                option.textContent = template.display_name;
-                selectElement.appendChild(option);
-            });
-
-            console.log(`Loaded ${data.templates.length} vehicle template(s)`);
-        } else {
-            console.warn('No templates found in response');
-        }
-    } catch (error) {
-        console.error('Load vehicle templates error:', error);
-        // 回退到默认模板（HTML中已有）
-        console.log('Using default vehicle template');
-    }
-}
-
-/**
  * 初始化仿真配置事件监听
  * Phase 2: 添加交互事件
  */
 function initSimulationConfigListeners() {
-    // Phase 2: 车辆模板选择
-    const vehicleTemplateSelect = document.getElementById('vehicleTypesTemplate');
-    if (vehicleTemplateSelect) {
-        vehicleTemplateSelect.addEventListener('change', () => {
-            debugLog('Vehicle template changed:', getVehicleTemplate());
-        });
-    }
+    // 注: 车辆模板选择已移除，只在OD生成rou.xml时使用
 
     // Revision 6: 时长输入框事件监听（可选，用于实时反馈）
     const hoursInput = document.getElementById('simulationDurationHours');
@@ -493,7 +435,6 @@ async function createBatch() {
     const numSeeds = parseInt(document.getElementById('numSeeds').value) || 3;
     const baseSeed = parseInt(document.getElementById('baseSeed').value) || 66;
     const outputConfig = getOutputConfig();
-    const vehicleTemplate = getVehicleTemplate();
     const simulationDuration = getSimulationDuration();
 
     if (!caseId) {
@@ -512,14 +453,14 @@ async function createBatch() {
     }
 
     try {
-        // 创建批次 (Phase 1-3: 使用output_config, vehicle_template, simulation_duration)
+        // 创建批次 (Phase 1-3: 使用output_config, simulation_duration)
+        // 注: vehicle_types_template已移除，只在OD生成rou.xml时使用
         const requestBody = {
             case_id: caseId,
             plan_ids: planIds,
             num_seeds: numSeeds,
             base_seed: baseSeed,
-            output_config: outputConfig,
-            vehicle_types_template: vehicleTemplate
+            output_config: outputConfig
         };
 
         // 仅在需要时添加simulation_duration
