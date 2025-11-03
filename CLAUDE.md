@@ -1405,6 +1405,68 @@ See STANDARD-CODE-001 → Naming Conventions above.
 - Requires: output_edgedata enabled in simulation
 - Location: `cases/{case_id}/analysis/edgedata/`
 
+## Simulation Output Configuration (P0-6)
+
+### Output Parameters Overview
+
+The batch simulation system supports 6 configurable output formats for detailed traffic analysis:
+
+| Parameter | SUMO Output | Description | Use Case |
+|-----------|-----------|-------------|----------|
+| output_tripinfo | tripinfo.xml | Vehicle journey information (departure, arrival, duration) | Mechanism analysis, flow analysis |
+| output_vehroute | vehroute.xml | Vehicle route details (edges traversed, timings) | Route analysis, traffic pattern |
+| output_netstate | netstate.xml | Network state snapshots (vehicle positions at intervals) | Congestion analysis, flow dynamics |
+| output_fcd | fcd.xml | Floating car data (GPS-like trajectories) | Validation against real data |
+| output_emission | emission.xml | Vehicle emission data (CO2, NOx, etc.) | Environmental impact analysis |
+| output_edgedata | edgedata.xml | Edge statistics (flow, speed, occupancy) | Road segment analysis, capacity |
+
+### Configuration Usage
+
+**API Request Example:**
+```json
+{
+  "case_id": "case_20250119_143000",
+  "plan_ids": ["plan_001", "plan_002"],
+  "output_config": {
+    "output_tripinfo": true,
+    "output_vehroute": true,
+    "output_netstate": false,
+    "output_fcd": false,
+    "output_emission": false,
+    "output_edgedata": true
+  }
+}
+```
+
+### Implementation Details (P0-1 to P0-4)
+
+**Flow Chain:**
+1. Frontend collects output preferences (output_config)
+2. API passes to BatchOptimizationService.create_batch()
+3. Service stores in simulation_config.json as output_*parameters
+4. Batch scheduler reads and passes to SimulationService
+5. SimulationService applies to SUMO sumocfg generation
+6. SUMO generates selected output files
+
+**Key Files Modified:**
+- `api/services/batch_optimization_service.py` - P0-1, P0-2, P0-3
+- `shared/control_tools/batch_simulation_scheduler.py` - P0-4
+- `shared/utilities/sumo_utils.py` - Apply parameters to sumocfg
+
+### Testing & Validation (P0-5, P0-6)
+
+**Integration Tests:** `tests/integration/test_sumocfg_output_params.py`
+- Validates correct parameter flow and JSON structure
+- 5/5 tests passing ✅
+
+**Unit Tests:** `tests/unit/services/test_batch_optimization_service.py`
+- Added 4 new test cases:
+  - test_create_batch_with_tripinfo_output
+  - test_create_batch_with_vehroute_output
+  - test_create_batch_with_mixed_outputs
+  - test_simulation_params_construction
+- All tests passing (29/29) ✅
+
 ## Common Pitfalls
 
 ### Architecture Violations

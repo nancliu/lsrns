@@ -507,8 +507,32 @@ POST /api/v1/control/batch-optimization/batch
 | plan_ids | array | ✅ | 方案ID列表（系统会自动添加baseline_plan如果缺失） |
 | num_seeds | integer | ❌ | 每个方案的随机种子数量，范围1-10，默认3 |
 | base_seed | integer | ❌ | 起始随机种子值，默认66 |
-| output_level | string | ❌ | 仿真输出级别：`minimal`/`standard`/`full`，默认`standard` |
+| output_level | string | ❌ | 仿真输出级别：`minimal`/`standard`/`full`，默认`standard` (已弃用，使用output_config) |
+| output_config | object | ❌ | 仿真输出配置（详见下表） |
 | simulation_config | object | ❌ | 仿真配置参数（可选） |
+
+**输出配置字段说明 (output_config):**
+
+| 字段 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| output_tripinfo | boolean | false | 输出tripinfo.xml (车辆行程信息) |
+| output_vehroute | boolean | false | 输出vehroute.xml (车辆路线) |
+| output_netstate | boolean | false | 输出netstate.xml (网络状态) |
+| output_fcd | boolean | false | 输出fcd.xml (浮动车数据) |
+| output_emission | boolean | false | 输出emission.xml (排放数据) |
+| output_edgedata | boolean | false | 输出edgedata.xml (边链接数据) |
+
+**示例:**
+```json
+{
+  "output_tripinfo": true,
+  "output_vehroute": true,
+  "output_netstate": false,
+  "output_fcd": false,
+  "output_emission": false,
+  "output_edgedata": true
+}
+```
 
 **输出级别说明:**
 
