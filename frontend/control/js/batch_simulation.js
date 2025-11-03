@@ -196,7 +196,19 @@ async function loadCases() {
         data.cases.forEach(c => {
             const option = document.createElement('option');
             option.value = c.case_id;
-            option.textContent = `${c.case_id} - ${c.description || ''}`;
+
+            // Revision 4: 在案例列表中显示时间范围信息
+            let displayText = c.case_id;
+            if (c.time_range && c.time_range.start && c.time_range.end) {
+                // 提取时间范围：2025/09/01 07:00:00 -> 07:00-07:10
+                const startTime = c.time_range.start.split(' ')[1]; // HH:MM:SS
+                const endTime = c.time_range.end.split(' ')[1];     // HH:MM:SS
+                displayText += ` - 案例时间: ${startTime}-${endTime}`;
+            } else if (c.description) {
+                displayText += ` - ${c.description}`;
+            }
+
+            option.textContent = displayText;
             select.appendChild(option);
         });
     } catch (error) {
