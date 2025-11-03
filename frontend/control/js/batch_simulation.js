@@ -210,13 +210,11 @@ async function loadCases() {
             const option = document.createElement('option');
             option.value = c.case_id;
 
-            // Revision 4: 在案例列表中显示时间范围信息
+            // Revision 4: 在案例列表中显示时间范围信息 (Revision 6: 显示完整日期时间)
             let displayText = c.case_id;
             if (c.time_range && c.time_range.start && c.time_range.end) {
-                // 提取时间范围：2025/09/01 07:00:00 -> 07:00-07:10
-                const startTime = c.time_range.start.split(' ')[1]; // HH:MM:SS
-                const endTime = c.time_range.end.split(' ')[1];     // HH:MM:SS
-                displayText += ` - 案例时间: ${startTime}-${endTime}`;
+                // 显示完整的日期时间范围：2025/09/01 07:00:00-2025/09/01 07:10:00
+                displayText += ` - 案例时间: ${c.time_range.start}-${c.time_range.end}`;
             } else if (c.description) {
                 displayText += ` - ${c.description}`;
             }
