@@ -73,6 +73,30 @@
     border-color: #2196f3;
 }
 
+/* Phase 4: 基准方案特殊样式 */
+.baseline-plan-item {
+    background: linear-gradient(90deg, #f0f5ff 0%, #e8f2ff 100%);
+    border: 2px solid var(--color-primary);
+    border-left: 4px solid var(--color-primary);
+}
+
+.baseline-plan-item:hover {
+    background: linear-gradient(90deg, #e3eaff 0%, #dce8ff 100%);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.baseline-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-600);
+    margin-left: var(--spacing-10);
+    white-space: nowrap;
+}
+
 .plan-item input[type="checkbox"] {
     width: auto;
     margin-right: var(--spacing-10);
@@ -600,11 +624,97 @@
     background: white;
 }
 
-/* 批次列表 (统一监控视图) */
-.batch-list {
+/* ==================== 案例分组样式 (Phase 1) ==================== */
+
+/* 案例分组容器 */
+.case-group {
+    margin-bottom: var(--spacing-30);
+    border: 1px solid var(--color-light-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.case-group-header {
+    padding: var(--spacing-15) var(--spacing-20);
+    background: linear-gradient(135deg, #f5f7fa 0%, #f9fbff 100%);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-15);
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 2px solid var(--color-primary);
+    transition: all var(--transition-base);
+}
+
+.case-group-header:hover {
+    background: linear-gradient(135deg, #e8eef7 0%, #f0f5ff 100%);
+}
+
+.case-group-toggle {
+    background: none;
+    border: none;
+    font-size: var(--font-size-lg);
+    cursor: pointer;
+    font-weight: var(--font-weight-bold);
+    min-width: 2rem;
+    color: var(--color-primary);
+    transition: transform var(--transition-base);
+    flex-shrink: 0;
+}
+
+.case-group-toggle:hover {
+    transform: scale(1.1);
+}
+
+.case-group-title {
+    flex: 1;
+    display: flex;
+    gap: var(--spacing-20);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.case-id {
+    font-weight: var(--font-weight-600);
+    color: var(--color-dark);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family-mono);
+}
+
+.case-name {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.batch-count {
+    font-size: 0.85rem;
+    color: #999;
+    background: #e8ecf1;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.case-group-body {
+    padding: var(--spacing-20);
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--spacing-15);
+    transition: all var(--transition-base);
+}
+
+.case-group-body.hidden {
+    display: none;
+}
+
+/* ==================== 批次列表 (统一监控视图) ==================== */
+
+.batch-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-20);
 }
 
 /* 保留旧类名以向后兼容 */
@@ -909,6 +1019,94 @@
     padding-bottom: 70px;
 }
 
+/* ==================== 结果对比表样式 (Phase 6) ==================== */
+
+.comparison-table-container {
+    margin: var(--spacing-20) 0;
+    overflow-x: auto;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--spacing-20) 0;
+    background: white;
+    font-size: 0.9rem;
+    border: 1px solid var(--color-light-border);
+    border-radius: var(--radius-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.comparison-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: var(--spacing-12) var(--spacing-15);
+    text-align: right;
+    border-bottom: 1px solid var(--color-light-border);
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+    text-align: left;
+    font-weight: var(--font-weight-600);
+}
+
+.comparison-table .plan-row.baseline {
+    background: linear-gradient(90deg, #f5f7fa 0%, #e8ecf1 100%);
+    font-weight: var(--font-weight-600);
+    border-left: 4px solid var(--color-primary);
+}
+
+.comparison-table .improvement {
+    font-weight: var(--font-weight-600);
+    padding: var(--spacing-8) var(--spacing-12);
+    border-radius: var(--radius-base);
+}
+
+.comparison-table .improvement.positive {
+    color: #27ae60;
+    background: #d5f4e6;
+}
+
+.comparison-table .improvement.negative {
+    color: #c0392b;
+    background: #ffebee;
+}
+
+.results-summary {
+    background: linear-gradient(135deg, #f5f7fa 0%, #f9fbff 100%);
+    padding: var(--spacing-20);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--color-primary);
+    margin-bottom: var(--spacing-20);
+}
+
+.results-summary h3 {
+    margin-top: 0;
+    color: var(--color-dark);
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: var(--spacing-10);
+}
+
+.results-summary p {
+    margin: var(--spacing-8) 0;
+    color: #666;
+}
+
+.results-charts {
+    margin-top: var(--spacing-30);
+    padding: var(--spacing-20);
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ==================== 响应式设计 ==================== */
+
 /* 响应式设计 - 隐藏小屏幕上的底部标签栏 */
 @media (max-width: 768px) {
     .view-tabs-bottom {
@@ -917,5 +1115,24 @@
 
     .content-area {
         padding-bottom: 0;
+    }
+
+    .case-group-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-10);
+    }
+
+    .case-group-body {
+        grid-template-columns: 1fr;
+    }
+
+    .comparison-table {
+        font-size: 0.8rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: var(--spacing-8) var(--spacing-10);
     }
 }

@@ -4,7 +4,7 @@
 职责：
 - 批量仿真批次的创建和管理
 - 协调batch_simulation_scheduler执行
-- 结果汇总和统计分析
+- 结果汇总和统计分析 (Phase 2: BatchResultAnalyzer集成)
 - 与plan_service和simulation_service集成
 """
 
@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 
 from shared.control_tools.batch_simulation_scheduler import BatchSimulationScheduler
 from shared.control_tools import plan_file_manager
+from shared.analysis_tools.batch_result_analyzer import BatchResultAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +46,18 @@ class BatchOptimizationService:
         plan_ids: List[str],
         num_seeds: int = 3,
         base_seed: int = 66,
+        output_level: str = "standard",
         simulation_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        创建批量仿真批次
+        创建批量仿真批次 (Phase 3: 支持output_level配置)
 
         Args:
             case_id: 案例ID
             plan_ids: 方案ID列表（必须包含baseline_plan）
             num_seeds: 每个方案的随机种子数量
             base_seed: 起始随机种子值
+            output_level: 仿真输出级别 ("minimal", "standard", "full")
             simulation_config: 仿真配置参数（可选）
 
         Returns:
@@ -64,14 +67,20 @@ class BatchOptimizationService:
             ValueError: 验证失败
             FileNotFoundError: 案例或方案不存在
         """
-        logger.info(f"Creating batch for case {case_id} with {len(plan_ids)} plans")
+        logger.info(f"Creating batch for case {case_id} with {len(plan_ids)} plans, output_level={output_level}")
 
-        # 1. 验证case_id存在
+        # 1. 验证output_level
+        valid_output_levels = ["minimal", "standard", "full"]
+        if output_level not in valid_output_levels:
+            logger.warning(f"Invalid output_level: {output_level}, using default 'standard'")
+            output_level = "standard"
+
+        # 2. 验证case_id存在
         case_dir = Path(self.cases_base_dir) / case_id
         if not case_dir.exists():
             raise FileNotFoundError(f"案例不存在: {case_id}")
 
-        # 2. 验证所有plan_ids存在
+        # 3. 验证所有plan_ids存在
         plan_names = {}
         for plan_id in plan_ids:
             try:
@@ -80,13 +89,13 @@ class BatchOptimizationService:
             except FileNotFoundError:
                 raise FileNotFoundError(f"方案不存在: {plan_id}")
 
-        # 3. 确保包含baseline_plan
+        # 4. 确保包含baseline_plan (Phase 4: 基准方案强制包含)
         if BASELINE_PLAN_ID not in plan_ids:
             logger.warning(f"Baseline plan not in list, adding it automatically")
             plan_ids.insert(0, BASELINE_PLAN_ID)
             plan_names[BASELINE_PLAN_ID] = "基准方案（无管控）"
 
-        # 4. 创建批次
+        # 5. 创建批次
         batch_id, batch_dir = self.scheduler.create_batch(
             case_id=case_id,
             plan_ids=plan_ids,
@@ -95,13 +104,35 @@ class BatchOptimizationService:
             base_seed=base_seed,
         )
 
-        # 5. 保存仿真配置（如果提供）
-        if simulation_config:
-            config_path = batch_dir / "simulation_config.json"
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(simulation_config, f, ensure_ascii=False, indent=2)
+        # 6. 生成统一的仿真配置 (Phase 3: 输出级别配置)
+        unified_simulation_config = {
+            "output_level": output_level,
+            "num_seeds": num_seeds,
+            "base_seed": base_seed,
+            "seed_sequence": list(range(base_seed, base_seed + num_seeds)),
+            # 根据output_level确定输出文件
+            "summary_xml": True,  # 始终启用（结果分析必需）
+            "e1_detector_data": True,  # 始终启用（预配置在门架位置）
+            "tripinfo_xml": output_level in ["standard", "full"],  # standard和full级别启用
+            "edgedata_xml": output_level in ["standard", "full"],  # standard和full级别启用
+            "created_at": datetime.now().isoformat()
+        }
 
-        # 6. 构建响应
+        # 7. 保存统一的仿真配置到batch目录
+        config_path = batch_dir / "simulation_config.json"
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(unified_simulation_config, f, ensure_ascii=False, indent=2)
+
+        logger.info(f"Unified simulation config saved: {config_path}")
+
+        # 8. 如果提供了额外的simulation_config，合并它
+        if simulation_config:
+            # 不覆盖关键的输出配置，但允许其他参数
+            unified_simulation_config.update(simulation_config)
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(unified_simulation_config, f, ensure_ascii=False, indent=2)
+
+        # 9. 构建响应
         total_tasks = len(plan_ids) * num_seeds
 
         response = {
@@ -109,11 +140,12 @@ class BatchOptimizationService:
             "case_id": case_id,
             "plan_ids": plan_ids,
             "total_tasks": total_tasks,
+            "output_level": output_level,
             "status": "pending",
             "created_at": datetime.now().isoformat(),
         }
 
-        # 7. 更新批次索引
+        # 10. 更新批次索引 (Phase 3: 包含output_level信息)
         batch_metadata = {
             "batch_id": batch_id,
             "case_id": case_id,
@@ -121,6 +153,7 @@ class BatchOptimizationService:
             "total_tasks": total_tasks,
             "num_seeds": num_seeds,
             "base_seed": base_seed,
+            "output_level": output_level,  # Phase 3新增
             "max_concurrent": 1,  # 默认并发数
             "status": "pending",
             "created_at": response["created_at"],
@@ -1749,6 +1782,65 @@ class BatchOptimizationService:
             }
         }
 
+    def get_batch_results(self, case_id: str, batch_id: str) -> Dict[str, Any]:
+        """
+        获取批次结果及分析数据 (Phase 2: T2.1-T2.3 results analysis)
+
+        Args:
+            case_id: 案例ID
+            batch_id: 批次ID
+
+        Returns:
+            Dict: 包含对比结果和改进率的分析数据
+
+        说明：
+        - 从summary.xml提取各方案的关键指标
+        - 计算test方案相对于baseline的改进率
+        - 生成结果对比表
+        """
+        logger.info(f"Getting batch results for {batch_id}")
+
+        batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+
+        if not batch_dir.exists():
+            raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        # 1. 加载批次元数据获取plan_ids
+        metadata_file = batch_dir / "batch_metadata.json"
+        if not metadata_file.exists():
+            raise FileNotFoundError(f"批次元数据不存在: {metadata_file}")
+
+        with open(metadata_file, 'r', encoding='utf-8') as f:
+            batch_metadata = json.load(f)
+
+        plan_ids = batch_metadata.get("plan_ids", [])
+
+        # 2. 使用BatchResultAnalyzer分析结果
+        analyzer = BatchResultAnalyzer()
+        analysis_results = analyzer.analyze_batch_results(
+            batch_dir=batch_dir,
+            plan_ids=plan_ids,
+            baseline_plan_id=BASELINE_PLAN_ID
+        )
+
+        # 3. 合并批次元数据和分析结果
+        result = {
+            "batch_id": batch_id,
+            "case_id": case_id,
+            "status": batch_metadata.get("status", "pending"),
+            "analysis": analysis_results,
+            "metadata": {
+                "num_seeds": batch_metadata.get("num_seeds", 1),
+                "base_seed": batch_metadata.get("base_seed", 66),
+                "output_level": batch_metadata.get("output_level", "standard"),
+                "created_at": batch_metadata.get("created_at"),
+                "completed_at": batch_metadata.get("completed_at"),
+            }
+        }
+
+        logger.info(f"Successfully analyzed batch {batch_id}")
+        return result
+
     def delete_batch_with_archive(self, case_id: str, batch_id: str, archive: bool = False) -> Dict[str, Any]:
         """
         删除或归档批次
@@ -1823,14 +1915,16 @@ def create_batch_service(
     plan_ids: List[str],
     num_seeds: int = 3,
     base_seed: int = 66,
+    output_level: str = "standard",
     simulation_config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """创建批量仿真批次服务函数"""
+    """创建批量仿真批次服务函数 (Phase 3: 支持output_level)"""
     return batch_optimization_service.create_batch(
         case_id=case_id,
         plan_ids=plan_ids,
         num_seeds=num_seeds,
         base_seed=base_seed,
+        output_level=output_level,
         simulation_config=simulation_config,
     )
 

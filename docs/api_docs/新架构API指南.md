@@ -476,6 +476,350 @@ input_files 子字段：
   - 仅更新 `analysis/<batch>/metadata.json` 与 `analysis/analysis_index.json`
   - 不创建/不更新 案例级与仿真分支任何元数据
 
+---
+
+## 批量优化仿真组 (`/api/v1/control/batch-optimization/`)
+
+### 创建批量仿真批次
+
+```
+POST /api/v1/control/batch-optimization/batch
+```
+
+**请求体示例:**
+
+```json
+{
+  "case_id": "case_20250119_143000",
+  "plan_ids": ["plan_control_001", "plan_control_002"],
+  "num_seeds": 3,
+  "base_seed": 66,
+  "output_level": "standard",
+  "simulation_config": {}
+}
+```
+
+**请求字段说明:**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| case_id | string | ✅ | 案例ID |
+| plan_ids | array | ✅ | 方案ID列表（系统会自动添加baseline_plan如果缺失） |
+| num_seeds | integer | ❌ | 每个方案的随机种子数量，范围1-10，默认3 |
+| base_seed | integer | ❌ | 起始随机种子值，默认66 |
+| output_level | string | ❌ | 仿真输出级别：`minimal`/`standard`/`full`，默认`standard` |
+| simulation_config | object | ❌ | 仿真配置参数（可选） |
+
+**输出级别说明:**
+
+| 级别 | 说明 | 用途 |
+|---|---|---|
+| minimal | summary.xml + E1数据 | 快速批量筛选 |
+| standard | summary.xml + E1数据 + tripinfo.xml + edgedata.xml | 详细分析（默认） |
+| full | 所有输出文件 | 研究/演示 |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "case_id": "case_20250119_143000",
+  "total_tasks": 6,
+  "status": "pending",
+  "output_level": "standard",
+  "created_at": "2025-01-19T14:30:00Z",
+  "plans_included": ["baseline_plan", "plan_control_001", "plan_control_002"]
+}
+```
+
+**说明:**
+- baseline_plan如果缺失会自动添加
+- 所有方案将使用相同的output_level配置以确保一致性
+- 种子序列：66, 67, 68（如果num_seeds=3, base_seed=66）
+
+---
+
+### 启动批量仿真
+
+```
+POST /api/v1/control/batch-optimization/batch/{batch_id}/start
+```
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| batch_id | string | 批次ID |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "status": "running",
+  "message": "批次已启动，任务在后台执行"
+}
+```
+
+**说明:**
+- 批次将在后台异步执行
+- 使用 GET /batch/{batch_id}/progress 查询进度
+
+---
+
+### 获取批量仿真进度
+
+```
+GET /api/v1/control/batch-optimization/batch/{batch_id}/progress
+```
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| batch_id | string | 批次ID |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "status": "running",
+  "total_tasks": 6,
+  "completed_tasks": 3,
+  "running_tasks": 2,
+  "failed_tasks": 0,
+  "progress_percent": 50,
+  "estimated_completion_time": "2025-01-19T15:00:00Z",
+  "tasks": [
+    {
+      "task_id": "task_001",
+      "plan_id": "baseline_plan",
+      "seed": 66,
+      "status": "completed",
+      "created_at": "2025-01-19T14:30:00Z",
+      "completed_at": "2025-01-19T14:45:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 获取批量仿真结果
+
+```
+GET /api/v1/control/batch-optimization/batch/{batch_id}/results
+```
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| batch_id | string | 批次ID |
+
+**查询参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| include_time_series | boolean | 是否包含时序数据，默认false |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "metadata": {
+    "case_id": "case_20250119_143000",
+    "output_level": "standard",
+    "num_seeds": 3,
+    "base_seed": 66,
+    "completed_at": "2025-01-19T15:00:00Z"
+  },
+  "analysis": {
+    "comparison_summary": {
+      "columns": [
+        { "field": "metric_name", "label": "指标" },
+        { "field": "baseline_value", "label": "基准值" },
+        { "field": "test_value", "label": "测试值" },
+        { "field": "improvement_rate", "label": "改进率%" }
+      ],
+      "rows": [
+        {
+          "metric": "avgSpeed",
+          "metric_name": "平均速度",
+          "unit": "km/h",
+          "baseline_value": 25.5,
+          "test_values": {
+            "plan_control_001": {
+              "value": 30.2,
+              "improvement_rate": 18.4
+            }
+          }
+        }
+      ]
+    },
+    "improvement_rates": {
+      "plan_control_001": {
+        "avgSpeed": 18.4,
+        "waiting": -15.2
+      }
+    }
+  }
+}
+```
+
+**说明:**
+- 只能查询已完成的批次
+- 返回每个方案的多次随机仿真结果和统计分析
+- 改进率为正表示改进，为负表示恶化
+
+---
+
+### 取消运行中的批量仿真
+
+```
+POST /api/v1/control/batch-optimization/batch/{batch_id}/cancel
+```
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| batch_id | string | 批次ID |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "status": "cancelled",
+  "message": "批次已取消，pending和running任务已停止"
+}
+```
+
+**说明:**
+- 取消所有pending和running任务
+- 杀死运行中的SUMO进程
+- 保留仿真目录，之后可以重新启动
+
+---
+
+### 删除批量仿真批次
+
+```
+DELETE /api/v1/control/batch-optimization/batch/{batch_id}
+```
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| batch_id | string | 批次ID |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "message": "批次已删除"
+}
+```
+
+**说明:**
+- 删除批次目录和所有相关文件
+- 如果批次正在运行，会先进行取消
+
+---
+
+### 列表查询批次
+
+```
+GET /api/v1/control/batch-optimization/batches
+```
+
+**查询参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| case_id | string | 案例ID（必填） |
+| status | string | 筛选状态（可选）：pending/running/completed/cancelled/failed/archived |
+| page | integer | 页码，默认1 |
+| limit | integer | 每页数量，默认20 |
+
+**响应示例:**
+
+```json
+{
+  "batches": [
+    {
+      "batch_id": "batch_20250119_143000",
+      "case_id": "case_20250119_143000",
+      "status": "completed",
+      "total_tasks": 6,
+      "completed_tasks": 6,
+      "output_level": "standard",
+      "created_at": "2025-01-19T14:30:00Z",
+      "completed_at": "2025-01-19T15:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 5
+  }
+}
+```
+
+---
+
+### 获取批次详细信息
+
+```
+GET /api/v1/control/batch-optimization/batches/{batch_id}/detail
+```
+
+**路径参数:**
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| batch_id | string | 批次ID |
+
+**响应示例:**
+
+```json
+{
+  "batch_id": "batch_20250119_143000",
+  "case_id": "case_20250119_143000",
+  "status": "completed",
+  "output_level": "standard",
+  "num_seeds": 3,
+  "base_seed": 66,
+  "created_at": "2025-01-19T14:30:00Z",
+  "completed_at": "2025-01-19T15:00:00Z",
+  "plans": [
+    {
+      "plan_id": "baseline_plan",
+      "is_baseline": true,
+      "total_tasks": 3,
+      "completed_tasks": 3
+    },
+    {
+      "plan_id": "plan_control_001",
+      "is_baseline": false,
+      "total_tasks": 3,
+      "completed_tasks": 3
+    }
+  ],
+  "task_summary": {
+    "total": 6,
+    "completed": 6,
+    "running": 0,
+    "failed": 0
+  }
+}
+```
+
 ## 🔄 更新日志
 
 ### v2.0.0 (2025-01-19)

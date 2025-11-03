@@ -58,6 +58,12 @@
 
                 <div class="config-section">
                     <h3>选择方案</h3>
+                    <!-- Phase 4: 基准方案强制包含说明 -->
+                    <div style="background: #f0f5ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #333;">
+                            <strong>ℹ️ 基准方案强制包含:</strong> 系统会自动将基准方案（无管控）包含在批次中，作为所有方案的对比基准，即使您未手动选择。
+                        </p>
+                    </div>
                     <div id="planSelector">
                         <!-- 动态加载 -->
                     </div>
@@ -65,6 +71,17 @@
 
                 <div class="config-section">
                     <h3>仿真配置</h3>
+                    <div class="form-group">
+                        <label for="outputLevel">输出级别 (Phase 3新增):</label>
+                        <select id="outputLevel">
+                            <option value="minimal">minimal - 最小化输出（快速筛选）</option>
+                            <option value="standard" selected>standard - 标准输出（详细分析）</option>
+                            <option value="full">full - 完整输出（研究/演示）</option>
+                        </select>
+                        <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                            <strong>说明:</strong> 所有方案将使用相同的输出配置以确保对比的一致性
+                        </p>
+                    </div>
                     <div class="form-group">
                         <label for="numSeeds">随机种子数 (每个方案):</label>
                         <input type="number" id="numSeeds" value="3" min="1" max="10">
@@ -77,6 +94,9 @@
                     <div class="estimate-box">
                         <p><strong>批次任务数量预估:</strong></p>
                         <p id="estimateText">请选择方案</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                            <strong>种子序列:</strong> <span id="seedSequencePreview">66</span>
+                        </p>
                     </div>
                 </div>
 
@@ -242,5 +262,7 @@
     <script src="js/notification.js?v=2025103001"></script>
     <!-- 批量仿真逻辑 -->
     <script src="js/batch_simulation.js?v=2025103002"></script>
+    <!-- 批次结果可视化 (Phase 6) -->
+    <script src="js/batch_results.js?v=2025110301"></script>
 </body>
 </html>

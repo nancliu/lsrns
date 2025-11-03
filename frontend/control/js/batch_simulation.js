@@ -124,9 +124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
     document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
 
-    // 计算预估
+    // 计算预估 (Phase 3: 包含output_level变化)
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
     document.getElementById('baseSeed').addEventListener('input', updateEstimate);
+    document.getElementById('outputLevel').addEventListener('change', updateEstimate);
 });
 
 // ========== 视图切换 ==========
@@ -214,6 +215,11 @@ async function loadPlans() {
             const div = document.createElement('div');
             div.className = 'plan-item';
 
+            // Phase 4: 标记基准方案为特殊样式
+            if (plan.is_baseline) {
+                div.classList.add('baseline-plan-item');
+            }
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = `plan-${plan.plan_id}`;
@@ -224,7 +230,13 @@ async function loadPlans() {
 
             const label = document.createElement('label');
             label.htmlFor = `plan-${plan.plan_id}`;
-            label.textContent = `${plan.plan_name}${plan.is_baseline ? ' (必选)' : ''}`;
+
+            // Phase 4: 在基准方案名称后添加徽章
+            if (plan.is_baseline) {
+                label.innerHTML = `${plan.plan_name} <span class="baseline-badge">基准方案（必选）</span>`;
+            } else {
+                label.textContent = plan.plan_name;
+            }
 
             div.appendChild(checkbox);
             div.appendChild(label);
@@ -248,10 +260,20 @@ function getSelectedPlans() {
 function updateEstimate() {
     const selectedPlans = getSelectedPlans();
     const numSeeds = parseInt(document.getElementById('numSeeds').value) || 3;
+    const baseSeed = parseInt(document.getElementById('baseSeed').value) || 66;
+    const outputLevel = document.getElementById('outputLevel').value || 'standard';
     const totalTasks = selectedPlans.length * numSeeds;
 
+    // 更新任务数预估
     document.getElementById('estimateText').textContent =
         `${selectedPlans.length}个方案 × ${numSeeds} 个随机种子 = ${totalTasks} 个并行仿真任务`;
+
+    // Phase 3: 更新种子序列预览
+    const seedSequence = [];
+    for (let i = 0; i < numSeeds; i++) {
+        seedSequence.push(baseSeed + i);
+    }
+    document.getElementById('seedSequencePreview').textContent = seedSequence.join(', ');
 }
 
 async function onCaseChange() {
@@ -286,6 +308,7 @@ async function createBatch() {
     const planIds = getSelectedPlans();
     const numSeeds = parseInt(document.getElementById('numSeeds').value) || 3;
     const baseSeed = parseInt(document.getElementById('baseSeed').value) || 66;
+    const outputLevel = document.getElementById('outputLevel').value || 'standard';
 
     if (!caseId) {
         showError('请选择案例');
@@ -298,7 +321,7 @@ async function createBatch() {
     }
 
     try {
-        // 创建批次
+        // 创建批次 (Phase 3: 包含output_level参数)
         const createResponse = await fetch(`${API_BASE}/control/batch-optimization/batch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -306,7 +329,8 @@ async function createBatch() {
                 case_id: caseId,
                 plan_ids: planIds,
                 num_seeds: numSeeds,
-                base_seed: baseSeed
+                base_seed: baseSeed,
+                output_level: outputLevel
             })
         });
 
@@ -1377,8 +1401,43 @@ function renderPeakMetrics(metrics) {
 async function exportResults() {
     if (!currentBatchId) return;
 
-    showError('导出功能暂未实现，敬请期待！(计划在 v0.9.1 中实现)');
-    // TODO: v0.9.1 中实现 CSV 导出
+    // Phase 6: 使用batch_results.js中的导出函数
+    if (typeof exportResultsAsCSV === 'function') {
+        exportResultsAsCSV();
+    } else {
+        showError('导出功能暂未实现，敬请期待！(计划在 v0.9.1 中实现)');
+    }
+}
+
+// ========== 加载批次结果 (Phase 6: 结果可视化) ==========
+
+/**
+ * Phase 6: 加载批次结果并切换到结果视图
+ * @param {string} batchId - 批次ID
+ */
+async function loadBatchResultsAndSwitch(batchId) {
+    try {
+        currentBatchId = batchId;
+
+        // 使用batch_results.js中的加载函数
+        if (typeof loadBatchResults === 'function') {
+            const caseId = currentCaseId || 'unknown';
+            await loadBatchResults(batchId, caseId);
+        } else {
+            // 备选：直接获取结果数据
+            const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`);
+            if (!response.ok) throw new Error('Failed to fetch batch results');
+            const data = await response.json();
+            console.log('Batch results:', data);
+            showError('结果可视化模块加载中...');
+        }
+
+        // 显示结果视图
+        switchView('results');
+    } catch (error) {
+        console.error('Error loading batch results:', error);
+        showError('加载结果失败: ' + error.message);
+    }
 }
 
 // ========== 导航到优化页面 ==========
@@ -1393,86 +1452,273 @@ function viewOptimizationAnalysis() {
     window.location.href = `optimization.html?batch_id=${currentBatchId}`;
 }
 
-// ========== 批次历史管理 ==========
+// ========== 批次历史管理 (Phase 1: 已升级为case分组视图) ==========
 
 async function loadBatchHistory() {
-    if (!currentCaseId) {
-        const emptyState = document.getElementById('batchListEmpty');
-        if (emptyState) emptyState.style.display = 'block';
-        const listContainer = document.getElementById('batchList');
-        if (listContainer) listContainer.innerHTML = '';
-        return;
-    }
-
     try {
-        const statusFilter = document.getElementById('statusFilter');
-        const status = statusFilter ? statusFilter.value : '';
-        const params = new URLSearchParams({
-            case_id: currentCaseId,
-            page: 1,
-            limit: 100
+        // 先加载所有案例
+        const casesResponse = await fetch(`${API_BASE}/case/list_cases/`);
+        const casesData = casesResponse.ok ? await casesResponse.json() : { cases: [] };
+        const caseMetadata = {};
+        const allBatches = [];
+
+        casesData.cases.forEach(c => {
+            caseMetadata[c.case_id] = c;
         });
-        if (status) params.append('status', status);
 
-        const response = await fetch(`${API_BASE}/control/batch-optimization/batches?${params}`);
-        if (!response.ok) throw new Error('Failed to load batch history');
+        // 为每个案例加载该案例的批次
+        for (const caseInfo of casesData.cases) {
+            try {
+                const params = new URLSearchParams({
+                    case_id: caseInfo.case_id,
+                    page: 1,
+                    limit: 1000
+                });
 
-        const data = await response.json();
-        const batches = data.batches || [];
+                const response = await fetch(`${API_BASE}/control/batch-optimization/batches?${params}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const caseBatches = data.batches || [];
+                    allBatches.push(...caseBatches);
+                }
+            } catch (e) {
+                logger.warn(`Failed to load batches for case ${caseInfo.case_id}:`, e);
+            }
+        }
 
-        const listContainer = document.getElementById('batchList');
-        const emptyState = document.getElementById('batchListEmpty');
-
-        if (batches.length === 0) {
-            listContainer.innerHTML = '';
-            emptyState.style.display = 'block';
+        if (allBatches.length === 0) {
+            const listContainer = document.getElementById('batchList');
+            const emptyState = document.getElementById('batchListEmpty');
+            if (listContainer) listContainer.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'block';
             return;
         }
 
-        emptyState.style.display = 'none';
-        listContainer.innerHTML = batches.map(batch => `
-            <div class="batch-history-card">
-                <div class="batch-card-header">
-                    <h4>${batch.batch_id}</h4>
-                    <span class="batch-status ${batch.status}">${getStatusLabel(batch.status)}</span>
-                </div>
-                <div class="batch-card-info">
-                    <p><strong>方案数:</strong> ${batch.plan_count}</p>
-                    <p><strong>总任务:</strong> ${batch.total_tasks}</p>
-                    <p><strong>创建时间:</strong> ${new Date(batch.created_at).toLocaleString()}</p>
-                    ${batch.duration_seconds ? `<p><strong>耗时:</strong> ${formatDuration(batch.duration_seconds)}</p>` : ''}
-                    ${batch.success_rate !== undefined ? `<p><strong>成功率:</strong> ${(batch.success_rate * 100).toFixed(1)}%</p>` : ''}
-                </div>
-                <div class="batch-card-actions">
-                    ${batch.status === 'running' ? `
-                        <button class="btn btn-small btn-success" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">监控进度</button>
-                        <button class="btn btn-small btn-warning" onclick="cancelBatchById('${batch.batch_id}')">取消</button>
-                    ` : ''}
-                    ${batch.status === 'cancelled' ? `
-                        <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
-                        <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
-                        <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
-                    ` : ''}
-                    ${batch.status === 'completed' ? `
-                        <button class="btn btn-small btn-info" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">查看进度</button>
-                        <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
-                        <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
-                    ` : ''}
-                    ${batch.status === 'failed' ? `
-                        <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">重新启动</button>
-                        <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
-                        <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
-                    ` : ''}
-                    ${batch.status === 'pending' ? `
-                        <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
-                    ` : ''}
-                </div>
-            </div>
-        `).join('');
+        // 按案例ID分组批次并按最新创建时间排序
+        renderBatchListGroupedByCase(allBatches, caseMetadata);
+
     } catch (error) {
         console.error('Error loading batch history:', error);
         showError('加载批次历史失败');
     }
+}
+
+/**
+ * Phase 1: 按案例ID分组渲染批次列表，并按最新批次时间排序
+ * @param {Array} batches - 所有批次列表
+ * @param {Object} caseMetadata - 案例元数据映射 (case_id → case info)
+ */
+function renderBatchListGroupedByCase(batches, caseMetadata) {
+    const container = document.getElementById('batchList');
+    const emptyState = document.getElementById('batchListEmpty');
+
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (batches.length === 0) {
+        container.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    // 按 case_id 分组批次
+    const groupedByCase = {};
+    batches.forEach(batch => {
+        const caseId = batch.case_id || 'unknown';
+        if (!groupedByCase[caseId]) {
+            groupedByCase[caseId] = [];
+        }
+        groupedByCase[caseId].push(batch);
+    });
+
+    // 按最新批次创建时间排序案例组（最新的在前）
+    const sortedCases = Object.entries(groupedByCase)
+        .sort((a, b) => {
+            const latestA = Math.max(...a[1].map(batch => new Date(batch.created_at).getTime()));
+            const latestB = Math.max(...b[1].map(batch => new Date(batch.created_at).getTime()));
+            return latestB - latestA;
+        });
+
+    // 渲染每个案例分组
+    sortedCases.forEach(([caseId, caseBatches]) => {
+        const caseInfo = caseMetadata[caseId] || { case_id: caseId, description: '' };
+        const caseGroup = createCaseGroup(caseId, caseInfo, caseBatches);
+        container.appendChild(caseGroup);
+    });
+}
+
+/**
+ * Phase 1: 创建案例分组元素
+ * @param {string} caseId - 案例ID
+ * @param {Object} caseInfo - 案例信息
+ * @param {Array} caseBatches - 该案例下的所有批次
+ * @returns {HTMLElement} 案例分组元素
+ */
+function createCaseGroup(caseId, caseInfo, caseBatches) {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'case-group';
+    groupEl.id = `case-group-${caseId}`;
+
+    // 分组头：案例名、批次数、最新状态
+    const headerEl = document.createElement('div');
+    headerEl.className = 'case-group-header';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'case-group-toggle';
+    toggleBtn.textContent = '[-]'; // 默认展开
+    toggleBtn.onclick = (e) => {
+        e.preventDefault();
+        toggleCaseGroup(caseId);
+    };
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'case-group-title';
+
+    const caseIdSpan = document.createElement('span');
+    caseIdSpan.className = 'case-id';
+    caseIdSpan.textContent = caseId;
+
+    const caseNameSpan = document.createElement('span');
+    caseNameSpan.className = 'case-name';
+    caseNameSpan.textContent = caseInfo.description || '未命名';
+
+    const batchCountSpan = document.createElement('span');
+    batchCountSpan.className = 'batch-count';
+    batchCountSpan.textContent = `${caseBatches.length}个批次`;
+
+    titleEl.appendChild(caseIdSpan);
+    titleEl.appendChild(caseNameSpan);
+    titleEl.appendChild(batchCountSpan);
+
+    // 最新批次状态
+    const latestBatch = caseBatches.sort((a, b) =>
+        new Date(b.created_at) - new Date(a.created_at)
+    )[0];
+
+    const latestStatusEl = document.createElement('span');
+    latestStatusEl.className = `batch-status status-${latestBatch.status}`;
+    latestStatusEl.textContent = getStatusLabel(latestBatch.status);
+
+    headerEl.appendChild(toggleBtn);
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(latestStatusEl);
+
+    // 分组体：批次卡片
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'case-group-body';
+    bodyEl.id = `case-group-body-${caseId}`;
+
+    caseBatches
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .forEach(batch => {
+            const batchCard = createBatchCard(batch);
+            bodyEl.appendChild(batchCard);
+        });
+
+    groupEl.appendChild(headerEl);
+    groupEl.appendChild(bodyEl);
+
+    return groupEl;
+}
+
+/**
+ * Phase 1: 创建单个批次卡片
+ * @param {Object} batch - 批次数据
+ * @returns {HTMLElement} 批次卡片元素
+ */
+function createBatchCard(batch) {
+    const card = document.createElement('div');
+    card.className = 'batch-history-card';
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'batch-card-header';
+
+    const h4 = document.createElement('h4');
+    h4.textContent = batch.batch_id;
+
+    const statusSpan = document.createElement('span');
+    statusSpan.className = `batch-status ${batch.status}`;
+    statusSpan.textContent = getStatusLabel(batch.status);
+
+    headerDiv.appendChild(h4);
+    headerDiv.appendChild(statusSpan);
+
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'batch-card-info';
+
+    let infoHtml = `
+        <p><strong>方案数:</strong> ${batch.plan_count}</p>
+        <p><strong>总任务:</strong> ${batch.total_tasks}</p>
+        <p><strong>创建时间:</strong> ${new Date(batch.created_at).toLocaleString()}</p>
+    `;
+
+    if (batch.duration_seconds) {
+        infoHtml += `<p><strong>耗时:</strong> ${formatDuration(batch.duration_seconds)}</p>`;
+    }
+    if (batch.success_rate !== undefined) {
+        infoHtml += `<p><strong>成功率:</strong> ${(batch.success_rate * 100).toFixed(1)}%</p>`;
+    }
+
+    infoDiv.innerHTML = infoHtml;
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'batch-card-actions';
+
+    // 根据状态生成不同的操作按钮
+    let actionsHtml = '';
+    if (batch.status === 'running') {
+        actionsHtml = `
+            <button class="btn btn-small btn-success" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">监控进度</button>
+            <button class="btn btn-small btn-warning" onclick="cancelBatchById('${batch.batch_id}')">取消</button>
+        `;
+    } else if (batch.status === 'cancelled') {
+        actionsHtml = `
+            <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
+            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+            <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+        `;
+    } else if (batch.status === 'completed') {
+        actionsHtml = `
+            <button class="btn btn-small btn-info" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">查看进度</button>
+            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+            <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+        `;
+    } else if (batch.status === 'failed') {
+        actionsHtml = `
+            <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">重新启动</button>
+            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+            <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
+        `;
+    } else if (batch.status === 'pending') {
+        actionsHtml = `
+            <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
+        `;
+    }
+
+    actionsDiv.innerHTML = actionsHtml;
+
+    card.appendChild(headerDiv);
+    card.appendChild(infoDiv);
+    card.appendChild(actionsDiv);
+
+    return card;
+}
+
+/**
+ * Phase 1: 切换案例分组的展开/折叠状态
+ * @param {string} caseId - 案例ID
+ */
+function toggleCaseGroup(caseId) {
+    const body = document.getElementById(`case-group-body-${caseId}`);
+    const toggle = document.querySelector(`#case-group-${caseId} .case-group-toggle`);
+
+    if (!body || !toggle) return;
+
+    body.classList.toggle('hidden');
+    toggle.textContent = body.classList.contains('hidden') ? '[+]' : '[-]';
 }
 
 function filterBatchHistory() {

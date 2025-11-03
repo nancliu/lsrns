@@ -29,17 +29,22 @@ batch_service = BatchOptimizationService()
 @router.post("/batch", response_model=BatchCreatedResponse, status_code=201)
 async def create_batch(request: CreateBatchRequest):
     """
-    创建批量仿真批次
+    创建批量仿真批次 (Phase 3: 支持output_level和统一配置)
 
     请求体:
     - case_id: 案例ID（必填）
     - plan_ids: 方案ID列表（必填，系统会自动添加baseline_plan如果缺失）
-    - num_seeds: 每个方案的随机种子数量（默认3）
+    - num_seeds: 每个方案的随机种子数量（默认3，范围1-10）
     - base_seed: 起始随机种子值（默认66）
+    - output_level: 仿真输出级别（默认"standard"，可选值："minimal"/"standard"/"full"）
     - simulation_config: 仿真配置参数（可选）
 
     返回:
-    - 批次创建信息，包含batch_id和总任务数
+    - 批次创建信息，包含batch_id、总任务数和output_level
+
+    说明:
+    - baseline_plan如果缺失会自动添加
+    - 所有方案将使用相同的output_level配置（确保一致性）
     """
     try:
         result = batch_service.create_batch(
@@ -47,6 +52,7 @@ async def create_batch(request: CreateBatchRequest):
             plan_ids=request.plan_ids,
             num_seeds=request.num_seeds,
             base_seed=request.base_seed,
+            output_level=request.output_level,
             simulation_config=request.simulation_config
         )
         return result
@@ -199,8 +205,7 @@ async def get_batch_results(
 
         result = batch_service.get_batch_results(
             case_id,
-            batch_id,
-            include_time_series=include_time_series
+            batch_id
         )
         return result
 
