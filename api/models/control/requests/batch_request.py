@@ -46,21 +46,6 @@ class CreateBatchRequest(BaseModel):
         examples=[["baseline_plan", "plan_20251025_140530_a1b2c", "plan_20251025_141200_d3e4f"]]
     )
 
-    num_seeds: int = Field(
-        default=3,
-        description="每个方案的随机种子数量（每个方案执行N次随机仿真以获取统计结果）",
-        ge=1,
-        le=10,
-        examples=[3]
-    )
-
-    base_seed: int = Field(
-        default=66,
-        description="起始随机种子值（种子序列：base_seed, base_seed+1, ..., base_seed+num_seeds-1）",
-        ge=0,
-        examples=[66]
-    )
-
     output_level: Optional[Literal["minimal", "standard", "full"]] = Field(
         default=None,
         description="""
@@ -150,6 +135,19 @@ class CreateBatchRequest(BaseModel):
 
         return v
 
+    edgedata_use_template_edges: Optional[bool] = Field(
+        default=False,
+        description="""
+        EdgeData模板edges属性保留标志（P2-2: 新增）
+
+        当output_edgedata启用时生效。控制生成的edgeData.add.xml是否保留edges属性。
+
+        - False (默认): 移除edges属性，使用全量边集合
+        - True: 保留edges属性，使用模板指定的特定边集合
+        """,
+        examples=[False, True]
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -159,8 +157,6 @@ class CreateBatchRequest(BaseModel):
                     "plan_20251025_140530_a1b2c",
                     "plan_20251025_141200_d3e4f"
                 ],
-                "num_seeds": 3,
-                "base_seed": 66,
                 "output_config": {
                     "summary_xml": True,
                     "e1_detector_data": True,
@@ -176,6 +172,7 @@ class CreateBatchRequest(BaseModel):
                     "hours": 4,
                     "minutes": 0,
                     "total_minutes": 240
-                }
+                },
+                "edgedata_use_template_edges": False
             }
         }
