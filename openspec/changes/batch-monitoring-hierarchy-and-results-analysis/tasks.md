@@ -41,12 +41,12 @@
 - Backend: 🟡 Framework exists, needs completion
 - Frontend: 🔴 NOT STARTED
 
-**Phase 5: Random Seed Config** - 🚫 **DEPRECATED (FEATURE REMOVED)**
+**Phase 5: Random Seed Config** - 🟡 **PARTIAL**
 
-- T5.1: 🚫 DEPRECATED (UI selector - feature no longer needed)
-- T5.2: 🚫 DEPRECATED (Seed configuration - feature no longer needed)
-- Backend: 🚫 DEPRECATED (num_seeds parameter to be removed from API/backend)
-- Frontend UI: 🚫 DEPRECATED (not needed)
+- T5.1: 🔴 NOT STARTED (UI selector for num_seeds)
+- T5.2: 🔴 NOT STARTED (Seed configuration - form integration)
+- Backend: ✅ IMPLEMENTED (num_seeds/base_seed in API model and service)
+- Frontend UI: 🔴 NOT STARTED (Form controls for seed configuration)
 
 **Phase 6: Results Visualization** - 🟡 **30% COMPLETE**
 
