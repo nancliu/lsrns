@@ -74,20 +74,33 @@ function renderBatchResultsView() {
         return;
     }
 
-    const analysis = batchResultsData.analysis || {};
-    const metadata = batchResultsData.metadata || {};
+    // Phase 8.4修复：支持新的 API 响应格式
+    // 新格式：直接有 plan_results（列表），而不是 analysis.plan_results
+    const planResults = batchResultsData.plan_results || [];
+    const metadata = {
+        output_level: 'standard',
+        num_seeds: 3,
+        base_seed: 66,
+        created_at: batchResultsData.created_at,
+        completed_at: batchResultsData.completed_at
+    };
 
     // 渲染摘要信息
     renderResultsSummary(metadata);
 
-    // 渲染对比表格
-    const comparisonSummary = analysis.comparison_summary || {};
-    if (comparisonSummary.rows && comparisonSummary.rows.length > 0) {
-        renderComparisonTable(comparisonSummary, analysis.improvement_rates || {});
+    // Phase 8.4修复：新的数据格式需要新的处理逻辑
+    if (planResults && planResults.length > 0) {
+        renderNewBatchResults(planResults);
+    } else {
+        // 降级：尝试使用旧格式（analysis）
+        const analysis = batchResultsData.analysis || {};
+        const comparisonSummary = analysis.comparison_summary || {};
+        if (comparisonSummary.rows && comparisonSummary.rows.length > 0) {
+            renderComparisonTable(comparisonSummary, analysis.improvement_rates || {});
+        }
+        // 渲染性能图表 (T6.3)
+        renderPerformanceCharts(analysis);
     }
-
-    // 渲染性能图表 (T6.3)
-    renderPerformanceCharts(analysis);
 }
 
 /**
@@ -456,4 +469,80 @@ function exportResultsAsCSV() {
 
 function showSuccess(message) {
     alert(`✅ ${message}`);
+}
+
+/**
+ * Phase 8.4新增：渲染新格式的批次结果（plan_results）
+ * @param {Array} planResults - 方案结果列表
+ */
+function renderNewBatchResults(planResults) {
+    const container = document.getElementById('comparisonTable') || createComparisonTableContainer();
+
+    if (!planResults || planResults.length === 0) {
+        container.innerHTML = '<p style="color: #999; padding: 20px;">暂无结果数据</p>';
+        return;
+    }
+
+    // 构建对比表格
+    let tableHtml = '<div class="comparison-table-container"><table class="comparison-table"><thead><tr>';
+
+    // 获取基准方案（通常是第一个）
+    const baselinePlan = planResults[0];
+    const testPlans = planResults.slice(1);
+
+    // 表头
+    tableHtml += '<th>指标</th>';
+    tableHtml += '<th colspan="2">基准方案</th>';
+
+    testPlans.forEach(plan => {
+        tableHtml += `<th colspan="2">${plan.plan_name}</th>`;
+    });
+
+    tableHtml += '</tr><tr>';
+    tableHtml += '<th></th><th>均值</th><th>标准差</th>';
+
+    testPlans.forEach(() => {
+        tableHtml += '<th>均值</th><th>改进%</th>';
+    });
+
+    tableHtml += '</tr></thead><tbody>';
+
+    // 提取所有指标名称
+    const metricKeys = baselinePlan.aggregated_metrics ? Object.keys(baselinePlan.aggregated_metrics) : [];
+
+    metricKeys.forEach(metricKey => {
+        const baselineMetrics = baselinePlan.aggregated_metrics[metricKey] || {};
+
+        tableHtml += '<tr>';
+        tableHtml += `<td><strong>${metricKey}</strong></td>`;
+        tableHtml += `<td>${(baselineMetrics.mean || 0).toFixed(2)}</td>`;
+        tableHtml += `<td>${(baselineMetrics.std || 0).toFixed(2)}</td>`;
+
+        testPlans.forEach(testPlan => {
+            const testMetrics = testPlan.aggregated_metrics[metricKey] || {};
+            const testMean = testMetrics.mean || 0;
+            const baselineMean = baselineMetrics.mean || 0;
+
+            // 简单计算改进率 (对于速度：越高越好，对于延误：越低越好)
+            let improvementRate = 0;
+            if (baselineMean !== 0) {
+                improvementRate = ((testMean - baselineMean) / baselineMean) * 100;
+                // 对于某些指标需要反向（如延误时间）
+                if (metricKey.includes('delay') || metricKey.includes('waiting')) {
+                    improvementRate = -improvementRate;
+                }
+            }
+
+            tableHtml += `<td>${testMean.toFixed(2)}</td>`;
+
+            const improvementClass = improvementRate > 0 ? 'positive' : 'negative';
+            const sign = improvementRate > 0 ? '+' : '';
+            tableHtml += `<td><span class="improvement ${improvementClass}">${sign}${improvementRate.toFixed(1)}%</span></td>`;
+        });
+
+        tableHtml += '</tr>';
+    });
+
+    tableHtml += '</tbody></table></div>';
+    container.innerHTML = tableHtml;
 }
