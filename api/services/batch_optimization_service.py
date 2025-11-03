@@ -111,15 +111,26 @@ class BatchOptimizationService:
         # 1. 处理output_config和output_level（优先使用output_config）(P0-2: 扩展output_config支持所有输出参数)
         if output_config is None:
             output_config = self._output_level_to_config(output_level or "standard")
-        elif isinstance(output_config, dict):
-            # 如果output_config已经是dict，确保它包含所有必需字段（支持新的output_*键名）
+        else:
+            # 转换Pydantic模型或dict为标准dict格式
+            if hasattr(output_config, 'model_dump'):
+                # Pydantic v2 模型
+                output_config_dict = output_config.model_dump()
+            elif hasattr(output_config, 'dict'):
+                # Pydantic v1 模型
+                output_config_dict = output_config.dict()
+            else:
+                # 已经是dict
+                output_config_dict = output_config
+
+            # 确保它包含所有必需字段（支持新的output_*键名）
             output_config = {
-                'output_tripinfo': output_config.get('output_tripinfo', output_config.get('tripinfo_xml', False)),
-                'output_vehroute': output_config.get('output_vehroute', False),
-                'output_netstate': output_config.get('output_netstate', False),
-                'output_fcd': output_config.get('output_fcd', False),
-                'output_emission': output_config.get('output_emission', False),
-                'output_edgedata': output_config.get('output_edgedata', output_config.get('edgedata_xml', False))
+                'output_tripinfo': output_config_dict.get('output_tripinfo', output_config_dict.get('tripinfo_xml', False)),
+                'output_vehroute': output_config_dict.get('output_vehroute', False),
+                'output_netstate': output_config_dict.get('output_netstate', False),
+                'output_fcd': output_config_dict.get('output_fcd', False),
+                'output_emission': output_config_dict.get('output_emission', False),
+                'output_edgedata': output_config_dict.get('output_edgedata', output_config_dict.get('edgedata_xml', False))
             }
 
         logger.info(f"Using output_config: {output_config}")
