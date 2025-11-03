@@ -1548,6 +1548,9 @@ function renderBatchListGroupedByCase(batches, caseMetadata) {
         const caseGroup = createCaseGroup(caseId, caseInfo, caseBatches);
         container.appendChild(caseGroup);
     });
+
+    // Phase 8.4: 启动批次卡片进度定时刷新
+    startBatchCardProgressRefresh();
 }
 
 /**
@@ -1632,6 +1635,8 @@ function createCaseGroup(caseId, caseInfo, caseBatches) {
 function createBatchCard(batch) {
     const card = document.createElement('div');
     card.className = 'batch-history-card';
+    card.id = `batch-card-${batch.batch_id}`;
+    card.dataset.batchId = batch.batch_id;
 
     const headerDiv = document.createElement('div');
     headerDiv.className = 'batch-card-header';
@@ -1642,6 +1647,7 @@ function createBatchCard(batch) {
     const statusSpan = document.createElement('span');
     statusSpan.className = `batch-status ${batch.status}`;
     statusSpan.textContent = getStatusLabel(batch.status);
+    statusSpan.id = `batch-status-${batch.batch_id}`;
 
     headerDiv.appendChild(h4);
     headerDiv.appendChild(statusSpan);
@@ -1663,6 +1669,23 @@ function createBatchCard(batch) {
     }
 
     infoDiv.innerHTML = infoHtml;
+
+    // 为运行中的批次添加进度条
+    let progressHtml = '';
+    if (batch.status === 'running') {
+        progressHtml = `
+            <div class="batch-card-progress">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar-${batch.batch_id}" style="width: 0%">
+                        <span class="progress-text" id="progress-text-${batch.batch_id}">0%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    const progressDiv = document.createElement('div');
+    progressDiv.innerHTML = progressHtml;
 
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'batch-card-actions';
@@ -1702,6 +1725,9 @@ function createBatchCard(batch) {
 
     card.appendChild(headerDiv);
     card.appendChild(infoDiv);
+    if (batch.status === 'running') {
+        card.appendChild(progressDiv);
+    }
     card.appendChild(actionsDiv);
 
     return card;
@@ -1721,8 +1747,125 @@ function toggleCaseGroup(caseId) {
     toggle.textContent = body.classList.contains('hidden') ? '[+]' : '[-]';
 }
 
+// ========== 批次卡片进度更新 (Phase 8.4: 新增) ==========
+
+let batchCardProgressInterval = null;
+
+/**
+ * 启动批次卡片进度定时刷新
+ * 每5秒刷新一次运行中批次的进度条
+ */
+function startBatchCardProgressRefresh() {
+    if (batchCardProgressInterval) {
+        clearInterval(batchCardProgressInterval);
+    }
+
+    batchCardProgressInterval = setInterval(() => {
+        updateAllBatchCardProgress();
+    }, 5000); // 每5秒刷新一次
+
+    // 立即更新一次
+    updateAllBatchCardProgress();
+}
+
+/**
+ * 停止批次卡片进度定时刷新
+ */
+function stopBatchCardProgressRefresh() {
+    if (batchCardProgressInterval) {
+        clearInterval(batchCardProgressInterval);
+        batchCardProgressInterval = null;
+    }
+}
+
+/**
+ * 更新所有运行中批次的进度条
+ */
+async function updateAllBatchCardProgress() {
+    const runningCards = document.querySelectorAll('[data-batch-id][data-batch-id*="batch_"]');
+
+    for (const card of runningCards) {
+        const batchId = card.dataset.batchId;
+        const statusSpan = document.getElementById(`batch-status-${batchId}`);
+
+        // 只更新运行中的批次
+        if (statusSpan && statusSpan.textContent.includes('运行中')) {
+            updateBatchCardProgress(batchId);
+        }
+    }
+}
+
+/**
+ * 更新单个批次卡片的进度
+ * @param {string} batchId - 批次ID
+ */
+async function updateBatchCardProgress(batchId) {
+    try {
+        // 从卡片中获取case_id（通过查找最近的case-group）
+        const card = document.getElementById(`batch-card-${batchId}`);
+        if (!card) return;
+
+        const caseGroup = card.closest('.case-group');
+        if (!caseGroup) return;
+
+        const caseId = caseGroup.id.replace('case-group-', '');
+
+        const response = await fetch(
+            `${API_BASE}/control/batch-optimization/batch/${batchId}/progress`
+        );
+
+        if (!response.ok) {
+            logger.warn(`Failed to fetch progress for batch ${batchId}`);
+            return;
+        }
+
+        const data = await response.json();
+        const progress = data.progress_percent || 0;
+
+        // 更新进度条宽度
+        const progressBar = document.getElementById(`progress-bar-${batchId}`);
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // 更新进度文字
+        const progressText = document.getElementById(`progress-text-${batchId}`);
+        if (progressText) {
+            progressText.textContent = `${progress}%`;
+        }
+
+        // 如果完成或失败，更新状态并停止刷新
+        if (data.status && (data.status === 'completed' || data.status === 'failed')) {
+            const statusSpan = document.getElementById(`batch-status-${batchId}`);
+            if (statusSpan) {
+                statusSpan.textContent = getStatusLabel(data.status);
+                statusSpan.className = `batch-status ${data.status}`;
+            }
+
+            // 重新加载批次列表以更新状态
+            loadBatchHistory();
+        }
+
+    } catch (error) {
+        logger.warn(`Error updating batch progress for ${batchId}:`, error);
+    }
+}
+
 function filterBatchHistory() {
     loadBatchHistory();
+}
+
+/**
+ * 手动刷新批次列表
+ */
+async function refreshBatchList() {
+    try {
+        loadBatchHistory();
+        showSuccess('批次列表已刷新');
+    } catch (error) {
+        console.error('Error refreshing batch list:', error);
+        showError('刷新失败');
+    }
 }
 
 async function deleteBatchHistory(batchId) {

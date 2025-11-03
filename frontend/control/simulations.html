@@ -175,7 +175,10 @@
                 <!-- 批次列表区域 (下栏) -->
                 <div class="batch-list-section">
                     <div class="list-header">
-                        <h3>批次列表</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>批次列表</h3>
+                            <button class="btn btn-secondary btn-sm" onclick="refreshBatchList()" title="手动刷新批次列表">🔄 刷新</button>
+                        </div>
 
                         <!-- 筛选和控制栏 -->
                         <div class="monitoring-controls">
