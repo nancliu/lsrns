@@ -1927,7 +1927,9 @@ class BatchOptimizationService:
             FileNotFoundError: 模板目录不存在
         """
         try:
-            template_dir = Path("templates/config_templates/vehicle_templates")
+            # 获取项目根目录（api/services/batch_optimization_service.py向上2层）
+            project_root = Path(__file__).parent.parent.parent
+            template_dir = project_root / "templates" / "config_templates" / "vehicle_templates"
 
             if not template_dir.exists():
                 logger.warning(f"Template directory not found: {template_dir}")
@@ -1949,16 +1951,8 @@ class BatchOptimizationService:
                 filename = json_file.name
                 relative_path = str(json_file.relative_to(Path.cwd())).replace("\\", "/")
 
-                # 生成显示名称
-                if filename == "vehicle_types.json":
-                    display_name = "默认车辆参数"
-                else:
-                    # 从文件名中提取描述 (e.g., vehicle_types_custom.json -> Custom)
-                    name_part = filename.replace("vehicle_types", "").replace(".json", "").strip("_")
-                    if name_part:
-                        display_name = f"车辆参数 ({name_part})"
-                    else:
-                        display_name = filename
+                # 显示名称直接使用文件名（不做多余的转换）
+                display_name = filename
 
                 templates.append({
                     "filename": filename,

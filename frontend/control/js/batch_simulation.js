@@ -96,19 +96,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const caseIdFromUrl = urlParams.get('case_id');
 
+    let selectedCaseId = null;
+
     if (caseIdFromUrl) {
         // 优先使用URL参数
-        currentCaseId = caseIdFromUrl;
-        window.currentCaseId = currentCaseId;
-        document.getElementById('caseSelector').value = caseIdFromUrl;
+        selectedCaseId = caseIdFromUrl;
     } else {
         // 回退到localStorage
-        const savedCaseId = localStorage.getItem('lastSelectedCaseId');
-        if (savedCaseId) {
-            currentCaseId = savedCaseId;
-            window.currentCaseId = currentCaseId;
-            document.getElementById('caseSelector').value = savedCaseId;
+        selectedCaseId = localStorage.getItem('lastSelectedCaseId');
+    }
+
+    // 如果没有保存的案例，自动选择第一个（Bug Fix: 首次进入时自动选择）
+    if (!selectedCaseId) {
+        const caseSelector = document.getElementById('caseSelector');
+        if (caseSelector.options.length > 1) {
+            // options[0]是placeholder，选择options[1]
+            selectedCaseId = caseSelector.options[1].value;
+            localStorage.setItem('lastSelectedCaseId', selectedCaseId);
         }
+    }
+
+    if (selectedCaseId) {
+        currentCaseId = selectedCaseId;
+        window.currentCaseId = currentCaseId;
+        document.getElementById('caseSelector').value = selectedCaseId;
+        // 加载该案例的时长
+        await loadCaseDuration(selectedCaseId);
     }
 
     // 初始化仿真配置事件监听 (Phase 2, 3)
@@ -383,7 +396,24 @@ function getVehicleTemplate() {
  * @returns {Object|null} 时长配置对象或null
  */
 function getSimulationDuration() {
-    // Revision 3: 时长现在从case元数据读取，总是use_default:true
+    // Revision 5: 支持自定义时长覆盖case元数据
+    const useCustom = document.getElementById('useCustomDuration')?.checked || false;
+
+    if (useCustom) {
+        // 使用自定义时长
+        const hours = parseInt(document.getElementById('customDurationHours')?.value || 1);
+        const minutes = parseInt(document.getElementById('customDurationMinutes')?.value || 0);
+        const totalMinutes = hours * 60 + minutes;
+
+        return {
+            use_default: false,
+            hours: hours,
+            minutes: minutes,
+            total_minutes: totalMinutes
+        };
+    }
+
+    // Revision 3: 时长从case元数据读取
     if (window.caseDuration) {
         return {
             use_default: true,
@@ -444,7 +474,7 @@ async function loadVehicleTemplates() {
 
 /**
  * 初始化仿真配置事件监听
- * Phase 2: 添加交互事件（Revision 3: 移除时长相关监听，因为时长现在是只读的）
+ * Phase 2: 添加交互事件（Revision 5: 添加自定义时长复选框监听）
  */
 function initSimulationConfigListeners() {
     // Phase 2: 车辆模板选择
@@ -455,7 +485,20 @@ function initSimulationConfigListeners() {
         });
     }
 
-    // Revision 3: 时长现在从case元数据读取，不需要监听radio或输入框
+    // Revision 5: 自定义时长复选框监听
+    const useCustomDurationCheckbox = document.getElementById('useCustomDuration');
+    const customDurationInputs = document.getElementById('customDurationInputs');
+    if (useCustomDurationCheckbox && customDurationInputs) {
+        useCustomDurationCheckbox.addEventListener('change', () => {
+            if (useCustomDurationCheckbox.checked) {
+                customDurationInputs.style.display = 'block';
+                debugLog('Custom duration enabled');
+            } else {
+                customDurationInputs.style.display = 'none';
+                debugLog('Custom duration disabled');
+            }
+        });
+    }
 }
 
 async function createBatch() {
