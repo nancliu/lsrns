@@ -1467,6 +1467,66 @@ The batch simulation system supports 6 configurable output formats for detailed 
   - test_simulation_params_construction
 - All tests passing (29/29) ✅
 
+## Simulation Duration Configuration (P1-2)
+
+### Overview
+
+The batch simulation system supports custom simulation duration to override case metadata time ranges. This enables flexible testing of different traffic scenarios with specific time durations.
+
+### Configuration
+
+**API Request Example:**
+```json
+{
+  "case_id": "case_20250119_143000",
+  "plan_ids": ["plan_001"],
+  "simulation_duration": {
+    "hours": 4,
+    "minutes": 0,
+    "total_minutes": 240
+  }
+}
+```
+
+### Field Specification
+
+| Field | Type | Range | Description |
+|-------|------|-------|-------------|
+| hours | integer | 0-24 | Simulation duration (hours) |
+| minutes | integer | 0-59 | Simulation duration (minutes) |
+| total_minutes | integer | 1-1440 | Total duration (minutes). Must equal `hours * 60 + minutes` |
+
+### Behavior
+
+- **When provided**: SUMO simulation runs for the specified duration (in seconds)
+- **When not provided**: System uses case metadata's start/end time range
+- **If metadata missing**: Falls back to default 1 hour (3600 seconds)
+- **Time range**: 1 minute (minimum) to 24 hours (maximum)
+
+### Implementation Details (P1-1 to P1-3)
+
+**Flow Chain:**
+1. API model (CreateBatchRequest) includes simulation_duration field with validation
+2. Pydantic validator ensures hours/minutes/total_minutes consistency
+3. BatchOptimizationService stores in simulation_config.json and simulation_params
+4. Batch scheduler passes to SimulationService
+5. generate_sumocfg_for_simulation() reads and applies to sumocfg generation
+6. SUMO receives correct `<end>` value based on custom duration
+
+**Key Files Modified:**
+- `api/models/control/requests/batch_request.py` - P1-1 (field + validator)
+- `api/services/batch_optimization_service.py` - P1-2 (storage)
+- `shared/utilities/sumo_utils.py` - P1-3 (sumocfg generation)
+
+### Testing & Validation (P1-4)
+
+**Integration Tests:** `tests/integration/test_simulation_duration.py`
+- test_custom_duration_saved_to_config
+- test_simulation_duration_in_params
+- test_custom_duration_overrides_metadata
+- test_no_duration_uses_metadata
+- All tests passing (4/4) ✅
+
 ## Common Pitfalls
 
 ### Architecture Violations

@@ -83,9 +83,10 @@ class BatchOptimizationService:
         output_config: Optional[Dict[str, Any]] = None,
         output_level: Optional[str] = None,
         simulation_config: Optional[Dict[str, Any]] = None,
+        simulation_duration: Optional[Dict[str, int]] = None,
     ) -> Dict[str, Any]:
         """
-        创建批量仿真批次 (Phase 1: 支持output_config配置)
+        创建批量仿真批次 (P1-2: 支持simulation_duration)
 
         Args:
             case_id: 案例ID
@@ -95,6 +96,8 @@ class BatchOptimizationService:
             output_config: 仿真输出配置 (Phase 1新增)
             output_level: 仿真输出级别（已弃用，保留向后兼容）
             simulation_config: 仿真配置参数（可选）
+            simulation_duration: 自定义仿真时长（P1-2新增）
+                格式: {hours: int, minutes: int, total_minutes: int}
 
         Returns:
             Dict: 批次创建响应数据
@@ -150,7 +153,7 @@ class BatchOptimizationService:
             base_seed=base_seed,
         )
 
-        # 6. 生成统一的仿真配置 (Phase 3: 输出级别配置) (P0-1: 修复键名映射) (P0-2: 从output_config读取)
+        # 6. 生成统一的仿真配置 (P1-2: 支持simulation_duration) (P0-1: 修复键名映射) (P0-2: 从output_config读取)
         unified_simulation_config = {
             "output_level": output_level,
             "num_seeds": num_seeds,
@@ -166,6 +169,11 @@ class BatchOptimizationService:
             "created_at": datetime.now().isoformat()
         }
 
+        # P1-2: 保存simulation_duration到配置中（如果提供）
+        if simulation_duration:
+            logger.info(f"Adding custom simulation_duration: {simulation_duration}")
+            unified_simulation_config['simulation_duration'] = simulation_duration
+
         # 7. 保存统一的仿真配置到batch目录
         config_path = batch_dir / "simulation_config.json"
         with open(config_path, "w", encoding="utf-8") as f:
@@ -180,7 +188,7 @@ class BatchOptimizationService:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(unified_simulation_config, f, ensure_ascii=False, indent=2)
 
-        # P0-3: 构造simulation_params (包含所有输出参数)
+        # P0-3: 构造simulation_params (包含所有输出参数) (P1-2: 包含simulation_duration)
         simulation_params = {
             'output_tripinfo': unified_simulation_config.get('output_tripinfo', False),
             'output_vehroute': unified_simulation_config.get('output_vehroute', False),
@@ -189,6 +197,11 @@ class BatchOptimizationService:
             'output_emission': unified_simulation_config.get('output_emission', False),
             'output_edgedata': unified_simulation_config.get('output_edgedata', False),
         }
+
+        # P1-2: 添加simulation_duration到simulation_params（如果提供）
+        if simulation_duration:
+            simulation_params['simulation_duration'] = simulation_duration
+            logger.info(f"Added simulation_duration to simulation_params: {simulation_duration}")
 
         # 保存simulation_params到unified_simulation_config中
         unified_simulation_config['simulation_params'] = simulation_params

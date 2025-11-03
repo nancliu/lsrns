@@ -494,8 +494,19 @@ POST /api/v1/control/batch-optimization/batch
   "plan_ids": ["plan_control_001", "plan_control_002"],
   "num_seeds": 3,
   "base_seed": 66,
-  "output_level": "standard",
-  "simulation_config": {}
+  "output_config": {
+    "output_tripinfo": true,
+    "output_vehroute": false,
+    "output_netstate": false,
+    "output_fcd": false,
+    "output_emission": false,
+    "output_edgedata": true
+  },
+  "simulation_duration": {
+    "hours": 4,
+    "minutes": 0,
+    "total_minutes": 240
+  }
 }
 ```
 
@@ -510,6 +521,7 @@ POST /api/v1/control/batch-optimization/batch
 | output_level | string | ❌ | 仿真输出级别：`minimal`/`standard`/`full`，默认`standard` (已弃用，使用output_config) |
 | output_config | object | ❌ | 仿真输出配置（详见下表） |
 | simulation_config | object | ❌ | 仿真配置参数（可选） |
+| simulation_duration | object | ❌ | 自定义仿真时长（P1-2新增），覆盖case元数据的时间范围（详见下表） |
 
 **输出配置字段说明 (output_config):**
 
@@ -531,6 +543,29 @@ POST /api/v1/control/batch-optimization/batch
   "output_fcd": false,
   "output_emission": false,
   "output_edgedata": true
+}
+```
+
+**仿真时长配置字段说明 (simulation_duration - P1-2新增):**
+
+| 字段 | 类型 | 范围 | 说明 |
+|---|---|---|---|
+| hours | integer | 0-24 | 仿真时长（小时） |
+| minutes | integer | 0-59 | 仿真时长（分钟） |
+| total_minutes | integer | 1-1440 | 总时长（分钟）。必须等于 `hours * 60 + minutes` |
+
+**说明:**
+- 此参数用于覆盖case元数据中的时间范围
+- 当提供此参数时，SUMO仿真将使用指定的时长而非case的start/end时间范围
+- 若不提供此参数，系统使用case元数据中的时间范围，若元数据缺失则使用默认1小时
+- 时长范围：最小1分钟（短期测试），最大24小时（长期分析）
+
+**示例:**
+```json
+{
+  "hours": 4,
+  "minutes": 0,
+  "total_minutes": 240
 }
 ```
 

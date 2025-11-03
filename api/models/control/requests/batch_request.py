@@ -2,7 +2,7 @@
 批量优化仿真请求模型
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any, Literal
 
 
@@ -91,6 +91,65 @@ class CreateBatchRequest(BaseModel):
         }]
     )
 
+    simulation_duration: Optional[Dict[str, int]] = Field(
+        default=None,
+        description="""
+        自定义仿真时长（P1-1: 新增）
+
+        用于覆盖从case元数据推导的默认仿真时长。
+        格式: {hours, minutes, total_minutes}
+
+        示例：{hours: 4, minutes: 0, total_minutes: 240}
+
+        约束条件:
+        - total_minutes: 1-1440 (1分钟到24小时)
+        - hours + minutes * 60 应等于 total_minutes
+        """,
+        examples=[{"hours": 4, "minutes": 0, "total_minutes": 240}]
+    )
+
+    @field_validator('simulation_duration', mode='after')
+    @classmethod
+    def validate_simulation_duration(cls, v: Optional[Dict[str, int]]) -> Optional[Dict[str, int]]:
+        """验证simulation_duration字段的有效性"""
+        if v is None:
+            return v
+
+        # 验证必需字段存在
+        required_fields = {'hours', 'minutes', 'total_minutes'}
+        if not required_fields.issubset(set(v.keys())):
+            raise ValueError(
+                f"simulation_duration必须包含字段: {required_fields}，"
+                f"当前字段: {set(v.keys())}"
+            )
+
+        hours = v.get('hours', 0)
+        minutes = v.get('minutes', 0)
+        total_minutes = v.get('total_minutes', 0)
+
+        # 验证数值范围
+        if hours < 0 or hours > 24:
+            raise ValueError(f"hours必须在0-24范围内，当前值: {hours}")
+
+        if minutes < 0 or minutes >= 60:
+            raise ValueError(f"minutes必须在0-59范围内，当前值: {minutes}")
+
+        # 验证total_minutes范围 (1分钟到24小时)
+        if total_minutes < 1 or total_minutes > 1440:
+            raise ValueError(
+                f"total_minutes必须在1-1440范围内（1分钟到24小时），当前值: {total_minutes}"
+            )
+
+        # 验证hours和minutes的总和是否匹配total_minutes
+        calculated_total = hours * 60 + minutes
+        if calculated_total != total_minutes:
+            raise ValueError(
+                f"hours({hours}) * 60 + minutes({minutes}) = {calculated_total} "
+                f"不等于 total_minutes({total_minutes})"
+            )
+
+        return v
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -112,6 +171,11 @@ class CreateBatchRequest(BaseModel):
                     "begin": 0,
                     "end": 14400,
                     "step_length": 1
+                },
+                "simulation_duration": {
+                    "hours": 4,
+                    "minutes": 0,
+                    "total_minutes": 240
                 }
             }
         }

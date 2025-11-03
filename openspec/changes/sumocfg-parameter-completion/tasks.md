@@ -135,18 +135,16 @@
 
 ---
 
-## 📌 优先级 P1 (Sprint 2) - simulation_duration和vehicle_types_template修复
+## 📌 优先级 P1 (Sprint 2) - simulation_duration参数实现
 
 ### P1-1: 修改CreateBatchRequest API模型
 - [ ] 打开 `api/models/control/requests/batch_request.py`
 - [ ] 添加字段:
   ```python
   simulation_duration: Optional[Dict[str, int]] = None  # {hours, minutes, total_minutes}
-  vehicle_types_template: Optional[str] = "vehicle_types.json"
   ```
 - [ ] 添加Pydantic验证:
   - [ ] simulation_duration总分钟数在1-1440范围内
-  - [ ] vehicle_types_template文件存在检查(可选,后端检查更好)
 
 **验收标准:**
 - API模型正确包含新字段
@@ -162,10 +160,9 @@
       self,
       # ... 现有参数 ...
       simulation_duration: Optional[Dict[str, int]] = None,
-      vehicle_types_template: Optional[str] = None,
   )
   ```
-- [ ] 在unified_simulation_config中保存这些参数
+- [ ] 在unified_simulation_config中保存simulation_duration参数
 - [ ] 测试参数正确保存
 
 **验收标准:**
@@ -198,57 +195,26 @@
 
 ---
 
-### P1-4: 实现vehicle_types_template动态加载
-- [ ] 分析rou.xml生成流程
-- [ ] 定位vehicle_types.json的使用位置
-- [ ] 修改流程支持动态模板:
-  - [ ] 从simulation_params读取vehicle_types_template
-  - [ ] 验证模板文件存在
-  - [ ] 加载指定模板而非默认模板
-- [ ] 测试不同模板正确应用
-
-**验收标准:**
-- rou.xml正确使用选中的模板
-- 模板参数正确应用到vType定义
-
----
-
-### P1-5: 修改SimulationService传递vehicle_types_template
-- [ ] 打开 `api/services/simulation_service.py`
-- [ ] 修改参数传递逻辑,确保vehicle_types_template被传递
-- [ ] 更新所有调用rou.xml生成的地方
-
-**验收标准:**
-- vehicle_types_template参数成功传递
-- rou.xml生成时正确使用
-
----
-
-### P1-6: 集成测试 (P1部分)
+### P1-4: 集成测试 (P1部分)
 - [ ] 创建 `tests/integration/test_simulation_duration.py`
   - [ ] test_custom_duration_applied
   - [ ] test_custom_duration_overrides_metadata
   - [ ] test_invalid_duration_rejected
-- [ ] 创建 `tests/integration/test_vehicle_template.py`
-  - [ ] test_custom_template_applied
-  - [ ] test_invalid_template_rejected
-  - [ ] test_default_template_fallback
 - [ ] 运行所有集成测试
 
 **验收标准:**
 - 所有测试通过
-- 参数完整度: 55% → 75%
+- 参数完整度: 55% → 65%
 
 ---
 
-### P1-7: 文档更新 (P1部分)
+### P1-5: 文档更新 (P1部分)
 - [ ] 更新API文档说明simulation_duration参数
-- [ ] 更新API文档说明vehicle_types_template参数
-- [ ] 添加用户指南说明如何使用这些新参数
+- [ ] 添加用户指南说明如何使用simulation_duration参数
 - [ ] 添加示例请求/响应
 
 **验收标准:**
-- 文档完整覆盖新参数
+- 文档完整覆盖simulation_duration参数
 
 ---
 

@@ -1,6 +1,39 @@
 {
   "strategies": [
     {
+      "strategy_id": "strat_20251103160528_f952d4",
+      "strategy_name": "G5 入口流量控制 (测试)",
+      "strategy_type": "TEC",
+      "template_id": "tec_flow_metering",
+      "template_name": "收费入口 - 流量控制",
+      "edges_count": 1,
+      "created_at": "2025-11-03T16:05:28.045789+00:00",
+      "updated_at": "2025-11-03T16:05:28.045789+00:00",
+      "file_path": "control_data/strategies/strat_20251103160528_f952d4.json"
+    },
+    {
+      "strategy_id": "strat_20251103160527_81dc7a",
+      "strategy_name": "G4202 K33-K44 可变限速 (测试)",
+      "strategy_type": "VSS",
+      "template_id": "vss_moderate",
+      "template_name": "可变限速 - 中等控制",
+      "edges_count": 5,
+      "created_at": "2025-11-03T16:05:27.007153+00:00",
+      "updated_at": "2025-11-03T16:05:27.007153+00:00",
+      "file_path": "control_data/strategies/strat_20251103160527_81dc7a.json"
+    },
+    {
+      "strategy_id": "strat_20251103160526_051c38",
+      "strategy_name": "G4202 K33-K44 应急车道开放 (测试)",
+      "strategy_type": "DHS",
+      "template_id": "dhs_peak_hours",
+      "template_name": "应急车道开放",
+      "edges_count": 3,
+      "created_at": "2025-11-03T16:05:26.314050+00:00",
+      "updated_at": "2025-11-03T16:05:26.314050+00:00",
+      "file_path": "control_data/strategies/strat_20251103160526_051c38.json"
+    },
+    {
       "strategy_id": "strategy_real_vss_g4202_001",
       "strategy_name": "G4202绕西双流段早高峰可变限速",
       "strategy_type": "VSS",
@@ -155,6 +188,6 @@
       "file_path": "control_data\\strategies\\strategy_real_vss_g5_002.json"
     }
   ],
-  "total_count": 14,
-  "last_updated": "2025-11-02T08:18:32.720701+00:00"
+  "total_count": 17,
+  "last_updated": "2025-11-03T16:05:28.064321+00:00"
 }

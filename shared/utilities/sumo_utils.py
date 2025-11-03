@@ -149,14 +149,24 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 			taz_rel_path = str(rel_to_config / taz_filename).replace('\\', '/')
 			taz_files.append(taz_rel_path)
 	
-	# 时间计算
-	time_range = case_metadata.get('time_range', {})
-	if time_range.get('start') and time_range.get('end'):
-		start_dt = parse_datetime(time_range['start'])
-		end_dt = parse_datetime(time_range['end'])
-		duration = int((end_dt - start_dt).total_seconds())
+	# 时间计算 (P1-3: 支持自定义simulation_duration)
+	# 优先使用自定义simulation_duration，否则从case元数据推导
+	if simulation_params.get('simulation_duration'):
+		# P1-3: 使用自定义仿真时长（以秒为单位）
+		duration = simulation_params['simulation_duration'].get('total_minutes', 240) * 60
+		print(f"使用自定义仿真时长: {simulation_params['simulation_duration']['total_minutes']} 分钟 = {duration} 秒")
 	else:
-		duration = 3600
+		# 使用case元数据中的时间范围
+		time_range = case_metadata.get('time_range', {})
+		if time_range.get('start') and time_range.get('end'):
+			start_dt = parse_datetime(time_range['start'])
+			end_dt = parse_datetime(time_range['end'])
+			duration = int((end_dt - start_dt).total_seconds())
+			print(f"使用case元数据时间范围: {duration} 秒")
+		else:
+			# 默认时长: 1小时
+			duration = 3600
+			print(f"使用默认仿真时长: {duration} 秒")
 	
 	# 处理 edgeData additional 文件
 	edgedata_files = []
