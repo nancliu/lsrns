@@ -307,27 +307,30 @@ async function loadCaseDuration(caseId) {
         }
 
         const data = await response.json();
-        const durationInfo = document.getElementById('currentDurationInfo');
 
-        if (!durationInfo) {
-            console.warn('currentDurationInfo element not found');
-            return;
+        // Revision 6: 直接填充输入框而不是显示只读文本
+        const hoursInput = document.getElementById('simulationDurationHours');
+        const minutesInput = document.getElementById('simulationDurationMinutes');
+
+        if (hoursInput && minutesInput) {
+            hoursInput.value = data.duration_hours;
+            minutesInput.value = data.duration_minutes;
+        } else {
+            console.warn('Duration input elements not found');
         }
-
-        // 显示格式化的时长信息
-        durationInfo.textContent = data.display_text;
-        durationInfo.style.color = '#333';
 
         // 将数据保存到全局变量供createBatch使用
         window.caseDuration = data;
 
-        console.log(`Case duration loaded: ${data.display_text}`);
+        console.log(`Case duration loaded: ${data.duration_hours}h ${data.duration_minutes}m`);
     } catch (error) {
         console.error('Load case duration error:', error);
-        const durationInfo = document.getElementById('currentDurationInfo');
-        if (durationInfo) {
-            durationInfo.textContent = '无法获取时长信息';
-            durationInfo.style.color = '#d32f2f';
+        // 错误时使用默认值
+        const hoursInput = document.getElementById('simulationDurationHours');
+        const minutesInput = document.getElementById('simulationDurationMinutes');
+        if (hoursInput && minutesInput) {
+            hoursInput.value = 1;
+            minutesInput.value = 0;
         }
     }
 }
@@ -394,38 +397,25 @@ function getVehicleTemplate() {
  * @returns {Object|null} 时长配置对象或null
  */
 function getSimulationDuration() {
-    // Revision 5: 支持自定义时长覆盖case元数据
-    const useCustom = document.getElementById('useCustomDuration')?.checked || false;
+    // Revision 6: 直接从输入框读取用户设置的时长值
+    const hoursInput = document.getElementById('simulationDurationHours');
+    const minutesInput = document.getElementById('simulationDurationMinutes');
 
-    if (useCustom) {
-        // 使用自定义时长
-        const hours = parseInt(document.getElementById('customDurationHours')?.value || 1);
-        const minutes = parseInt(document.getElementById('customDurationMinutes')?.value || 0);
-        const totalMinutes = hours * 60 + minutes;
-
-        return {
-            use_default: false,
-            hours: hours,
-            minutes: minutes,
-            total_minutes: totalMinutes
-        };
+    if (!hoursInput || !minutesInput) {
+        showError('仿真时长输入框未找到');
+        return null;
     }
 
-    // Revision 3: 时长从case元数据读取
-    if (window.caseDuration) {
-        return {
-            use_default: true,
-            hours: window.caseDuration.duration_hours,
-            minutes: window.caseDuration.duration_minutes,
-            total_minutes: window.caseDuration.total_minutes,
-            start_time: window.caseDuration.start_time,
-            end_time: window.caseDuration.end_time
-        };
-    }
+    const hours = parseInt(hoursInput.value || 1);
+    const minutes = parseInt(minutesInput.value || 0);
+    const totalMinutes = hours * 60 + minutes;
 
-    // 如果没有加载case信息
-    showError('请先选择案例');
-    return null;
+    return {
+        use_default: true,  // 标记为使用元数据源，但值由用户输入框控制
+        hours: hours,
+        minutes: minutes,
+        total_minutes: totalMinutes
+    };
 }
 
 /**
@@ -472,7 +462,7 @@ async function loadVehicleTemplates() {
 
 /**
  * 初始化仿真配置事件监听
- * Phase 2: 添加交互事件（Revision 5: 添加自定义时长复选框监听）
+ * Phase 2: 添加交互事件
  */
 function initSimulationConfigListeners() {
     // Phase 2: 车辆模板选择
@@ -483,19 +473,17 @@ function initSimulationConfigListeners() {
         });
     }
 
-    // Revision 5: 自定义时长复选框监听
-    const useCustomDurationCheckbox = document.getElementById('useCustomDuration');
-    const customDurationInputs = document.getElementById('customDurationInputs');
-    if (useCustomDurationCheckbox && customDurationInputs) {
-        useCustomDurationCheckbox.addEventListener('change', () => {
-            if (useCustomDurationCheckbox.checked) {
-                customDurationInputs.style.display = 'block';
-                debugLog('Custom duration enabled');
-            } else {
-                customDurationInputs.style.display = 'none';
-                debugLog('Custom duration disabled');
-            }
-        });
+    // Revision 6: 时长输入框事件监听（可选，用于实时反馈）
+    const hoursInput = document.getElementById('simulationDurationHours');
+    const minutesInput = document.getElementById('simulationDurationMinutes');
+    if (hoursInput && minutesInput) {
+        const updateDurationLog = () => {
+            const hours = parseInt(hoursInput.value || 1);
+            const minutes = parseInt(minutesInput.value || 0);
+            debugLog(`Duration changed: ${hours}h ${minutes}m`);
+        };
+        hoursInput.addEventListener('change', updateDurationLog);
+        minutesInput.addEventListener('change', updateDurationLog);
     }
 }
 

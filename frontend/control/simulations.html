@@ -106,39 +106,20 @@
                         </p>
                     </div>
 
-                    <!-- 仿真时长设置 (Phase 3: 新增, Revision 3: 改为从case元数据读取, Revision 5: 添加自定义选项) -->
-                    <div class="form-group">
-                        <label>仿真时长:</label>
-                        <div id="currentDurationInfo" class="duration-info" style="padding: 12px; background-color: #f9f9f9; border-radius: 4px; color: #666;">
-                            加载中...
+                    <!-- 仿真时长设置 (Phase 3: 新增, Revision 3: 改为从case元数据读取, Revision 6: 简化为直接可编辑输入框) -->
+                    <div style="display: flex; gap: 12px; align-items: flex-end;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="simulationDurationHours">仿真时长 (小时):</label>
+                            <input type="number" id="simulationDurationHours" value="1" min="0" max="23">
                         </div>
-                        <p style="font-size: 0.9rem; color: #999; margin-top: 6px;">
-                            时长自动读取自案例数据，基于输入数据的时间范围
-                        </p>
-
-                        <!-- 自定义仿真时长选项 -->
-                        <div style="margin-top: 12px; padding: 10px; background: #f0f5ff; border-radius: 4px;">
-                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <input type="checkbox" id="useCustomDuration" style="margin-right: 8px; cursor: pointer;" />
-                                <span style="cursor: pointer;">使用自定义仿真时长</span>
-                            </label>
-                            <div id="customDurationInputs" style="display: none; margin-left: 24px;">
-                                <div style="display: flex; gap: 12px; margin-bottom: 8px;">
-                                    <div>
-                                        <label for="customDurationHours" style="font-size: 0.9rem;">小时:</label>
-                                        <input type="number" id="customDurationHours" value="1" min="0" max="23" style="width: 60px;">
-                                    </div>
-                                    <div>
-                                        <label for="customDurationMinutes" style="font-size: 0.9rem;">分钟:</label>
-                                        <input type="number" id="customDurationMinutes" value="0" min="0" max="59" style="width: 60px;">
-                                    </div>
-                                </div>
-                                <p style="font-size: 0.85rem; color: #666; margin: 0;">
-                                    自定义时长将覆盖案例默认时长
-                                </p>
-                            </div>
+                        <div class="form-group" style="flex: 0 0 auto;">
+                            <label for="simulationDurationMinutes">分钟:</label>
+                            <input type="number" id="simulationDurationMinutes" value="0" min="0" max="59">
                         </div>
                     </div>
+                    <p style="font-size: 0.9rem; color: #999; margin-top: 6px; margin-bottom: 12px;">
+                        时长自动读取自案例数据，可根据需要修改
+                    </p>
 
                     <div class="form-group">
                         <label for="numSeeds">随机种子数 (每个方案):</label>
