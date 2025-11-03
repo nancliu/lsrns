@@ -1826,7 +1826,9 @@ async function updateBatchCardProgress(batchId) {
         }
 
         const data = await response.json();
-        const progress = data.progress_percent || 0;
+        // 🔧 FIX: Convert progress from 0.0-1.0 float to 0-100 percentage
+        // The API returns data.progress as a float (0.0 to 1.0)
+        const progress = Math.round((data.progress || 0) * 100);
 
         // 更新进度条宽度
         const progressBar = document.getElementById(`progress-bar-${batchId}`);

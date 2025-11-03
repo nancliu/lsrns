@@ -9,8 +9,8 @@
  */
 
 // ========== 全局变量 ==========
-let currentBatchId = null;
-let currentCaseId = null;
+// Note: currentBatchId and currentCaseId are declared in batch_simulation.js
+// to avoid duplicate declaration errors when both scripts are loaded
 let batchResultsData = null;
 
 // ========== T6.1: 加载批次结果 ==========
