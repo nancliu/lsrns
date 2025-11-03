@@ -1412,19 +1412,25 @@ async function exportResults() {
 // ========== 加载批次结果 (Phase 6: 结果可视化) ==========
 
 /**
- * Phase 6: 加载批次结果并切换到结果视图
+ * Phase 8.4修复：从批次卡片加载结果并切换到结果视图
+ *
  * @param {string} batchId - 批次ID
+ * @param {string} caseId - 案例ID（可选，用于调用batch_results.js的loadBatchResults）
  */
-async function loadBatchResultsAndSwitch(batchId) {
+async function loadBatchResultsAndSwitch(batchId, caseId) {
     try {
         currentBatchId = batchId;
 
+        // 如果没有提供caseId，从currentCaseId获取或通过API查找
+        if (!caseId) {
+            caseId = currentCaseId || 'unknown';
+        }
+
         // 使用batch_results.js中的加载函数
         if (typeof loadBatchResults === 'function') {
-            const caseId = currentCaseId || 'unknown';
             await loadBatchResults(batchId, caseId);
         } else {
-            // 备选：直接获取结果数据
+            // 备选：直接获取结果数据（如果batch_results.js未加载）
             const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`);
             if (!response.ok) throw new Error('Failed to fetch batch results');
             const data = await response.json();
@@ -1700,19 +1706,19 @@ function createBatchCard(batch) {
     } else if (batch.status === 'cancelled') {
         actionsHtml = `
             <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">启动仿真</button>
-            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}', '${batch.case_id || ''}')">查看结果</button>
             <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
         `;
     } else if (batch.status === 'completed') {
         actionsHtml = `
             <button class="btn btn-small btn-info" onclick="loadBatchProgressAndSwitch('${batch.batch_id}')">查看进度</button>
-            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}', '${batch.case_id || ''}')">查看结果</button>
             <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
         `;
     } else if (batch.status === 'failed') {
         actionsHtml = `
             <button class="btn btn-small btn-primary" onclick="startBatchById('${batch.batch_id}')">重新启动</button>
-            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}')">查看结果</button>
+            <button class="btn btn-small btn-success" onclick="loadBatchResultsAndSwitch('${batch.batch_id}', '${batch.case_id || ''}')">查看结果</button>
             <button class="btn btn-small btn-danger" onclick="deleteBatchHistory('${batch.batch_id}')">删除</button>
         `;
     } else if (batch.status === 'pending') {
@@ -1883,12 +1889,6 @@ async function deleteBatchHistory(batchId) {
         console.error('Error deleting batch:', error);
         showError('删除批次失败');
     }
-}
-
-function loadBatchResultsAndSwitch(batchId) {
-    currentBatchId = batchId;
-    window.currentBatchId = batchId;
-    switchView('results');
 }
 
 function loadBatchProgressAndSwitch(batchId) {
