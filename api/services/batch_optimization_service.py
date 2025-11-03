@@ -1782,65 +1782,6 @@ class BatchOptimizationService:
             }
         }
 
-    def get_batch_results(self, case_id: str, batch_id: str) -> Dict[str, Any]:
-        """
-        获取批次结果及分析数据 (Phase 2: T2.1-T2.3 results analysis)
-
-        Args:
-            case_id: 案例ID
-            batch_id: 批次ID
-
-        Returns:
-            Dict: 包含对比结果和改进率的分析数据
-
-        说明：
-        - 从summary.xml提取各方案的关键指标
-        - 计算test方案相对于baseline的改进率
-        - 生成结果对比表
-        """
-        logger.info(f"Getting batch results for {batch_id}")
-
-        batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
-
-        if not batch_dir.exists():
-            raise FileNotFoundError(f"批次不存在: {batch_id}")
-
-        # 1. 加载批次元数据获取plan_ids
-        metadata_file = batch_dir / "batch_metadata.json"
-        if not metadata_file.exists():
-            raise FileNotFoundError(f"批次元数据不存在: {metadata_file}")
-
-        with open(metadata_file, 'r', encoding='utf-8') as f:
-            batch_metadata = json.load(f)
-
-        plan_ids = batch_metadata.get("plan_ids", [])
-
-        # 2. 使用BatchResultAnalyzer分析结果
-        analyzer = BatchResultAnalyzer()
-        analysis_results = analyzer.analyze_batch_results(
-            batch_dir=batch_dir,
-            plan_ids=plan_ids,
-            baseline_plan_id=BASELINE_PLAN_ID
-        )
-
-        # 3. 合并批次元数据和分析结果
-        result = {
-            "batch_id": batch_id,
-            "case_id": case_id,
-            "status": batch_metadata.get("status", "pending"),
-            "analysis": analysis_results,
-            "metadata": {
-                "num_seeds": batch_metadata.get("num_seeds", 1),
-                "base_seed": batch_metadata.get("base_seed", 66),
-                "output_level": batch_metadata.get("output_level", "standard"),
-                "created_at": batch_metadata.get("created_at"),
-                "completed_at": batch_metadata.get("completed_at"),
-            }
-        }
-
-        logger.info(f"Successfully analyzed batch {batch_id}")
-        return result
-
     def delete_batch_with_archive(self, case_id: str, batch_id: str, archive: bool = False) -> Dict[str, Any]:
         """
         删除或归档批次
