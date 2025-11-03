@@ -353,6 +353,43 @@ async def list_batches(
         raise HTTPException(status_code=500, detail=f"获取批次列表失败: {str(e)}")
 
 
+@router.get("/cases/{case_id}/duration", tags=["Configuration"])
+async def get_case_duration(case_id: str):
+    """
+    获取案例仿真时长 (Revision 3: 新增)
+
+    从case元数据中读取time_range，计算实际仿真时长
+
+    路径参数:
+    - case_id: 案例ID
+
+    返回:
+    - use_default: 是否使用默认时长（总是True）
+    - start_time: 开始时间
+    - end_time: 结束时间
+    - duration_hours: 小时数
+    - duration_minutes: 分钟数
+    - total_minutes: 总分钟数
+    - display_text: 格式化的显示文本 (例如: "1小时30分钟 (08:00 - 09:30)")
+
+    说明:
+    - 前端在case选择时调用此端点获取案例时长
+    - 时长为只读，基于case元数据的time_range计算得出
+    """
+    try:
+        result = batch_service.get_case_duration(case_id)
+        return result
+    except FileNotFoundError as e:
+        logger.warning(f"Case not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        logger.warning(f"Invalid case duration data: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting case duration: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取案例时长失败: {str(e)}")
+
+
 @router.get("/templates/vehicle-types", tags=["Configuration"])
 async def list_vehicle_templates():
     """

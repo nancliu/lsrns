@@ -270,6 +270,45 @@ function updateEstimate() {
         `${selectedPlans.length}个方案 × ${numSeeds} 个随机种子 = ${totalTasks} 个并行仿真任务`;
 }
 
+/**
+ * 加载案例仿真时长
+ * Revision 3: 从API获取case元数据中的时长信息
+ * @param {string} caseId - 案例ID
+ */
+async function loadCaseDuration(caseId) {
+    try {
+        const response = await fetch(`${API_BASE}/control/batch-optimization/cases/${caseId}/duration`);
+
+        if (!response.ok) {
+            throw new Error(`Failed to load case duration: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const durationInfo = document.getElementById('currentDurationInfo');
+
+        if (!durationInfo) {
+            console.warn('currentDurationInfo element not found');
+            return;
+        }
+
+        // 显示格式化的时长信息
+        durationInfo.textContent = data.display_text;
+        durationInfo.style.color = '#333';
+
+        // 将数据保存到全局变量供createBatch使用
+        window.caseDuration = data;
+
+        console.log(`Case duration loaded: ${data.display_text}`);
+    } catch (error) {
+        console.error('Load case duration error:', error);
+        const durationInfo = document.getElementById('currentDurationInfo');
+        if (durationInfo) {
+            durationInfo.textContent = '无法获取时长信息';
+            durationInfo.style.color = '#d32f2f';
+        }
+    }
+}
+
 async function onCaseChange() {
     const caseId = document.getElementById('caseSelector').value;
 
@@ -281,11 +320,17 @@ async function onCaseChange() {
     if (caseId) {
         localStorage.setItem('lastSelectedCaseId', caseId);
         console.log('Case selected:', currentCaseId);
+
+        // Revision 3: 加载案例时长
+        await loadCaseDuration(caseId);
     } else {
         localStorage.removeItem('lastSelectedCaseId');
+        // 清空时长显示
+        const durationInfo = document.getElementById('currentDurationInfo');
+        if (durationInfo) {
+            durationInfo.textContent = '请选择案例';
+        }
     }
-
-    // 可以在这里加载case的特定配置
 }
 
 function clearConfig() {
@@ -322,39 +367,24 @@ function getVehicleTemplate() {
 
 /**
  * 获取仿真时长配置
- * Phase 3: 从radio和输入框收集时长配置
+ * Phase 3: 从case元数据读取时长（Revision 3: 改为只读）
  * @returns {Object|null} 时长配置对象或null
  */
 function getSimulationDuration() {
-    const mode = document.querySelector('input[name="durationMode"]:checked')?.value;
-
-    if (mode === 'default') {
+    // Revision 3: 时长现在从case元数据读取，总是use_default:true
+    if (window.caseDuration) {
         return {
-            use_default: true
-        };
-    } else if (mode === 'custom') {
-        const hours = parseInt(document.getElementById('simHours').value) || 0;
-        const minutes = parseInt(document.getElementById('simMinutes').value) || 0;
-        const totalMinutes = hours * 60 + minutes;
-
-        // 验证
-        if (totalMinutes < 1) {
-            showError('仿真时长至少为1分钟');
-            return null;
-        }
-        if (totalMinutes > 1440) {
-            showError('仿真时长不能超过24小时');
-            return null;
-        }
-
-        return {
-            use_default: false,
-            hours: hours,
-            minutes: minutes,
-            total_minutes: totalMinutes
+            use_default: true,
+            hours: window.caseDuration.duration_hours,
+            minutes: window.caseDuration.duration_minutes,
+            total_minutes: window.caseDuration.total_minutes,
+            start_time: window.caseDuration.start_time,
+            end_time: window.caseDuration.end_time
         };
     }
 
+    // 如果没有加载case信息
+    showError('请先选择案例');
     return null;
 }
 
@@ -402,7 +432,7 @@ async function loadVehicleTemplates() {
 
 /**
  * 初始化仿真配置事件监听
- * Phase 2 & 3: 添加交互事件
+ * Phase 2: 添加交互事件（Revision 3: 移除时长相关监听，因为时长现在是只读的）
  */
 function initSimulationConfigListeners() {
     // Phase 2: 车辆模板选择
@@ -413,62 +443,7 @@ function initSimulationConfigListeners() {
         });
     }
 
-    // Phase 3: 仿真时长配置
-    const durationRadios = document.querySelectorAll('input[name="durationMode"]');
-    durationRadios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            const isCustom = e.target.value === 'custom';
-            const customInputs = document.getElementById('customDurationInputs');
-            const simHours = document.getElementById('simHours');
-            const simMinutes = document.getElementById('simMinutes');
-
-            if (customInputs) {
-                customInputs.style.display = isCustom ? 'flex' : 'none';
-                simHours.disabled = !isCustom;
-                simMinutes.disabled = !isCustom;
-            }
-
-            const durationError = document.getElementById('durationError');
-            if (durationError) {
-                durationError.style.display = 'none';
-            }
-        });
-    });
-
-    // 时长输入验证
-    const simHours = document.getElementById('simHours');
-    const simMinutes = document.getElementById('simMinutes');
-    const durationError = document.getElementById('durationError');
-
-    if (simHours) {
-        simHours.addEventListener('change', validateDuration);
-    }
-    if (simMinutes) {
-        simMinutes.addEventListener('change', validateDuration);
-    }
-}
-
-/**
- * 验证并显示仿真时长错误
- * Phase 3: 验证输入
- */
-function validateDuration() {
-    const hours = parseInt(document.getElementById('simHours').value) || 0;
-    const minutes = parseInt(document.getElementById('simMinutes').value) || 0;
-    const totalMinutes = hours * 60 + minutes;
-    const errorElem = document.getElementById('durationError');
-
-    if (!errorElem) return;
-
-    if (totalMinutes > 0 && totalMinutes < 1) {
-        errorElem.textContent = '仿真时长至少为1分钟';
-        errorElem.style.display = 'block';
-    } else if (totalMinutes > 1440) {
-        errorElem.textContent = '仿真时长不能超过24小时';
-        errorElem.style.display = 'block';
-    } else {
-        errorElem.style.display = 'none';
-    }
+    // Revision 3: 时长现在从case元数据读取，不需要监听radio或输入框
 }
 
 async function createBatch() {

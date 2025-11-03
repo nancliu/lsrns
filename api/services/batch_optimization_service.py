@@ -1820,6 +1820,91 @@ class BatchOptimizationService:
             }
         }
 
+    def get_case_duration(self, case_id: str) -> Dict[str, Any]:
+        """
+        从case元数据中读取仿真时长 (Revision 3: 新增)
+
+        从cases/{case_id}/metadata.json中读取time_range信息，
+        计算仿真时长（从start到end）
+
+        Args:
+            case_id: 案例ID
+
+        Returns:
+            Dict: {
+                "use_default": True,
+                "start_time": "2025/09/01 08:00:00",
+                "end_time": "2025/09/01 09:00:00",
+                "duration_hours": 1,
+                "duration_minutes": 0,
+                "total_minutes": 60,
+                "display_text": "1小时0分钟 (08:00 - 09:00)"
+            }
+
+        Raises:
+            FileNotFoundError: 案例不存在或元数据文件不存在
+            ValueError: 时间解析失败
+        """
+        try:
+            case_dir = Path(self.cases_base_dir) / case_id
+            metadata_file = case_dir / "metadata.json"
+
+            if not metadata_file.exists():
+                logger.warning(f"Metadata file not found: {metadata_file}")
+                raise FileNotFoundError(f"案例元数据不存在: {case_id}")
+
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            # 从metadata中提取time_range
+            time_range = metadata.get("time_range", {})
+            start_time_str = time_range.get("start")
+            end_time_str = time_range.get("end")
+
+            if not start_time_str or not end_time_str:
+                logger.warning(f"No time_range in metadata for {case_id}")
+                raise ValueError(f"案例元数据中缺少时间范围信息")
+
+            # 解析时间
+            from datetime import datetime
+            try:
+                start_time = datetime.strptime(start_time_str, "%Y/%m/%d %H:%M:%S")
+                end_time = datetime.strptime(end_time_str, "%Y/%m/%d %H:%M:%S")
+            except ValueError as e:
+                logger.error(f"Failed to parse time range: {e}")
+                raise ValueError(f"时间格式解析失败: {str(e)}")
+
+            # 计算时长
+            duration = end_time - start_time
+            total_seconds = int(duration.total_seconds())
+            total_minutes = total_seconds // 60
+            hours = total_minutes // 60
+            minutes = total_minutes % 60
+
+            # 提取时间部分用于显示
+            start_time_display = start_time.strftime("%H:%M")
+            end_time_display = end_time.strftime("%H:%M")
+
+            result = {
+                "use_default": True,
+                "start_time": start_time_str,
+                "end_time": end_time_str,
+                "duration_hours": hours,
+                "duration_minutes": minutes,
+                "total_minutes": total_minutes,
+                "display_text": f"{hours}小时{minutes}分钟 ({start_time_display} - {end_time_display})"
+            }
+
+            logger.info(f"Case duration for {case_id}: {result['display_text']}")
+
+            return result
+
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting case duration: {e}", exc_info=True)
+            raise ValueError(f"获取案例时长失败: {str(e)}")
+
     def list_vehicle_templates(self) -> Dict[str, Any]:
         """
         列表查询可用的车辆模板文件 (Revision 2: 新增)
