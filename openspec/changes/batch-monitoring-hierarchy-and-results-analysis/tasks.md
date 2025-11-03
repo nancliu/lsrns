@@ -12,12 +12,14 @@
 ## Quick Status Summary
 
 **Phase 1: Case Grouping UI** - ✅ **100% COMPLETE**
+
 - T1.1: ✅ Complete (batch_simulation.js grouping logic)
 - T1.2: ✅ Complete (HTML structure updated)
 - T1.3: ✅ Complete (CSS styles implemented)
 - T1.4: ✅ Complete (batch polling integration verified)
 
 **Phase 2: Results Analysis Layer 1** - 🟡 **50% COMPLETE**
+
 - T2.1: 🔴 NOT STARTED (BatchResultAnalyzer class)
 - T2.2: 🔴 NOT STARTED (Service method)
 - T2.3: 🔴 NOT STARTED (API endpoint)
@@ -25,42 +27,49 @@
 - E2E Tests: ✅ COMPLETE (19 Playwright tests, 17/19 passing)
 
 **Phase 3: Output Configuration** - 🟡 **70% COMPLETE**
-- T3.1: 🟡 PARTIAL (API model extended with output_level)
-- T3.2: 🟡 PARTIAL (Backend implementation in create_batch())
-- T3.3: 🔴 NOT STARTED (Config validation)
-- Backend: ✅ Working (_output_level_to_config() method implemented)
-- Frontend UI: 🔴 NOT STARTED
+
+- T3.1: ✅ COMPLETE (API model extended with output_config struct, simulation_duration)
+- T3.2: ✅ COMPLETE (Backend implementation in create_batch() with unified config)
+- T3.3: 🔴 NOT STARTED (Config validation - verify consistency)
+- Backend: ✅ Working (output configuration persistence verified)
+- Frontend UI: 🟡 PARTIAL (Form controls shown, integration pending)
 
 **Phase 4: Baseline Enforcement** - 🟡 **30% COMPLETE**
+
 - T4.1: 🟡 PARTIAL (Framework exists, auto-inclusion logic present)
 - T4.2: 🔴 NOT STARTED (UI marking)
 - Backend: 🟡 Framework exists, needs completion
 - Frontend: 🔴 NOT STARTED
 
 **Phase 5: Random Seed Config** - 🚫 **DEPRECATED (FEATURE REMOVED)**
+
 - T5.1: 🚫 DEPRECATED (UI selector - feature no longer needed)
 - T5.2: 🚫 DEPRECATED (Seed configuration - feature no longer needed)
 - Backend: 🚫 DEPRECATED (num_seeds parameter to be removed from API/backend)
 - Frontend UI: 🚫 DEPRECATED (not needed)
 
 **Phase 6: Results Visualization** - 🟡 **30% COMPLETE**
+
 - T6.1: 🟡 PARTIAL (Results view partially implemented, needs UI enhancement)
 - T6.2: 🟡 PARTIAL (Comparison table rendering implemented but UI needs work)
 - T6.3: 🔴 NOT STARTED (Chart visualizations)
 - T6.4: ✅ COMPLETE (Results button wired up)
 
 **Phase 7: Integration & Testing** - 🔴 **0% COMPLETE**
+
 - T7.1: 🔴 NOT STARTED (Unit tests)
 - T7.2: 🔴 NOT STARTED (Integration tests)
 - T7.3: ✅ COMPLETE (E2E tests created: 19 tests, 17/19 passing)
 - T7.4: 🔴 NOT STARTED (UAT)
 
 **Phase 8: Documentation** - 🔴 **0% COMPLETE**
+
 - T8.1: 🔴 NOT STARTED (API documentation)
 - T8.2: 🔴 NOT STARTED (Feature documentation)
 - T8.3: 🔴 NOT STARTED (Code cleanup)
 
 **Related Work Completed**:
+
 - ✅ Created IMPLEMENTATION_STATUS.md (700+ lines detailed progress report)
 - ✅ Fixed 2 critical bugs in batch results rendering
 - ✅ Moved batch results documentation to docs/ directory
@@ -91,21 +100,24 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Implement case-grouped render logic in batch_simulation.js
 
 **Subtasks**:
-- [x] Modify `loadBatchHistory()` to fetch case metadata along with batches
-- [x] Implement `renderBatchListGroupedByCase(batches, caseMetadata)` function
-- [x] Implement `createCaseGroup(caseId, caseInfo, caseBatches)` function
-- [x] Implement `createBatchCard()` enhancement (ensure it works within case groups)
-- [x] Implement `toggleCaseGroup(caseId)` collapse/expand logic
-- [x] Sort case groups by latest batch time (newest first)
-- [x] Test with multiple cases and multiple batches per case
+
+- [X] Modify `loadBatchHistory()` to fetch case metadata along with batches
+- [X] Implement `renderBatchListGroupedByCase(batches, caseMetadata)` function
+- [X] Implement `createCaseGroup(caseId, caseInfo, caseBatches)` function
+- [X] Implement `createBatchCard()` enhancement (ensure it works within case groups)
+- [X] Implement `toggleCaseGroup(caseId)` collapse/expand logic
+- [X] Sort case groups by latest batch time (newest first)
+- [X] Test with multiple cases and multiple batches per case
 
 **Validation**:
+
 - Batches display grouped under correct case_id headers
 - Case toggle buttons work (expand/collapse)
 - Batch cards appear in correct groups
 - Newest cases appear at top
 
 **Related Files**:
+
 - `frontend/control/js/batch_simulation.js`
 
 ---
@@ -119,18 +131,21 @@ Tasks are organized by phase and marked with dependencies.
 **Status**: ✅ COMPLETE
 
 **Subtasks**:
-- [x] Update `batch-list-container` to support nested case group elements
-- [x] Create placeholder case group section with ID `case-group-${caseId}`
-- [x] Create placeholder case group body section with ID `case-group-body-${caseId}`
-- [x] Ensure batch card containers are within case group bodies
-- [x] Add results analysis section (modal or separate tab) for Layer 1
+
+- [X] Update `batch-list-container` to support nested case group elements
+- [X] Create placeholder case group section with ID `case-group-${caseId}`
+- [X] Create placeholder case group body section with ID `case-group-body-${caseId}`
+- [X] Ensure batch card containers are within case group bodies
+- [X] Add results analysis section (modal or separate tab) for Layer 1
 
 **Validation**:
+
 - HTML compiles without errors
 - DOM structure supports nested groups
 - Results section placeholder exists
 
 **Related Files**:
+
 - `frontend/control/plans.html` or `frontend/control/simulations.html`
 
 ---
@@ -144,22 +159,25 @@ Tasks are organized by phase and marked with dependencies.
 **Status**: ✅ COMPLETE
 
 **Subtasks**:
-- [x] Create `.case-group` container style (border, padding, background)
-- [x] Create `.case-group-header` style (flex layout, hover effects)
-- [x] Create `.case-group-toggle` button style
-- [x] Create `.case-group-title` style (case ID, name, batch count)
-- [x] Create `.case-group-body` grid style (batch card layout)
-- [x] Create `.case-group-body.hidden` style (display: none)
-- [x] Create `.comparison-table` and related styles (see design.md)
-- [x] Create `.improvement` styles (positive green, negative red)
+
+- [X] Create `.case-group` container style (border, padding, background)
+- [X] Create `.case-group-header` style (flex layout, hover effects)
+- [X] Create `.case-group-toggle` button style
+- [X] Create `.case-group-title` style (case ID, name, batch count)
+- [X] Create `.case-group-body` grid style (batch card layout)
+- [X] Create `.case-group-body.hidden` style (display: none)
+- [X] Create `.comparison-table` and related styles (see design.md)
+- [X] Create `.improvement` styles (positive green, negative red)
 
 **Validation**:
+
 - Case groups visually distinct
 - Toggle button clearly visible and interactive
 - Comparison table readable with clear headers
 - Improvement rates color-coded
 
 **Related Files**:
+
 - `frontend/control/css/simulations.css`
 
 ---
@@ -173,17 +191,20 @@ Tasks are organized by phase and marked with dependencies.
 **Status**: ✅ COMPLETE
 
 **Subtasks**:
-- [x] Verify batch polling still works with grouped layout
-- [x] Test progress bar updates in correct case group
-- [x] Test batch status badge updates
-- [x] Ensure group headers update latest batch info correctly
+
+- [X] Verify batch polling still works with grouped layout
+- [X] Test progress bar updates in correct case group
+- [X] Test batch status badge updates
+- [X] Ensure group headers update latest batch info correctly
 
 **Validation**:
+
 - Running batches show real-time progress within their case groups
 - Progress updates don't cause visual flicker
 - Old completed batches remain in correct groups
 
 **Related Files**:
+
 - `frontend/control/js/batch_simulation.js`
 
 ---
@@ -197,6 +218,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Create summary.xml parser and improvement rate calculator
 
 **Subtasks**:
+
 - [ ] Create `shared/control_tools/batch_result_analyzer.py`
 - [ ] Implement `_parse_summary_xml()` method (extract key metrics)
 - [ ] Implement `aggregate_plan_results()` method (average N seeds)
@@ -205,15 +227,18 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Add error handling for invalid metrics
 
 **Validation**:
+
 - Correctly extracts meanTravelTime, ended, meanWaitingTime, maxRunningPersons
 - Averages multiple seed results correctly
 - Improvement rates calculated with correct direction (up/down)
 - Handles missing files gracefully
 
 **Related Files**:
+
 - `shared/control_tools/batch_result_analyzer.py` (new)
 
 **Test Coverage**:
+
 - Unit test: parse valid summary.xml
 - Unit test: average N=1, 3, 5 seeds
 - Unit test: calculate improvement rates (both improving and degrading)
@@ -229,6 +254,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Implement `get_batch_results()` service method
 
 **Subtasks**:
+
 - [ ] Modify `batch_optimization_service.py` to import BatchResultAnalyzer
 - [ ] Implement `get_batch_results(batch_id, case_id)` async method
 - [ ] Query all plans in batch
@@ -237,28 +263,32 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Return aggregated results object
 
 **Validation**:
+
 - Returns aggregated results for all plans in batch
 - Baseline identified correctly
 - Improvement rates calculated for control plans only
 - Results include sample count and standard deviation
 
 **Related Files**:
+
 - `api/services/batch_optimization_service.py`
 
 **Test Coverage**:
+
 - Integration test: get_batch_results with 3 plans × 3 seeds
 - Integration test: baseline marked correctly
 - Integration test: improvement rates non-zero for control plans
 
 ---
 
-### T2.3: Create API endpoint GET /batch/{batch_id}/results
+### T2.3: Create API endpoint GET /batch//results
 
 **Depends on**: T2.2
 
 **Description**: Add HTTP endpoint for results retrieval
 
 **Subtasks**:
+
 - [ ] Add new route in `api/routes/control_routes.py` (or appropriate batch routes file)
 - [ ] Implement `get_batch_results()` route handler
 - [ ] Return results in JSON format (see design.md response schema)
@@ -266,37 +296,52 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Add 404 response for missing batch
 
 **Validation**:
+
 - Endpoint returns 200 OK with valid results data
 - Returns 404 when batch doesn't exist
 - Returns 400 when results unavailable (no summary.xml)
 
 **Related Files**:
+
 - `api/routes/control_routes.py` or similar
 
 ---
 
 ## Phase 3: Batch Configuration Consistency - 4-6 hours
 
-### T3.1: Add output_level parameter to batch API model
+### T3.1: Add output configuration parameters to batch API model
 
 **Depends on**: None
 
-**Description**: Extend batch request model with output configuration
+**Status**: ✅ COMPLETE
 
-**Subtasks**:
-- [ ] Modify `api/models/requests/batch_requests.py`
-- [ ] Add `output_level: str` field with enum validation ["minimal", "standard", "full"]
-- [ ] Add `num_seeds: int` field with range validation [1-10]
-- [ ] Add docstring with output level definitions (summary/tripinfo/edgedata/e1 per level)
-- [ ] Set defaults: output_level="standard", num_seeds=3
+**Description**: Extend batch request model with output configuration and simulation duration
 
-**Validation**:
-- Invalid output_level rejected with 422 error
-- Invalid num_seeds rejected with 422 error
-- Defaults apply correctly
+**Completed Subtasks**:
+
+- [x] Modify `api/models/control/requests/batch_request.py`
+- [x] Add `output_config: OutputConfig` struct with fields:
+  - `summary_xml: bool` (always True - baseline statistics)
+  - `e1_detector_data: bool` (always True - pre-configured at gantry)
+  - `tripinfo_xml: bool` (optional, False by default - vehicle trip info)
+  - `edgedata_xml: bool` (optional, False by default - road segment statistics)
+- [x] Add `simulation_duration: Dict[str, int]` with fields:
+  - `hours: int` (0-24)
+  - `minutes: int` (0-59)
+  - `total_minutes: int` (1-1440, calculated as hours*60 + minutes)
+- [x] Add validation for output_config consistency
+- [x] Add docstring with output configuration definitions
+
+**Validation Completed**:
+
+- ✅ Invalid simulation_duration rejected with validation error
+- ✅ Defaults apply correctly (summary_xml=True, e1_detector_data=True)
+- ✅ Simulation duration must satisfy: hours*60 + minutes == total_minutes
+- ✅ Range validation: total_minutes in [1, 1440] (1 min to 24 hours)
 
 **Related Files**:
-- `api/models/requests/batch_requests.py`
+
+- `api/models/control/requests/batch_request.py` ✅ COMPLETED
 
 ---
 
@@ -304,31 +349,51 @@ Tasks are organized by phase and marked with dependencies.
 
 **Depends on**: T3.1
 
-**Description**: Update `create_batch()` to apply output config to all tasks
+**Status**: ✅ COMPLETE
 
-**Subtasks**:
-- [ ] Modify `batch_optimization_service.py` `create_batch()` method signature
-- [ ] Add output_level and num_seeds parameters
-- [ ] Validate output_level and num_seeds values
-- [ ] Create `simulation_config.json` with unified configuration
-- [ ] Save config to `cases/{case_id}/simulations/plan_opti/{batch_id}/simulation_config.json`
-- [ ] Include config in batch_metadata.json
-- [ ] When generating tasks, include seed from unified config
+**Description**: Update `create_batch()` to apply output config and simulation duration to all tasks
 
-**Validation**:
-- simulation_config.json created with correct structure
-- Config applied to all tasks (baseline + control plans)
-- Seed sequence matches num_seeds and base_seed
-- Config accessible by simulation executor
+**Completed Subtasks**:
+
+- [x] Modified `batch_optimization_service.py` `create_batch()` method signature
+- [x] Added output_config and simulation_duration parameters
+- [x] Validate output_config fields (summary_xml, e1_detector_data, tripinfo_xml, edgedata_xml)
+- [x] Validate simulation_duration (hours, minutes, total_minutes consistency)
+- [x] Create `simulation_config.json` with unified configuration
+- [x] Save config to batch directory with metadata
+- [x] Include config in batch_metadata.json
+- [x] Apply same config to all tasks (baseline + control plans)
+
+**Completed Validation**:
+
+- ✅ simulation_config.json created with correct structure
+- ✅ output_config applied to all tasks (baseline + control plans)
+- ✅ simulation_duration applied consistently across batch
+- ✅ Config accessible by simulation executor
+- ✅ Configuration persistence verified in batch metadata
+
+**Output Configuration Structure**:
+
+```json
+{
+  "output_config": {
+    "summary_xml": true,
+    "e1_detector_data": true,
+    "tripinfo_xml": false,
+    "edgedata_xml": false
+  },
+  "simulation_duration": {
+    "hours": 4,
+    "minutes": 0,
+    "total_minutes": 240
+  }
+}
+```
 
 **Related Files**:
-- `api/services/batch_optimization_service.py`
 
-**Test Coverage**:
-- Unit test: create_batch with output_level="minimal"
-- Unit test: create_batch with output_level="standard"
-- Unit test: create_batch with num_seeds=5
-- Integration test: Config saved and retrieved correctly
+- `api/services/batch_optimization_service.py` ✅ COMPLETED
+- `api/models/control/requests/batch_request.py` ✅ COMPLETED
 
 ---
 
@@ -336,25 +401,37 @@ Tasks are organized by phase and marked with dependencies.
 
 **Depends on**: T3.2
 
-**Description**: Verify all tasks in batch use same output settings
+**Status**: 🔴 NOT STARTED
 
-**Subtasks**:
-- [ ] Create validation function `validate_batch_output_config(batch_dir, plan_ids)`
+**Description**: Verify all tasks in batch use same output settings and prevent configuration drift
+
+**Remaining Subtasks**:
+
+- [ ] Create validation function `validate_batch_output_config(batch_dir, config)`
 - [ ] Check simulation_config.json exists and is parseable
-- [ ] Verify all plan directories will use same config
-- [ ] Return validation result (pass/fail with message)
+- [ ] Verify all plan simulation directories will use same config
+- [ ] Return validation result (pass/fail with clear message)
 - [ ] Call validation in create_batch before finalizing
+- [ ] Add validation check before batch execution
 
-**Validation**:
-- Validation passes when config is consistent
+**Validation Success Criteria**:
+
+- Validation passes when config is consistent across all plans
 - Validation fails with clear error message when inconsistent
+- Configuration cannot be changed mid-batch
 
 **Related Files**:
+
 - `api/services/batch_optimization_service.py`
+
+**Test Coverage**:
+
+- Unit test: Validate consistent output config (should pass)
+- Unit test: Detect inconsistent output config (should fail)
 
 ---
 
-## Phase 4: Baseline Plan Enforcement - 2-4 hours
+## Phase 4: Baseline Plan Enforcement - 2-4 hours 🚫 DEPRECATED (REMOVED)
 
 ### T4.1: Auto-include baseline_plan in batch creation
 
@@ -363,6 +440,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Ensure baseline_plan is always present
 
 **Subtasks**:
+
 - [ ] Modify `create_batch()` method
 - [ ] Check if "baseline_plan" in plan_ids
 - [ ] If missing, insert at beginning of plan_ids list
@@ -371,11 +449,13 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Include is_baseline flag in batch_metadata.json
 
 **Validation**:
+
 - baseline_plan always included even if not in request
 - baseline_plan appears in task list
 - baseline_plan has is_baseline=true in metadata
 
 **Related Files**:
+
 - `api/services/batch_optimization_service.py`
 
 ---
@@ -387,17 +467,20 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Update batch creation form and results display
 
 **Subtasks**:
+
 - [ ] Modify batch creation form UI to show baseline_plan as auto-selected
 - [ ] Add visual indicator (badge, asterisk, or label) for baseline_plan
 - [ ] Make baseline_plan non-removable from selection list
 - [ ] Display "基准方案 (标准方案)" label in results table for baseline
 
 **Validation**:
+
 - baseline_plan shown as selected in form
 - baseline_plan cannot be deselected
 - Baseline clearly marked in results display
 
 **Related Files**:
+
 - `frontend/control/html` (batch creation form)
 - `frontend/control/js` (form logic)
 
@@ -410,6 +493,7 @@ Tasks are organized by phase and marked with dependencies.
 **Reason**: Random seed configuration is not required for the batch monitoring and results analysis functionality
 
 **Cleanup Tasks**:
+
 - [ ] Remove num_seeds parameter from API model (if present)
 - [ ] Remove num_seeds handling from create_batch() method
 - [ ] Remove seed_sequence generation logic
@@ -417,12 +501,14 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Remove any related backend code that depends on num_seeds
 
 **Related Code to Clean Up**:
+
 - `api/models/requests/batch_requests.py` - Remove num_seeds field if added
 - `api/services/batch_optimization_service.py` - Remove num_seeds parameter handling
 - `frontend/control/simulations.html` - Remove any num_seeds UI (if added)
 - `frontend/control/js/batch_simulation.js` - Remove num_seeds form logic (if added)
 
 **Notes**:
+
 - All T5.1 and T5.2 tasks are CANCELLED
 - If any backend code was implemented for this feature, it should be removed
 - Updated overall project scope to exclude random seed configuration
@@ -438,6 +524,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Create UI for displaying batch results
 
 **Subtasks**:
+
 - [ ] Create results view container (modal or separate page)
 - [ ] Add batch summary section (case name, plan count, output level, seed info)
 - [ ] Add close/back button for modal
@@ -445,11 +532,13 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Handle error state (no results available)
 
 **Validation**:
+
 - Modal/page opens when "查看结果" clicked
 - Batch summary displays correctly
 - Loading and error states handled gracefully
 
 **Related Files**:
+
 - `frontend/control/simulations.html`
 - `frontend/control/js/batch_results.js` (new)
 
@@ -462,6 +551,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Render results comparison table
 
 **Subtasks**:
+
 - [ ] Implement `renderComparisonTable(container, resultsData)` function
 - [ ] Create table headers: Plan | meanTravelTime | Improvement Rate | ended | Improvement Rate | ...
 - [ ] Render baseline row (bold, gray background)
@@ -471,15 +561,18 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Color code improvement rates (green positive, red negative)
 
 **Validation**:
+
 - Table displays all plans
 - All metrics displayed correctly
 - Improvement rates calculated and displayed for control plans
 - Formatting clear and readable
 
 **Related Files**:
+
 - `frontend/control/js/batch_results.js`
 
 **Test Coverage**:
+
 - E2E test: Verify comparison table displays in results view
 - E2E test: Verify improvement rates are correct (manual calculation)
 
@@ -492,6 +585,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Add bar chart and optional curve visualization
 
 **Subtasks**:
+
 - [ ] Implement `renderCharts(container, resultsData)` function
 - [ ] Create bar chart: metric values across plans (using Chart.js or similar)
 - [ ] Add improvement rate visualization (optional: radar chart)
@@ -500,16 +594,19 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Ensure charts are readable with colors (accessible color scheme)
 
 **Validation**:
+
 - Bar chart renders correctly
 - All plans shown with different colors
 - Legend displays clearly
 - Charts responsive on mobile
 
 **Related Files**:
+
 - `frontend/control/js/batch_results.js`
 - External: Chart.js or similar library
 
 **Test Coverage**:
+
 - E2E test: Verify charts render in results view
 - E2E test: Verify chart data matches table data
 
@@ -522,6 +619,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Connect batch card "查看结果" button to results view
 
 **Subtasks**:
+
 - [ ] Add click handler to "查看结果" button in batch cards
 - [ ] Extract batch_id and case_id from batch card
 - [ ] Call `loadAndDisplayBatchResults(batchId, caseId)` function
@@ -529,11 +627,13 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Handle errors gracefully
 
 **Validation**:
+
 - Clicking button opens results view
 - Results load and display correctly
 - Errors show clear error message
 
 **Related Files**:
+
 - `frontend/control/js/batch_simulation.js`
 - `frontend/control/js/batch_results.js`
 
@@ -548,6 +648,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Test summary.xml parsing and calculations
 
 **Subtasks**:
+
 - [ ] Create `tests/unit/test_batch_result_analyzer.py`
 - [ ] Test `_parse_summary_xml()` with valid XML
 - [ ] Test `aggregate_plan_results()` with N=1, 3, 5
@@ -555,10 +656,13 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Test error handling (missing file, malformed XML)
 
 **Validation**:
+
 - All tests pass
-- >90% code coverage
+- > 90% code coverage
+  >
 
 **Related Files**:
+
 - `tests/unit/test_batch_result_analyzer.py` (new)
 
 ---
@@ -570,6 +674,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Test full batch creation and results flow
 
 **Subtasks**:
+
 - [ ] Create `tests/unit/test_batch_optimization_service.py` (or extend existing)
 - [ ] Test batch creation with output_level parameter
 - [ ] Test baseline auto-inclusion
@@ -578,11 +683,13 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Test improvement rate calculations
 
 **Validation**:
+
 - All tests pass
 - Batch metadata correct
 - Results aggregated correctly
 
 **Related Files**:
+
 - `tests/unit/test_batch_optimization_service.py`
 
 ---
@@ -594,6 +701,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Test UI workflows end-to-end
 
 **Subtasks**:
+
 - [ ] Create/extend `tests/e2e/test_batch_monitoring_hierarchy.spec.js`
 - [ ] Test case grouping display (batches grouped by case_id)
 - [ ] Test case group toggle (expand/collapse)
@@ -605,10 +713,12 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Test form: num_seeds selector works
 
 **Validation**:
+
 - All E2E tests pass
 - No flaky tests (use state detection, not fixed waits)
 
 **Related Files**:
+
 - `tests/e2e/test_batch_monitoring_hierarchy.spec.js` (new)
 
 ---
@@ -620,6 +730,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Manual testing by team/stakeholders
 
 **Subtasks**:
+
 - [ ] Create test case document for UAT
 - [ ] Test case grouping with 3+ cases, 2+ batches per case
 - [ ] Test batch creation with all output levels (minimal, standard, full)
@@ -631,6 +742,7 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Gather user feedback on UX
 
 **Validation**:
+
 - UAT sign-off
 - No critical bugs
 - User feedback incorporated
@@ -646,6 +758,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Document new/modified API endpoints
 
 **Subtasks**:
+
 - [ ] Update `docs/api_docs/新架构API指南.md`
 - [ ] Document POST /api/v1/control/optimization/batch with new parameters
 - [ ] Document GET /api/v1/control/optimization/batch/{batch_id}/results
@@ -653,10 +766,12 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Document output_level and num_seeds meanings
 
 **Validation**:
+
 - Documentation is clear and complete
 - Examples are correct
 
 **Related Files**:
+
 - `docs/api_docs/新架构API指南.md`
 
 ---
@@ -668,6 +783,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Create user-facing documentation
 
 **Subtasks**:
+
 - [ ] Create `docs/features/batch-monitoring-hierarchy.md`
 - [ ] Explain case grouping feature
 - [ ] Explain results comparison Layer 1 (summary.xml)
@@ -677,10 +793,12 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Document num_seeds configuration
 
 **Validation**:
+
 - Documentation is clear
 - Screenshots are helpful
 
 **Related Files**:
+
 - `docs/features/batch-monitoring-hierarchy.md` (new)
 
 ---
@@ -692,6 +810,7 @@ Tasks are organized by phase and marked with dependencies.
 **Description**: Final review and cleanup
 
 **Subtasks**:
+
 - [ ] Remove console.log() debug statements
 - [ ] Verify all functions have proper docstrings
 - [ ] Check code follows naming conventions (snake_case Python, camelCase JS)
@@ -700,43 +819,45 @@ Tasks are organized by phase and marked with dependencies.
 - [ ] Run linters: black, flake8 (Python), eslint (JS if available)
 
 **Validation**:
+
 - No linter warnings
 - Code consistent and clean
 
 **Related Files**:
+
 - All modified code files
 
 ---
 
 ## Task Summary Table
 
-| Phase | Task | Depends On | Hours | Status |
-|-------|------|-----------|-------|--------|
-| 1 | T1.1 - Case grouping logic | - | 2-2.5 | ⬜ |
-| 1 | T1.2 - HTML structure | - | 1-1.5 | ⬜ |
-| 1 | T1.3 - CSS styling | T1.2 | 1.5-2 | ⬜ |
-| 1 | T1.4 - Polling integration | T1.1, T1.2, T1.3 | 1.5-2 | ⬜ |
-| 2 | T2.1 - BatchResultAnalyzer | - | 2-2.5 | ⬜ |
-| 2 | T2.2 - Results service method | T2.1 | 2-2.5 | ⬜ |
-| 2 | T2.3 - Results API endpoint | T2.2 | 1.5-2 | ⬜ |
-| 3 | T3.1 - API model extension | - | 1-1.5 | ⬜ |
-| 3 | T3.2 - Output config enforcement | T3.1 | 2-2.5 | ⬜ |
-| 3 | T3.3 - Config validation | T3.2 | 1-1.5 | ⬜ |
-| 4 | T4.1 - Auto-include baseline | T3.1 | 0.5-1 | ⬜ |
-| 4 | T4.2 - Mark baseline in UI | - | 1-1.5 | ⬜ |
-| 5 | T5.1 - num_seeds selector UI | T3.1 | 1-1.5 | ⬜ |
-| 5 | T5.2 - Seed sequence verification | T3.2 | 0.5-1 | ⬜ |
-| 6 | T6.1 - Results view modal | T2.3 | 1.5-2 | ⬜ |
-| 6 | T6.2 - Comparison table | T6.1 | 1.5-2 | ⬜ |
-| 6 | T6.3 - Chart visualizations | T6.1, T6.2 | 1.5-2 | ⬜ |
-| 6 | T6.4 - Results triggering | T1.1, T6.1 | 1-1.5 | ⬜ |
-| 7 | T7.1 - Unit tests (analyzer) | T2.1 | 1-1.5 | ⬜ |
-| 7 | T7.2 - Integration tests | T3.2, T4.1, T5.2, T2.2 | 1.5-2 | ⬜ |
-| 7 | T7.3 - E2E tests | T1.4, T6.4 | 1-1.5 | ⬜ |
-| 7 | T7.4 - Manual testing | All | 2-3 | ⬜ |
-| 8 | T8.1 - API docs | T2.3, T3.1 | 0.5-1 | ⬜ |
-| 8 | T8.2 - Feature docs | All | 1-1.5 | ⬜ |
-| 8 | T8.3 - Code cleanup | All | 0.5-1 | ⬜ |
+| Phase | Task                              | Depends On             | Hours | Status |
+| ----- | --------------------------------- | ---------------------- | ----- | ------ |
+| 1     | T1.1 - Case grouping logic        | -                      | 2-2.5 | ⬜     |
+| 1     | T1.2 - HTML structure             | -                      | 1-1.5 | ⬜     |
+| 1     | T1.3 - CSS styling                | T1.2                   | 1.5-2 | ⬜     |
+| 1     | T1.4 - Polling integration        | T1.1, T1.2, T1.3       | 1.5-2 | ⬜     |
+| 2     | T2.1 - BatchResultAnalyzer        | -                      | 2-2.5 | ⬜     |
+| 2     | T2.2 - Results service method     | T2.1                   | 2-2.5 | ⬜     |
+| 2     | T2.3 - Results API endpoint       | T2.2                   | 1.5-2 | ⬜     |
+| 3     | T3.1 - API model extension        | -                      | 1-1.5 | ⬜     |
+| 3     | T3.2 - Output config enforcement  | T3.1                   | 2-2.5 | ⬜     |
+| 3     | T3.3 - Config validation          | T3.2                   | 1-1.5 | ⬜     |
+| 4     | T4.1 - Auto-include baseline      | T3.1                   | 0.5-1 | ⬜     |
+| 4     | T4.2 - Mark baseline in UI        | -                      | 1-1.5 | ⬜     |
+| 5     | T5.1 - num_seeds selector UI      | T3.1                   | 1-1.5 | ⬜     |
+| 5     | T5.2 - Seed sequence verification | T3.2                   | 0.5-1 | ⬜     |
+| 6     | T6.1 - Results view modal         | T2.3                   | 1.5-2 | ⬜     |
+| 6     | T6.2 - Comparison table           | T6.1                   | 1.5-2 | ⬜     |
+| 6     | T6.3 - Chart visualizations       | T6.1, T6.2             | 1.5-2 | ⬜     |
+| 6     | T6.4 - Results triggering         | T1.1, T6.1             | 1-1.5 | ⬜     |
+| 7     | T7.1 - Unit tests (analyzer)      | T2.1                   | 1-1.5 | ⬜     |
+| 7     | T7.2 - Integration tests          | T3.2, T4.1, T5.2, T2.2 | 1.5-2 | ⬜     |
+| 7     | T7.3 - E2E tests                  | T1.4, T6.4             | 1-1.5 | ⬜     |
+| 7     | T7.4 - Manual testing             | All                    | 2-3   | ⬜     |
+| 8     | T8.1 - API docs                   | T2.3, T3.1             | 0.5-1 | ⬜     |
+| 8     | T8.2 - Feature docs               | All                    | 1-1.5 | ⬜     |
+| 8     | T8.3 - Code cleanup               | All                    | 0.5-1 | ⬜     |
 
 **Total**: 22-31 hours (3-4 working days)
 
@@ -745,14 +866,12 @@ Tasks are organized by phase and marked with dependencies.
 ## Execution Notes
 
 1. **Parallelization**: Tasks with no dependencies can run in parallel:
+
    - Phase 1: T1.1 and T1.2 can run in parallel
    - Phase 4: T4.1 and T4.2 can run in parallel
    - Phase 5: T5.1 independent (but depends on T3.1)
-
 2. **Testing**: Begin unit tests (T7.1) as soon as T2.1 completes, don't wait for all code
-
 3. **UAT**: Allocate 2-3 hours for manual testing (T7.4) before archiving
-
 4. **Documentation**: Write as you code, compile at end (T8.1, T8.2)
 
 ---
