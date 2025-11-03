@@ -95,31 +95,34 @@
                         </div>
                     </div>
 
-                    <!-- 车辆类型模板 (Phase 2: 新增) -->
+                    <!-- 车辆类型模板 (Phase 2: 新增, Revision 7: 设置默认选中) -->
                     <div class="form-group">
                         <label for="vehicleTypesTemplate">车辆类型模板:</label>
-                        <select id="vehicleTypesTemplate">
-                            <option value="vehicle_types.json">vehicle_types.json (默认参数)</option>
+                        <select id="vehicleTypesTemplate" value="vehicle_types.json">
+                            <option value="vehicle_types.json" selected>vehicle_types.json (默认参数)</option>
                         </select>
                         <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
                             <strong>说明:</strong> 选择不同参数配置（动力学、跟驰、换道参数）
                         </p>
                     </div>
 
-                    <!-- 仿真时长设置 (Phase 3: 新增, Revision 3: 改为从case元数据读取, Revision 6: 简化为直接可编辑输入框) -->
-                    <div style="display: flex; gap: 12px; align-items: flex-end;">
-                        <div class="form-group" style="flex: 1;">
-                            <label for="simulationDurationHours">仿真时长 (小时):</label>
-                            <input type="number" id="simulationDurationHours" value="1" min="0" max="23">
+                    <!-- 仿真时长设置 (Phase 3: 新增, Revision 3: 改为从case元数据读取, Revision 6: 简化为直接可编辑输入框, Revision 7: 调整为单行布局) -->
+                    <div class="form-group">
+                        <label>仿真时长:</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="number" id="simulationDurationHours" value="1" min="0" max="23" style="width: 60px;">
+                                <span style="color: #666;">小时</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="number" id="simulationDurationMinutes" value="0" min="0" max="59" style="width: 60px;">
+                                <span style="color: #666;">分钟</span>
+                            </div>
                         </div>
-                        <div class="form-group" style="flex: 0 0 auto;">
-                            <label for="simulationDurationMinutes">分钟:</label>
-                            <input type="number" id="simulationDurationMinutes" value="0" min="0" max="59">
-                        </div>
+                        <p style="font-size: 0.9rem; color: #999; margin-top: 6px;">
+                            时长自动读取自案例数据，可根据需要修改
+                        </p>
                     </div>
-                    <p style="font-size: 0.9rem; color: #999; margin-top: 6px; margin-bottom: 12px;">
-                        时长自动读取自案例数据，可根据需要修改
-                    </p>
 
                     <div class="form-group">
                         <label for="numSeeds">随机种子数 (每个方案):</label>
