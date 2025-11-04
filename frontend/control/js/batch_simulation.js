@@ -1784,14 +1784,13 @@ function createBatchCard(batch, caseInfo = {}) {
         <p><strong>创建时间:</strong> ${new Date(batch.created_at).toLocaleString()}</p>
     `;
 
-    // 显示案例时间范围 (只显示时间部分，避免日期重复)
+    // 显示案例时间范围 (开始时间保留日期，结束时间只显示时间，避免日期重复)
     if (caseInfo && caseInfo.time_range && caseInfo.time_range.start && caseInfo.time_range.end) {
         const startTime = caseInfo.time_range.start;
         const endTime = caseInfo.time_range.end;
-        // 提取纯时间部分 (HH:MM:SS 格式)
-        const startTimeOnly = startTime.includes(' ') ? startTime.split(' ')[1] : startTime;
+        // 提取结束时间的纯时间部分 (HH:MM:SS 格式)
         const endTimeOnly = endTime.includes(' ') ? endTime.split(' ')[1] : endTime;
-        infoHtml += `<p><strong>案例时间:</strong> ${startTimeOnly} - ${endTimeOnly}</p>`;
+        infoHtml += `<p><strong>案例时间:</strong> ${startTime} - ${endTimeOnly}</p>`;
     }
 
     // 显示种子信息
