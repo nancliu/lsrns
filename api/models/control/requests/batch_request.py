@@ -46,6 +46,22 @@ class CreateBatchRequest(BaseModel):
         examples=[["baseline_plan", "plan_20251025_140530_a1b2c", "plan_20251025_141200_d3e4f"]]
     )
 
+    num_seeds: int = Field(
+        default=3,
+        description="每个方案的仿真种子数量（用于蒙特卡洛仿真）",
+        ge=1,
+        le=100,
+        examples=[3, 5, 10]
+    )
+
+    base_seed: int = Field(
+        default=66,
+        description="基础种子值，实际种子为: base_seed, base_seed+1, ..., base_seed+num_seeds-1",
+        ge=1,
+        le=2147483647,
+        examples=[66, 100, 1000]
+    )
+
     output_level: Optional[Literal["minimal", "standard", "full"]] = Field(
         default=None,
         description="""
@@ -157,6 +173,8 @@ class CreateBatchRequest(BaseModel):
                     "plan_20251025_140530_a1b2c",
                     "plan_20251025_141200_d3e4f"
                 ],
+                "num_seeds": 3,
+                "base_seed": 66,
                 "output_config": {
                     "summary_xml": True,
                     "e1_detector_data": True,

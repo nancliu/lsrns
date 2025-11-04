@@ -84,9 +84,10 @@ class BatchOptimizationService:
         output_level: Optional[str] = None,
         simulation_config: Optional[Dict[str, Any]] = None,
         simulation_duration: Optional[Dict[str, int]] = None,
+        edgedata_use_template_edges: Optional[bool] = False,
     ) -> Dict[str, Any]:
         """
-        创建批量仿真批次 (P1-2: 支持simulation_duration)
+        创建批量仿真批次 (P1-2: 支持simulation_duration) (P2-2: 支持edgedata_use_template_edges)
 
         Args:
             case_id: 案例ID
@@ -98,6 +99,7 @@ class BatchOptimizationService:
             simulation_config: 仿真配置参数（可选）
             simulation_duration: 自定义仿真时长（P1-2新增）
                 格式: {hours: int, minutes: int, total_minutes: int}
+            edgedata_use_template_edges: EdgeData是否保留模板edges属性（P2-2新增，默认False）
 
         Returns:
             Dict: 批次创建响应数据
@@ -164,7 +166,7 @@ class BatchOptimizationService:
             base_seed=base_seed,
         )
 
-        # 6. 生成统一的仿真配置 (P1-2: 支持simulation_duration) (P0-1: 修复键名映射) (P0-2: 从output_config读取)
+        # 6. 生成统一的仿真配置 (P1-2: 支持simulation_duration) (P0-1: 修复键名映射) (P0-2: 从output_config读取) (P2-2: 支持edgedata_use_template_edges)
         unified_simulation_config = {
             "output_level": output_level,
             "num_seeds": num_seeds,
@@ -177,6 +179,7 @@ class BatchOptimizationService:
             "output_fcd": output_config.get('output_fcd', False),
             "output_emission": output_config.get('output_emission', False),
             "output_edgedata": output_config.get('output_edgedata', False),
+            "edgedata_use_template_edges": edgedata_use_template_edges,
             "created_at": datetime.now().isoformat()
         }
 
@@ -199,7 +202,7 @@ class BatchOptimizationService:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(unified_simulation_config, f, ensure_ascii=False, indent=2)
 
-        # P0-3: 构造simulation_params (包含所有输出参数) (P1-2: 包含simulation_duration)
+        # P0-3: 构造simulation_params (包含所有输出参数) (P1-2: 包含simulation_duration) (P2-2: 包含edgedata_use_template_edges)
         simulation_params = {
             'output_tripinfo': unified_simulation_config.get('output_tripinfo', False),
             'output_vehroute': unified_simulation_config.get('output_vehroute', False),
@@ -207,6 +210,7 @@ class BatchOptimizationService:
             'output_fcd': unified_simulation_config.get('output_fcd', False),
             'output_emission': unified_simulation_config.get('output_emission', False),
             'output_edgedata': unified_simulation_config.get('output_edgedata', False),
+            'edgedata_use_template_edges': edgedata_use_template_edges,
         }
 
         # P1-2: 添加simulation_duration到simulation_params（如果提供）

@@ -29,7 +29,7 @@ batch_service = BatchOptimizationService()
 @router.post("/batch", response_model=BatchCreatedResponse, status_code=201)
 async def create_batch(request: CreateBatchRequest):
     """
-    创建批量仿真批次 (Phase 1: 支持output_config)
+    创建批量仿真批次 (Phase 1: 支持output_config) (P2-2: 支持edgedata_use_template_edges)
 
     请求体:
     - case_id: 案例ID（必填）
@@ -39,6 +39,8 @@ async def create_batch(request: CreateBatchRequest):
     - output_config: 仿真输出配置（Phase 1新增）
     - output_level: 仿真输出级别（已弃用，保留向后兼容）
     - simulation_config: 仿真配置参数（可选）
+    - simulation_duration: 自定义仿真时长（可选）
+    - edgedata_use_template_edges: EdgeData是否保留模板edges属性（P2-2新增）
 
     返回:
     - 批次创建信息，包含batch_id、总任务数和output_config
@@ -46,6 +48,7 @@ async def create_batch(request: CreateBatchRequest):
     说明:
     - baseline_plan如果缺失会自动添加
     - 优先使用output_config，如果仅提供output_level则自动映射
+    - edgedata_use_template_edges仅当output_edgedata=True时生效
     """
     try:
         result = batch_service.create_batch(
@@ -55,7 +58,9 @@ async def create_batch(request: CreateBatchRequest):
             base_seed=request.base_seed,
             output_config=request.output_config,
             output_level=request.output_level,
-            simulation_config=request.simulation_config
+            simulation_config=request.simulation_config,
+            simulation_duration=request.simulation_duration,
+            edgedata_use_template_edges=request.edgedata_use_template_edges
         )
         return result
 
