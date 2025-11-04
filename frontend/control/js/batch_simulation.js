@@ -320,8 +320,6 @@ async function loadCaseDuration(caseId) {
 
         // 将数据保存到全局变量供createBatch使用
         window.caseDuration = data;
-
-        console.log(`Case duration loaded: ${data.duration_hours}h ${data.duration_minutes}m`);
     } catch (error) {
         console.error('Load case duration error:', error);
         // 错误时使用默认值
@@ -344,7 +342,6 @@ async function onCaseChange() {
     // 保存到 localStorage 以便页面刷新后恢复
     if (caseId) {
         localStorage.setItem('lastSelectedCaseId', caseId);
-        console.log('Case selected:', currentCaseId);
 
         // Revision 3: 加载案例时长
         await loadCaseDuration(caseId);
@@ -679,7 +676,6 @@ async function updateProgress() {
         }).join(', ');
 
         // 进度日志输出
-        console.log(`[Progress] ${progressPct}% | Tasks: [${taskProgressInfo}]`);
         debugLog(`Batch progress: ${progressPct}% | Running: [${taskProgressInfo}]`);
 
         const progressBar = document.getElementById('monitorProgressBar');
@@ -1022,8 +1018,7 @@ function renderLiveCurve(liveTimeSeries) {
 
     // 动态曲线数据来源日志
     if (liveTimeSeries && liveTimeSeries.time_points && liveTimeSeries.time_points.length > 0) {
-        const timeRange = `${liveTimeSeries.time_points[0]}-${liveTimeSeries.time_points[liveTimeSeries.time_points.length - 1]}s`;
-        console.log(`[Live Curve] ${liveTimeSeries.time_points.length} data points (${timeRange})`);
+        debugLog(`Live Curve: ${liveTimeSeries.time_points.length} data points`);
     }
 
     // Phase 1.5: Use monitor canvas elements
@@ -1586,7 +1581,7 @@ async function loadBatchResultsAndSwitch(batchId, caseId) {
             const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`);
             if (!response.ok) throw new Error('Failed to fetch batch results');
             const data = await response.json();
-            console.log('Batch results:', data);
+            debugLog('Batch results loaded');
             showError('结果可视化模块加载中...');
         }
 
