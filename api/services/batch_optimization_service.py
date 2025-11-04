@@ -74,6 +74,77 @@ class BatchOptimizationService:
         }
         return level_map.get(output_level, level_map['standard'])
 
+    @staticmethod
+    def validate_batch_output_config(batch_dir: Path, config: Dict[str, Any]) -> tuple[bool, str]:
+        """
+        验证批次输出配置一致性 (Phase 3 T3.3: 配置一致性验证)
+
+        检查批次中所有任务都使用相同的输出配置，防止配置漂移
+
+        Args:
+            batch_dir: 批次目录路径
+            config: 预期的统一配置 (来自 simulation_config.json)
+
+        Returns:
+            tuple: (is_valid: bool, message: str)
+                - is_valid=True: 配置一致，消息为成功提示
+                - is_valid=False: 配置不一致，消息为错误详情
+        """
+        try:
+            # 检查 simulation_config.json 存在且可解析
+            config_file = batch_dir / "simulation_config.json"
+            if not config_file.exists():
+                return False, f"Batch configuration file missing: {config_file}"
+
+            with open(config_file, 'r', encoding='utf-8') as f:
+                stored_config = json.load(f)
+
+            logger.info(f"Validating batch config consistency in {batch_dir}")
+
+            # 验证关键配置字段存在
+            required_fields = ['output_tripinfo', 'output_vehroute', 'output_netstate',
+                              'output_fcd', 'output_emission', 'output_edgedata']
+
+            for field in required_fields:
+                if field not in stored_config:
+                    return False, f"Missing required config field: {field}"
+
+            # 验证存储的配置与预期配置匹配
+            for field in required_fields:
+                if stored_config.get(field) != config.get(field):
+                    return False, (
+                        f"Configuration mismatch for {field}: "
+                        f"expected={config.get(field)}, stored={stored_config.get(field)}"
+                    )
+
+            # 检查 simulation_duration 一致性（如果存在）
+            if 'simulation_duration' in config:
+                stored_duration = stored_config.get('simulation_duration')
+                if stored_duration != config['simulation_duration']:
+                    return False, (
+                        f"Simulation duration mismatch: "
+                        f"expected={config['simulation_duration']}, stored={stored_duration}"
+                    )
+
+            # 验证种子配置一致性（Phase 5）
+            if 'num_seeds' in config:
+                stored_seeds = stored_config.get('num_seeds')
+                if stored_seeds != config['num_seeds']:
+                    return False, f"num_seeds mismatch: expected={config['num_seeds']}, stored={stored_seeds}"
+
+            if 'base_seed' in config:
+                stored_base = stored_config.get('base_seed')
+                if stored_base != config['base_seed']:
+                    return False, f"base_seed mismatch: expected={config['base_seed']}, stored={stored_base}"
+
+            logger.info(f"Batch output config validation PASSED for {batch_dir}")
+            return True, "Batch configuration is consistent across all tasks"
+
+        except json.JSONDecodeError as e:
+            return False, f"Invalid JSON in simulation_config.json: {str(e)}"
+        except Exception as e:
+            return False, f"Unexpected error validating batch config: {str(e)}"
+
     def create_batch(
         self,
         case_id: str,
@@ -225,6 +296,28 @@ class BatchOptimizationService:
 
         logger.info(f"Simulation params constructed and saved: {simulation_params}")
 
+        # 8.5. 验证批次输出配置一致性 (Phase 3 T3.3: 配置验证)
+        validation_config = {
+            'output_tripinfo': unified_simulation_config.get('output_tripinfo', False),
+            'output_vehroute': unified_simulation_config.get('output_vehroute', False),
+            'output_netstate': unified_simulation_config.get('output_netstate', False),
+            'output_fcd': unified_simulation_config.get('output_fcd', False),
+            'output_emission': unified_simulation_config.get('output_emission', False),
+            'output_edgedata': unified_simulation_config.get('output_edgedata', False),
+        }
+        if simulation_duration:
+            validation_config['simulation_duration'] = simulation_duration
+        if 'num_seeds' in unified_simulation_config:
+            validation_config['num_seeds'] = unified_simulation_config['num_seeds']
+        if 'base_seed' in unified_simulation_config:
+            validation_config['base_seed'] = unified_simulation_config['base_seed']
+
+        is_valid, validation_message = self.validate_batch_output_config(batch_dir, validation_config)
+        if not is_valid:
+            logger.error(f"Batch output config validation FAILED: {validation_message}")
+            raise ValueError(f"Batch configuration validation failed: {validation_message}")
+        logger.info(f"Batch output config validation PASSED: {validation_message}")
+
         # 9. 构建响应
         total_tasks = len(plan_ids) * num_seeds
 
@@ -282,6 +375,37 @@ class BatchOptimizationService:
         batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
         if not batch_dir.exists():
             raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        # 验证批次输出配置一致性 (Phase 3 T3.3: 执行前验证)
+        try:
+            config_file = batch_dir / "simulation_config.json"
+            if config_file.exists():
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    stored_config = json.load(f)
+
+                validation_config = {
+                    'output_tripinfo': stored_config.get('output_tripinfo', False),
+                    'output_vehroute': stored_config.get('output_vehroute', False),
+                    'output_netstate': stored_config.get('output_netstate', False),
+                    'output_fcd': stored_config.get('output_fcd', False),
+                    'output_emission': stored_config.get('output_emission', False),
+                    'output_edgedata': stored_config.get('output_edgedata', False),
+                }
+                if 'simulation_duration' in stored_config:
+                    validation_config['simulation_duration'] = stored_config['simulation_duration']
+                if 'num_seeds' in stored_config:
+                    validation_config['num_seeds'] = stored_config['num_seeds']
+                if 'base_seed' in stored_config:
+                    validation_config['base_seed'] = stored_config['base_seed']
+
+                is_valid, validation_message = self.validate_batch_output_config(batch_dir, validation_config)
+                if not is_valid:
+                    logger.error(f"Pre-execution config validation FAILED: {validation_message}")
+                    raise ValueError(f"Batch configuration invalid before execution: {validation_message}")
+                logger.info(f"Pre-execution config validation PASSED: {validation_message}")
+        except FileNotFoundError as e:
+            logger.error(f"Batch config file not found: {e}")
+            raise ValueError(f"Batch configuration missing: {str(e)}")
 
         # 启动批量仿真（异步执行）
         asyncio.create_task(
