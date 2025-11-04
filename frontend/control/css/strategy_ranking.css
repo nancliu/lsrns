@@ -1,0 +1,404 @@
+/**
+ * 策略排序样式表
+ *
+ * 样式类：
+ * - 排序表格和卡片
+ * - 推荐等级徽章
+ * - 评分显示
+ * - 响应式布局
+ */
+
+/* ========== 排序表格样式 ========== */
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ranking-table thead {
+    background-color: #1976D2;
+    color: white;
+}
+
+.ranking-table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: bold;
+    font-size: 0.95em;
+}
+
+.ranking-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.ranking-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.ranking-table tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* ========== 排名显示 ========== */
+
+.rank-cell {
+    font-weight: bold;
+    color: #1976D2;
+    font-size: 1.1em;
+}
+
+.rank-1 { color: #FFB300; } /* Gold */
+.rank-2 { color: #C0C0C0; } /* Silver */
+.rank-3 { color: #CD7F32; } /* Bronze */
+
+/* ========== 推荐等级徽章 ========== */
+
+.recommendation-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: bold;
+    text-align: center;
+    min-width: 80px;
+    white-space: nowrap;
+}
+
+.recommendation-strong {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.recommendation-normal {
+    background-color: #2196F3;
+    color: white;
+}
+
+.recommendation-optional {
+    background-color: #FFC107;
+    color: #333;
+}
+
+.recommendation-not {
+    background-color: #F44336;
+    color: white;
+}
+
+/* ========== 评分显示 ========== */
+
+.score {
+    font-weight: bold;
+    text-align: center;
+    padding: 8px 0;
+}
+
+.score-high {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.score-medium {
+    color: #2196F3;
+    font-weight: bold;
+}
+
+.score-low {
+    color: #F44336;
+    font-weight: bold;
+}
+
+/* ========== 评分卡片 ========== */
+
+.score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.score-card {
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.score-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.score-card.effectiveness {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.score-card.coverage {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.score-card.efficiency {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.score-card.reliability {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.score-card-title {
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-bottom: 8px;
+}
+
+.score-card-value {
+    font-size: 2em;
+    font-weight: bold;
+}
+
+/* ========== 摘要文本 ========== */
+
+.summary-text {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4CAF50;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    line-height: 1.6;
+}
+
+.summary-text.warning {
+    background-color: #fff3e0;
+    border-left-color: #FF9800;
+}
+
+.summary-text.info {
+    background-color: #e3f2fd;
+    border-left-color: #2196F3;
+}
+
+/* ========== 图表容器 ========== */
+
+.charts-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.chart-wrapper {
+    background-color: #fafafa;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chart-wrapper h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #1976D2;
+    font-size: 1.1em;
+}
+
+.chart-canvas {
+    position: relative;
+    height: 300px;
+}
+
+/* ========== 按钮样式 ========== */
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #1976D2;
+}
+
+.btn-info {
+    background-color: #17A2B8;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+}
+
+/* ========== 响应式设计 ========== */
+
+@media (max-width: 1200px) {
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+
+    .score-breakdown {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .ranking-table {
+        font-size: 0.85em;
+    }
+
+    .ranking-table th,
+    .ranking-table td {
+        padding: 8px 10px;
+    }
+
+    .score-breakdown {
+        grid-template-columns: 1fr;
+    }
+
+    .score-card {
+        padding: 15px;
+    }
+
+    .score-card-value {
+        font-size: 1.5em;
+    }
+
+    .charts-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ranking-table {
+        font-size: 0.75em;
+    }
+
+    .ranking-table th,
+    .ranking-table td {
+        padding: 6px 8px;
+    }
+
+    .recommendation-badge {
+        min-width: 60px;
+        font-size: 0.75em;
+        padding: 4px 8px;
+    }
+
+    .score-card-value {
+        font-size: 1.2em;
+    }
+}
+
+/* ========== 打印样式 ========== */
+
+@media print {
+    .btn {
+        display: none;
+    }
+
+    .chart-wrapper {
+        page-break-inside: avoid;
+    }
+
+    .summary-text {
+        page-break-inside: avoid;
+    }
+
+    .ranking-table {
+        page-break-inside: avoid;
+    }
+}
+
+/* ========== 动画 ========== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.strategy-ranking-section {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ========== 可访问性 ========== */
+
+.ranking-table th {
+    font-weight: bold;
+    background-color: #1976D2;
+    color: white;
+}
+
+.ranking-table tbody tr:focus-within {
+    outline: 2px solid #2196F3;
+}
+
+/* ========== 深色模式支持 ========== */
+
+@media (prefers-color-scheme: dark) {
+    .ranking-table {
+        background-color: #222;
+        color: #eee;
+    }
+
+    .ranking-table td {
+        border-bottom-color: #444;
+    }
+
+    .ranking-table tbody tr:hover {
+        background-color: #333;
+    }
+
+    .ranking-table tbody tr:nth-child(even) {
+        background-color: #2a2a2a;
+    }
+
+    .chart-wrapper {
+        background-color: #1e1e1e;
+        color: #eee;
+    }
+
+    .summary-text {
+        background-color: #1e4620;
+        color: #cee9c4;
+    }
+
+    .summary-text.info {
+        background-color: #0d1f33;
+        color: #a4c8e1;
+    }
+}
