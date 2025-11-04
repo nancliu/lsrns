@@ -324,6 +324,9 @@ class BatchResultsResponse(BaseModel):
     duration_seconds: Optional[float] = Field(None, description="批次执行总耗时（秒）")
     output_config: Optional[Dict[str, Any]] = Field(None, description="详细输出配置 (output_tripinfo, output_edgedata, output_netstate等)")
 
+    # 案例信息
+    case_info: Optional[Dict[str, Any]] = Field(None, description="案例信息 (case_name, case_id, time_range, description)")
+
     metric_config: Dict[str, Dict[str, Any]] = Field(
         ...,
         description="指标配置元数据（含中文标签、单位、方向等）"
@@ -351,6 +354,15 @@ class BatchResultsResponse(BaseModel):
                     "output_fcd": True,
                     "output_emission": True,
                     "output_edgedata": True
+                },
+                "case_info": {
+                    "case_name": "G4202绕城高速工作日仿真",
+                    "case_id": "case_20251025_001",
+                    "time_range": {
+                        "start": "07:00:00",
+                        "end": "11:00:00"
+                    },
+                    "description": "测试用例"
                 },
                 "plan_results": [
                     {

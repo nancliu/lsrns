@@ -1316,6 +1316,19 @@ class BatchOptimizationService:
         with open(metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
+        # 读取案例元数据（用于获取案例的时间范围）
+        case_dir = Path(self.cases_base_dir) / case_id
+        case_metadata_path = case_dir / "metadata.json"
+        case_info = {}
+
+        if case_metadata_path.exists():
+            try:
+                with open(case_metadata_path, "r", encoding="utf-8") as f:
+                    case_info = json.load(f)
+            except:
+                logger.debug(f"Failed to load case metadata for {case_id}")
+                case_info = {}
+
         # 按方案分组任务
         from shared.control_tools.batch_simulation_scheduler import BatchTask
 
@@ -1385,6 +1398,14 @@ class BatchOptimizationService:
             "simulation_duration": metadata.get("simulation_duration"),
             "duration_seconds": metadata.get("duration_seconds"),
             "output_config": metadata.get("output_config", {}),  # 详细输出配置 (tripinfo, edgedata, netstate等)
+
+            # 案例信息（从case metadata.json读取）
+            "case_info": {
+                "case_name": case_info.get("case_name", case_id),
+                "case_id": case_id,
+                "time_range": case_info.get("time_range", {}),  # {start: "...", end: "..."}
+                "description": case_info.get("description", ""),
+            },
 
             # Phase 2: 添加指标元数据配置 (中文标签、单位、改进方向)
             "metric_config": {

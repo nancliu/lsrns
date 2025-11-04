@@ -157,21 +157,40 @@ function renderBatchInfoPanel(batchData) {
     // 1. 案例信息
     infoPanelHtml += '<div class="batch-info-card">';
     infoPanelHtml += '<h4>📋 案例信息</h4>';
-    // 优先显示case_name（如果有），其次显示case_id
-    if (batchData.caseInfo && batchData.caseInfo.case_name) {
+
+    // 从新增的case_info字段中获取数据（优先级最高）
+    if (batchData.case_info) {
+        const caseInfo = batchData.case_info;
+        const caseName = caseInfo.case_name || caseInfo.case_id || '未知';
+        infoPanelHtml += `<p><strong>${caseName}</strong></p>`;
+
+        if (caseInfo.case_id) {
+            infoPanelHtml += `<p class="text-muted">ID: ${caseInfo.case_id}</p>`;
+        }
+
+        // 显示时间范围（新增功能）
+        if (caseInfo.time_range && (caseInfo.time_range.start || caseInfo.time_range.end)) {
+            const startTime = caseInfo.time_range.start || '未知';
+            const endTime = caseInfo.time_range.end || '未知';
+            infoPanelHtml += `<p class="text-highlight"><strong>时间范围:</strong> ${startTime} - ${endTime}</p>`;
+        }
+
+        if (caseInfo.description) {
+            infoPanelHtml += `<p class="text-muted"><em>${caseInfo.description}</em></p>`;
+        }
+    } else if (batchData.caseInfo && batchData.caseInfo.case_name) {
+        // 备选：使用旧的caseInfo格式
         infoPanelHtml += `<p><strong>${batchData.caseInfo.case_name}</strong></p>`;
         if (batchData.caseInfo.case_id) {
             infoPanelHtml += `<p class="text-muted">ID: ${batchData.caseInfo.case_id}</p>`;
         }
     } else if (batchData.case_id) {
-        // 直接使用case_id（现在已在API响应中）
+        // 备选：直接使用case_id（现在已在API响应中）
         infoPanelHtml += `<p><strong>案例ID:</strong> <code>${batchData.case_id}</code></p>`;
-        if (batchData.caseInfo && batchData.caseInfo.description) {
-            infoPanelHtml += `<p class="text-muted">${batchData.caseInfo.description}</p>`;
-        }
     } else {
         infoPanelHtml += `<p class="text-muted">暂无信息</p>`;
     }
+
     infoPanelHtml += '</div>';
 
     // 2. 执行时间
