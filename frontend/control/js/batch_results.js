@@ -36,6 +36,9 @@ async function loadBatchResults(batchId, caseId) {
 
         batchResultsData = await response.json();
 
+        // 加载批次元数据和配置信息
+        await loadBatchMetadata(batchId, caseId);
+
         // 渲染结果视图
         renderBatchResultsView();
 
@@ -81,6 +84,9 @@ function renderBatchResultsView() {
         analyzed_at: batchResultsData.analyzed_at
     };
 
+    // 渲染批次信息面板（新增）
+    renderBatchInfoPanel(batchResultsData);
+
     // 渲染摘要信息
     renderResultsSummary(metadata);
 
@@ -116,6 +122,205 @@ function renderResultsSummary(metadata) {
     `;
 
     summaryContainer.innerHTML = html;
+}
+
+/**
+ * 渲染批次信息面板 - 显示批次的完整概览
+ * 包括：案例信息、创建时间、仿真参数、方案列表等
+ * @param {Object} batchData - 批次数据
+ */
+function renderBatchInfoPanel(batchData) {
+    const container = document.querySelector('.results-container');
+    if (!container) return;
+
+    // 创建批次信息面板
+    let infoPanelHtml = '<div class="batch-info-panel">';
+    infoPanelHtml += '<div class="batch-info-section batch-overview">';
+    infoPanelHtml += '<h3>📌 批次概览</h3>';
+
+    // 1. 基本信息
+    if (batchData.batch_id) {
+        infoPanelHtml += `<p><strong>批次ID:</strong> <code>${batchData.batch_id}</code></p>`;
+    }
+
+    // 2. 案例信息
+    if (batchData.caseInfo) {
+        infoPanelHtml += `
+            <div class="batch-info-subsection">
+                <h4>案例信息</h4>
+                <p><strong>案例名称:</strong> ${batchData.caseInfo.case_name || batchData.case_id || '未知'}</p>
+                <p><strong>案例ID:</strong> ${batchData.case_id || '未知'}</p>
+                ${batchData.caseInfo.description ? `<p><strong>描述:</strong> ${batchData.caseInfo.description}</p>` : ''}
+            </div>
+        `;
+    } else if (batchData.case_id) {
+        infoPanelHtml += `
+            <div class="batch-info-subsection">
+                <h4>案例信息</h4>
+                <p><strong>案例ID:</strong> ${batchData.case_id}</p>
+            </div>
+        `;
+    }
+
+    // 3. 时间信息
+    const createdAt = batchData.created_at ? new Date(batchData.created_at).toLocaleString() : '未知';
+    const completedAt = batchData.completed_at ? new Date(batchData.completed_at).toLocaleString() : '进行中';
+    infoPanelHtml += `
+        <div class="batch-info-subsection">
+            <h4>执行时间</h4>
+            <p><strong>创建时间:</strong> ${createdAt}</p>
+            <p><strong>完成时间:</strong> ${completedAt}</p>
+    `;
+    if (batchData.duration_seconds) {
+        infoPanelHtml += `<p><strong>总耗时:</strong> ${formatDurationFromSeconds(batchData.duration_seconds)}</p>`;
+    }
+    infoPanelHtml += '</div>';
+
+    // 4. 仿真参数
+    infoPanelHtml += `
+        <div class="batch-info-subsection">
+            <h4>仿真配置</h4>
+            <p><strong>随机种子数:</strong> ${batchData.num_seeds || 3}</p>
+            <p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>
+            <p><strong>输出级别:</strong> ${batchData.output_level || 'standard'}</p>
+    `;
+    if (batchData.simulation_duration) {
+        const duration = batchData.simulation_duration;
+        const hours = duration.hours || 0;
+        const minutes = duration.minutes || 0;
+        infoPanelHtml += `<p><strong>仿真时长:</strong> ${hours}小时 ${minutes}分钟</p>`;
+    }
+    infoPanelHtml += '</div>';
+
+    // 5. 方案信息
+    if (batchData.plan_results && batchData.plan_results.length > 0) {
+        infoPanelHtml += `
+            <div class="batch-info-subsection">
+                <h4>对比方案</h4>
+                <ul class="batch-plans-list">
+        `;
+        batchData.plan_results.forEach((plan, index) => {
+            const planName = plan.plan_name || plan.plan_id || `方案 ${index + 1}`;
+            const isBaseline = plan.is_baseline ? ' <strong style="color: #3498db;">(基准)</strong>' : '';
+            const samplesInfo = plan.sample_count ? ` - ${plan.sample_count}个样本` : '';
+            infoPanelHtml += `<li><strong>${planName}</strong>${isBaseline}${samplesInfo}</li>`;
+        });
+        infoPanelHtml += `
+                </ul>
+            </div>
+        `;
+    }
+
+    infoPanelHtml += '</div>'; // 结束 batch-overview
+    infoPanelHtml += '</div>'; // 结束 batch-info-panel
+
+    // 插入到结果容器的最前面
+    const firstSection = container.querySelector('.config-section');
+    if (firstSection) {
+        firstSection.insertAdjacentHTML('beforebegin', infoPanelHtml);
+    } else {
+        container.innerHTML = infoPanelHtml + container.innerHTML;
+    }
+
+    // 添加样式
+    addBatchInfoStyles();
+}
+
+/**
+ * 添加批次信息面板的样式
+ */
+function addBatchInfoStyles() {
+    // 检查样式是否已添加
+    if (document.getElementById('batch-info-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'batch-info-styles';
+    style.textContent = `
+        .batch-info-panel {
+            background: linear-gradient(135deg, #f5f9ff 0%, #f0f6ff 100%);
+            border: 1px solid #d6e4f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+        }
+
+        .batch-overview h3 {
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .batch-info-subsection {
+            background: white;
+            border-left: 3px solid #3498db;
+            padding: 12px 15px;
+            margin: 12px 0;
+            border-radius: 4px;
+        }
+
+        .batch-info-subsection h4 {
+            color: #2980b9;
+            margin: 0 0 10px 0;
+            font-size: 0.95em;
+        }
+
+        .batch-info-subsection p {
+            margin: 6px 0;
+            font-size: 0.9em;
+            color: #444;
+        }
+
+        .batch-info-subsection code {
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .batch-plans-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 8px 0;
+        }
+
+        .batch-plans-list li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .batch-plans-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+            font-weight: bold;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * 格式化时间间隔（秒）
+ * @param {number} seconds - 秒数
+ */
+function formatDurationFromSeconds(seconds) {
+    if (!seconds) return '未知';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}小时`);
+    if (minutes > 0) parts.push(`${minutes}分钟`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}秒`);
+    return parts.join(' ');
 }
 
 /**
@@ -163,6 +368,68 @@ function renderEmptyResultsState() {
     if (peakCurveSection) {
         peakCurveSection.style.display = 'none';
     }
+}
+
+/**
+ * 加载批次元数据和配置信息
+ * @param {string} batchId - 批次ID
+ * @param {string} caseId - 案例ID
+ */
+async function loadBatchMetadata(batchId, caseId) {
+    try {
+        // 获取批次的元数据信息（从监控历史）
+        const batchMetadata = await fetchBatchMetadata(batchId);
+        if (batchMetadata) {
+            batchResultsData.batchMetadata = batchMetadata;
+        }
+
+        // 如果有案例ID，获取案例信息
+        if (caseId) {
+            const caseInfo = await fetchCaseInfo(caseId);
+            if (caseInfo) {
+                batchResultsData.caseInfo = caseInfo;
+            }
+        }
+    } catch (error) {
+        // 不中断流程，仅记录日志
+        console.warn('Failed to load batch metadata:', error);
+    }
+}
+
+/**
+ * 从服务器获取批次元数据
+ * @param {string} batchId - 批次ID
+ */
+async function fetchBatchMetadata(batchId) {
+    try {
+        const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/metadata`, {
+            method: 'GET'
+        });
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.warn('Failed to fetch batch metadata:', error);
+    }
+    return null;
+}
+
+/**
+ * 从服务器获取案例信息
+ * @param {string} caseId - 案例ID
+ */
+async function fetchCaseInfo(caseId) {
+    try {
+        const response = await fetch(`${API_BASE}/case/${caseId}/info`, {
+            method: 'GET'
+        });
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.warn('Failed to fetch case info:', error);
+    }
+    return null;
 }
 
 /**
