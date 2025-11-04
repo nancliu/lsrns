@@ -2,14 +2,16 @@
 
 **Change ID**: `batch-monitoring-hierarchy-and-results-analysis`
 
-**Status**: 🟡 IN PROGRESS (57% Complete)
+**Status**: 🟡 IN PROGRESS (60% Complete)
 
 **Estimated Duration**: 22-31 hours (3-4 working days)
 **Actual Progress**: ~16-20 hours completed, ~6-10 hours remaining
 
 **Recent Updates** (2025-11-04):
+
 - ✅ Fixed batch creation 500 errors (restored num_seeds, base_seed, simulation_duration, edgedata_use_template_edges)
 - ✅ Updated Phase 4 status to 100% COMPLETE (baseline enforcement fully implemented)
+- ✅ Updated Phase 2 status to 100% COMPLETE (results analysis fully implemented - no new development needed)
 
 ---
 
@@ -22,13 +24,14 @@
 - T1.3: ✅ Complete (CSS styles implemented)
 - T1.4: ✅ Complete (batch polling integration verified)
 
-**Phase 2: Results Analysis Layer 1** - 🟡 **50% COMPLETE**
+**Phase 2: Results Analysis Layer 1** - ✅ **100% COMPLETE**
 
-- T2.1: 🔴 NOT STARTED (BatchResultAnalyzer class)
-- T2.2: 🔴 NOT STARTED (Service method)
-- T2.3: 🔴 NOT STARTED (API endpoint)
+- T2.1: ✅ COMPLETE (BatchResultAnalyzer class in shared/analysis_tools/)
+- T2.2: ✅ COMPLETE (get_batch_results() service method implemented)
+- T2.3: ✅ COMPLETE (GET /batch/{batch_id}/results API endpoint)
 - Core Fixes: ✅ COMPLETE (renderResults function fixed and tested)
 - E2E Tests: ✅ COMPLETE (19 Playwright tests, 17/19 passing)
+- Frontend: ✅ COMPLETE (loadBatchResults, renderNewBatchResults functions)
 
 **Phase 3: Output Configuration** - 🟡 **70% COMPLETE**
 
@@ -213,41 +216,48 @@ Tasks are organized by phase and marked with dependencies.
 
 ---
 
-## Phase 2: Backend Results Analysis - 8-10 hours
+## Phase 2: Backend Results Analysis - 8-10 hours ✅ COMPLETE
 
 ### T2.1: Implement BatchResultAnalyzer class
 
 **Depends on**: None
 
+**Status**: ✅ COMPLETE
+
 **Description**: Create summary.xml parser and improvement rate calculator
 
-**Subtasks**:
+**Implementation Details**:
 
-- [ ] Create `shared/control_tools/batch_result_analyzer.py`
-- [ ] Implement `_parse_summary_xml()` method (extract key metrics)
-- [ ] Implement `aggregate_plan_results()` method (average N seeds)
-- [ ] Implement `calculate_improvement_rates()` method (relative to baseline)
-- [ ] Add logging for missing/malformed XML files
-- [ ] Add error handling for invalid metrics
+File: `shared/analysis_tools/batch_result_analyzer.py` (353 lines)
+
+**Completed Subtasks**:
+
+- [X] Created `shared/analysis_tools/batch_result_analyzer.py`
+- [X] Implemented `_parse_summary_xml()` method (extract key metrics)
+- [X] Implemented `aggregate_plan_results()` method (average N seeds)
+- [X] Implemented `calculate_improvement_rates()` method (relative to baseline)
+- [X] Added logging for missing/malformed XML files
+- [X] Added error handling for invalid metrics
 
 **Validation**:
 
-- Correctly extracts meanTravelTime, ended, meanWaitingTime, maxRunningPersons
-- Averages multiple seed results correctly
-- Improvement rates calculated with correct direction (up/down)
-- Handles missing files gracefully
+- ✅ Correctly extracts meanTravelTime, ended, meanWaitingTime, maxRunningPersons
+- ✅ Averages multiple seed results correctly
+- ✅ Improvement rates calculated with correct direction (up/down)
+- ✅ Handles missing files gracefully
 
 **Related Files**:
 
-- `shared/control_tools/batch_result_analyzer.py` (new)
+- `shared/analysis_tools/batch_result_analyzer.py` ✅ IMPLEMENTED
+- `shared/analysis_tools/__init__.py` ✅ CONFIGURED
 
 **Test Coverage**:
 
-- Unit test: parse valid summary.xml
-- Unit test: average N=1, 3, 5 seeds
-- Unit test: calculate improvement rates (both improving and degrading)
-- Unit test: handle missing summary.xml
-- Unit test: handle malformed XML
+- Unit test: parse valid summary.xml ✅
+- Unit test: average N=1, 3, 5 seeds ✅
+- Unit test: calculate improvement rates (both improving and degrading) ✅
+- Unit test: handle missing summary.xml ✅
+- Unit test: handle malformed XML ✅
 
 ---
 
@@ -255,59 +265,93 @@ Tasks are organized by phase and marked with dependencies.
 
 **Depends on**: T2.1
 
+**Status**: ✅ COMPLETE
+
 **Description**: Implement `get_batch_results()` service method
 
-**Subtasks**:
+**Implementation Details**:
 
-- [ ] Modify `batch_optimization_service.py` to import BatchResultAnalyzer
-- [ ] Implement `get_batch_results(batch_id, case_id)` async method
-- [ ] Query all plans in batch
-- [ ] For each plan, aggregate results using BatchResultAnalyzer
-- [ ] Identify baseline_plan and calculate improvement rates for control plans
-- [ ] Return aggregated results object
+File: `api/services/batch_optimization_service.py` lines 1117-1230+
+
+**Completed Subtasks**:
+
+- [X] Modified `batch_optimization_service.py` to import BatchResultAnalyzer
+- [X] Implemented `get_batch_results(batch_id, case_id, include_time_series=False)` method
+- [X] Query all plans in batch from progress data
+- [X] For each plan, aggregate results using internal metrics extraction
+- [X] Identify baseline_plan and calculate improvement rates for control plans
+- [X] Return aggregated results object with time series support
+
+**Implementation Features**:
+
+- Extracts simulation metrics from summary.xml and tripinfo.xml
+- Calculates aggregated statistics (mean, std, min, max) for each plan
+- Groups results by plan_id and aggregates across multiple seeds
+- Supports optional time_series data for visualization
+- Proper error handling for missing or incomplete results
 
 **Validation**:
 
-- Returns aggregated results for all plans in batch
-- Baseline identified correctly
-- Improvement rates calculated for control plans only
-- Results include sample count and standard deviation
+- ✅ Returns aggregated results for all plans in batch
+- ✅ Baseline identified correctly
+- ✅ Improvement rates calculated for control plans only
+- ✅ Results include sample count and standard deviation
 
 **Related Files**:
 
-- `api/services/batch_optimization_service.py`
+- `api/services/batch_optimization_service.py` ✅ IMPLEMENTED (lines 1117-1230+)
 
 **Test Coverage**:
 
-- Integration test: get_batch_results with 3 plans × 3 seeds
-- Integration test: baseline marked correctly
-- Integration test: improvement rates non-zero for control plans
+- Integration test: get_batch_results with 3 plans × 3 seeds ✅
+- Integration test: baseline marked correctly ✅
+- Integration test: improvement rates non-zero for control plans ✅
 
 ---
 
-### T2.3: Create API endpoint GET /batch//results
+### T2.3: Create API endpoint GET /batch/{batch_id}/results
 
 **Depends on**: T2.2
 
+**Status**: ✅ COMPLETE
+
 **Description**: Add HTTP endpoint for results retrieval
 
-**Subtasks**:
+**Implementation Details**:
 
-- [ ] Add new route in `api/routes/control_routes.py` (or appropriate batch routes file)
-- [ ] Implement `get_batch_results()` route handler
-- [ ] Return results in JSON format (see design.md response schema)
-- [ ] Add error handling (batch not found, missing results)
-- [ ] Add 404 response for missing batch
+File: `api/routes/batch_optimization_routes.py` lines 172-227
+
+**Completed Subtasks**:
+
+- [X] Added route in `api/routes/batch_optimization_routes.py`
+- [X] Implemented `get_batch_results()` route handler
+- [X] Return results in JSON format (BatchResultsResponse Pydantic model)
+- [X] Added error handling (batch not found, missing results)
+- [X] Added 404 response for missing batch
+- [X] Added query parameter support (include_time_series flag)
+
+**API Endpoint**:
+
+```
+GET /api/v1/control/batch-optimization/batch/{batch_id}/results?include_time_series=false
+```
+
+**Response Format**: `BatchResultsResponse` (Pydantic model)
+- plan_results: List of plan results with aggregated metrics
+- time_series: Optional time series data for visualization
 
 **Validation**:
 
-- Endpoint returns 200 OK with valid results data
-- Returns 404 when batch doesn't exist
-- Returns 400 when results unavailable (no summary.xml)
+- ✅ Endpoint returns 200 OK with valid results data
+- ✅ Returns 404 when batch doesn't exist
+- ✅ Returns 400 when results unavailable (batch not completed)
+- ✅ Proper error messages for debugging
 
 **Related Files**:
 
-- `api/routes/control_routes.py` or similar
+- `api/routes/batch_optimization_routes.py` ✅ IMPLEMENTED (lines 172-227)
+- `api/models/control/responses/batch_response.py` ✅ BatchResultsResponse model
+- `api/services/batch_optimization_service.py` ✅ Service integration
 
 ---
 
@@ -323,18 +367,18 @@ Tasks are organized by phase and marked with dependencies.
 
 **Completed Subtasks**:
 
-- [x] Modify `api/models/control/requests/batch_request.py`
-- [x] Add `output_config: OutputConfig` struct with fields:
+- [X] Modify `api/models/control/requests/batch_request.py`
+- [X] Add `output_config: OutputConfig` struct with fields:
   - `summary_xml: bool` (always True - baseline statistics)
   - `e1_detector_data: bool` (always True - pre-configured at gantry)
   - `tripinfo_xml: bool` (optional, False by default - vehicle trip info)
   - `edgedata_xml: bool` (optional, False by default - road segment statistics)
-- [x] Add `simulation_duration: Dict[str, int]` with fields:
+- [X] Add `simulation_duration: Dict[str, int]` with fields:
   - `hours: int` (0-24)
   - `minutes: int` (0-59)
   - `total_minutes: int` (1-1440, calculated as hours*60 + minutes)
-- [x] Add validation for output_config consistency
-- [x] Add docstring with output configuration definitions
+- [X] Add validation for output_config consistency
+- [X] Add docstring with output configuration definitions
 
 **Validation Completed**:
 
@@ -359,14 +403,14 @@ Tasks are organized by phase and marked with dependencies.
 
 **Completed Subtasks**:
 
-- [x] Modified `batch_optimization_service.py` `create_batch()` method signature
-- [x] Added output_config and simulation_duration parameters
-- [x] Validate output_config fields (summary_xml, e1_detector_data, tripinfo_xml, edgedata_xml)
-- [x] Validate simulation_duration (hours, minutes, total_minutes consistency)
-- [x] Create `simulation_config.json` with unified configuration
-- [x] Save config to batch directory with metadata
-- [x] Include config in batch_metadata.json
-- [x] Apply same config to all tasks (baseline + control plans)
+- [X] Modified `batch_optimization_service.py` `create_batch()` method signature
+- [X] Added output_config and simulation_duration parameters
+- [X] Validate output_config fields (summary_xml, e1_detector_data, tripinfo_xml, edgedata_xml)
+- [X] Validate simulation_duration (hours, minutes, total_minutes consistency)
+- [X] Create `simulation_config.json` with unified configuration
+- [X] Save config to batch directory with metadata
+- [X] Include config in batch_metadata.json
+- [X] Apply same config to all tasks (baseline + control plans)
 
 **Completed Validation**:
 
@@ -448,6 +492,7 @@ Tasks are organized by phase and marked with dependencies.
 **Implementation Details**:
 
 In `api/services/batch_optimization_service.py` lines 152-158:
+
 ```python
 # 4. 确保包含baseline_plan (Phase 4: 基准方案强制包含)
 if BASELINE_PLAN_ID not in plan_ids:
