@@ -133,6 +133,14 @@ function renderBatchInfoPanel(batchData) {
     const container = document.querySelector('.results-container');
     if (!container) return;
 
+    // DEBUG: 检查仿真配置数据
+    console.log('[DEBUG] Batch simulation config:', {
+        num_seeds: batchData.num_seeds,
+        base_seed: batchData.base_seed,
+        simulation_duration: batchData.simulation_duration,
+        output_config: batchData.output_config
+    });
+
     // 移除旧的批次信息面板（防止重复）
     const existingPanel = container.querySelector('.batch-info-panel');
     if (existingPanel) {
@@ -213,17 +221,20 @@ function renderBatchInfoPanel(batchData) {
     infoPanelHtml += `<p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>`;
 
     // 显示仿真时长
-    if (batchData.simulation_duration) {
+    if (batchData.simulation_duration && typeof batchData.simulation_duration === 'object') {
         const duration = batchData.simulation_duration;
         const hours = duration.hours || 0;
         const minutes = duration.minutes || 0;
         const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
         infoPanelHtml += `<p class="text-highlight"><strong>仿真时长:</strong> ${durationText}</p>`;
+        console.log('[DEBUG] simulation_duration displayed:', durationText);
+    } else {
+        console.log('[DEBUG] simulation_duration not available:', batchData.simulation_duration);
     }
 
     // 输出配置详情 (根据用户截图的格式)
     // 注意：去掉了输出级别，直接显示具体的输出配置
-    if (batchData.output_config && typeof batchData.output_config === 'object') {
+    if (batchData.output_config && typeof batchData.output_config === 'object' && Object.keys(batchData.output_config).length > 0) {
         const outputConfig = batchData.output_config;
         const configs = [];
 
@@ -243,7 +254,12 @@ function renderBatchInfoPanel(batchData) {
                 infoPanelHtml += `<div>${config}</div>`;
             });
             infoPanelHtml += '</div>';
+            console.log('[DEBUG] output_config displayed:', configs);
+        } else {
+            console.log('[DEBUG] output_config has no enabled options');
         }
+    } else {
+        console.log('[DEBUG] output_config not available or empty:', batchData.output_config);
     }
     infoPanelHtml += '</div>';
 
