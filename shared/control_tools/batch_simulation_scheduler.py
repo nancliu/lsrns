@@ -156,6 +156,9 @@ class BatchSimulationScheduler:
         plan_names: Dict[str, str],
         num_seeds: int = 3,
         base_seed: int = 66,
+        simulation_duration: Optional[Dict[str, int]] = None,
+        output_config: Optional[Dict[str, bool]] = None,
+        output_level: Optional[str] = None,
     ) -> Tuple[str, Path]:
         """
         创建批量仿真批次
@@ -166,6 +169,9 @@ class BatchSimulationScheduler:
             plan_names: 方案ID到名称的映射
             num_seeds: 每个方案的随机种子数量
             base_seed: 起始随机种子值
+            simulation_duration: 仿真时长配置 {hours, minutes, total_minutes}
+            output_config: 输出配置 {output_tripinfo, output_vehroute, ...}
+            output_level: 输出级别 (standard, detailed, etc.)
 
         Returns:
             (batch_id, batch_dir_path): 批次ID和批次目录路径
@@ -209,6 +215,9 @@ class BatchSimulationScheduler:
             "created_at": datetime.now().isoformat(),
             "started_at": None,
             "completed_at": None,
+            "simulation_duration": simulation_duration,  # P1: 仿真时长配置
+            "output_config": output_config or {},  # Phase 3: 输出配置
+            "output_level": output_level,  # Phase 3: 输出级别
         }
 
         metadata_path = batch_dir / "batch_metadata.json"

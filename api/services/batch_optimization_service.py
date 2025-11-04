@@ -235,6 +235,9 @@ class BatchOptimizationService:
             plan_names=plan_names,
             num_seeds=num_seeds,
             base_seed=base_seed,
+            simulation_duration=simulation_duration,
+            output_config=output_config,
+            output_level=output_level,
         )
 
         # 6. 生成统一的仿真配置 (P1-2: 支持simulation_duration) (P0-1: 修复键名映射) (P0-2: 从output_config读取) (P2-2: 支持edgedata_use_template_edges)
