@@ -133,85 +133,77 @@ function renderBatchInfoPanel(batchData) {
     const container = document.querySelector('.results-container');
     if (!container) return;
 
-    // 创建批次信息面板
+    // 创建批次信息面板（顶部标题 + 网格布局）
     let infoPanelHtml = '<div class="batch-info-panel">';
-    infoPanelHtml += '<div class="batch-info-section batch-overview">';
+    infoPanelHtml += '<div class="batch-info-header">';
     infoPanelHtml += '<h3>📌 批次概览</h3>';
 
-    // 1. 基本信息
+    // 批次ID 在标题行显示
     if (batchData.batch_id) {
-        infoPanelHtml += `<p><strong>批次ID:</strong> <code>${batchData.batch_id}</code></p>`;
+        infoPanelHtml += `<p class="batch-id">Batch: <code>${batchData.batch_id}</code></p>`;
     }
+    infoPanelHtml += '</div>'; // 结束 batch-info-header
 
-    // 2. 案例信息
-    if (batchData.caseInfo) {
-        infoPanelHtml += `
-            <div class="batch-info-subsection">
-                <h4>案例信息</h4>
-                <p><strong>案例名称:</strong> ${batchData.caseInfo.case_name || batchData.case_id || '未知'}</p>
-                <p><strong>案例ID:</strong> ${batchData.case_id || '未知'}</p>
-                ${batchData.caseInfo.description ? `<p><strong>描述:</strong> ${batchData.caseInfo.description}</p>` : ''}
-            </div>
-        `;
-    } else if (batchData.case_id) {
-        infoPanelHtml += `
-            <div class="batch-info-subsection">
-                <h4>案例信息</h4>
-                <p><strong>案例ID:</strong> ${batchData.case_id}</p>
-            </div>
-        `;
+    // 信息网格容器（4列布局）
+    infoPanelHtml += '<div class="batch-info-grid">';
+
+    // 1. 案例信息
+    infoPanelHtml += '<div class="batch-info-card">';
+    infoPanelHtml += '<h4>📋 案例信息</h4>';
+    if (batchData.caseInfo && batchData.caseInfo.case_name) {
+        infoPanelHtml += `<p><strong>${batchData.caseInfo.case_name}</strong></p>`;
     }
-
-    // 3. 时间信息
-    const createdAt = batchData.created_at ? new Date(batchData.created_at).toLocaleString() : '未知';
-    const completedAt = batchData.completed_at ? new Date(batchData.completed_at).toLocaleString() : '进行中';
-    infoPanelHtml += `
-        <div class="batch-info-subsection">
-            <h4>执行时间</h4>
-            <p><strong>创建时间:</strong> ${createdAt}</p>
-            <p><strong>完成时间:</strong> ${completedAt}</p>
-    `;
-    if (batchData.duration_seconds) {
-        infoPanelHtml += `<p><strong>总耗时:</strong> ${formatDurationFromSeconds(batchData.duration_seconds)}</p>`;
+    if (batchData.case_id) {
+        infoPanelHtml += `<p class="text-muted">ID: ${batchData.case_id}</p>`;
+    }
+    if (batchData.caseInfo && batchData.caseInfo.description) {
+        infoPanelHtml += `<p class="text-sm">${batchData.caseInfo.description}</p>`;
     }
     infoPanelHtml += '</div>';
 
-    // 4. 仿真参数
-    infoPanelHtml += `
-        <div class="batch-info-subsection">
-            <h4>仿真配置</h4>
-            <p><strong>随机种子数:</strong> ${batchData.num_seeds || 3}</p>
-            <p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>
-            <p><strong>输出级别:</strong> ${batchData.output_level || 'standard'}</p>
-    `;
+    // 2. 执行时间
+    infoPanelHtml += '<div class="batch-info-card">';
+    infoPanelHtml += '<h4>⏰ 执行时间</h4>';
+    const createdAt = batchData.created_at ? new Date(batchData.created_at).toLocaleString('zh-CN') : '未知';
+    const completedAt = batchData.completed_at ? new Date(batchData.completed_at).toLocaleString('zh-CN') : '进行中';
+    infoPanelHtml += `<p><strong>创建:</strong> ${createdAt}</p>`;
+    infoPanelHtml += `<p><strong>完成:</strong> ${completedAt}</p>`;
+    if (batchData.duration_seconds) {
+        infoPanelHtml += `<p class="text-highlight"><strong>耗时:</strong> ${formatDurationFromSeconds(batchData.duration_seconds)}</p>`;
+    }
+    infoPanelHtml += '</div>';
+
+    // 3. 仿真配置
+    infoPanelHtml += '<div class="batch-info-card">';
+    infoPanelHtml += '<h4>⚙️ 仿真配置</h4>';
+    infoPanelHtml += `<p><strong>种子数:</strong> ${batchData.num_seeds || 3}</p>`;
+    infoPanelHtml += `<p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>`;
+    infoPanelHtml += `<p><strong>输出级别:</strong> ${batchData.output_level || 'standard'}</p>`;
     if (batchData.simulation_duration) {
         const duration = batchData.simulation_duration;
         const hours = duration.hours || 0;
         const minutes = duration.minutes || 0;
-        infoPanelHtml += `<p><strong>仿真时长:</strong> ${hours}小时 ${minutes}分钟</p>`;
+        const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        infoPanelHtml += `<p class="text-highlight"><strong>仿真时长:</strong> ${durationText}</p>`;
     }
     infoPanelHtml += '</div>';
 
-    // 5. 方案信息
+    // 4. 对比方案
+    infoPanelHtml += '<div class="batch-info-card batch-info-card-full">';
+    infoPanelHtml += '<h4>📊 对比方案</h4>';
     if (batchData.plan_results && batchData.plan_results.length > 0) {
-        infoPanelHtml += `
-            <div class="batch-info-subsection">
-                <h4>对比方案</h4>
-                <ul class="batch-plans-list">
-        `;
+        infoPanelHtml += '<ul class="batch-plans-list">';
         batchData.plan_results.forEach((plan, index) => {
             const planName = plan.plan_name || plan.plan_id || `方案 ${index + 1}`;
-            const isBaseline = plan.is_baseline ? ' <strong style="color: #3498db;">(基准)</strong>' : '';
-            const samplesInfo = plan.sample_count ? ` - ${plan.sample_count}个样本` : '';
-            infoPanelHtml += `<li><strong>${planName}</strong>${isBaseline}${samplesInfo}</li>`;
+            const isBaseline = plan.is_baseline ? ' <span class="baseline-badge">基准</span>' : '';
+            const samplesInfo = plan.sample_count ? ` (${plan.sample_count}样本)` : '';
+            infoPanelHtml += `<li><strong>${planName}</strong>${isBaseline}<span class="text-muted">${samplesInfo}</span></li>`;
         });
-        infoPanelHtml += `
-                </ul>
-            </div>
-        `;
+        infoPanelHtml += '</ul>';
     }
+    infoPanelHtml += '</div>';
 
-    infoPanelHtml += '</div>'; // 结束 batch-overview
+    infoPanelHtml += '</div>'; // 结束 batch-info-grid
     infoPanelHtml += '</div>'; // 结束 batch-info-panel
 
     // 插入到结果容器的最前面
@@ -236,6 +228,7 @@ function addBatchInfoStyles() {
     const style = document.createElement('style');
     style.id = 'batch-info-styles';
     style.textContent = `
+        /* 主面板 */
         .batch-info-panel {
             background: linear-gradient(135deg, #f5f9ff 0%, #f0f6ff 100%);
             border: 1px solid #d6e4f5;
@@ -245,55 +238,130 @@ function addBatchInfoStyles() {
             box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
         }
 
-        .batch-overview h3 {
-            color: #2c3e50;
-            font-size: 1.2em;
-            margin: 0 0 15px 0;
+        /* 头部区域（标题 + Batch ID） */
+        .batch-info-header {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(52, 152, 219, 0.15);
         }
 
-        .batch-info-subsection {
-            background: white;
-            border-left: 3px solid #3498db;
-            padding: 12px 15px;
-            margin: 12px 0;
-            border-radius: 4px;
+        .batch-info-header h3 {
+            color: #2c3e50;
+            font-size: 1.3em;
+            margin: 0;
+            font-weight: 600;
         }
 
-        .batch-info-subsection h4 {
-            color: #2980b9;
-            margin: 0 0 10px 0;
-            font-size: 0.95em;
-        }
-
-        .batch-info-subsection p {
-            margin: 6px 0;
+        .batch-id {
+            color: #7f8c8d;
             font-size: 0.9em;
-            color: #444;
+            margin: 0;
         }
 
-        .batch-info-subsection code {
-            background: #ecf0f1;
-            padding: 2px 6px;
+        .batch-id code {
+            background: white;
+            color: #2980b9;
+            padding: 2px 8px;
             border-radius: 3px;
             font-family: 'Courier New', monospace;
             font-size: 0.85em;
+            font-weight: 500;
         }
 
+        /* 网格容器 */
+        .batch-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        /* 网格卡片 */
+        .batch-info-card {
+            background: white;
+            border: 1px solid #ecf0f1;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .batch-info-card:hover {
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.1);
+        }
+
+        .batch-info-card h4 {
+            color: #2c3e50;
+            font-size: 0.95em;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .batch-info-card p {
+            margin: 6px 0;
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        /* 卡片中的强调文本 */
+        .batch-info-card strong {
+            color: #2980b9;
+        }
+
+        /* 全宽卡片（对比方案） */
+        .batch-info-card-full {
+            grid-column: 1 / -1;
+        }
+
+        /* 辅助文本 */
+        .text-muted {
+            color: #95a5a6;
+            font-size: 0.85em;
+        }
+
+        .text-sm {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .text-highlight {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+        /* 基准标记 */
+        .baseline-badge {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 6px;
+            font-weight: 500;
+        }
+
+        /* 方案列表 */
         .batch-plans-list {
             list-style: none;
-            padding-left: 0;
+            padding: 0;
             margin: 8px 0;
         }
 
         .batch-plans-list li {
-            padding: 6px 0;
+            padding: 8px 0;
             padding-left: 20px;
             position: relative;
             color: #555;
             font-size: 0.9em;
+            line-height: 1.5;
         }
 
         .batch-plans-list li:before {
@@ -302,6 +370,28 @@ function addBatchInfoStyles() {
             left: 0;
             color: #3498db;
             font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .batch-info-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .batch-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .batch-info-card-full {
+                grid-column: auto;
+            }
+
+            .batch-info-panel {
+                padding: 15px;
+            }
         }
     `;
     document.head.appendChild(style);
