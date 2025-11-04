@@ -304,6 +304,8 @@ class BatchResultsResponse(BaseModel):
 
     batch_id: str = Field(..., description="批次ID")
 
+    case_id: str = Field(..., description="关联的案例ID")
+
     status: BatchSimulationStatus = Field(..., description="批次状态")
 
     plan_results: List[PlanResultSummary] = Field(
@@ -314,11 +316,42 @@ class BatchResultsResponse(BaseModel):
     created_at: datetime = Field(..., description="批次创建时间")
     completed_at: Optional[datetime] = Field(None, description="批次完成时间")
 
+    # 仿真配置信息
+    num_seeds: int = Field(default=3, description="每个方案的随机种子数")
+    base_seed: int = Field(default=66, description="起始随机种子值")
+    output_level: Optional[str] = Field(None, description="输出级别 (minimal/standard/full)")
+    simulation_duration: Optional[Dict[str, Any]] = Field(None, description="仿真时长配置 (hours, minutes, total_minutes)")
+    duration_seconds: Optional[float] = Field(None, description="批次执行总耗时（秒）")
+    output_config: Optional[Dict[str, Any]] = Field(None, description="详细输出配置 (output_tripinfo, output_edgedata, output_netstate等)")
+
+    metric_config: Dict[str, Dict[str, Any]] = Field(
+        ...,
+        description="指标配置元数据（含中文标签、单位、方向等）"
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
                 "batch_id": "batch_20251025_143000",
+                "case_id": "case_20251025_001",
                 "status": "completed",
+                "num_seeds": 3,
+                "base_seed": 66,
+                "output_level": "standard",
+                "simulation_duration": {
+                    "hours": 4,
+                    "minutes": 0,
+                    "total_minutes": 240
+                },
+                "duration_seconds": 3600,
+                "output_config": {
+                    "output_tripinfo": true,
+                    "output_vehroute": true,
+                    "output_netstate": true,
+                    "output_fcd": true,
+                    "output_emission": true,
+                    "output_edgedata": true
+                },
                 "plan_results": [
                     {
                         "plan_id": "baseline_plan",
@@ -344,6 +377,64 @@ class BatchResultsResponse(BaseModel):
                         }
                     }
                 ],
+                "metric_config": {
+                    "step": {
+                        "label": "仿真步数",
+                        "unit": "秒",
+                        "direction": "verification",
+                        "is_verification_metric": True,
+                        "expected_value": 3600,
+                        "description": "整个仿真运行的总时长 - 用于验证仿真是否完整执行到预定时长"
+                    },
+                    "ended": {
+                        "label": "已完成车数",
+                        "unit": "辆",
+                        "direction": "higher",
+                        "description": "仿真结束时已完成行程的车数"
+                    },
+                    "waiting": {
+                        "label": "等待车数",
+                        "unit": "辆",
+                        "direction": "lower",
+                        "description": "因信号灯、拥堵等原因停止等待的车数"
+                    },
+                    "running": {
+                        "label": "当前运行车数",
+                        "unit": "辆",
+                        "direction": "lower",
+                        "description": "仿真结束时仍在网络中的车数"
+                    },
+                    "avgSpeed": {
+                        "label": "平均速度",
+                        "unit": "m/s",
+                        "direction": "higher",
+                        "description": "所有已完成车的平均行驶速度（核心性能指标）"
+                    },
+                    "teleports": {
+                        "label": "传送次数",
+                        "unit": "次",
+                        "direction": "lower",
+                        "description": "SUMO进行的传送操作次数（拥堵严重程度指标）"
+                    },
+                    "inserted": {
+                        "label": "已插入车数",
+                        "unit": "辆",
+                        "direction": "higher",
+                        "description": "成功插入道路网络的车数"
+                    },
+                    "collisions": {
+                        "label": "碰撞次数",
+                        "unit": "次",
+                        "direction": "lower",
+                        "description": "仿真中发生的车辆碰撞事件数"
+                    },
+                    "loaded": {
+                        "label": "已加载车数",
+                        "unit": "辆",
+                        "direction": "neutral",
+                        "description": "已加载到仿真中的车数"
+                    }
+                },
                 "created_at": "2025-10-25T14:30:00",
                 "completed_at": "2025-10-25T15:45:30"
             }

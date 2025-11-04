@@ -36,6 +36,10 @@ async function loadBatchResults(batchId, caseId) {
 
         batchResultsData = await response.json();
 
+        // DEBUG: 打印API响应结构，帮助排查数据字段问题
+        console.log('Batch Results API Response:', batchResultsData);
+        console.log('Available fields:', Object.keys(batchResultsData));
+
         // 渲染结果视图（元数据直接来自结果数据，无需额外API调用）
         renderBatchResultsView();
 
@@ -153,10 +157,18 @@ function renderBatchInfoPanel(batchData) {
     // 1. 案例信息
     infoPanelHtml += '<div class="batch-info-card">';
     infoPanelHtml += '<h4>📋 案例信息</h4>';
+    // 优先显示case_name（如果有），其次显示case_id
     if (batchData.caseInfo && batchData.caseInfo.case_name) {
         infoPanelHtml += `<p><strong>${batchData.caseInfo.case_name}</strong></p>`;
+        if (batchData.caseInfo.case_id) {
+            infoPanelHtml += `<p class="text-muted">ID: ${batchData.caseInfo.case_id}</p>`;
+        }
     } else if (batchData.case_id) {
-        infoPanelHtml += `<p><strong>${batchData.case_id}</strong></p>`;
+        // 直接使用case_id（现在已在API响应中）
+        infoPanelHtml += `<p><strong>案例ID:</strong> <code>${batchData.case_id}</code></p>`;
+        if (batchData.caseInfo && batchData.caseInfo.description) {
+            infoPanelHtml += `<p class="text-muted">${batchData.caseInfo.description}</p>`;
+        }
     } else {
         infoPanelHtml += `<p class="text-muted">暂无信息</p>`;
     }
@@ -188,6 +200,23 @@ function renderBatchInfoPanel(batchData) {
         const minutes = duration.minutes || 0;
         const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
         infoPanelHtml += `<p class="text-highlight"><strong>仿真时长:</strong> ${durationText}</p>`;
+    }
+    // 输出配置详情 (tripinfo, edgedata, netstate)
+    if (batchData.output_config && typeof batchData.output_config === 'object') {
+        const outputConfig = batchData.output_config;
+        const enabledOutputs = [];
+
+        // 根据输出配置显示启用的输出类型
+        if (outputConfig.output_tripinfo) enabledOutputs.push('tripinfo');
+        if (outputConfig.output_edgedata) enabledOutputs.push('edgedata');
+        if (outputConfig.output_netstate) enabledOutputs.push('netstate');
+        if (outputConfig.output_vehroute) enabledOutputs.push('vehroute');
+        if (outputConfig.output_fcd) enabledOutputs.push('fcd');
+        if (outputConfig.output_emission) enabledOutputs.push('emission');
+
+        if (enabledOutputs.length > 0) {
+            infoPanelHtml += `<p><strong>输出配置:</strong> ${enabledOutputs.join(', ')}</p>`;
+        }
     }
     infoPanelHtml += '</div>';
 

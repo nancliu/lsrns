@@ -25,6 +25,49 @@
             margin: 0 auto;
         }
 
+        /* 单位 Logo 放置（右上角，轻量不打扰） */
+        .org-logo {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.85;
+            transition: opacity 0.2s ease;
+        }
+
+        .org-logo:hover {
+            opacity: 1;
+        }
+
+        .org-logo img {
+            height: 36px; /* 控制高度以适配标题行 */
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+        }
+
+        /* 主题开关按钮 */
+        .theme-toggle {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: rgba(59, 130, 246, 0.15);
+            color: #e2e8f0;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+
         h1 {
             text-align: center;
             font-size: 36px;
@@ -62,6 +105,179 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 24px;
             margin-bottom: 48px;
+        }
+
+        /* 浅色背景预览样式 */
+        .light-demo-wrapper {
+            margin-top: 48px;
+        }
+
+        .light-demo-title {
+            text-align: center;
+            font-size: 22px;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+            opacity: 0.9;
+        }
+
+        .light-demo-container {
+            position: relative;
+            background: #f8fafc; /* 浅色背景 */
+            color: #0f172a;       /* 深色文字 */
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 28px 28px 32px 28px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .light-demo-header {
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .light-demo-header h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .light-demo-header p {
+            color: #475569;
+            font-size: 16px;
+        }
+
+        .org-logo--light {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.9;
+            transition: opacity 0.2s ease;
+        }
+
+        .org-logo--light:hover { opacity: 1; }
+
+        .org-logo--light img {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(148, 163, 184, 0.35));
+        }
+
+        /* 浅色主题覆盖 */
+        body.light-theme {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+
+        body.light-theme .subtitle {
+            color: #475569;
+        }
+
+        body.light-theme .evolution-path {
+            background: rgba(148, 163, 184, 0.12);
+            border: 1px solid #cbd5e1;
+        }
+
+        body.light-theme .evolution-text {
+            color: #334155;
+        }
+
+        body.light-theme .version-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+        }
+
+        body.light-theme .version-card:hover {
+            border-color: #94a3b8;
+            box-shadow: 0 8px 28px rgba(2, 6, 23, 0.08);
+        }
+
+        body.light-theme .org-logo img {
+            filter: drop-shadow(0 2px 6px rgba(148,163,184,0.35));
+        }
+
+        /* 启用浅色主题时隐藏单独的示例块，避免重复展示 */
+        body.light-theme .light-demo-wrapper {
+            display: none;
+        }
+
+        /* 浅色主题 - 组件配色细化（卡片/画布/评分/原则等） */
+        body.light-theme .favicon-preview-container {
+            background: #f1f5f9; /* slate-100 */
+            border: 1px solid #e2e8f0;
+        }
+
+        body.light-theme .favicon-wrapper {
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(2, 6, 23, 0.08);
+        }
+
+        body.light-theme .size-label {
+            color: #64748b; /* slate-500 */
+        }
+
+        body.light-theme .features-list .feature-item {
+            background: #f8fafc; /* slate-50 */
+            border: 1px solid #e2e8f0;
+        }
+
+        body.light-theme .feature-text {
+            color: #334155; /* slate-700 */
+        }
+
+        body.light-theme .score-section {
+            border-top: 1px solid #e2e8f0;
+        }
+
+        body.light-theme .score-label {
+            color: #64748b; /* slate-500 */
+        }
+
+        body.light-theme .score-bar {
+            background: #e2e8f0; /* slate-200 */
+        }
+
+        body.light-theme .design-principles {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+        }
+
+        body.light-theme .principle-item {
+            background: #f8fafc; /* slate-50 */
+            border: 1px solid #e2e8f0;
+        }
+
+        body.light-theme .principle-title {
+            color: #0f172a;
+        }
+
+        body.light-theme .principle-desc {
+            color: #475569; /* slate-600 */
+        }
+
+        body.light-theme .btn-primary {
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        body.light-theme .btn-primary:hover {
+            box-shadow: 0 8px 24px rgba(2, 6, 23, 0.18);
+        }
+
+        body.light-theme .btn-secondary {
+            background: #ffffff;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+        }
+
+        body.light-theme .btn-secondary:hover {
+            background: #f8fafc;
         }
 
         .version-card {
@@ -374,8 +590,12 @@
 </head>
 <body>
     <div class="container">
+        <button class="theme-toggle" id="themeToggle" aria-label="切换主题">切换浅色主题</button>
+        <div class="org-logo" aria-label="单位标识">
+            <img src="公路院logo.png" alt="单位Logo">
+        </div>
         <h1>🎨 Favicon 设计迭代全过程</h1>
-        <p class="subtitle">高速路网仿真系统 · 从概念到完善</p>
+        <p class="subtitle">超大规模路网仿真推演系统 V1.0 · 从概念到完善</p>
 
         <div class="evolution-path">
             <div class="evolution-text">V1 路口概念 → V2 路网密集 → V3 分散协调 ✨</div>
@@ -612,6 +832,20 @@
             </div>
         </div>
 
+        <!-- 浅色背景预览（不影响主页面主题） -->
+        <div class="light-demo-wrapper" aria-label="浅色背景预览">
+            <div class="light-demo-title">浅色背景下的标题与单位标识布局示例</div>
+            <div class="light-demo-container">
+                <div class="org-logo--light" aria-label="单位标识（浅色背景）">
+                    <img src="公路院logo.png" alt="单位Logo(浅色背景)">
+                </div>
+                <div class="light-demo-header">
+                    <h2>🎨 Favicon 设计迭代全过程</h2>
+                    <p>超大规模路网仿真推演系统 V1.0 · 从概念到完善</p>
+                </div>
+            </div>
+        </div>
+
         <!-- V3 设计原则 -->
         <div class="design-principles">
             <div class="principles-title">
@@ -664,6 +898,23 @@
                 </a>
             </div>
         </div>
+
+        <script>
+        (function() {
+            const toggleBtn = document.getElementById('themeToggle');
+            const body = document.body;
+            function updateLabel() {
+                const light = body.classList.contains('light-theme');
+                toggleBtn.textContent = light ? '切换深色主题' : '切换浅色主题';
+                toggleBtn.setAttribute('aria-pressed', light ? 'true' : 'false');
+            }
+            toggleBtn.addEventListener('click', function() {
+                body.classList.toggle('light-theme');
+                updateLabel();
+            });
+            updateLabel();
+        })();
+        </script>
     </div>
 </body>
 </html>

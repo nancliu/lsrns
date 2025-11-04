@@ -340,6 +340,8 @@ class BatchOptimizationService:
             "num_seeds": num_seeds,
             "base_seed": base_seed,
             "output_level": output_level,  # Phase 3新增
+            "output_config": output_config,  # 详细输出配置
+            "simulation_duration": simulation_duration,  # P1新增: 仿真时长配置
             "max_concurrent": 1,  # 默认并发数
             "status": "pending",
             "created_at": response["created_at"],
@@ -1370,10 +1372,79 @@ class BatchOptimizationService:
         # 构建响应
         response = {
             "batch_id": batch_id,
+            "case_id": case_id,
             "status": progress_data["status"],
             "plan_results": plan_results,
             "created_at": metadata.get("created_at"),
             "completed_at": metadata.get("completed_at"),
+
+            # 仿真配置信息（从batch_metadata.json读取）
+            "num_seeds": metadata.get("num_seeds", 3),
+            "base_seed": metadata.get("base_seed", 66),
+            "output_level": metadata.get("output_level", "standard"),
+            "simulation_duration": metadata.get("simulation_duration"),
+            "duration_seconds": metadata.get("duration_seconds"),
+            "output_config": metadata.get("output_config", {}),  # 详细输出配置 (tripinfo, edgedata, netstate等)
+
+            # Phase 2: 添加指标元数据配置 (中文标签、单位、改进方向)
+            "metric_config": {
+                "step": {
+                    "label": "仿真步数",
+                    "unit": "秒",
+                    "direction": "verification",
+                    "is_verification_metric": True,
+                    "expected_value": 3600,
+                    "description": "整个仿真运行的总时长 - 用于验证仿真是否完整执行到预定时长"
+                },
+                "loaded": {
+                    "label": "已加载车数",
+                    "unit": "辆",
+                    "direction": "neutral",
+                    "description": "被加载到网络中的总车数"
+                },
+                "inserted": {
+                    "label": "已插入车数",
+                    "unit": "辆",
+                    "direction": "higher",
+                    "description": "成功插入到网络的车数"
+                },
+                "ended": {
+                    "label": "已完成车数",
+                    "unit": "辆",
+                    "direction": "higher",
+                    "description": "完成行程、离开网络的车数（通行效率指标）"
+                },
+                "running": {
+                    "label": "当前运行车数",
+                    "unit": "辆",
+                    "direction": "lower",
+                    "description": "仿真结束时仍在网络中的车数"
+                },
+                "waiting": {
+                    "label": "等待车数",
+                    "unit": "辆",
+                    "direction": "lower",
+                    "description": "因信号灯、拥堵等原因停止等待的车数"
+                },
+                "teleports": {
+                    "label": "传送次数",
+                    "unit": "次",
+                    "direction": "lower",
+                    "description": "SUMO进行的传送操作次数（拥堵严重程度指标）"
+                },
+                "collisions": {
+                    "label": "碰撞次数",
+                    "unit": "次",
+                    "direction": "lower",
+                    "description": "仿真中发生的车辆碰撞事件数"
+                },
+                "avgSpeed": {
+                    "label": "平均速度",
+                    "unit": "m/s",
+                    "direction": "higher",
+                    "description": "所有已完成车的平均行驶速度（核心性能指标）"
+                }
+            }
         }
 
         logger.info(f"Results for batch {batch_id}: {len(plan_results)} plans")
@@ -1428,30 +1499,72 @@ class BatchOptimizationService:
 
     def _parse_summary_xml(self, file_path: Path) -> Dict[str, Any]:
         """
-        解析summary.xml文件提取指标
+        解析summary.xml文件提取指标 (Phase 1: 扩展为提取完整的9个指标)
+
+        提取的指标:
+        - step: 仿真步数 (秒)
+        - loaded: 已加载车数 (辆)
+        - inserted: 已插入车数 (辆)
+        - ended: 已完成车数 (辆) ⭐ 核心
+        - running: 当前运行车数 (辆)
+        - waiting: 等待车数 (辆) ⭐ 核心
+        - teleports: 传送次数 (次) ⭐ 拥堵指标
+        - collisions: 碰撞次数 (次)
+        - avgSpeed: 平均速度 (m/s) ⭐ 核心
 
         Args:
             file_path: summary.xml文件路径
 
         Returns:
-            Dict: 提取的指标
+            Dict: 提取的9个指标
+
+        注意: 实际SUMO输出的summary.xml结构为:
+            <summary>
+                <step time="..." loaded="..." inserted="..." running="..."
+                       waiting="..." ended="..." collisions="..." teleports="..."
+                       meanSpeed="..." ... />
+            </summary>
+            所有指标都是<step>元素的属性，不是独立的<vehicleSummary>子元素
         """
         try:
             tree = ET.parse(file_path)
             root = tree.getroot()
 
-            # 提取基础统计
-            step_elem = root.find("step[@time]")
-            if step_elem is not None:
-                return {
-                    "total_vehicles": int(step_elem.get("loaded", 0)),
-                    "avg_speed": float(step_elem.get("meanSpeed", 0.0)),
-                }
+            # 获取所有step元素，取最后一个（最终统计）
+            steps = root.findall("step")
+            if not steps:
+                logger.warning(f"No step elements found in {file_path}")
+                return {}
 
-            return {}
+            # 取最后一步（仿真结束时的统计数据）
+            last_step = steps[-1]
+
+            # 直接从<step>元素属性提取所有9个指标 ✅
+            # 注意: XML中使用"meanSpeed"，我们转换为"avgSpeed"
+            metrics = {
+                # 时间相关
+                "step": float(last_step.get("time", 0)),
+
+                # 车辆流相关
+                "loaded": int(last_step.get("loaded", 0)),
+                "inserted": int(last_step.get("inserted", 0)),
+                "ended": int(last_step.get("ended", 0)),
+                "running": int(last_step.get("running", 0)),
+
+                # 拥堵相关
+                "waiting": int(last_step.get("waiting", 0)),
+                "teleports": int(last_step.get("teleports", 0)),
+                "collisions": int(last_step.get("collisions", 0)),
+
+                # 性能相关 (XML中是meanSpeed，转换为avgSpeed)
+                "avgSpeed": float(last_step.get("meanSpeed", 0.0))
+            }
+
+            logger.debug(f"Extracted {len(metrics)} metrics from {file_path}")
+            return metrics
 
         except Exception as e:
-            logger.warning(f"Failed to parse summary.xml: {e}")
+            logger.warning(f"Failed to parse summary.xml {file_path}: {e}")
             return {}
 
     def _parse_tripinfo_xml(self, file_path: Path) -> Dict[str, Any]:

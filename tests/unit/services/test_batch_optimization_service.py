@@ -460,10 +460,18 @@ class TestBatchOptimizationServiceXMLParsing:
     """XML解析方法测试"""
 
     def test_parse_summary_xml(self, service, tmp_path):
-        """测试解析summary.xml"""
+        """测试解析summary.xml - Phase 1: 验证提取完整的9个指标"""
+        # 注意: 实际SUMO输出的summary.xml结构为:
+        # <summary>
+        #     <step time="..." loaded="..." inserted="..." running="..."
+        #            waiting="..." ended="..." collisions="..." teleports="..."
+        #            meanSpeed="..." />
+        # </summary>
+        # 所有指标都是<step>元素的属性，不是<vehicleSummary>子元素
         summary_xml = """<?xml version="1.0" encoding="UTF-8"?>
-<summary>
-    <step time="100" loaded="5000" meanSpeed="28.5"/>
+<summary xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <step time="50.00" loaded="5000" inserted="4900" ended="4800" running="100" waiting="50" teleports="5" collisions="2" meanSpeed="28.5" halting="10" stopped="0" meanWaitingTime="5.5" meanTravelTime="100.0" meanSpeedRelative="0.95" duration="100"/>
+    <step time="100.00" loaded="5000" inserted="4900" ended="4800" running="100" waiting="50" teleports="5" collisions="2" meanSpeed="28.5" halting="10" stopped="0" meanWaitingTime="5.5" meanTravelTime="100.0" meanSpeedRelative="0.95" duration="100"/>
 </summary>"""
 
         xml_file = tmp_path / "summary.xml"
@@ -471,8 +479,19 @@ class TestBatchOptimizationServiceXMLParsing:
 
         metrics = service._parse_summary_xml(xml_file)
 
-        assert metrics["total_vehicles"] == 5000
-        assert metrics["avg_speed"] == 28.5
+        # 验证所有9个指标都被正确提取（取最后一步）
+        assert metrics["step"] == 100.0, f"步数应该是100.0，但得到{metrics['step']}"
+        assert metrics["loaded"] == 5000, f"已加载车数应该是5000，但得到{metrics['loaded']}"
+        assert metrics["inserted"] == 4900, f"已插入车数应该是4900，但得到{metrics['inserted']}"
+        assert metrics["ended"] == 4800, f"已完成车数应该是4800，但得到{metrics['ended']}"
+        assert metrics["running"] == 100, f"当前运行车数应该是100，但得到{metrics['running']}"
+        assert metrics["waiting"] == 50, f"等待车数应该是50，但得到{metrics['waiting']}"
+        assert metrics["teleports"] == 5, f"传送次数应该是5，但得到{metrics['teleports']}"
+        assert metrics["collisions"] == 2, f"碰撞次数应该是2，但得到{metrics['collisions']}"
+        assert metrics["avgSpeed"] == 28.5, f"平均速度应该是28.5（从meanSpeed映射），但得到{metrics['avgSpeed']}"
+
+        # 验证返回的指标数量
+        assert len(metrics) == 9, f"应该提取9个指标，但只提取了{len(metrics)}个：{list(metrics.keys())}"
 
     def test_parse_tripinfo_xml(self, service, tmp_path):
         """测试解析tripinfo.xml"""
