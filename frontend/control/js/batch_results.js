@@ -248,12 +248,9 @@ function renderBatchInfoPanel(batchData) {
         }
 
         if (configs.length > 0) {
-            infoPanelHtml += `<p><strong>仿真输出配置:</strong></p>`;
-            infoPanelHtml += `<div class="output-config-list" style="margin-left: 16px; font-size: 0.9em;">`;
-            configs.forEach(config => {
-                infoPanelHtml += `<div>${config}</div>`;
-            });
-            infoPanelHtml += '</div>';
+            // 在同一行显示所有输出配置，用 • 分隔
+            const configsText = configs.join(' • ');
+            infoPanelHtml += `<p><strong>仿真输出配置:</strong> ${configsText}</p>`;
             console.log('[DEBUG] output_config displayed:', configs);
         } else {
             console.log('[DEBUG] output_config has no enabled options');
