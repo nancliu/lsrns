@@ -368,4 +368,314 @@ function renderNewBatchResults(planResults) {
 
     tableHtml += '</tbody></table></div>';
     container.innerHTML = tableHtml;
+
+    // T6.3: 在表格下方添加图表可视化
+    renderResultsCharts(planResults);
+}
+
+// ========== T6.3: 图表可视化实现 ==========
+
+/**
+ * T6.3: 使用Chart.js渲染批次结果图表
+ * @param {Array} planResults - 方案结果列表
+ */
+function renderResultsCharts(planResults) {
+    if (!planResults || planResults.length === 0) {
+        return;
+    }
+
+    const container = document.getElementById('comparisonTable');
+    if (!container) return;
+
+    // 创建图表容器
+    const chartsContainer = document.createElement('div');
+    chartsContainer.className = 'charts-container';
+    chartsContainer.style.marginTop = '30px';
+    chartsContainer.style.display = 'grid';
+    chartsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
+    chartsContainer.style.gap = '20px';
+
+    // 获取所有指标
+    const metricKeys = planResults[0].aggregated_metrics ? Object.keys(planResults[0].aggregated_metrics) : [];
+
+    // 为每个主要指标创建图表
+    const mainMetrics = metricKeys.slice(0, 4); // 限制为最多4个图表以防止页面过长
+
+    mainMetrics.forEach(metricKey => {
+        const chartDiv = document.createElement('div');
+        chartDiv.style.position = 'relative';
+        chartDiv.style.height = '300px';
+        chartDiv.style.backgroundColor = '#f9f9f9';
+        chartDiv.style.padding = '15px';
+        chartDiv.style.borderRadius = '8px';
+        chartDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+
+        const canvas = document.createElement('canvas');
+        canvas.id = `chart-${metricKey}`;
+        canvas.style.maxHeight = '100%';
+
+        chartDiv.appendChild(canvas);
+        chartsContainer.appendChild(chartDiv);
+
+        // 在下一个事件循环中渲染图表（确保DOM已更新）
+        setTimeout(() => {
+            renderMetricChart(canvas.id, metricKey, planResults);
+        }, 0);
+    });
+
+    container.appendChild(chartsContainer);
+}
+
+/**
+ * T6.3: 为单个指标渲染柱状图
+ * @param {string} canvasId - Canvas元素ID
+ * @param {string} metricKey - 指标名称
+ * @param {Array} planResults - 方案结果列表
+ */
+function renderMetricChart(canvasId, metricKey, planResults) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    try {
+        // 准备数据
+        const planNames = [];
+        const meanValues = [];
+        const stdValues = [];
+        const colors = [];
+
+        // 颜色方案：基准方案用灰色，其他方案用渐变色
+        const colorScheme = ['#95a5a6', '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+
+        planResults.forEach((plan, index) => {
+            planNames.push(plan.plan_name);
+            const metrics = plan.aggregated_metrics[metricKey] || {};
+            meanValues.push(metrics.mean || 0);
+            stdValues.push(metrics.std || 0);
+            colors.push(colorScheme[index % colorScheme.length]);
+        });
+
+        // 创建图表
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: planNames,
+                datasets: [
+                    {
+                        label: `${metricKey} - 均值`,
+                        data: meanValues,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: `${metricKey} - 标准差`,
+                        data: stdValues,
+                        backgroundColor: colors.map(c => c + '33'),
+                        borderColor: colors,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y1',
+                        order: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `${metricKey} - 方案对比`,
+                        font: { size: 14, weight: 'bold' },
+                        padding: 10
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11 },
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 10,
+                        titleFont: { size: 12 },
+                        bodyFont: { size: 11 },
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y || 0;
+                                return `${context.dataset.label}: ${value.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: false,
+                        ticks: {
+                            font: { size: 11 }
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        ticks: {
+                            font: { size: 10 }
+                        },
+                        title: {
+                            display: true,
+                            text: '均值'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: {
+                            font: { size: 10 }
+                        },
+                        title: {
+                            display: true,
+                            text: '标准差'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error(`Error rendering chart for ${metricKey}:`, error);
+    }
+}
+
+/**
+ * T6.3: 渲染改进率对比图表
+ * @param {Array} planResults - 方案结果列表
+ */
+function renderImprovementRateChart(planResults) {
+    if (planResults.length <= 1) return; // 需要至少2个方案来计算改进率
+
+    const container = document.querySelector('.charts-container') || document.getElementById('comparisonTable');
+    if (!container) return;
+
+    const chartDiv = document.createElement('div');
+    chartDiv.style.position = 'relative';
+    chartDiv.style.height = '300px';
+    chartDiv.style.backgroundColor = '#f9f9f9';
+    chartDiv.style.padding = '15px';
+    chartDiv.style.borderRadius = '8px';
+    chartDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    chartDiv.style.marginTop = '20px';
+
+    const canvas = document.createElement('canvas');
+    canvas.id = 'improvement-rate-chart';
+
+    chartDiv.appendChild(canvas);
+    container.appendChild(chartDiv);
+
+    setTimeout(() => {
+        renderImprovementRateChartData(canvas.id, planResults);
+    }, 0);
+}
+
+/**
+ * T6.3: 实际渲染改进率图表数据
+ * @param {string} canvasId - Canvas元素ID
+ * @param {Array} planResults - 方案结果列表
+ */
+function renderImprovementRateChartData(canvasId, planResults) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    try {
+        const baselinePlan = planResults[0];
+        const testPlans = planResults.slice(1);
+
+        // 获取第一个指标的改进率作为示例
+        const firstMetricKey = baselinePlan.aggregated_metrics ? Object.keys(baselinePlan.aggregated_metrics)[0] : null;
+        if (!firstMetricKey) return;
+
+        const baselineMetric = baselinePlan.aggregated_metrics[firstMetricKey];
+        const baselineMean = baselineMetric?.mean || 0;
+
+        const testPlanNames = [];
+        const improvementRates = [];
+        const colors = [];
+
+        testPlans.forEach((plan, index) => {
+            testPlanNames.push(plan.plan_name);
+            const testMetric = plan.aggregated_metrics[firstMetricKey] || {};
+            const testMean = testMetric.mean || 0;
+
+            let rate = 0;
+            if (baselineMean !== 0) {
+                rate = ((testMean - baselineMean) / baselineMean) * 100;
+            }
+
+            improvementRates.push(rate);
+            colors.push(rate > 0 ? '#2ecc71' : '#e74c3c');
+        });
+
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: testPlanNames,
+                datasets: [{
+                    label: '相对基准方案的改进率(%)',
+                    data: improvementRates,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `${firstMetricKey} - 改进率对比`,
+                        font: { size: 14, weight: 'bold' },
+                        padding: 10
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.x;
+                                const sign = value > 0 ? '+' : '';
+                                return `${sign}${value.toFixed(1)}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error rendering improvement rate chart:', error);
+    }
 }
