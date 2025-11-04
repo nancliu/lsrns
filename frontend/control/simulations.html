@@ -95,20 +95,20 @@
                         </div>
                     </div>
 
-                    <!-- 仿真时长设置 (Phase 3: 新增, Revision 3: 改为从case元数据读取, Revision 6: 简化为直接可编辑输入框, Revision 7: 调整为单行布局) -->
+                    <!-- 仿真时长设置 (Phase 3: 新增, Revision 8: 提取inline CSS到simulations.css) -->
                     <div class="form-group">
                         <label>仿真时长:</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <input type="number" id="simulationDurationHours" value="1" min="0" max="23" style="width: 60px;">
-                                <span style="color: #666;">小时</span>
+                        <div class="duration-inputs-wrapper">
+                            <div class="duration-input-group">
+                                <input type="number" id="simulationDurationHours" value="1" min="0" max="23">
+                                <span>小时</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <input type="number" id="simulationDurationMinutes" value="0" min="0" max="59" style="width: 60px;">
-                                <span style="color: #666;">分钟</span>
+                            <div class="duration-input-group">
+                                <input type="number" id="simulationDurationMinutes" value="0" min="0" max="59">
+                                <span>分钟</span>
                             </div>
                         </div>
-                        <p style="font-size: 0.9rem; color: #999; margin-top: 6px;">
+                        <p class="duration-hint">
                             时长自动读取自案例数据，可根据需要修改
                         </p>
                     </div>

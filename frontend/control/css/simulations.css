@@ -1265,6 +1265,35 @@
 
 /* ==================== Phase 2 & 3: 时长和模板样式 ==================== */
 
+/* 时长输入容器 (Phase 3: 提取inline CSS到此处) */
+.duration-inputs-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.duration-input-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.duration-input-group input[type="number"] {
+    width: 60px;
+}
+
+.duration-input-group span {
+    color: #666;
+    white-space: nowrap;
+}
+
+.duration-hint {
+    font-size: 0.9rem;
+    color: #999;
+    margin-top: 6px;
+}
+
 /* 时长配置容器 */
 .duration-config {
     display: flex;

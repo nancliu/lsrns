@@ -383,11 +383,11 @@ function getOutputConfig() {
 
 /**
  * 获取仿真时长配置
- * Phase 3: 从case元数据读取时长（Revision 3: 改为只读）
+ * Phase 3: 从case元数据读取时长并允许用户修改
  * @returns {Object|null} 时长配置对象或null
  */
 function getSimulationDuration() {
-    // Revision 6: 直接从输入框读取用户设置的时长值
+    // Revision 8: 改为use_default=false，因为前端已从case读取并填入了具体值
     const hoursInput = document.getElementById('simulationDurationHours');
     const minutesInput = document.getElementById('simulationDurationMinutes');
 
@@ -401,7 +401,7 @@ function getSimulationDuration() {
     const totalMinutes = hours * 60 + minutes;
 
     return {
-        use_default: true,  // 标记为使用元数据源，但值由用户输入框控制
+        use_default: false,  // 前端已从case读取并设置具体值，不使用默认
         hours: hours,
         minutes: minutes,
         total_minutes: totalMinutes
