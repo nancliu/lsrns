@@ -1739,7 +1739,7 @@ function createCaseGroup(caseId, caseInfo, caseBatches) {
     caseBatches
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .forEach(batch => {
-            const batchCard = createBatchCard(batch);
+            const batchCard = createBatchCard(batch, caseInfo);
             bodyEl.appendChild(batchCard);
         });
 
@@ -1752,9 +1752,10 @@ function createCaseGroup(caseId, caseInfo, caseBatches) {
 /**
  * Phase 1: 创建单个批次卡片
  * @param {Object} batch - 批次数据
+ * @param {Object} caseInfo - 案例信息（包含 time_range）
  * @returns {HTMLElement} 批次卡片元素
  */
-function createBatchCard(batch) {
+function createBatchCard(batch, caseInfo = {}) {
     const card = document.createElement('div');
     card.className = 'batch-history-card';
     card.id = `batch-card-${batch.batch_id}`;
@@ -1782,6 +1783,11 @@ function createBatchCard(batch) {
         <p><strong>总任务:</strong> ${batch.total_tasks}</p>
         <p><strong>创建时间:</strong> ${new Date(batch.created_at).toLocaleString()}</p>
     `;
+
+    // 显示案例时间范围
+    if (caseInfo && caseInfo.time_range && caseInfo.time_range.start && caseInfo.time_range.end) {
+        infoHtml += `<p><strong>案例时间:</strong> ${caseInfo.time_range.start} - ${caseInfo.time_range.end}</p>`;
+    }
 
     // 显示种子信息
     if (batch.num_seeds !== undefined || batch.base_seed !== undefined) {
