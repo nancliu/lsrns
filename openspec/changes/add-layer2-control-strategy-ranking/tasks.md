@@ -2,11 +2,15 @@
 
 ## Overview
 
-**Implementation Approach**: Build ranking system on top of existing Layer 1 results (8 metrics from summary.xml). No additional data collection required for minimum viable product.
+**Implementation Approach**: Build complete ranking system with full EdgeData and TripInfo analysis capabilities using modular independent analyzers. System adapts to available outputs based on batch configuration.
 
-**Timeline**: 2 weeks (10-12 person-days)
+**Timeline**: 2.5 weeks (12-14 person-days)
 
-**Key Simplification**: EdgeData/TripInfo D0-level analysis deferred to optional Phase 4
+**Key Features**:
+- ✅ Modular analyzers for summary.xml, tripinfo.xml, edgedata.xml
+- ✅ Adaptive scoring based on available output combinations
+- ✅ Graceful degradation if optional outputs missing
+- ✅ Complete multi-dimensional analysis: vehicle flow + travel experience + spatial coverage
 
 **Layer 1 Foundation (Already Implemented)**:
 - ✅ Batch monitoring system with complete workflow (create, start, monitor, results)
@@ -20,36 +24,86 @@
 
 ---
 
-## Phase 1: Data Extraction and Scoring Engine (Week 1, Days 1-3, 3 days)
+## Phase 1: Data Extraction and Scoring Engine (Week 1, Days 1-4, 4 days)
 
-### 1.1 Layer 1 Data Extractor
+### 1.0 Output Configuration Detection
 
-- [ ] 1.1.1 Create Layer 1 data adapter
+- [ ] 1.0.1 Implement output availability detector
+  - Read batch simulation_config.json to get output_config
+  - Detect available_outputs: `{"summary": true, "tripinfo": bool, "edgedata": bool}`
+  - Validate expected output files exist (graceful fallback if missing)
+  - Return output_combination string and available file paths dictionary
+  - **File**: `shared/analysis_tools/output_detector.py`
+  - **Tests**: `tests/unit/analysis_tools/test_output_detector.py`
+  - **Estimated**: 0.5 day
+
+### 1.1 Independent Output Analyzers
+
+- [ ] 1.1.1 Create summary.xml analyzer (always required)
   - Call existing `GET /api/v1/batch/{batch_id}/results` endpoint
   - Parse response to extract plan_results with 8 metrics per plan
   - Validate baseline plan presence in results
   - Transform to ranking engine input format
   - **Integration Point**: Uses `api/services/batch_optimization_service.get_batch_results()`
-  - **File**: `shared/analysis_tools/layer1_metrics_extractor.py`
-  - **Tests**: `tests/unit/analysis_tools/test_layer1_metrics_extractor.py`
+  - **File**: `shared/analysis_tools/summary_analyzer.py`
+  - **Tests**: `tests/unit/analysis_tools/test_summary_analyzer.py`
   - **Estimated**: 0.5 day
-  - **Note**: No new data parsing needed - Layer 1 already provides metrics via API
+  - **Note**: Reuses Layer 1 API - no new parsing needed
 
-### 1.2 Multi-Criteria Scoring Implementation
+- [ ] 1.1.2 Create tripinfo.xml analyzer (conditional)
+  - Parse tripinfo.xml for each plan's simulation
+  - Extract per-vehicle: travel_time (arrival - depart), delay (timeLoss)
+  - Compute aggregates: avg_travel_time, avg_delay, total_delay
+  - Identify OD pairs from routeLength/vType
+  - Compute improved_od_pairs vs baseline
+  - Return independent tripinfo analysis results
+  - **File**: `shared/analysis_tools/tripinfo_analyzer.py`
+  - **Tests**: `tests/unit/analysis_tools/test_tripinfo_analyzer.py`
+  - **Estimated**: 1 day
+  - **Note**: Can reuse existing tripinfo parsing patterns from mechanism analysis
 
-- [ ] 1.2.1 Implement effectiveness scorer (based on 6 Layer 1 metrics)
-  - Formula: 0.25*ended + 0.25*avgSpeed + 0.20*waiting + 0.20*teleports + 0.05*running + 0.05*collisions
+- [ ] 1.1.3 Create edgedata.xml analyzer (conditional)
+  - Parse edgedata.xml for each plan's simulation
+  - Extract per-edge-interval: speed, occupancy, density
+  - Compute edge-level improvements vs baseline
+  - Identify improved_segments and deteriorated_segments
+  - Return independent edgedata analysis results
+  - **File**: `shared/analysis_tools/edgedata_analyzer.py`
+  - **Tests**: `tests/unit/analysis_tools/test_edgedata_analyzer.py`
+  - **Estimated**: 1 day
+  - **Note**: Can reuse existing edgedata parsing from edgedata_analysis.py
+
+- [ ] 1.1.4 Create modular data orchestrator
+  - Orchestrates output detection + calls appropriate analyzers
+  - Collects independent analysis results into results dictionary
+  - Handles missing data gracefully (continues with available outputs)
+  - Returns combined results with metadata: output_combination, available_outputs
+  - **File**: `shared/analysis_tools/analysis_orchestrator.py`
+  - **Tests**: `tests/unit/analysis_tools/test_analysis_orchestrator.py`
+  - **Estimated**: 0.5 day
+
+### 1.2 Adaptive Multi-Criteria Scoring Implementation
+
+- [ ] 1.2.1 Implement adaptive effectiveness scorer
+  - **Base (summary only)**: `0.25*ended + 0.25*avgSpeed + 0.20*waiting + 0.20*teleports + 0.05*running + 0.05*collisions`
+  - **With tripinfo**: Reweight and add `0.15*travel_time_reduction + 0.15*delay_reduction`
+  - **With edgedata**: No change (edgedata doesn't affect effectiveness)
+  - Implement weight adjustment logic based on available_outputs
   - Min-max normalization to 0-100
   - **File**: `shared/analysis_tools/multi_criteria_scorer.py`
   - **Tests**: `tests/unit/analysis_tools/test_multi_criteria_scorer.py`
-  - **Estimated**: 0.5 day
+  - **Estimated**: 0.8 day
 
-- [ ] 1.2.2 Implement coverage scorer (based on Layer 1 metrics)
-  - Formula: 0.50*(ended/loaded) + 0.30*(1-running/loaded) + 0.20*(1-waiting/loaded)
-  - Represents completion rate, non-stalled rate, non-waiting rate
+- [ ] 1.2.2 Implement adaptive coverage scorer
+  - **Mode 1 - Summary only**: `0.50*(ended/loaded) + 0.30*(1-running/loaded) + 0.20*(1-waiting/loaded)`
+  - **Mode 2 - Summary + TripInfo**: `0.40*(ended/loaded) + 0.30*(improved_od_pairs/total_od_pairs) + 0.30*(1-running/loaded)`
+  - **Mode 3a - Summary + EdgeData (no tripinfo)**: `0.40*(improved_segments/total_segments) + 0.35*(ended/loaded) + 0.25*(1-running/loaded)`
+  - **Mode 3b - All outputs (summary + tripinfo + edgedata)**: `0.35*(improved_segments/total_segments) + 0.35*(improved_od_pairs/total_od_pairs) + 0.30*(ended/loaded)`
+  - Implement weight adjustment logic based on available_outputs
+  - Min-max normalization to 0-100
   - **File**: `shared/analysis_tools/multi_criteria_scorer.py` (extend)
   - **Tests**: `tests/unit/analysis_tools/test_multi_criteria_scorer.py` (extend)
-  - **Estimated**: 0.5 day
+  - **Estimated**: 0.8 day
 
 - [ ] 1.2.3 Implement efficiency scorer (simple approach)
   - Total improvement: 0.4*avgSpeed + 0.3*ended + 0.3*teleports
@@ -141,7 +195,7 @@
 ### 3.1 Backend API
 
 - [ ] 3.1.1 Create request/response models
-  - RankingRequest: batch_id, baseline_plan_id, strategy_plan_ids, ranking_criteria (optional)
+  - RankingRequest: case_id, batch_id, baseline_plan_id, strategy_plan_ids, ranking_criteria (optional)
   - RankingResponse: ranking_id, ranked_strategies, comparison_table, report_file
   - **File**: `api/models/analysis/ranking_requests.py`
   - **Estimated**: 0.3 day
@@ -157,7 +211,7 @@
 
 - [ ] 3.1.3 Add API endpoint
   - POST `/api/v1/analysis/batch/strategy-ranking`
-  - Input validation (batch exists, plans exist, baseline exists)
+  - Input validation (case exists, batch exists and belongs to case, plans exist, baseline exists)
   - Error handling
   - **File**: `api/routes/analysis_routes.py` (modify)
   - **Tests**: `tests/integration/test_ranking_api.py`
@@ -170,7 +224,7 @@
 ### 4.1 UI Components
 
 - [ ] 4.1.1 Add ranking trigger button to batch results page
-  - "生成策略排序" button next to existing comparison table
+  - "生成优化方案" button next to existing comparison table
   - Enable only if batch completed and has >=2 plans
   - **Integration Point**: Add to existing batch results UI (Layer 1)
   - **File**: `frontend/control/simulations.html` (modify)
@@ -241,47 +295,31 @@
 
 ---
 
-## Optional Phase 6: Enhanced Analysis (Future Iteration, 1-2 weeks)
-
-**Note**: This phase is deferred for future enhancement. Current implementation works with Layer 1 data only.
-
-### 6.1 EdgeData D0-Level Analysis
-
-- [ ] 6.1.1 Implement F2-D1: Road segment optimization metrics
-- [ ] 6.1.2 Implement F2-D2: Network efficiency evaluation
-
-### 6.2 TripInfo D0-Level Analysis
-
-- [ ] 6.2.1 Implement G2-D1: Major OD pair identification
-- [ ] 6.2.2 Implement G2-D3: OD pair efficiency evaluation
-
-### 6.3 Enhanced Scoring Integration
-
-- [ ] 6.3.1 Integrate EdgeData metrics into coverage score
-- [ ] 6.3.2 Integrate TripInfo metrics into effectiveness score
-- [ ] 6.3.3 Update report generation with enhanced insights
-
 ---
 
 ## Summary
 
-**Total Estimated Time**: 2 weeks (10-12 person-days)
+**Total Estimated Time**: 2.5 weeks (12-14 person-days)
 
 **Phase Breakdown**:
-1. Data Extraction & Scoring: 3 days
+1. Data Extraction & Scoring: 4 days (includes adaptive tier handling)
 2. Report Generation: 2 days
 3. API & Service: 2 days
 4. Frontend Integration: 2 days
 5. Testing & Documentation: 1 day
 
 **Critical Path**:
-1. Scoring engine (must complete before report generation)
-2. Report generation (must complete before API)
-3. API (must complete before frontend)
-4. Frontend integration (last)
+1. Output config detection (must complete first)
+2. Tier-specific data extractors (parallel development possible)
+3. Adaptive scoring engine (must complete before report generation)
+4. Report generation (must complete before API)
+5. API (must complete before frontend)
+6. Frontend integration (last)
 
 **Deliverables**:
-- ✅ Multi-criteria scoring engine (based on 8 Layer 1 metrics)
+- ✅ Output availability detection based on batch output_config
+- ✅ Independent modular analyzers (summary.xml, tripinfo.xml, edgedata.xml)
+- ✅ Adaptive multi-criteria scoring engine (combines available metrics)
 - ✅ Strategy ranking algorithm
 - ✅ HTML report generation with charts
 - ✅ REST API endpoint (POST /api/v1/analysis/batch/strategy-ranking)
@@ -290,19 +328,25 @@
 - ✅ Documentation (API guide + user guide)
 
 **Integration Points with Layer 1**:
-- 📍 Data Source: `GET /api/v1/batch/{batch_id}/results` (Layer 1 API)
+- 📍 Data Source: `GET /api/v1/batch/{batch_id}/results` (Layer 1 API) + batch simulation_config.json
+- 📍 Output Config: Reads batch output_config to determine available outputs
 - 📍 Frontend Integration: `frontend/control/js/batch_results.js` (extend)
 - 📍 UI Placement: Below Layer 1 comparison table in batch results page
 - 📍 Design Consistency: Reuse Chart.js, table styling, and UI patterns from Layer 1
 
-**Key Simplifications vs Original Proposal**:
-- ❌ Removed EdgeData D0-level analysis (F2-D1, F2-D2) - deferred to Phase 6
-- ❌ Removed TripInfo D0-level analysis (G2-D1, G2-D3) - deferred to Phase 6
-- ✅ Ranking works with Layer 1 data only (8 metrics from summary.xml)
-- ✅ Timeline reduced from 4-5 weeks to 2 weeks
-- ✅ No additional data collection infrastructure needed
+**Modular Data Strategy**:
+- ✅ **summary.xml**: Always analyzed (mandatory) - provides vehicle flow, congestion, performance metrics
+- ✅ **tripinfo.xml**: Analyzed if output_tripinfo=true - adds travel time/delay metrics, OD pair coverage
+- ✅ **edgedata.xml**: Analyzed if output_edgedata=true - adds road segment coverage, spatial distribution
+- ✅ **Valid combinations**: summary / summary+tripinfo / summary+edgedata / summary+tripinfo+edgedata
+- ✅ Graceful degradation: Automatically uses available outputs if configured files missing
+- ✅ No batch configuration changes required: Works with existing output_config settings
+- ✅ Metadata tracking: Report includes output_combination field documenting data sources used
 
 **Risk Mitigation**:
-- Graceful degradation if Layer 1 data incomplete
+- Graceful degradation if configured output files missing
+- Fallback to base scoring if optional analysis fails
 - Fallback to default weights if custom weights invalid
 - Clear error messages for validation failures
+- Comprehensive logging of output detection and analyzer execution
+- Metadata in report tracks exactly which data sources were used

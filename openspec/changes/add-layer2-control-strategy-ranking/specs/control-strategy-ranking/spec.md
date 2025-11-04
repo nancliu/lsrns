@@ -2,49 +2,107 @@
 
 ## ADDED Requirements
 
-### Requirement: Layer 1 Data Aggregation from summary.xml
+### Requirement: Modular Data Aggregation Based on Output Configuration
 
-The system SHALL aggregate 8 traffic metrics from Layer 1 results (summary.xml) to support strategy evaluation.
+The system SHALL independently analyze each available output type from batch simulations and combine results into unified ranking scores.
 
-#### Scenario: Layer 1 metrics extraction
+#### Scenario: Output configuration detection
 
 - **WHEN** ranking analysis is requested for a batch
+- **THEN** the system SHALL read batch simulation_config.json to get output_config parameters
+- **AND** the system SHALL detect available_outputs as: `{"summary": true, "tripinfo": bool, "edgedata": bool}`
+- **AND** the system SHALL identify output_combination as one of: "summary", "summary+tripinfo", "summary+edgedata", "summary+tripinfo+edgedata"
+- **AND** the system SHALL record output_combination in ranking results metadata
+
+#### Scenario: Summary.xml analysis (always required)
+
+- **WHEN** analyzing batch results
 - **THEN** the system SHALL extract 8 metrics from each plan's summary.xml including loaded, inserted, ended, running, waiting, teleports, collisions, and avgSpeed
 - **AND** the system SHALL validate that baseline plan metrics are available for comparison
 - **AND** the system SHALL exclude step metric from comparison (simulation duration is not a performance metric)
+- **AND** the system SHALL compute improvement rates relative to baseline for each metric
+
+#### Scenario: Tripinfo.xml analysis (conditional)
+
+- **WHEN** batch output_config has output_tripinfo=true
+- **THEN** the system SHALL parse tripinfo.xml for each plan to extract per-vehicle: travel_time, delay, departed_time, arrival_time
+- **AND** the system SHALL compute aggregate metrics: avg_travel_time, avg_delay, total_delay
+- **AND** the system SHALL identify improved_od_pairs vs baseline based on travel time reduction
+- **AND** the system SHALL return tripinfo analysis results as independent dataset
+
+#### Scenario: Edgedata.xml analysis (conditional)
+
+- **WHEN** batch output_config has output_edgedata=true
+- **THEN** the system SHALL parse edgedata.xml for each plan to extract per-edge-interval: speed, occupancy, density
+- **AND** the system SHALL compute aggregate segment-level metrics: improved_segments, deteriorated_segments, avg_speed_increase
+- **AND** the system SHALL return edgedata analysis results as independent dataset
 
 #### Scenario: Metric categorization
 
-- **WHEN** processing extracted metrics
-- **THEN** the system SHALL categorize metrics into vehicle flow (loaded, inserted, ended, running), congestion (waiting, teleports, collisions), and performance (avgSpeed)
-- **AND** the system SHALL identify improvement direction for each metric (higher-is-better: ended, avgSpeed; lower-is-better: running, waiting, teleports, collisions)
+- **WHEN** processing extracted metrics from any output type
+- **THEN** the system SHALL categorize summary.xml metrics into vehicle flow (loaded, inserted, ended, running), congestion (waiting, teleports, collisions), and performance (avgSpeed)
+- **AND** the system SHALL categorize tripinfo metrics as effectiveness metrics (travel_time, delay) and coverage metrics (od_pairs)
+- **AND** the system SHALL categorize edgedata metrics as coverage metrics (road segments)
+- **AND** the system SHALL identify improvement direction: higher-is-better (ended, avgSpeed) vs lower-is-better (running, waiting, teleports, collisions, travel_time, delay)
 
-#### Scenario: Optional enhanced data from EdgeData and TripInfo
+#### Scenario: Graceful degradation if configured output missing
 
-- **WHEN** EdgeData or TripInfo analysis results are available
-- **THEN** the system MAY optionally integrate road segment metrics (F2-D1, F2-D2) or OD pair metrics (G2-D1, G2-D3) to enhance scoring
-- **AND** the system SHALL continue ranking with Layer 1 data only if enhanced data is unavailable
+- **WHEN** batch output_config indicates tripinfo=true or edgedata=true but corresponding XML files are missing
+- **THEN** the system SHALL log warning message with missing file paths and expected locations
+- **AND** the system SHALL mark that output type as unavailable in available_outputs
+- **AND** the system SHALL continue ranking using only available output types without failure
+- **AND** the system SHALL update output_combination metadata to reflect actually used outputs
 
 ---
 
-### Requirement: Multi-Criteria Scoring Algorithm
+### Requirement: Adaptive Multi-Criteria Scoring Algorithm
 
-The system SHALL score each control strategy using a weighted multi-criteria evaluation with four dimensions: effectiveness, coverage, efficiency, and reliability.
+The system SHALL score each control strategy using weighted multi-criteria evaluation with four dimensions: effectiveness, coverage, efficiency, and reliability. Scoring formulas SHALL combine available metrics from independent output analyses.
 
-#### Scenario: Effectiveness score calculation
+#### Scenario: Effectiveness score with summary.xml only
 
-- **WHEN** computing effectiveness score for a strategy
-- **THEN** the system SHALL calculate weighted average of speed improvement (30%), travel time reduction (30%), delay reduction (25%), and congestion reduction (15%)
+- **WHEN** computing effectiveness score and only summary.xml is available
+- **THEN** the system SHALL use base formula: `0.25*ended_improvement + 0.25*avgSpeed_improvement + 0.20*waiting_reduction + 0.20*teleports_reduction + 0.05*running_reduction + 0.05*collisions_reduction`
 - **AND** the effectiveness score SHALL be normalized to 0-100 range
 - **AND** improvements SHALL be calculated relative to baseline plan
 
-#### Scenario: Coverage score calculation
+#### Scenario: Effectiveness score with tripinfo.xml available
 
-- **WHEN** computing coverage score for a strategy
-- **THEN** the system SHALL calculate weighted average of segment coverage (40%), OD pair coverage (30%), and vehicle coverage (30%)
-- **AND** segment coverage SHALL be ratio of improved segments to total segments
-- **AND** OD pair coverage SHALL be ratio of improved OD pairs to total OD pairs
-- **AND** vehicle coverage SHALL be ratio of vehicles with improved trips to total vehicles
+- **WHEN** computing effectiveness score and tripinfo.xml analysis is available
+- **THEN** the system SHALL adjust component weights to incorporate tripinfo metrics
+- **AND** the system SHALL use formula: `0.20*ended_improvement + 0.20*avgSpeed_improvement + 0.15*travel_time_reduction + 0.15*delay_reduction + 0.15*waiting_reduction + 0.10*teleports_reduction + 0.05*running_reduction`
+- **AND** travel_time_reduction and delay_reduction SHALL come from tripinfo analysis results
+- **AND** the effectiveness score SHALL be normalized to 0-100 range
+
+#### Scenario: Effectiveness score with edgedata.xml available
+
+- **WHEN** computing effectiveness score and edgedata.xml analysis is available
+- **THEN** the system SHALL NOT add edgedata metrics to effectiveness formula (edgedata used for coverage only)
+- **AND** the system MAY use edgedata for spatial distribution validation but not scoring
+
+#### Scenario: Coverage score with summary.xml only
+
+- **WHEN** computing coverage score and only summary.xml is available
+- **THEN** the system SHALL use vehicle-based formula: `0.50*(ended/loaded) + 0.30*(1 - running/loaded) + 0.20*(1 - waiting/loaded)`
+- **AND** coverage represents vehicle completion rate, non-stalled rate, and non-waiting rate
+- **AND** the coverage score SHALL be normalized to 0-100 range
+
+#### Scenario: Coverage score with tripinfo.xml available
+
+- **WHEN** computing coverage score and tripinfo.xml analysis is available
+- **THEN** the system SHALL adjust component weights to incorporate OD pair coverage
+- **AND** the system SHALL use formula: `0.40*(ended/loaded) + 0.30*(improved_od_pairs/total_od_pairs) + 0.30*(1 - running/loaded)`
+- **AND** improved_od_pairs SHALL come from tripinfo analysis results
+- **AND** the coverage score SHALL be normalized to 0-100 range
+
+#### Scenario: Coverage score with edgedata.xml available
+
+- **WHEN** computing coverage score and edgedata.xml analysis is available
+- **THEN** the system SHALL adjust component weights to incorporate road segment coverage
+- **AND** if only edgedata available (no tripinfo): use formula `0.40*(improved_segments/total_segments) + 0.35*(ended/loaded) + 0.25*(1 - running/loaded)`
+- **AND** if both tripinfo and edgedata available: use formula `0.35*(improved_segments/total_segments) + 0.35*(improved_od_pairs/total_od_pairs) + 0.30*(ended/loaded)`
+- **AND** improved_segments SHALL come from edgedata analysis results
+- **AND** the coverage score SHALL be normalized to 0-100 range
 
 #### Scenario: Efficiency score calculation
 
@@ -126,7 +184,8 @@ The system SHALL provide REST API endpoint for requesting strategy ranking analy
 #### Scenario: Ranking request validation
 
 - **WHEN** POST request to `/api/v1/analysis/batch/strategy-ranking` is received
-- **THEN** the system SHALL validate that batch_id exists
+- **THEN** the system SHALL validate that case_id exists
+- **AND** the system SHALL validate that batch_id exists and belongs to case_id
 - **AND** the system SHALL validate that baseline_plan_id exists in batch
 - **AND** the system SHALL validate that all strategy_plan_ids exist in batch
 - **AND** the system SHALL validate that all plans have completed simulation status
@@ -154,14 +213,14 @@ The system SHALL provide user interface for triggering strategy ranking from bat
 #### Scenario: Ranking button display
 
 - **WHEN** user views batch results page for a completed batch
-- **THEN** the UI SHALL display "生成策略排序" (Generate Strategy Ranking) button
+- **THEN** the UI SHALL display "生成优化方案" (Generate Optimization Plan) button
 - **AND** button SHALL be enabled only if batch status is "completed"
 - **AND** button SHALL be enabled only if batch contains at least 2 plans (baseline + 1 strategy)
 
 #### Scenario: Ranking trigger interaction
 
-- **WHEN** user clicks "生成策略排序" button
-- **THEN** the UI SHALL send POST request to ranking API endpoint with batch_id and plan_ids
+- **WHEN** user clicks "生成优化方案" button
+- **THEN** the UI SHALL send POST request to ranking API endpoint with case_id, batch_id and plan_ids
 - **AND** the UI SHALL show loading indicator during analysis
 - **AND** upon success, SHALL display ranking results in modal or embedded section
 - **AND** upon error, SHALL show error message with details

@@ -22,7 +22,7 @@
 - Complete batch workflow (create, start, monitor, results)
 
 **Missing Layer 2**: Cannot answer the critical business question:
-> **"Among multiple control strategies (baseline, VSS, TEC, DHS, combinations), which one should we deploy? In what order of priority?"**
+> **"Among multiple control strategies (baseline, VSS, TEC, DHS, combinations), which control plan should we deploy? In what order of priority?"**
 
 ### Business Impact
 
@@ -84,6 +84,7 @@
 POST /api/v1/analysis/batch/strategy-ranking
 Request:
 {
+  "case_id": "case_20251104_001",
   "batch_id": "batch_20251104_001",
   "baseline_plan_id": "plan_baseline",
   "strategy_plan_ids": ["plan_vss_001", "plan_tec_001", "plan_dhs_001", "plan_vss_tec_combo"],
@@ -147,7 +148,7 @@ Response:
 ### Modified Capabilities
 
 - **batch-optimization**: Add ranking analysis option after batch completion
-- **batch-monitoring-unified**: Add "生成策略排序" button in batch results view
+- **batch-monitoring-unified**: Add "生成优化方案" button in batch results view
 
 ---
 
@@ -215,7 +216,7 @@ Response:
 }
 ```
 
-**Note**: Layer 2 ranking can work with **Layer 1 data only** (8 metrics from summary.xml). EdgeData and TripInfo analysis are **optional enhancements** that provide deeper insights when available.
+**Note**: Layer 2 ranking implements **complete analysis capabilities** from MVP, including EdgeData and TripInfo analyzers. System automatically adapts to available outputs - works with summary.xml only (minimum) or leverages all three outputs (optimal) based on batch output_config.
 
 ### Step 2: Multi-Criteria Scoring
 
@@ -233,8 +234,8 @@ Response:
   # Note: loaded/inserted 通常相同，不计入评分
   ```
 
-**Coverage Score (25%)**:
-- **Minimum viable (Layer 1 only)**:
+**Coverage Score (25%)** - Adaptive based on available outputs:
+- **Mode 1 - Summary.xml only**:
   ```python
   # 基于 summary.xml 的车辆覆盖率
   coverage = (
@@ -243,12 +244,31 @@ Response:
       0.20 * (1 - waiting / loaded)          # 非等待率
   )
   ```
-- **Enhanced (optional, with EdgeData/TripInfo)**:
+- **Mode 2 - Summary + TripInfo**:
   ```python
+  # 增加 OD 对覆盖率
   coverage = (
-      0.4 * (improved_segments / total_segments) +
-      0.3 * (improved_od_pairs / total_od_pairs) +
-      0.3 * (ended / loaded)
+      0.40 * (ended / loaded) +                          # 车辆完成率
+      0.30 * (improved_od_pairs / total_od_pairs) +      # OD对改进覆盖率
+      0.30 * (1 - running / loaded)                      # 非滞留率
+  )
+  ```
+- **Mode 3a - Summary + EdgeData (no tripinfo)**:
+  ```python
+  # 增加路段覆盖率
+  coverage = (
+      0.40 * (improved_segments / total_segments) +      # 路段改进覆盖率
+      0.35 * (ended / loaded) +                           # 车辆完成率
+      0.25 * (1 - running / loaded)                       # 非滞留率
+  )
+  ```
+- **Mode 3b - All outputs (Summary + TripInfo + EdgeData)**:
+  ```python
+  # 多维度覆盖率
+  coverage = (
+      0.35 * (improved_segments / total_segments) +      # 空间覆盖（路段）
+      0.35 * (improved_od_pairs / total_od_pairs) +      # OD对覆盖
+      0.30 * (ended / loaded)                             # 车辆覆盖
   )
   ```
 
@@ -367,34 +387,31 @@ else:
   - loaded, inserted, ended, running (车辆流量 4个)
   - waiting, teleports, collisions (拥堵指标 3个)
   - avgSpeed (性能指标 1个)
-- ⚠️ **Optional**: EdgeData/TripInfo analysis for enhanced scoring
-  - EdgeData: F2-D1 (road segment metrics), F2-D2 (network efficiency)
-  - TripInfo: G2-D1 (major OD pairs), G2-D3 (OD efficiency)
+- ✅ **EdgeData/TripInfo analysis to be implemented** (Phase 1):
+  - EdgeData: Road segment metrics (improved_segments, avg_speed_increase)
+  - TripInfo: OD pair metrics (improved_od_pairs, avg_travel_time, avg_delay)
 
-**Note**: Layer 2 ranking can work with **Layer 1 data alone** (minimum viable). EdgeData/TripInfo analysis are **optional enhancements**.
+**Note**: Layer 2 ranking implements **complete analysis** from MVP. System works with summary.xml only (graceful degradation) but provides full capabilities when all outputs available.
 
 ### Implementation Sequence
 
-**Phase 1: Ranking Engine Core** (Week 1, 基于Layer 1的8个指标)
-- Implement multi-criteria scoring (effectiveness, coverage, efficiency, reliability)
+**Phase 1: Complete Analysis & Scoring Engine** (Week 1-1.5, Days 1-8)
+- Implement output availability detector (reads batch output_config)
+- Implement modular analyzers: summary.xml, tripinfo.xml, edgedata.xml
+- Implement adaptive multi-criteria scoring (effectiveness, coverage, efficiency, reliability)
 - Implement ranking algorithm
-- Unit tests
-- **No additional data collection needed** (uses existing Layer 1 summary.xml)
+- Unit tests for all analyzers and scorers
 
-**Phase 2: API and Service** (Week 1-2)
+**Phase 2: API and Service** (Week 2, Days 1-3)
 - Backend API endpoint (`POST /api/v1/analysis/batch/strategy-ranking`)
-- Service orchestration
+- Service orchestration with modular analyzer calls
 - Integration tests
 
-**Phase 3: UI and Reporting** (Week 2)
-- Frontend ranking display
+**Phase 3: UI and Reporting** (Week 2-2.5, Days 4-7)
+- Frontend ranking display with data source badges
 - HTML report generation with charts
+- Output combination metadata display
 - User acceptance testing
-
-**Optional Phase 4: Enhanced Analysis** (Future iteration)
-- Implement EdgeData F2-D1, F2-D2
-- Implement TripInfo G2-D1, G2-D3
-- Integrate enhanced metrics into scoring
 
 ---
 
