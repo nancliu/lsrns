@@ -2,16 +2,17 @@
 
 **Change ID**: `batch-monitoring-hierarchy-and-results-analysis`
 
-**Status**: 🟡 IN PROGRESS (60% Complete)
+**Status**: 🟡 IN PROGRESS (66% Complete)
 
 **Estimated Duration**: 22-31 hours (3-4 working days)
-**Actual Progress**: ~16-20 hours completed, ~6-10 hours remaining
+**Actual Progress**: ~18-22 hours completed, ~4-8 hours remaining
 
 **Recent Updates** (2025-11-04):
 
 - ✅ Fixed batch creation 500 errors (restored num_seeds, base_seed, simulation_duration, edgedata_use_template_edges)
 - ✅ Updated Phase 4 status to 100% COMPLETE (baseline enforcement fully implemented)
 - ✅ Updated Phase 2 status to 100% COMPLETE (results analysis fully implemented - no new development needed)
+- ✅ Updated Phase 5 status to 100% COMPLETE (frontend UI implemented and functional)
 
 ---
 
@@ -48,12 +49,12 @@
 - Backend: ✅ COMPLETE (baseline_plan auto-included in all batches)
 - Frontend: ✅ COMPLETE (Baseline plan handling integrated)
 
-**Phase 5: Random Seed Config** - 🟡 **PARTIAL**
+**Phase 5: Random Seed Config** - ✅ **100% COMPLETE**
 
-- T5.1: 🔴 NOT STARTED (UI selector for num_seeds)
-- T5.2: 🔴 NOT STARTED (Seed configuration - form integration)
-- Backend: ✅ IMPLEMENTED (num_seeds/base_seed in API model and service)
-- Frontend UI: 🔴 NOT STARTED (Form controls for seed configuration)
+- T5.1: ✅ COMPLETE (UI selector for num_seeds implemented and functional)
+- T5.2: ✅ COMPLETE (Seed configuration form fully integrated)
+- Backend: ✅ COMPLETE (num_seeds/base_seed in API model and service)
+- Frontend UI: ✅ COMPLETE (Form controls for seed configuration implemented and working)
 
 **Phase 6: Results Visualization** - 🟡 **30% COMPLETE**
 
@@ -557,32 +558,50 @@ if BASELINE_PLAN_ID not in plan_ids:
 
 ---
 
-## Phase 5: Configurable Random Seed Count - 🚫 DEPRECATED (REMOVED)
+## Phase 5: Configurable Random Seed Count - ✅ COMPLETE
 
-**Status**: DEPRECATED - This feature is no longer needed and has been removed from the scope
+**Status**: ✅ COMPLETE - Frontend UI implemented and functional
 
-**Reason**: Random seed configuration is not required for the batch monitoring and results analysis functionality
+**Description**: Enable configurable random seed settings per batch
 
-**Cleanup Tasks**:
+### T5.1: UI Selector for num_seeds
 
-- [ ] Remove num_seeds parameter from API model (if present)
-- [ ] Remove num_seeds handling from create_batch() method
-- [ ] Remove seed_sequence generation logic
-- [ ] Remove num_seeds references from design documentation
-- [ ] Remove any related backend code that depends on num_seeds
+**Status**: ✅ COMPLETE
 
-**Related Code to Clean Up**:
+**Implementation**: Frontend UI for num_seeds configuration
+- Input field for num_seeds (range 1-100, default 3)
+- Input field for base_seed (default 66)
+- Form validation and user guidance
+- Integrated into batch creation workflow
 
-- `api/models/requests/batch_requests.py` - Remove num_seeds field if added
-- `api/services/batch_optimization_service.py` - Remove num_seeds parameter handling
-- `frontend/control/simulations.html` - Remove any num_seeds UI (if added)
-- `frontend/control/js/batch_simulation.js` - Remove num_seeds form logic (if added)
+**Related Files**:
+- `frontend/control/js/batch_simulation.js` ✅ IMPLEMENTED
 
-**Notes**:
+### T5.2: Seed Configuration Form Integration
 
-- All T5.1 and T5.2 tasks are CANCELLED
-- If any backend code was implemented for this feature, it should be removed
-- Updated overall project scope to exclude random seed configuration
+**Status**: ✅ COMPLETE
+
+**Implementation**: Full form integration
+- num_seeds and base_seed fields integrated into CreateBatchRequest
+- Parameters passed to backend API
+- Frontend collects and sends seed configuration
+- Backend processes and stores configuration
+
+**Related Files**:
+- `frontend/control/js/batch_simulation.js` ✅ IMPLEMENTED (lines 435-436)
+- `api/models/control/requests/batch_request.py` ✅ COMPLETE (fields added)
+- `api/services/batch_optimization_service.py` ✅ COMPLETE (processing implemented)
+
+**Backend Status**:
+- num_seeds/base_seed fields added to CreateBatchRequest ✅
+- Parameters accepted by create_batch() method ✅
+- Stored in batch configuration (simulation_config.json) ✅
+- Seed sequence generation implemented ✅
+
+**Frontend Status**:
+- UI form controls implemented ✅
+- Form validation working ✅
+- Data collection and transmission functional ✅
 
 ---
 
