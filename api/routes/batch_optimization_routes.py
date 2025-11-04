@@ -10,12 +10,15 @@ from typing import Optional
 
 from api.services.batch_optimization_service import BatchOptimizationService
 from api.services.simulation_service import simulation_service
+from api.services.strategy_ranking_service import get_ranking_service
 from api.models.control.requests.batch_request import CreateBatchRequest
+from api.models.control.requests.ranking_request import StrategyRankingRequest
 from api.models.control.responses.batch_response import (
     BatchCreatedResponse,
     BatchProgressResponse,
     BatchResultsResponse,
 )
+from api.models.control.responses.ranking_response import StrategyRankingResponse
 
 logger = logging.getLogger(__name__)
 
@@ -454,3 +457,105 @@ async def get_batch_detail(batch_id: str):
     except Exception as e:
         logger.error(f"Error getting batch detail: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取批次详情失败: {str(e)}")
+
+
+@router.post("/batch/{case_id}/{batch_id}/strategy-ranking", response_model=dict, status_code=200)
+async def rank_strategies(case_id: str, batch_id: str, request: StrategyRankingRequest):
+    """
+    策略排序分析 (Layer 2: Control Strategy Ranking)
+
+    对批量仿真结果中的多个控制策略进行多准则排序评估
+
+    路径参数:
+    - case_id: 案例ID
+    - batch_id: 批次ID
+
+    请求体:
+    - baseline_plan_id: 基准方案ID（默认baseline_plan）
+    - strategy_plan_ids: 待排序的策略方案ID列表（可选，如不指定则自动检测）
+    - ranking_criteria: 自定义评估权重（可选，默认为标准权重）
+
+    返回:
+    - 排序结果，包含：
+      - ranking_id: 排序任务ID
+      - ranked_strategies: 排序后的策略列表
+      - ranking_metadata: 排序配置和基线信息
+      - report_file: 生成的HTML报告文件路径
+
+    说明:
+    - 支持多准则评估：有效性(40%), 覆盖率(25%), 效率(20%), 可靠性(15%)
+    - 自适应评分：根据可用输出(summary/tripinfo/edgedata)自动调整评分模式
+    - 优雅降级：如果可选输出缺失自动使用summary.xml数据
+    - 推荐等级：强烈推荐(>=75), 推荐(60-75), 可选(45-60), 不推荐(<45)
+    """
+    try:
+        from pathlib import Path
+
+        # Validate case and batch exist
+        case_dir = Path("cases") / case_id
+        if not case_dir.exists():
+            raise FileNotFoundError(f"案例不存在: {case_id}")
+
+        batch_dir = case_dir / "simulations" / batch_id
+        if not batch_dir.exists():
+            raise FileNotFoundError(f"批次不存在: {batch_id}")
+
+        # Get all plans if not specified
+        plan_ids = request.strategy_plan_ids
+        if not plan_ids:
+            # Auto-detect plans from batch config
+            import json
+            config_path = batch_dir / "simulation_config.json"
+            if config_path.exists():
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    plan_ids = list(config.get("plan_configs", {}).keys())
+            else:
+                raise FileNotFoundError(f"批次配置文件不存在")
+
+        if not plan_ids:
+            raise ValueError("未找到任何方案")
+
+        # Ensure baseline is included
+        baseline_plan_id = request.baseline_plan_id
+        if baseline_plan_id not in plan_ids:
+            plan_ids.insert(0, baseline_plan_id)
+
+        # Validate we have at least 2 plans (baseline + 1 strategy)
+        if len(plan_ids) < 2:
+            raise ValueError("需要至少包含基准方案和1个测试方案")
+
+        # Prepare weights
+        custom_weights = None
+        if request.ranking_criteria:
+            custom_weights = {
+                "effectiveness": request.ranking_criteria.effectiveness_weight,
+                "coverage": request.ranking_criteria.coverage_weight,
+                "efficiency": request.ranking_criteria.efficiency_weight,
+                "reliability": request.ranking_criteria.reliability_weight,
+            }
+
+        # Execute ranking
+        ranking_service = get_ranking_service()
+        result = ranking_service.rank_strategies(
+            case_dir=case_dir,
+            batch_id=batch_id,
+            plan_ids=plan_ids,
+            baseline_plan_id=baseline_plan_id,
+            custom_weights=custom_weights
+        )
+
+        if "error" in result:
+            raise ValueError(result["error"])
+
+        return result
+
+    except FileNotFoundError as e:
+        logger.warning(f"Resource not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        logger.warning(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error ranking strategies: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"策略排序失败: {str(e)}")
