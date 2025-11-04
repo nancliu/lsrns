@@ -953,5 +953,190 @@ class TestTimeSeriesExtraction:
             assert len(ts["running"]["mean"]) == 10  # 10个时间步
 
 
+# ============================================================================
+# T7.2: ADDITIONAL INTEGRATION TESTS FOR BATCH OPERATIONS
+# ============================================================================
+
+class TestBatchOptimizationServiceIntegration:
+    """Additional integration tests for batch operations (T7.2)"""
+
+    def test_create_batch_with_standard_output_level(self, temp_test_env, service):
+        """Test batch creation with standard output level (T7.2.1)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            output_level="standard",
+            num_seeds=3,
+            base_seed=66
+        )
+
+        assert response['batch_id'] is not None
+        assert response['status'] == 'pending'
+        assert response['plan_ids'][0] == 'baseline_plan'
+
+        # Verify batch directory exists
+        batch_dir = temp_test_env["cases_dir"] / "test_case_001" / "simulations" / "plan_opti" / response['batch_id']
+        assert batch_dir.exists()
+
+    def test_create_batch_with_minimal_output_level(self, temp_test_env, service):
+        """Test batch creation with minimal output level (T7.2.1)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            output_level="minimal"
+        )
+
+        assert response['batch_id'] is not None
+        assert response['status'] == 'pending'
+
+        # Verify batch directory exists
+        batch_dir = temp_test_env["cases_dir"] / "test_case_001" / "simulations" / "plan_opti" / response['batch_id']
+        assert batch_dir.exists()
+
+    def test_create_batch_with_full_output_level(self, temp_test_env, service):
+        """Test batch creation with full output level (T7.2.1)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            output_level="full"
+        )
+
+        assert response['batch_id'] is not None
+        batch_dir = temp_test_env["cases_dir"] / "test_case_001" / "simulations" / "plan_opti" / response['batch_id']
+        assert batch_dir.exists()
+
+    def test_create_batch_auto_includes_baseline(self, temp_test_env, service):
+        """Test automatic baseline plan inclusion when not specified (T7.2.1)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["plan_001"],  # NO baseline_plan specified
+            num_seeds=3,
+            base_seed=66
+        )
+
+        assert "baseline_plan" in response['plan_ids']
+        assert response['plan_ids'][0] == "baseline_plan"
+
+    def test_seed_configuration_num_seeds_3(self, temp_test_env, service):
+        """Test seed configuration with num_seeds=3 (T7.2.2)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=3,
+            base_seed=66
+        )
+
+        batch_dir = temp_test_env["cases_dir"] / "test_case_001" / "simulations" / "plan_opti" / response['batch_id']
+        assert batch_dir.exists()
+        assert response['total_tasks'] == 6  # 2 plans × 3 seeds
+
+    def test_seed_sequence_generation(self, temp_test_env, service):
+        """Test seed sequence generation from base_seed and num_seeds (T7.2.2)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=3,
+            base_seed=66
+        )
+
+        batch_dir = temp_test_env["cases_dir"] / "test_case_001" / "simulations" / "plan_opti" / response['batch_id']
+        assert batch_dir.exists()
+        assert response['total_tasks'] == 6  # Verifies seed sequence was used
+
+    def test_seed_configuration_high_num_seeds(self, temp_test_env, service):
+        """Test with high num_seeds value (T7.2.2)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=10,
+            base_seed=100
+        )
+
+        # With 2 plans and 10 seeds, total_tasks should be 20
+        assert response['total_tasks'] == 20
+
+    def test_multiple_plans_aggregation(self, temp_test_env, service):
+        """Test aggregation with multiple plans (T7.2.3)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=2,
+            base_seed=66
+        )
+
+        assert len(response['plan_ids']) == 2
+        assert response['plan_ids'][0] == 'baseline_plan'
+        assert response['plan_ids'][1] == 'plan_001'
+
+    def test_batch_config_validation_passes(self, temp_test_env, service):
+        """Test configuration validation passes for valid config (T7.2.4)"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            output_level="standard",
+            num_seeds=3,
+            base_seed=66
+        )
+
+        assert response['status'] == 'pending'
+
+    def test_batch_creation_with_edgedata_use_template_edges(self, temp_test_env, service):
+        """Test batch creation with edgedata_use_template_edges parameter"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=2,
+            base_seed=66,
+            output_level="full",
+            edgedata_use_template_edges=True
+        )
+
+        assert response['batch_id'] is not None
+
+    def test_batch_metadata_structure(self, temp_test_env, service):
+        """Test batch metadata has correct structure"""
+        response = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=2,
+            base_seed=66
+        )
+
+        batch_dir = temp_test_env["cases_dir"] / "test_case_001" / "simulations" / "plan_opti" / response['batch_id']
+
+        # Check that metadata file exists and has correct structure
+        metadata_file = batch_dir / "batch_metadata.json"
+        assert metadata_file.exists()
+        metadata = json.loads(metadata_file.read_text())
+        assert 'batch_id' in metadata
+        assert 'case_id' in metadata
+        assert 'plan_ids' in metadata
+        assert 'created_at' in metadata
+        assert 'status' in metadata
+
+    def test_batch_creation_consistency(self, temp_test_env, service):
+        """Test batch creation parameters are consistent"""
+        # Create first batch
+        response1 = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=3,
+            base_seed=66
+        )
+
+        # Create second batch with same params
+        response2 = service.create_batch(
+            case_id="test_case_001",
+            plan_ids=["baseline_plan", "plan_001"],
+            num_seeds=3,
+            base_seed=66
+        )
+
+        # Both should be valid and have consistent structure
+        assert response1['status'] == response2['status']
+        assert response1['total_tasks'] == response2['total_tasks']
+        assert response1['case_id'] == response2['case_id']
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
