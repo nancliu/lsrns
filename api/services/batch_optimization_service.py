@@ -1996,6 +1996,8 @@ class BatchOptimizationService:
                 "max_concurrent": batch_metadata.get("max_concurrent", 1),
                 "status": batch_metadata.get("status", "pending"),
                 "created_at": batch_metadata.get("created_at", datetime.now().isoformat()),
+                "simulation_duration": batch_metadata.get("simulation_duration"),
+                "output_config": batch_metadata.get("output_config", {}),
             }
             index["batches"].append(batch_summary)
             self._save_batches_index(case_id, index)
