@@ -167,11 +167,13 @@ function renderBatchInfoPanel(batchData) {
             infoPanelHtml += `<p class="text-muted">ID: ${caseInfo.case_id}</p>`;
         }
 
-        // 显示时间范围（新增功能）
+        // 显示时间范围（开始时间保留日期，结束时间只显示时间，避免日期重复）
         if (caseInfo.time_range && (caseInfo.time_range.start || caseInfo.time_range.end)) {
             const startTime = caseInfo.time_range.start || '未知';
             const endTime = caseInfo.time_range.end || '未知';
-            infoPanelHtml += `<p class="text-highlight"><strong>时间范围:</strong> ${startTime} - ${endTime}</p>`;
+            // 提取结束时间的纯时间部分 (HH:MM:SS 格式)
+            const endTimeOnly = endTime && endTime.includes(' ') ? endTime.split(' ')[1] : endTime;
+            infoPanelHtml += `<p class="text-highlight"><strong>案例时间:</strong> ${startTime} - ${endTimeOnly}</p>`;
         }
 
         if (caseInfo.description) {
