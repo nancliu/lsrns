@@ -611,9 +611,20 @@ class BatchSimulationScheduler:
 
         # 添加来自batch的output参数
         if batch_simulation_config:
+            # 添加output_*参数
             for key in ['output_tripinfo', 'output_vehroute', 'output_netstate', 'output_fcd', 'output_emission', 'output_edgedata']:
                 if key in batch_simulation_config:
                     simulation_params[key] = batch_simulation_config[key]
+
+            # 添加simulation_duration参数 (P1-4: 批量仿真支持)
+            if 'simulation_duration' in batch_simulation_config:
+                simulation_params['simulation_duration'] = batch_simulation_config['simulation_duration']
+                logger.info(f"Applied custom simulation_duration: {batch_simulation_config['simulation_duration']}")
+
+            # 添加edgedata_use_template_edges参数 (P2-4: 批量仿真支持)
+            if 'edgedata_use_template_edges' in batch_simulation_config:
+                simulation_params['edgedata_use_template_edges'] = batch_simulation_config['edgedata_use_template_edges']
+                logger.info(f"Applied edgedata_use_template_edges: {batch_simulation_config['edgedata_use_template_edges']}")
 
         # 如果方案有additional_file，添加到仿真参数中
         if additional_file_path:

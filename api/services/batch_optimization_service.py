@@ -346,9 +346,49 @@ class BatchOptimizationService:
         }
         self._update_batches_index_on_create(case_id, batch_metadata)
 
-        logger.info(
-            f"Batch {batch_id} created: {len(plan_ids)} plans × {num_seeds} seeds = {total_tasks} tasks"
-        )
+        # 批次创建完成日志 - 输出完整的批次信息
+        logger.info("=" * 80)
+        logger.info("✓ 批次创建成功 (Batch Created Successfully)")
+        logger.info("=" * 80)
+        logger.info("")
+        logger.info("【批次基础信息 (Batch Basic Info)】")
+        logger.info(f"  批次ID (Batch ID):           {batch_id}")
+        logger.info(f"  案例ID (Case ID):            {case_id}")
+        logger.info(f"  批次状态 (Status):            {response['status']}")
+        logger.info(f"  创建时间 (Created At):        {response['created_at']}")
+        logger.info("")
+        logger.info("【方案配置 (Plans Configuration)】")
+        logger.info(f"  方案数量 (Number of Plans):   {len(plan_ids)}")
+        logger.info(f"  方案ID列表 (Plan IDs):")
+        for idx, plan_id in enumerate(plan_ids, 1):
+            plan_name = plan_names.get(plan_id, "Unknown")
+            logger.info(f"    [{idx}] {plan_id} - {plan_name}")
+        logger.info("")
+        logger.info("【种子配置 (Seed Configuration - Phase 5)】")
+        logger.info(f"  每方案种子数 (num_seeds):    {num_seeds}")
+        logger.info(f"  基础种子值 (base_seed):       {base_seed}")
+        logger.info(f"  种子序列 (seed_sequence):     {list(range(base_seed, base_seed + num_seeds))}")
+        logger.info(f"  总任务数 (Total Tasks):       {total_tasks} ({len(plan_ids)} plans × {num_seeds} seeds)")
+        logger.info("")
+        logger.info("【输出配置 (Output Configuration - Phase 3)】")
+        logger.info(f"  输出级别 (Output Level):      {output_level or 'standard'}")
+        logger.info(f"  tripinfo输出 (tripinfo_xml):  {output_config.get('output_tripinfo', False)}")
+        logger.info(f"  vehroute输出 (vehroute):      {output_config.get('output_vehroute', False)}")
+        logger.info(f"  netstate输出 (netstate):      {output_config.get('output_netstate', False)}")
+        logger.info(f"  FCD输出 (fcd):                {output_config.get('output_fcd', False)}")
+        logger.info(f"  排放数据输出 (emission):      {output_config.get('output_emission', False)}")
+        logger.info(f"  edgedata输出 (edgedata_xml):  {output_config.get('output_edgedata', False)}")
+        logger.info(f"  edgedata保留edges属性:        {edgedata_use_template_edges}")
+        if simulation_duration:
+            logger.info("")
+            logger.info("【仿真时长 (Simulation Duration - Phase 1)】")
+            logger.info(f"  小时 (Hours):                 {simulation_duration.get('hours', 0)}")
+            logger.info(f"  分钟 (Minutes):               {simulation_duration.get('minutes', 0)}")
+            logger.info(f"  总时长 (Total Minutes):       {simulation_duration.get('total_minutes', 0)}")
+        logger.info("")
+        logger.info("【批次目录 (Batch Directory)】")
+        logger.info(f"  {batch_dir}")
+        logger.info("=" * 80)
 
         return response
 
