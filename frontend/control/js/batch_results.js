@@ -156,7 +156,7 @@ function renderBatchInfoPanel(batchData) {
 
     // 批次ID 在标题行显示
     if (batchData.batch_id) {
-        infoPanelHtml += `<p class="batch-id"><strong>Batch:</strong> <code>${batchData.batch_id}</code></p>`;
+        infoPanelHtml += `<p class="batch-id"><strong>批次ID:</strong> <code>${batchData.batch_id}</code></p>`;
     }
     infoPanelHtml += '</div>'; // 结束 batch-info-header
 
