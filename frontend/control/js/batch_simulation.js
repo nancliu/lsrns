@@ -1383,12 +1383,18 @@ function renderPeakCurveChart(data) {
     // 检查是否有时序数据
     const hasTimeSeries = data.plan_results.some(plan => plan.time_series);
 
-    if (!hasTimeSeries) {
-        document.getElementById('peakCurveSection').style.display = 'none';
+    const peakCurveSection = document.getElementById('peakCurveSection');
+    if (!peakCurveSection) {
+        debugLog('Peak curve section not found in DOM, skipping rendering');
         return;
     }
 
-    document.getElementById('peakCurveSection').style.display = 'block';
+    if (!hasTimeSeries) {
+        peakCurveSection.style.display = 'none';
+        return;
+    }
+
+    peakCurveSection.style.display = 'block';
 
     // 准备图表数据
     const datasets = [];
@@ -1452,7 +1458,13 @@ function renderPeakCurveChart(data) {
     }
 
     // 创建图表
-    const ctx = document.getElementById('peakCurveChart').getContext('2d');
+    const peakCurveCanvas = document.getElementById('peakCurveChart');
+    if (!peakCurveCanvas) {
+        debugLog('Peak curve canvas not found in DOM, cannot render chart');
+        return;
+    }
+
+    const ctx = peakCurveCanvas.getContext('2d');
     peakCurveChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
