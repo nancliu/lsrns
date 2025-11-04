@@ -25,8 +25,6 @@ async function loadBatchResults(batchId, caseId) {
         currentBatchId = batchId;
         currentCaseId = caseId;
 
-        showLoading('加载结果中...');
-
         const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`, {
             method: 'GET'
         });
@@ -40,7 +38,6 @@ async function loadBatchResults(batchId, caseId) {
 
         // 渲染结果视图
         renderBatchResultsView();
-        hideLoading();
 
     } catch (error) {
         console.error('Error loading batch results:', error);
@@ -68,7 +65,7 @@ async function fetchBatchResults(batchId) {
  */
 function renderBatchResultsView() {
     if (!batchResultsData) {
-        showError('结果数据为空');
+        renderEmptyResultsState();
         return;
     }
 
@@ -119,6 +116,53 @@ function renderResultsSummary(metadata) {
     `;
 
     summaryContainer.innerHTML = html;
+}
+
+/**
+ * 渲染空状态 - 当没有选中批次时显示
+ * 功能：提示用户如何使用结果页面
+ */
+function renderEmptyResultsState() {
+    // 清空对比表格
+    const comparisonTable = document.getElementById('comparisonTable');
+    if (comparisonTable) {
+        comparisonTable.innerHTML = `
+            <div style="
+                background: #f5f7fa;
+                border: 2px dashed #bdc3c7;
+                border-radius: 8px;
+                padding: 40px 20px;
+                text-align: center;
+                color: #7f8c8d;
+            ">
+                <h3 style="font-size: 1.5em; margin: 0 0 15px 0; color: #34495e;">📋 暂无批次结果</h3>
+                <p style="margin: 0 0 20px 0; font-size: 1.05em;">
+                    请先在<strong style="color: #2980b9;">批次监控</strong>中选择一个批次
+                </p>
+                <div style="
+                    background: white;
+                    border-left: 4px solid #3498db;
+                    padding: 15px;
+                    border-radius: 4px;
+                    text-align: left;
+                    display: inline-block;
+                    margin-bottom: 20px;
+                ">
+                    <p style="margin: 5px 0; color: #555;"><strong>✓ 方式 1（推荐）：</strong> 返回批次监控，点击任意批次卡片上的 <strong>"查看结果"</strong> 按钮</p>
+                    <p style="margin: 5px 0; color: #555;"><strong>✓ 方式 2：</strong> 如已查看过批次结果，直接点击此标签栏查看</p>
+                </div>
+                <button class="btn btn-primary" onclick="switchView('monitoring')" style="padding: 10px 20px;">
+                    返回批次监控 →
+                </button>
+            </div>
+        `;
+    }
+
+    // 隐藏峰值曲线图表
+    const peakCurveSection = document.getElementById('peakCurveSection');
+    if (peakCurveSection) {
+        peakCurveSection.style.display = 'none';
+    }
 }
 
 /**
@@ -227,15 +271,6 @@ function renderImprovementSummary(improvementRates) {
 
 // ========== 工具函数 ==========
 
-function showLoading(message = '加载中...') {
-    const container = document.querySelector('.results-container') || document.body;
-    container.innerHTML = `<div style="text-align: center; padding: 40px; color: #999;">${message}</div>`;
-}
-
-function hideLoading() {
-    // 已在renderBatchResultsView中处理
-}
-
 function showError(message) {
     alert(`❌ ${message}`);
 }
@@ -304,12 +339,67 @@ function renderNewBatchResults(planResults) {
         return;
     }
 
-    // 构建对比表格
-    let tableHtml = '<div class="comparison-table-container"><table class="comparison-table"><thead><tr>';
+    // Phase 2: 获取指标元数据配置（来自API响应）
+    let metricConfig = batchResultsData.metric_config || {};
+
+    // 如果 API 没有返回 metric_config，使用本地 fallback
+    if (Object.keys(metricConfig).length === 0) {
+        console.warn('⚠️ API 未返回 metric_config，使用 fallback 配置');
+        metricConfig = {
+            "step": { "label": "仿真步数", "unit": "秒", "direction": "verification", "is_verification_metric": true },
+            "ended": { "label": "已完成车数", "unit": "辆", "direction": "higher" },
+            "waiting": { "label": "等待车数", "unit": "辆", "direction": "lower" },
+            "running": { "label": "当前运行车数", "unit": "辆", "direction": "lower" },
+            "teleports": { "label": "传送次数", "unit": "次", "direction": "lower" },
+            "inserted": { "label": "已插入车数", "unit": "辆", "direction": "higher" },
+            "loaded": { "label": "已加载车数", "unit": "辆", "direction": "neutral" },
+            "collisions": { "label": "碰撞次数", "unit": "次", "direction": "lower" },
+            "avgSpeed": { "label": "平均速度", "unit": "m/s", "direction": "higher" }
+        };
+    }
+
+    // 🔍 调试：验证metric_config是否正确接收
+    console.log('📊 [DEBUG] 批次结果数据:', {
+        hasData: !!batchResultsData,
+        hasMetricConfig: !!batchResultsData?.metric_config,
+        metricConfigKeys: Object.keys(batchResultsData?.metric_config || {})
+    });
+    console.log('✅ metricConfig:', metricConfig);
 
     // 获取基准方案（通常是第一个）
     const baselinePlan = planResults[0];
     const testPlans = planResults.slice(1);
+
+    // 提取所有指标名称
+    const allMetricKeys = baselinePlan.aggregated_metrics ? Object.keys(baselinePlan.aggregated_metrics) : [];
+
+    // 🎯 区分对比指标和验证指标
+    const comparisonMetrics = [];
+    const verificationMetrics = [];
+
+    allMetricKeys.forEach(metricKey => {
+        const config = metricConfig[metricKey] || {};
+        // 如果是验证指标（direction为verification或is_verification_metric为true）则分开处理
+        if (config.direction === 'verification' || config.is_verification_metric === true || metricKey === 'step') {
+            verificationMetrics.push(metricKey);
+        } else {
+            comparisonMetrics.push(metricKey);
+        }
+    });
+
+    console.log('📊 指标分类:', {
+        comparisonCount: comparisonMetrics.length,
+        verificationCount: verificationMetrics.length,
+        comparisonMetrics: comparisonMetrics,
+        verificationMetrics: verificationMetrics
+    });
+
+    // 构建对比表格
+    let tableHtml = '<div class="comparison-table-container">';
+
+    // 对比指标表格
+    tableHtml += '<h3 style="margin-top: 20px; margin-bottom: 10px;">🎯 交通性能对比指标（' + comparisonMetrics.length + '个）</h3>';
+    tableHtml += '<table class="comparison-table"><thead><tr>';
 
     // 表头
     tableHtml += '<th>指标</th>';
@@ -328,14 +418,33 @@ function renderNewBatchResults(planResults) {
 
     tableHtml += '</tr></thead><tbody>';
 
-    // 提取所有指标名称
-    const metricKeys = baselinePlan.aggregated_metrics ? Object.keys(baselinePlan.aggregated_metrics) : [];
-
-    metricKeys.forEach(metricKey => {
+    // 只渲染对比指标（不包括验证指标）
+    comparisonMetrics.forEach(metricKey => {
         const baselineMetrics = baselinePlan.aggregated_metrics[metricKey] || {};
 
+        // Phase 2: 使用元数据获取中文标签和单位
+        // 处理键名大小写不匹配的情况（查找 metricConfig 中匹配的键）
+        let config = metricConfig[metricKey] || {};
+
+        // 如果未找到且键名包含大小写混合，尝试查找匹配的键
+        if (Object.keys(config).length === 0) {
+            // 尝试找到大小写不敏感的匹配
+            const matchingKey = Object.keys(metricConfig).find(
+                key => key.toLowerCase() === metricKey.toLowerCase()
+            );
+            if (matchingKey) {
+                config = metricConfig[matchingKey];
+                console.log(`🔍 键名修正: ${metricKey} → ${matchingKey}`);
+            }
+        }
+
+        const metricLabel = config.label || metricKey;
+        const unit = config.unit || '';
+        const direction = config.direction || 'neutral';
+
         tableHtml += '<tr>';
-        tableHtml += `<td><strong>${metricKey}</strong></td>`;
+        // 显示中文标签而非英文键名
+        tableHtml += `<td><strong>${metricLabel}</strong> ${unit ? `<span style="color: #999; font-size: 0.9em;">(${unit})</span>` : ''}</td>`;
         tableHtml += `<td>${(baselineMetrics.mean || 0).toFixed(2)}</td>`;
         tableHtml += `<td>${(baselineMetrics.std || 0).toFixed(2)}</td>`;
 
@@ -344,27 +453,84 @@ function renderNewBatchResults(planResults) {
             const testMean = testMetrics.mean || 0;
             const baselineMean = baselineMetrics.mean || 0;
 
-            // 简单计算改进率 (对于速度：越高越好，对于延误：越低越好)
+            // Phase 2: 根据 direction 正确计算改进率
             let improvementRate = 0;
             if (baselineMean !== 0) {
-                improvementRate = ((testMean - baselineMean) / baselineMean) * 100;
-                // 对于某些指标需要反向（如延误时间）
-                if (metricKey.includes('delay') || metricKey.includes('waiting')) {
-                    improvementRate = -improvementRate;
+                const rawChange = ((testMean - baselineMean) / baselineMean) * 100;
+                
+                // 根据指标元数据的方向来判断改进
+                if (direction === 'lower') {
+                    // 越低越好：减少是改进，所以负变化 = 正改进
+                    improvementRate = -rawChange;
+                } else if (direction === 'higher') {
+                    // 越高越好：增加是改进，所以正变化 = 正改进
+                    improvementRate = rawChange;
+                } else {
+                    // 中立（不计算改进率）
+                    improvementRate = null;
                 }
             }
 
             tableHtml += `<td>${testMean.toFixed(2)}</td>`;
 
-            const improvementClass = improvementRate > 0 ? 'positive' : 'negative';
-            const sign = improvementRate > 0 ? '+' : '';
-            tableHtml += `<td><span class="improvement ${improvementClass}">${sign}${improvementRate.toFixed(1)}%</span></td>`;
+            // 只有在有改进率时才显示
+            if (improvementRate !== null) {
+                const improvementClass = improvementRate > 0 ? 'positive' : 'negative';
+                const sign = improvementRate > 0 ? '+' : '';
+                tableHtml += `<td><span class="improvement ${improvementClass}">${sign}${improvementRate.toFixed(1)}%</span></td>`;
+            } else {
+                tableHtml += `<td><span style="color: #999;">-</span></td>`;
+            }
         });
 
         tableHtml += '</tr>';
     });
 
-    tableHtml += '</tbody></table></div>';
+    tableHtml += '</tbody></table>';
+
+    // 添加验证指标区块
+    if (verificationMetrics.length > 0) {
+        tableHtml += '<h3 style="margin-top: 30px; margin-bottom: 10px;">🔍 仿真验证指标（' + verificationMetrics.length + '个）</h3>';
+        tableHtml += '<div style="padding: 15px; background-color: #f0f8ff; border-left: 4px solid #3498db; border-radius: 4px;">';
+
+        verificationMetrics.forEach(metricKey => {
+            const config = metricConfig[metricKey] || {};
+            const metricLabel = config.label || metricKey;
+            const unit = config.unit || '';
+
+            const baselineMetrics = baselinePlan.aggregated_metrics[metricKey] || {};
+            const baselineMean = baselineMetrics.mean || 0;
+
+            // 验证仿真完整性
+            // Step 从 0 开始计数，不是从 1 开始（第一步是 0）
+            // 判断逻辑：所有计划的 step 值应该都相等（因为它们在同一个案例中运行时长相同）
+            const allStepValues = [];
+            planResults.forEach(plan => {
+                if (plan.aggregated_metrics && plan.aggregated_metrics[metricKey]) {
+                    allStepValues.push(plan.aggregated_metrics[metricKey].mean || 0);
+                }
+            });
+
+            // 验证所有计划的 step 值是否一致（允许 <1 秒的差异）
+            let isComplete = true;
+            if (allStepValues.length > 0) {
+                const minStep = Math.min(...allStepValues);
+                const maxStep = Math.max(...allStepValues);
+                isComplete = (maxStep - minStep) < 1; // 所有值应该几乎相等
+            }
+
+            const status = isComplete ? '✅ 完整执行' : '⚠️ 未完整';
+
+            tableHtml += `<div style="margin-bottom: 8px; font-size: 14px;">`;
+            tableHtml += `<strong>${metricLabel}</strong> (${unit}): `;
+            tableHtml += `${baselineMean.toFixed(2)} ${unit} — ${status}`;
+            tableHtml += `</div>`;
+        });
+
+        tableHtml += '</div>';
+    }
+
+    tableHtml += '</div>';
     container.innerHTML = tableHtml;
 
     // T6.3: 在表格下方添加图表可视化
@@ -394,10 +560,17 @@ function renderResultsCharts(planResults) {
     chartsContainer.style.gap = '20px';
 
     // 获取所有指标
-    const metricKeys = planResults[0].aggregated_metrics ? Object.keys(planResults[0].aggregated_metrics) : [];
+    const allMetricKeys = planResults[0].aggregated_metrics ? Object.keys(planResults[0].aggregated_metrics) : [];
 
-    // 为每个主要指标创建图表
-    const mainMetrics = metricKeys.slice(0, 4); // 限制为最多4个图表以防止页面过长
+    // 过滤出对比指标（排除验证指标）
+    const metricConfig = batchResultsData.metric_config || {};
+    const comparisonMetrics = allMetricKeys.filter(metricKey => {
+        const config = metricConfig[metricKey] || {};
+        return !(config.direction === 'verification' || config.is_verification_metric === true || metricKey === 'step');
+    });
+
+    // 为每个对比指标创建图表（显示全部8个，分多行布局）
+    const mainMetrics = comparisonMetrics; // 显示所有对比指标
 
     mainMetrics.forEach(metricKey => {
         const chartDiv = document.createElement('div');
@@ -417,7 +590,7 @@ function renderResultsCharts(planResults) {
 
         // 在下一个事件循环中渲染图表（确保DOM已更新）
         setTimeout(() => {
-            renderMetricChart(canvas.id, metricKey, planResults);
+            renderMetricChart(canvas.id, metricKey, planResults, metricConfig);
         }, 0);
     });
 
@@ -429,12 +602,18 @@ function renderResultsCharts(planResults) {
  * @param {string} canvasId - Canvas元素ID
  * @param {string} metricKey - 指标名称
  * @param {Array} planResults - 方案结果列表
+ * @param {Object} metricConfig - 指标配置元数据
  */
-function renderMetricChart(canvasId, metricKey, planResults) {
+function renderMetricChart(canvasId, metricKey, planResults, metricConfig) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
     try {
+        // 获取指标的中文标签和单位
+        const config = metricConfig[metricKey] || {};
+        const metricLabel = config.label || metricKey;
+        const unit = config.unit || '';
+
         // 准备数据
         const planNames = [];
         const meanValues = [];
@@ -460,7 +639,7 @@ function renderMetricChart(canvasId, metricKey, planResults) {
                 labels: planNames,
                 datasets: [
                     {
-                        label: `${metricKey} - 均值`,
+                        label: `${metricLabel} - 均值 ${unit ? `(${unit})` : ''}`,
                         data: meanValues,
                         backgroundColor: colors,
                         borderColor: colors,
@@ -469,7 +648,7 @@ function renderMetricChart(canvasId, metricKey, planResults) {
                         yAxisID: 'y'
                     },
                     {
-                        label: `${metricKey} - 标准差`,
+                        label: `${metricLabel} - 标准差 ${unit ? `(${unit})` : ''}`,
                         data: stdValues,
                         backgroundColor: colors.map(c => c + '33'),
                         borderColor: colors,
@@ -486,7 +665,7 @@ function renderMetricChart(canvasId, metricKey, planResults) {
                 plugins: {
                     title: {
                         display: true,
-                        text: `${metricKey} - 方案对比`,
+                        text: `${metricLabel} ${unit ? `(${unit})` : ''} - 方案对比`,
                         font: { size: 14, weight: 'bold' },
                         padding: 10
                     },
