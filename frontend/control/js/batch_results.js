@@ -151,19 +151,8 @@ function renderBatchInfoPanel(batchData) {
     let infoPanelHtml = '<div class="batch-info-panel">';
     infoPanelHtml += '<div class="batch-info-header">';
 
-    // 标题和状态信息
-    let headerTitle = '📌 批次概览';
-    if (batchData.status === 'completed') {
-        headerTitle += ' <span class="status-badge status-completed">✅ 已完成</span>';
-    } else if (batchData.status === 'running') {
-        headerTitle += ' <span class="status-badge status-running">⏳ 运行中</span>';
-    } else if (batchData.status === 'failed') {
-        headerTitle += ' <span class="status-badge status-failed">❌ 失败</span>';
-    } else {
-        headerTitle += ' <span class="status-badge status-pending">⏳ 准备中</span>';
-    }
-
-    infoPanelHtml += `<h3>${headerTitle}</h3>`;
+    // 标题
+    infoPanelHtml += '<h3>📌 批次概览</h3>';
 
     // 批次ID 在标题行显示
     if (batchData.batch_id) {
@@ -351,84 +340,67 @@ function addBatchInfoStyles() {
     style.textContent = `
         /* 主面板 */
         .batch-info-panel {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
-            border: 2px solid #3498db;
-            border-radius: 12px;
-            padding: 24px;
+            background: linear-gradient(135deg, #f5f9ff 0%, #f0f6ff 100%);
+            border: 1px solid #d6e4f5;
+            border-radius: 8px;
+            padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15), 0 0 0 1px rgba(52, 152, 219, 0.3) inset;
-            position: relative;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
         }
 
         /* 头部区域（标题 + Batch ID） */
         .batch-info-header {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             justify-content: space-between;
-            margin-bottom: 24px;
-            padding-bottom: 18px;
-            border-bottom: 3px solid #3498db;
-            gap: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(52, 152, 219, 0.15);
         }
 
         .batch-info-header h3 {
-            color: #2980b9;
-            font-size: 1.6em;
+            color: #2c3e50;
+            font-size: 1.3em;
             margin: 0;
-            font-weight: 700;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: 600;
         }
 
         .batch-id {
-            color: #34495e;
-            font-size: 0.95em;
+            color: #1a1a1a;
+            font-size: 1em;
             margin: 0;
-            white-space: nowrap;
-            font-weight: 500;
+            font-weight: 700;
         }
 
         .batch-id code {
-            background: #ecf0f1;
-            color: #2980b9;
-            padding: 4px 10px;
-            border-radius: 4px;
+            background: white;
+            color: #1a1a1a;
+            padding: 2px 8px;
+            border-radius: 3px;
             font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            font-weight: 600;
+            font-size: 0.95em;
+            font-weight: 700;
         }
 
         /* 状态标记 */
         .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 0.85em;
-            font-weight: 600;
-            white-space: nowrap;
-            margin-left: 8px;
+            display: none;
         }
 
         .status-completed {
-            background: #d5f4e6;
-            color: #27ae60;
+            display: none;
         }
 
         .status-running {
-            background: #fef5e7;
-            color: #f39c12;
+            display: none;
         }
 
         .status-failed {
-            background: #fadbd8;
-            color: #c0392b;
+            display: none;
         }
 
         .status-pending {
-            background: #d6eaf8;
-            color: #2980b9;
+            display: none;
         }
 
         /* 网格容器 */
