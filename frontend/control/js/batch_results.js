@@ -245,7 +245,7 @@ function renderBatchInfoPanel(batchData) {
     }
     infoPanelHtml += '</div>';
 
-    // 4. 对比方案（网格布局，3列显示）
+    // 4. 对比方案（网格布局，3列显示）+ 仿真时长和输出配置摘要
     if (batchData.plan_results && batchData.plan_results.length > 0) {
         infoPanelHtml += '<div class="batch-info-card batch-info-card-full">';
         infoPanelHtml += '<h4>📊 对比方案</h4>';
@@ -256,6 +256,37 @@ function renderBatchInfoPanel(batchData) {
             const samplesInfo = plan.sample_count ? ` (${plan.sample_count})` : '';
             infoPanelHtml += `<div class="batch-plan-item"><strong>${planName}</strong>${isBaseline}<span class="text-muted">${samplesInfo}</span></div>`;
         });
+        infoPanelHtml += '</div>';
+
+        // 添加仿真时长和输出配置摘要信息
+        infoPanelHtml += '<div class="batch-plan-summary" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #d6e4f5;">';
+
+        // 仿真时长摘要
+        if (batchData.simulation_duration) {
+            const duration = batchData.simulation_duration;
+            const hours = duration.hours || 0;
+            const minutes = duration.minutes || 0;
+            const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            infoPanelHtml += `<p style="font-size: 0.9em; margin: 4px 0;"><strong>⏱️ 仿真时长:</strong> ${durationText}</p>`;
+        }
+
+        // 输出配置摘要
+        if (batchData.output_config && typeof batchData.output_config === 'object') {
+            const outputConfig = batchData.output_config;
+            const configs = [];
+
+            if (outputConfig.output_tripinfo) configs.push('tripinfo');
+            if (outputConfig.output_emission) configs.push('E1检测器');
+            if (outputConfig.output_edgedata) configs.push('edgedata');
+            if (outputConfig.output_netstate || outputConfig.output_vehroute) {
+                configs.push('summary');
+            }
+
+            if (configs.length > 0) {
+                infoPanelHtml += `<p style="font-size: 0.9em; margin: 4px 0;"><strong>📤 输出配置:</strong> ${configs.join(' • ')}</p>`;
+            }
+        }
+
         infoPanelHtml += '</div>';
         infoPanelHtml += '</div>';
     } else {
