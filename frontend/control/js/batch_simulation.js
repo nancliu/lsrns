@@ -1304,75 +1304,36 @@ async function cancelBatchById(batchId) {
 
 // ========== 结果展示 ==========
 
+// ========== 旧的结果加载函数（已弃用 - Phase 6 旧实现） ==========
+// 这些函数已由batch_results.js中的新实现完全替换
+// 保留以避免破坏可能引用它们的代码，但不应再使用
+
+/**
+ * @deprecated 使用batch_results.js中的loadBatchResults()代替
+ */
 async function loadResults() {
     if (!currentBatchId) return;
 
     try {
-        // 请求包含时序数据的结果
-        const response = await fetch(
-            `${API_BASE}/control/batch-optimization/batch/${currentBatchId}/results?include_time_series=true`
-        );
-
-        if (!response.ok) throw new Error('Failed to load results');
-
-        const data = await response.json();
-        renderResults(data);
-        renderPeakCurveChart(data);
-
+        // 委托给新实现
+        if (typeof loadBatchResults === 'function') {
+            await loadBatchResults(currentBatchId, currentCaseId);
+        } else {
+            showError('结果加载模块未初始化');
+        }
     } catch (error) {
         console.error('Load results error:', error);
         showError('加载结果失败');
     }
 }
 
+/**
+ * @deprecated 使用batch_results.js中的renderBatchResultsView()代替
+ */
 function renderResults(data) {
-    const container = document.getElementById('comparisonTable');
-
-    // 检查容器是否存在
-    if (!container) {
-        console.warn('comparisonTable container not found, skipping renderResults');
-        return;
-    }
-
-    // 检查数据
-    if (!data || !data.plan_results) {
-        container.innerHTML = '<p style="color: #999; padding: 20px;">暂无结果数据</p>';
-        return;
-    }
-
-    // 创建表格
-    let html = `
-        <h3>方案对比结果</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>方案</th>
-                    <th>平均行程时间 (s)</th>
-                    <th>平均速度 (km/h)</th>
-                    <th>总车辆数</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    data.plan_results.forEach(plan => {
-        const metrics = plan.aggregated_metrics;
-        const travelTime = metrics.avg_travel_time?.mean?.toFixed(1) || 'N/A';
-        const speed = metrics.avg_speed?.mean?.toFixed(1) || 'N/A';
-        const vehicles = metrics.total_vehicles?.mean?.toFixed(0) || 'N/A';
-
-        html += `
-            <tr>
-                <td>${plan.plan_name}</td>
-                <td>${travelTime}</td>
-                <td>${speed}</td>
-                <td>${vehicles}</td>
-            </tr>
-        `;
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    // 新实现已移至batch_results.js
+    // 此函数保留以避免错误，但实际操作由batch_results.js处理
+    debugLog('renderResults() deprecated - use renderBatchResultsView() in batch_results.js');
 }
 
 // ========== 在网车辆峰值曲线图表 ==========
@@ -1568,37 +1529,33 @@ async function exportResults() {
     }
 }
 
-// ========== 加载批次结果 (Phase 6: 结果可视化) ==========
+// ========== 旧的结果加载函数（已弃用，使用batch_results.js中的新实现） ==========
+// 下面的函数保留用于向后兼容性，但实际应该使用batch_results.js的loadBatchResults
 
 /**
- * Phase 8.4修复：从批次卡片加载结果并切换到结果视图
+ * 从批次卡片加载结果并切换到结果视图
+ * 此函数现已委托给batch_results.js中的loadBatchResults
  *
  * @param {string} batchId - 批次ID
- * @param {string} caseId - 案例ID（可选，用于调用batch_results.js的loadBatchResults）
+ * @param {string} caseId - 案例ID
  */
 async function loadBatchResultsAndSwitch(batchId, caseId) {
     try {
         currentBatchId = batchId;
 
-        // 如果没有提供caseId，从currentCaseId获取或通过API查找
+        // 如果没有提供caseId，从currentCaseId获取
         if (!caseId) {
             caseId = currentCaseId || 'unknown';
         }
 
-        // 使用batch_results.js中的加载函数
+        // 委托给batch_results.js中的新实现
         if (typeof loadBatchResults === 'function') {
+            // batch_results.js的loadBatchResults会调用hideLoading()和switchView('results')
             await loadBatchResults(batchId, caseId);
+            switchView('results');
         } else {
-            // 备选：直接获取结果数据（如果batch_results.js未加载）
-            const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`);
-            if (!response.ok) throw new Error('Failed to fetch batch results');
-            const data = await response.json();
-            debugLog('Batch results loaded');
-            showError('结果可视化模块加载中...');
+            showError('结果加载模块未初始化，请刷新页面');
         }
-
-        // 显示结果视图
-        switchView('results');
     } catch (error) {
         console.error('Error loading batch results:', error);
         showError('加载结果失败: ' + error.message);
