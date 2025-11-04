@@ -47,6 +47,12 @@ class BatchCreatedResponse(BaseModel):
         description="创建时间"
     )
 
+    # 仿真配置信息
+    num_seeds: int = Field(default=3, description="每个方案的随机种子数")
+    base_seed: int = Field(default=66, description="起始随机种子值")
+    simulation_duration: Optional[Dict[str, Any]] = Field(None, description="仿真时长配置 (hours, minutes, total_minutes)")
+    output_config: Optional[Dict[str, Any]] = Field(None, description="详细输出配置 (output_tripinfo, output_edgedata等)")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -54,6 +60,21 @@ class BatchCreatedResponse(BaseModel):
                 "case_id": "case_20251025_001",
                 "plan_ids": ["baseline_plan", "plan_20251025_140530_a1b2c", "plan_20251025_141200_d3e4f"],
                 "total_tasks": 9,
+                "num_seeds": 3,
+                "base_seed": 66,
+                "simulation_duration": {
+                    "hours": 4,
+                    "minutes": 0,
+                    "total_minutes": 240
+                },
+                "output_config": {
+                    "output_tripinfo": True,
+                    "output_edgedata": True,
+                    "output_netstate": True,
+                    "output_vehroute": False,
+                    "output_fcd": False,
+                    "output_emission": True
+                },
                 "status": "pending",
                 "created_at": "2025-10-25T14:30:00"
             }
@@ -162,6 +183,12 @@ class BatchProgressResponse(BaseModel):
         description="实时时间序列数据（用于动态曲线）"
     )
 
+    # 仿真配置信息
+    num_seeds: int = Field(default=3, description="每个方案的随机种子数")
+    base_seed: int = Field(default=66, description="起始随机种子值")
+    simulation_duration: Optional[Dict[str, Any]] = Field(None, description="仿真时长配置 (hours, minutes, total_minutes)")
+    output_config: Optional[Dict[str, Any]] = Field(None, description="详细输出配置 (output_tripinfo, output_edgedata等)")
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -172,6 +199,21 @@ class BatchProgressResponse(BaseModel):
                 "completed_tasks": 3,
                 "failed_tasks": 0,
                 "running_tasks": 2,
+                "num_seeds": 3,
+                "base_seed": 66,
+                "simulation_duration": {
+                    "hours": 4,
+                    "minutes": 0,
+                    "total_minutes": 240
+                },
+                "output_config": {
+                    "output_tripinfo": True,
+                    "output_edgedata": True,
+                    "output_netstate": False,
+                    "output_vehroute": False,
+                    "output_fcd": False,
+                    "output_emission": True
+                },
                 "tasks": [
                     {
                         "task_id": "task_001",

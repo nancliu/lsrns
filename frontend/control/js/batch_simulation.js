@@ -1783,6 +1783,39 @@ function createBatchCard(batch) {
         <p><strong>创建时间:</strong> ${new Date(batch.created_at).toLocaleString()}</p>
     `;
 
+    // 显示种子信息
+    if (batch.num_seeds !== undefined || batch.base_seed !== undefined) {
+        const numSeeds = batch.num_seeds || 3;
+        const baseSeed = batch.base_seed || 66;
+        infoHtml += `<p><strong>种子数:</strong> ${numSeeds} (起始: ${baseSeed})</p>`;
+    }
+
+    // 显示仿真时长
+    if (batch.simulation_duration) {
+        const duration = batch.simulation_duration;
+        const hours = duration.hours || 0;
+        const minutes = duration.minutes || 0;
+        const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        infoHtml += `<p><strong>仿真时长:</strong> ${durationText}</p>`;
+    }
+
+    // 显示输出配置
+    if (batch.output_config && typeof batch.output_config === 'object') {
+        const outputConfig = batch.output_config;
+        const configs = [];
+
+        if (outputConfig.output_tripinfo) configs.push('tripinfo');
+        if (outputConfig.output_emission) configs.push('E1检测器');
+        if (outputConfig.output_edgedata) configs.push('edgedata');
+        if (outputConfig.output_netstate || outputConfig.output_vehroute) {
+            configs.push('summary');
+        }
+
+        if (configs.length > 0) {
+            infoHtml += `<p><strong>输出配置:</strong> ${configs.join(' • ')}</p>`;
+        }
+    }
+
     if (batch.duration_seconds) {
         infoHtml += `<p><strong>耗时:</strong> ${formatDuration(batch.duration_seconds)}</p>`;
     }

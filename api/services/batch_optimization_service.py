@@ -326,7 +326,11 @@ class BatchOptimizationService:
             "case_id": case_id,
             "plan_ids": plan_ids,
             "total_tasks": total_tasks,
+            "num_seeds": num_seeds,
+            "base_seed": base_seed,
             "output_level": output_level,
+            "simulation_duration": simulation_duration,
+            "output_config": output_config,
             "status": "pending",
             "created_at": datetime.now().isoformat(),
         }
@@ -1268,11 +1272,29 @@ class BatchOptimizationService:
                 estimated_time = datetime.now().timestamp() + batch_remaining_seconds
                 estimated_completion = datetime.fromtimestamp(estimated_time).isoformat()
 
+            # 从batch_metadata.json读取配置信息
+            batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+            batch_metadata_path = batch_dir / "batch_metadata.json"
+            batch_config = {}
+            if batch_metadata_path.exists():
+                try:
+                    with open(batch_metadata_path, "r", encoding="utf-8") as f:
+                        batch_metadata = json.load(f)
+                        batch_config = {
+                            "num_seeds": batch_metadata.get("num_seeds", 3),
+                            "base_seed": batch_metadata.get("base_seed", 66),
+                            "simulation_duration": batch_metadata.get("simulation_duration"),
+                            "output_config": batch_metadata.get("output_config", {}),
+                        }
+                except Exception as e:
+                    logger.debug(f"Failed to load batch config from metadata: {e}")
+
             response = {
                 **progress_data,
                 "estimated_completion": estimated_completion,
                 "estimated_remaining_seconds": batch_remaining_seconds,
-                "live_time_series": live_time_series
+                "live_time_series": live_time_series,
+                **batch_config,  # 添加配置信息
             }
 
             return response
