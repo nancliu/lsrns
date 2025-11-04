@@ -116,7 +116,6 @@ function renderResultsSummary(metadata) {
 
     const html = `
         <h3>📊 分析摘要</h3>
-        <p><strong>输出级别:</strong> ${metadata.output_level || 'standard'}</p>
         <p><strong>随机种子数:</strong> ${metadata.num_seeds || 1} (起始: ${metadata.base_seed || 66})</p>
         ${metadata.analyzed_at ? `<p><strong>分析时间:</strong> ${analyzedAt}</p>` : ''}
         <p><strong>完成时间:</strong> ${completedAt}</p>
@@ -210,9 +209,8 @@ function renderBatchInfoPanel(batchData) {
     infoPanelHtml += '<h4>⚙️ 仿真配置</h4>';
     infoPanelHtml += `<p><strong>种子数:</strong> ${batchData.num_seeds || 3}</p>`;
     infoPanelHtml += `<p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>`;
-    if (batchData.output_level) {
-        infoPanelHtml += `<p><strong>输出级别:</strong> ${batchData.output_level}</p>`;
-    }
+
+    // 显示仿真时长
     if (batchData.simulation_duration) {
         const duration = batchData.simulation_duration;
         const hours = duration.hours || 0;
@@ -220,21 +218,29 @@ function renderBatchInfoPanel(batchData) {
         const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
         infoPanelHtml += `<p class="text-highlight"><strong>仿真时长:</strong> ${durationText}</p>`;
     }
-    // 输出配置详情 (tripinfo, edgedata, netstate)
+
+    // 输出配置详情 (根据用户截图的格式)
+    // 注意：去掉了输出级别，直接显示具体的输出配置
     if (batchData.output_config && typeof batchData.output_config === 'object') {
         const outputConfig = batchData.output_config;
-        const enabledOutputs = [];
+        const configs = [];
 
-        // 根据输出配置显示启用的输出类型
-        if (outputConfig.output_tripinfo) enabledOutputs.push('tripinfo');
-        if (outputConfig.output_edgedata) enabledOutputs.push('edgedata');
-        if (outputConfig.output_netstate) enabledOutputs.push('netstate');
-        if (outputConfig.output_vehroute) enabledOutputs.push('vehroute');
-        if (outputConfig.output_fcd) enabledOutputs.push('fcd');
-        if (outputConfig.output_emission) enabledOutputs.push('emission');
+        // 根据用户截图的格式显示输出配置
+        if (outputConfig.output_tripinfo) configs.push('✓ tripinfo');
+        if (outputConfig.output_emission) configs.push('✓ E1检测器');  // emission对应E1检测器
+        if (outputConfig.output_edgedata) configs.push('✓ edgedata');
+        if (outputConfig.output_netstate || outputConfig.output_vehroute) {
+            // summary 可能对应 netstate 或 vehroute
+            configs.push('✓ summary');
+        }
 
-        if (enabledOutputs.length > 0) {
-            infoPanelHtml += `<p><strong>输出配置:</strong> ${enabledOutputs.join(', ')}</p>`;
+        if (configs.length > 0) {
+            infoPanelHtml += `<p><strong>仿真输出配置:</strong></p>`;
+            infoPanelHtml += `<div class="output-config-list" style="margin-left: 16px; font-size: 0.9em;">`;
+            configs.forEach(config => {
+                infoPanelHtml += `<div>${config}</div>`;
+            });
+            infoPanelHtml += '</div>';
         }
     }
     infoPanelHtml += '</div>';
