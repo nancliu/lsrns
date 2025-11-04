@@ -345,12 +345,12 @@ class BatchResultsResponse(BaseModel):
                 },
                 "duration_seconds": 3600,
                 "output_config": {
-                    "output_tripinfo": true,
-                    "output_vehroute": true,
-                    "output_netstate": true,
-                    "output_fcd": true,
-                    "output_emission": true,
-                    "output_edgedata": true
+                    "output_tripinfo": True,
+                    "output_vehroute": True,
+                    "output_netstate": True,
+                    "output_fcd": True,
+                    "output_emission": True,
+                    "output_edgedata": True
                 },
                 "plan_results": [
                     {
