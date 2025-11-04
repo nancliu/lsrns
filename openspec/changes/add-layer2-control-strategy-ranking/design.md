@@ -90,8 +90,19 @@ available_outputs = {
 | Output Type            | Analysis Module          | Metrics Extracted                                                          | Used For                                                                        |
 | ---------------------- | ------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | **summary.xml**  | `summary_analyzer.py`  | loaded, inserted, ended, running, waiting, teleports, collisions, avgSpeed | Effectiveness (vehicle flow), Coverage (completion rate), Efficiency (baseline) |
-| **tripinfo.xml** | `tripinfo_analyzer.py` | travel_time, delay, departed_time, arrival_time per vehicle                | Effectiveness (travel time/delay), Coverage (OD pairs)                          |
+| **tripinfo.xml** | `tripinfo_analyzer.py` | depart, arrival, duration, timeLoss, routeLength, vType per vehicle        | Effectiveness (travel time/delay), Coverage (OD pairs)                          |
 | **edgedata.xml** | `edgedata_analyzer.py` | edge_speed, edge_occupancy, edge_density per segment                       | Coverage (road segments), Spatial distribution                                  |
+
+**EdgeData Output Range**:
+- SUMO EdgeData with `excludeEmpty="true"` outputs only edges with vehicle activity
+- Typical coverage: 30-40% of total network edges (~7,390 of 20,124 edges)
+- This focuses analysis on actively-used road segments, ignoring unused edges
+
+**Segment Coverage Metrics Definition**:
+- `total_segments`: Total number of edges recorded in baseline plan's edgedata.xml
+- `improved_segments`: Edges showing performance improvement vs baseline
+- `deteriorated_segments`: Edges showing performance degradation vs baseline
+- Coverage calculation uses baseline as reference to ensure fair comparison across strategies
 
 **Modular Analysis Workflow**:
 

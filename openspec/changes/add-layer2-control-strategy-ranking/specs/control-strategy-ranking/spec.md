@@ -102,6 +102,7 @@ The system SHALL score each control strategy using weighted multi-criteria evalu
 - **AND** if only edgedata available (no tripinfo): use formula `0.40*(improved_segments/total_segments) + 0.35*(ended/loaded) + 0.25*(1 - running/loaded)`
 - **AND** if both tripinfo and edgedata available: use formula `0.35*(improved_segments/total_segments) + 0.35*(improved_od_pairs/total_od_pairs) + 0.30*(ended/loaded)`
 - **AND** improved_segments SHALL come from edgedata analysis results
+- **AND** total_segments SHALL be computed as the number of edges recorded in baseline plan's edgedata.xml
 - **AND** the coverage score SHALL be normalized to 0-100 range
 
 #### Scenario: Efficiency score calculation

@@ -52,8 +52,8 @@
 
 - [ ] 1.1.2 Create tripinfo.xml analyzer (conditional)
   - Parse tripinfo.xml for each plan's simulation
-  - Extract per-vehicle: travel_time (arrival - depart), delay (timeLoss)
-  - Compute aggregates: avg_travel_time, avg_delay, total_delay
+  - Extract per-vehicle fields: `depart`, `arrival`, `duration`, `timeLoss`, `routeLength`, `vType`
+  - Compute aggregates: avg_travel_time (duration), avg_delay (timeLoss), total_delay
   - Identify OD pairs from routeLength/vType
   - Compute improved_od_pairs vs baseline
   - Return independent tripinfo analysis results
@@ -67,11 +67,13 @@
   - Extract per-edge-interval: speed, occupancy, density
   - Compute edge-level improvements vs baseline
   - Identify improved_segments and deteriorated_segments
+  - Calculate `total_segments` from baseline plan's edgedata.xml
   - Return independent edgedata analysis results
   - **File**: `shared/analysis_tools/edgedata_analyzer.py`
   - **Tests**: `tests/unit/analysis_tools/test_edgedata_analyzer.py`
   - **Estimated**: 1 day
   - **Note**: Can reuse existing edgedata parsing from edgedata_analysis.py
+  - **Note**: `total_segments` = edges recorded in baseline plan's edgedata.xml
 
 - [ ] 1.1.4 Create modular data orchestrator
   - Orchestrates output detection + calls appropriate analyzers

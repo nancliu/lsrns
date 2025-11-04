@@ -182,7 +182,10 @@ Response:
 {
   "improved_segments": 120,  # Number of segments with flow/speed improvement
   "deteriorated_segments": 15,
-  "segment_improvement_rate": "+88.2%",  # (120-15)/120
+  "total_segments": 350,  # Total edges recorded in baseline plan's edgedata.xml
+  "net_improvement_rate": "+30.0%",  # (120-15)/350 = net improved / total
+  "improved_ratio": "34.3%",  # 120/350 = improved / total
+  "deteriorated_ratio": "4.3%",  # 15/350 = deteriorated / total
   "avg_speed_increase": "+12.5%",
   "avg_flow_increase": "+8.3%"
 }
