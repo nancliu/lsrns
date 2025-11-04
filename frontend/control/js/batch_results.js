@@ -36,10 +36,7 @@ async function loadBatchResults(batchId, caseId) {
 
         batchResultsData = await response.json();
 
-        // 加载批次元数据和配置信息
-        await loadBatchMetadata(batchId, caseId);
-
-        // 渲染结果视图
+        // 渲染结果视图（元数据直接来自结果数据，无需额外API调用）
         renderBatchResultsView();
 
     } catch (error) {
@@ -133,6 +130,12 @@ function renderBatchInfoPanel(batchData) {
     const container = document.querySelector('.results-container');
     if (!container) return;
 
+    // 移除旧的批次信息面板（防止重复）
+    const existingPanel = container.querySelector('.batch-info-panel');
+    if (existingPanel) {
+        existingPanel.remove();
+    }
+
     // 创建批次信息面板（顶部标题 + 网格布局）
     let infoPanelHtml = '<div class="batch-info-panel">';
     infoPanelHtml += '<div class="batch-info-header">';
@@ -144,7 +147,7 @@ function renderBatchInfoPanel(batchData) {
     }
     infoPanelHtml += '</div>'; // 结束 batch-info-header
 
-    // 信息网格容器（4列布局）
+    // 信息网格容器（3列布局，对比方案网格显示）
     infoPanelHtml += '<div class="batch-info-grid">';
 
     // 1. 案例信息
@@ -152,12 +155,10 @@ function renderBatchInfoPanel(batchData) {
     infoPanelHtml += '<h4>📋 案例信息</h4>';
     if (batchData.caseInfo && batchData.caseInfo.case_name) {
         infoPanelHtml += `<p><strong>${batchData.caseInfo.case_name}</strong></p>`;
-    }
-    if (batchData.case_id) {
-        infoPanelHtml += `<p class="text-muted">ID: ${batchData.case_id}</p>`;
-    }
-    if (batchData.caseInfo && batchData.caseInfo.description) {
-        infoPanelHtml += `<p class="text-sm">${batchData.caseInfo.description}</p>`;
+    } else if (batchData.case_id) {
+        infoPanelHtml += `<p><strong>${batchData.case_id}</strong></p>`;
+    } else {
+        infoPanelHtml += `<p class="text-muted">暂无信息</p>`;
     }
     infoPanelHtml += '</div>';
 
@@ -178,7 +179,9 @@ function renderBatchInfoPanel(batchData) {
     infoPanelHtml += '<h4>⚙️ 仿真配置</h4>';
     infoPanelHtml += `<p><strong>种子数:</strong> ${batchData.num_seeds || 3}</p>`;
     infoPanelHtml += `<p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>`;
-    infoPanelHtml += `<p><strong>输出级别:</strong> ${batchData.output_level || 'standard'}</p>`;
+    if (batchData.output_level) {
+        infoPanelHtml += `<p><strong>输出级别:</strong> ${batchData.output_level}</p>`;
+    }
     if (batchData.simulation_duration) {
         const duration = batchData.simulation_duration;
         const hours = duration.hours || 0;
@@ -188,20 +191,25 @@ function renderBatchInfoPanel(batchData) {
     }
     infoPanelHtml += '</div>';
 
-    // 4. 对比方案
-    infoPanelHtml += '<div class="batch-info-card batch-info-card-full">';
-    infoPanelHtml += '<h4>📊 对比方案</h4>';
+    // 4. 对比方案（网格布局，3列显示）
     if (batchData.plan_results && batchData.plan_results.length > 0) {
-        infoPanelHtml += '<ul class="batch-plans-list">';
+        infoPanelHtml += '<div class="batch-info-card batch-info-card-full">';
+        infoPanelHtml += '<h4>📊 对比方案</h4>';
+        infoPanelHtml += '<div class="batch-plans-grid">';
         batchData.plan_results.forEach((plan, index) => {
             const planName = plan.plan_name || plan.plan_id || `方案 ${index + 1}`;
             const isBaseline = plan.is_baseline ? ' <span class="baseline-badge">基准</span>' : '';
-            const samplesInfo = plan.sample_count ? ` (${plan.sample_count}样本)` : '';
-            infoPanelHtml += `<li><strong>${planName}</strong>${isBaseline}<span class="text-muted">${samplesInfo}</span></li>`;
+            const samplesInfo = plan.sample_count ? ` (${plan.sample_count})` : '';
+            infoPanelHtml += `<div class="batch-plan-item"><strong>${planName}</strong>${isBaseline}<span class="text-muted">${samplesInfo}</span></div>`;
         });
-        infoPanelHtml += '</ul>';
+        infoPanelHtml += '</div>';
+        infoPanelHtml += '</div>';
+    } else {
+        infoPanelHtml += '<div class="batch-info-card batch-info-card-full">';
+        infoPanelHtml += '<h4>📊 对比方案</h4>';
+        infoPanelHtml += '<p class="text-muted">无方案信息</p>';
+        infoPanelHtml += '</div>';
     }
-    infoPanelHtml += '</div>';
 
     infoPanelHtml += '</div>'; // 结束 batch-info-grid
     infoPanelHtml += '</div>'; // 结束 batch-info-panel
@@ -211,7 +219,7 @@ function renderBatchInfoPanel(batchData) {
     if (firstSection) {
         firstSection.insertAdjacentHTML('beforebegin', infoPanelHtml);
     } else {
-        container.innerHTML = infoPanelHtml + container.innerHTML;
+        container.insertAdjacentHTML('afterbegin', infoPanelHtml);
     }
 
     // 添加样式
@@ -348,7 +356,7 @@ function addBatchInfoStyles() {
             font-weight: 500;
         }
 
-        /* 方案列表 */
+        /* 方案列表（保留用于兼容） */
         .batch-plans-list {
             list-style: none;
             padding: 0;
@@ -371,6 +379,31 @@ function addBatchInfoStyles() {
             color: #3498db;
             font-weight: bold;
             font-size: 1.1em;
+        }
+
+        /* 方案网格（新的3列布局） */
+        .batch-plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .batch-plan-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .batch-plan-item strong {
+            color: #2c3e50;
         }
 
         /* 响应式设计 */
@@ -461,64 +494,33 @@ function renderEmptyResultsState() {
 }
 
 /**
- * 加载批次元数据和配置信息
- * @param {string} batchId - 批次ID
- * @param {string} caseId - 案例ID
+ * [已禁用] 加载批次元数据和配置信息
+ * NOTE: API端点不存在，元数据已包含在结果响应中
+ * @deprecated 元数据直接从结果API获取，无需额外调用
  */
 async function loadBatchMetadata(batchId, caseId) {
-    try {
-        // 获取批次的元数据信息（从监控历史）
-        const batchMetadata = await fetchBatchMetadata(batchId);
-        if (batchMetadata) {
-            batchResultsData.batchMetadata = batchMetadata;
-        }
-
-        // 如果有案例ID，获取案例信息
-        if (caseId) {
-            const caseInfo = await fetchCaseInfo(caseId);
-            if (caseInfo) {
-                batchResultsData.caseInfo = caseInfo;
-            }
-        }
-    } catch (error) {
-        // 不中断流程，仅记录日志
-        console.warn('Failed to load batch metadata:', error);
-    }
+    // 已禁用：API端点不存在
+    // 批次元数据已从 /results API 获取
+    return;
 }
 
 /**
- * 从服务器获取批次元数据
- * @param {string} batchId - 批次ID
+ * [已禁用] 从服务器获取批次元数据
+ * NOTE: API端点不存在
+ * @deprecated 使用结果响应中的数据
  */
 async function fetchBatchMetadata(batchId) {
-    try {
-        const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/metadata`, {
-            method: 'GET'
-        });
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.warn('Failed to fetch batch metadata:', error);
-    }
+    // 已禁用：API端点不存在
     return null;
 }
 
 /**
- * 从服务器获取案例信息
- * @param {string} caseId - 案例ID
+ * [已禁用] 从服务器获取案例信息
+ * NOTE: API端点不存在
+ * @deprecated 使用结果响应中的数据或显示Case ID
  */
 async function fetchCaseInfo(caseId) {
-    try {
-        const response = await fetch(`${API_BASE}/case/${caseId}/info`, {
-            method: 'GET'
-        });
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.warn('Failed to fetch case info:', error);
-    }
+    // 已禁用：API端点不存在
     return null;
 }
 
