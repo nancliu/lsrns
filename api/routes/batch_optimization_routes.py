@@ -460,7 +460,7 @@ async def rank_strategies(case_id: str, batch_id: str, request: StrategyRankingR
         if not case_dir.exists():
             raise FileNotFoundError(f"案例不存在: {case_id}")
 
-        batch_dir = case_dir / "simulations" / batch_id
+        batch_dir = case_dir / "simulations" / "plan_opti" / batch_id
         if not batch_dir.exists():
             raise FileNotFoundError(f"批次不存在: {batch_id}")
 
