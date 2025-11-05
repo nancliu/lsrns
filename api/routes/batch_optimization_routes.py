@@ -213,9 +213,11 @@ async def get_batch_results(
         if not case_id:
             raise FileNotFoundError(f"批次不存在: {batch_id}")
 
+        # 🐛 FIX: 传递 include_time_series 参数到服务层
         result = batch_service.get_batch_results(
             case_id,
-            batch_id
+            batch_id,
+            include_time_series=include_time_series  # ✅ 修复：之前未传递此参数
         )
         return result
 
