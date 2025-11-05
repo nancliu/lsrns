@@ -171,7 +171,9 @@ function switchView(view) {
     }
 
     // Load results when switching to results view
-    if (view === 'results' && currentBatchId) {
+    // 注意：如果数据已经通过 loadBatchResultsAndSwitch() 加载，不需要再次加载
+    // 只在直接切换标签页时加载（batchResultsData 为空时）
+    if (view === 'results' && currentBatchId && !batchResultsData) {
         loadResults();
     }
 }
@@ -1548,10 +1550,14 @@ async function loadBatchResultsAndSwitch(batchId, caseId) {
             caseId = currentCaseId || 'unknown';
         }
 
+        // 设置全局 currentCaseId（确保后续操作能找到case_id）
+        currentCaseId = caseId;
+
         // 委托给batch_results.js中的新实现
         if (typeof loadBatchResults === 'function') {
-            // batch_results.js的loadBatchResults会调用hideLoading()和switchView('results')
+            // batch_results.js的loadBatchResults会加载并渲染结果
             await loadBatchResults(batchId, caseId);
+            // 切换到结果视图（不会再次调用loadResults，因为数据已加载）
             switchView('results');
         } else {
             showError('结果加载模块未初始化，请刷新页面');
