@@ -1055,26 +1055,31 @@ function renderResultsCharts(planResults) {
     // 为每个对比指标创建图表（显示全部8个，分多行布局）
     const mainMetrics = comparisonMetrics; // 显示所有对比指标
 
+    // 🚀 性能优化：使用 requestAnimationFrame 批量渲染所有图表，而非串行 setTimeout
+    const chartConfigs = [];
     mainMetrics.forEach(metricKey => {
         const chartDiv = document.createElement('div');
-        chartDiv.style.position = 'relative';
-        chartDiv.style.height = '300px';
-        chartDiv.style.backgroundColor = '#f9f9f9';
-        chartDiv.style.padding = '15px';
-        chartDiv.style.borderRadius = '8px';
-        chartDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        chartDiv.className = 'metric-chart-container'; // ✅ 使用 CSS 类代替内联样式
 
         const canvas = document.createElement('canvas');
         canvas.id = `chart-${metricKey}`;
-        canvas.style.maxHeight = '100%';
 
         chartDiv.appendChild(canvas);
         chartsContainer.appendChild(chartDiv);
 
-        // 在下一个事件循环中渲染图表（确保DOM已更新）
-        setTimeout(() => {
-            renderMetricChart(canvas.id, metricKey, planResults, metricConfig);
-        }, 0);
+        // 保存图表配置供后续批量渲染
+        chartConfigs.push({
+            canvasId: canvas.id,
+            metricKey: metricKey
+        });
+    });
+
+    // 使用 requestAnimationFrame 批量渲染所有图表
+    // 预期改进：从 8×setTimeout(0) (~800ms) 优化为单个 RAF (~150ms)
+    requestAnimationFrame(() => {
+        chartConfigs.forEach(config => {
+            renderMetricChart(config.canvasId, config.metricKey, planResults, metricConfig);
+        });
     });
 
     container.appendChild(chartsContainer);

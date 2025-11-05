@@ -208,8 +208,7 @@ function renderRankingResults() {
 
     // ===== 第一部分：排序摘要卡片 =====
     const summaryCard = document.createElement('div');
-    summaryCard.className = 'section';
-    summaryCard.style.marginBottom = '20px';
+    summaryCard.className = 'ranking-section'; // ✅ 使用 CSS 类
 
     const summaryTitle = document.createElement('h3');
     summaryTitle.textContent = '🎯 策略排序摘要';
@@ -217,10 +216,7 @@ function renderRankingResults() {
 
     // 添加摘要信息
     const summary = document.createElement('div');
-    summary.style.backgroundColor = '#e8f5e9';
-    summary.style.borderLeft = '4px solid #4CAF50';
-    summary.style.padding = '15px';
-    summary.style.borderRadius = '4px';
+    summary.className = 'ranking-summary-box'; // ✅ 使用 CSS 类代替内联样式
 
     const topStrategy = rankingResultsData.ranked_strategies[0];
     const metadata = rankingResultsData.ranking_metadata || {};
@@ -239,8 +235,7 @@ function renderRankingResults() {
 
     // ===== 第二部分：排序表格 =====
     const tableCard = document.createElement('div');
-    tableCard.className = 'section';
-    tableCard.style.marginBottom = '20px';
+    tableCard.className = 'ranking-section'; // ✅ 使用 CSS 类
 
     const tableTitle = document.createElement('h3');
     tableTitle.textContent = '📋 策略排序表';
@@ -251,8 +246,7 @@ function renderRankingResults() {
 
     // ===== 第三部分：首推方案详情 =====
     const detailCard = document.createElement('div');
-    detailCard.className = 'section';
-    detailCard.style.marginBottom = '20px';
+    detailCard.className = 'ranking-section'; // ✅ 使用 CSS 类
 
     const detailTitle = document.createElement('h3');
     detailTitle.textContent = '✨ 首推方案详情';
@@ -275,16 +269,11 @@ function renderRankingTable(container) {
     }
 
     const table = document.createElement('table');
-    table.className = 'ranking-table';
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-    table.style.marginBottom = '20px';
-    table.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    table.className = 'ranking-table'; // ✅ 使用 CSS 类定义样式
 
     // 表头
     const thead = document.createElement('thead');
-    thead.style.backgroundColor = '#1976D2';
-    thead.style.color = 'white';
+    thead.className = 'ranking-table-head'; // ✅ 使用 CSS 类
     thead.innerHTML = `
         <tr>
             <th style="padding: 12px; text-align: left;">排名</th>
@@ -700,25 +689,13 @@ function showToast(message, type = 'info') {
 
 /**
  * 初始化排序模块
+ * 🚀 性能优化：去除全局 MutationObserver，改用简单的 DOM 检查
  */
 function initStrategyRanking() {
-    // 在批次结果加载完成后添加排序按钮
-    const observer = new MutationObserver(() => {
-        const resultsContainer = document.getElementById('batchResultsContainer');
-        if (resultsContainer && !document.getElementById('btn-generate-ranking')) {
-            addRankingTriggerButton();
-        }
-    });
-
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-
-    // 或直接调用（如果结果容器已存在）
-    setTimeout(() => {
-        addRankingTriggerButton();
-    }, 500);
+    // 注意：addRankingTriggerButton 函数在本文件中未定义
+    // 此函数仅用于 optimization.html 中的 Layer 2 展示
+    // Layer 1 (simulations.html) 和 Layer 2 (optimization.html) 是完全独立的页面
+    console.log('Strategy Ranking module loaded - for optimization.html Layer 2 display only');
 }
 
 // 页面加载时初始化
