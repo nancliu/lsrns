@@ -2,7 +2,7 @@
 
 **Change ID**: `add-layer2-control-strategy-ranking`
 
-**Status**: 📋 Proposal (Planning)
+**Status**: ✅ Deployed (2025-11-05)
 
 **Priority**: P0 (Core Business Value - Control Strategy Optimization)
 
