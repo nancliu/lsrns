@@ -1356,7 +1356,7 @@ class BatchOptimizationService:
         self, case_id: str, batch_id: str, include_time_series: bool = False
     ) -> Dict[str, Any]:
         """
-        获取批次结果汇总
+        获取批次结果汇总 (支持缓存)
 
         Args:
             case_id: 案例ID
@@ -1370,6 +1370,8 @@ class BatchOptimizationService:
             FileNotFoundError: 批次不存在
             ValueError: 批次未完成
         """
+        import time
+
         logger.info(
             f"Getting results for batch {batch_id}, " f"include_time_series={include_time_series}"
         )
@@ -1381,8 +1383,19 @@ class BatchOptimizationService:
         if progress_data["status"] not in ["completed", "failed"]:
             raise ValueError(f"批次尚未完成，当前状态: {progress_data['status']}")
 
-        # 读取批次元数据
+        # 🚀 优化: 检查缓存
         batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+        cache_key = f"include_time_series={include_time_series}"
+        cached_results = self._load_batch_results_cache(batch_dir, batch_id, cache_key, progress_data["status"])
+
+        if cached_results:
+            logger.info(f"[CACHE HIT] Returning cached results for batch {batch_id} (include_time_series={include_time_series})")
+            return cached_results  # <100ms
+
+        logger.info(f"[CACHE MISS] Computing fresh results for batch {batch_id}")
+        compute_start_time = time.time()
+
+        # 读取批次元数据
         metadata_path = batch_dir / "batch_metadata.json"
 
         with open(metadata_path, "r", encoding="utf-8") as f:
@@ -1542,7 +1555,103 @@ class BatchOptimizationService:
 
         logger.info(f"Results for batch {batch_id}: {len(plan_results)} plans")
 
+        # 🚀 优化: 保存到缓存
+        compute_elapsed = time.time() - compute_start_time
+        logger.info(f"Results computed in {compute_elapsed:.2f}s, saving to cache...")
+        self._save_batch_results_cache(batch_dir, batch_id, response, cache_key, progress_data["status"])
+
         return response
+
+    def _load_batch_results_cache(
+        self, batch_dir: Path, batch_id: str, cache_key: str, current_status: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        从缓存文件读取批次结果
+
+        Args:
+            batch_dir: 批次目录
+            batch_id: 批次ID
+            cache_key: 缓存键 (如 "include_time_series=true")
+            current_status: 当前batch状态
+
+        Returns:
+            Dict: 缓存的结果 / None: 缓存未命中或失效
+        """
+        try:
+            cache_file = batch_dir / "batch_results_cache.json"
+
+            if not cache_file.exists():
+                logger.debug(f"Cache file not found for batch {batch_id}")
+                return None
+
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cache_data = json.load(f)
+
+            # 检查batch状态是否改变 (如果改变则缓存失效)
+            if cache_data.get("batch_status") != current_status:
+                logger.debug(f"Cache invalidated for batch {batch_id} (status changed)")
+                return None
+
+            # 检查是否有匹配的缓存项
+            cached_result = cache_data.get("results", {}).get(cache_key)
+
+            if cached_result:
+                logger.debug(f"Cache hit for batch {batch_id} with key {cache_key}")
+                return cached_result
+
+            logger.debug(f"Cache miss: no entry for key {cache_key} in batch {batch_id}")
+            return None
+
+        except Exception as e:
+            logger.warning(f"Failed to load batch results cache: {e}")
+            return None
+
+    def _save_batch_results_cache(
+        self, batch_dir: Path, batch_id: str, results: Dict[str, Any], cache_key: str, batch_status: str
+    ) -> bool:
+        """
+        保存批次结果到缓存文件
+
+        Args:
+            batch_dir: 批次目录
+            batch_id: 批次ID
+            results: 计算结果
+            cache_key: 缓存键
+            batch_status: batch当前状态
+
+        Returns:
+            bool: 是否成功保存
+        """
+        try:
+            cache_file = batch_dir / "batch_results_cache.json"
+
+            # 读取或初始化缓存文件
+            if cache_file.exists():
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cache_data = json.load(f)
+            else:
+                cache_data = {
+                    "batch_id": batch_id,
+                    "cache_time": datetime.now().isoformat(),
+                    "batch_status": batch_status,
+                    "results": {}
+                }
+
+            # 更新缓存
+            cache_data["batch_status"] = batch_status
+            cache_data["cache_time"] = datetime.now().isoformat()
+            cache_data["results"][cache_key] = results
+
+            # 保存到文件
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, indent=2, ensure_ascii=False)
+
+            logger.debug(f"Cached batch results for {batch_id} with key {cache_key}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"Failed to save batch results cache: {e}")
+            return False
 
     def _extract_simulation_metrics(
         self, case_id: str, batch_id: str, plan_id: str, task
