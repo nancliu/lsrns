@@ -15,13 +15,14 @@
  * - Layer 2（optimization.html）: 控制策略排序 - 多准则评分和推荐
  */
 
+// ========== API 配置 ==========
+const API_BASE = '/api/v1';
+
 // ========== 全局变量 ==========
 let rankingResultsData = null;
 let rankingCharts = {};
-
-// 注意: currentBatchId, currentCaseId 由 optimization.js 定义和管理
-// 本模块使用 optimization.js 中定义的全局变量，避免重复声明
-// API_BASE 也由 optimization.js 定义和管理
+let currentBatchId = null;
+let currentCaseId = null;
 
 // ========== 初始化：从 URL 参数加载批次 ==========
 
@@ -33,18 +34,14 @@ let rankingCharts = {};
 function initializeRankingPage() {
     // 从 URL 获取参数
     const params = new URLSearchParams(window.location.search);
-    const batchId = params.get('batch_id');
-    const caseId = params.get('case_id');
+    currentBatchId = params.get('batch_id');
+    currentCaseId = params.get('case_id');
 
-    if (!batchId || !caseId) {
+    if (!currentBatchId || !currentCaseId) {
         console.warn('Missing batch_id or case_id in URL parameters');
         showError('缺少批次或案例信息，请从批量仿真页面进入');
         return;
     }
-
-    // 使用 optimization.js 中的全局变量
-    currentBatchId = batchId;
-    currentCaseId = caseId;
 
     // 自动加载排序结果
     loadAndDisplayRanking();
