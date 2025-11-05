@@ -12,10 +12,10 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any
 
-from output_detector import OutputDetector
-from summary_analyzer import SummaryAnalyzer
-from tripinfo_analyzer import TripInfoAnalyzer
-from edgedata_analyzer import EdgeDataAnalyzer
+from .output_detector import OutputDetector
+from .summary_analyzer import SummaryAnalyzer
+from .tripinfo_analyzer import TripInfoAnalyzer
+from .edgedata_analyzer import EdgeDataAnalyzer
 
 logger = logging.getLogger(__name__)
 
