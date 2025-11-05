@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - 2025-11-05
+
+### Fixed - TripInfo 指标元数据
+
+**问题**: 批次结果对比页面中 TripInfo 指标显示英文键名而非中文标签
+
+#### 修复详情
+- **添加元数据**: `api/services/batch_optimization_service.py`
+  - 为 `total_delay`（总延误时间）添加完整元数据
+  - 为 `avg_travel_time`（平均行程时间）添加完整元数据
+  - 包含中文标签、单位（秒）、改进方向（越低越好）
+  - 说明数据来源为 tripinfo.xml
+
+- **更新文档**: `api/models/control/responses/batch_response.py`
+  - 同步更新 API 响应模型示例
+  - 确保 API 文档准确反映返回数据结构
+
+#### 影响
+- ✅ 批次结果页面现在显示"总延误时间 (秒)"而非 "total_delay"
+- ✅ 批次结果页面现在显示"平均行程时间 (秒)"而非 "avg_travel_time"
+- ✅ 图表横轴使用中文标签
+- ✅ 改进率根据指标方向正确计算
+
+#### 设计澄清
+- `loaded`（已加载车数）指标改进率显示 `-` 是**正确行为**
+- `loaded` 是中立指标 (`direction: "neutral"`)，批次内所有方案使用相同输入
+- 符合 [METRICS_CLARIFICATION_SUMMARY.md](../openspec/changes/archive/2025-11-04-batch-monitoring-hierarchy-and-results-analysis/METRICS_CLARIFICATION_SUMMARY.md) 设计规范
+
+**文档**: [TRIPINFO_METRICS_FIX_SUMMARY.md](TRIPINFO_METRICS_FIX_SUMMARY.md)
+
+---
+
 ## [v0.9.0] - 2025-11-02
 
 ### Added - SUMO XML Validation & Cascade Regeneration
