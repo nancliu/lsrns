@@ -487,6 +487,18 @@ class BatchResultsResponse(BaseModel):
                         "unit": "辆",
                         "direction": "neutral",
                         "description": "已加载到仿真中的车数"
+                    },
+                    "total_delay": {
+                        "label": "总延误时间",
+                        "unit": "秒",
+                        "direction": "lower",
+                        "description": "所有车辆累计延误时间（来自tripinfo.xml）"
+                    },
+                    "avg_travel_time": {
+                        "label": "平均行程时间",
+                        "unit": "秒",
+                        "direction": "lower",
+                        "description": "车辆平均行程时间（来自tripinfo.xml）"
                     }
                 },
                 "created_at": "2025-10-25T14:30:00",

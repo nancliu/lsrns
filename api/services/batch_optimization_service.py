@@ -1549,6 +1549,18 @@ class BatchOptimizationService:
                     "unit": "m/s",
                     "direction": "higher",
                     "description": "所有已完成车的平均行驶速度（核心性能指标）"
+                },
+                "total_delay": {
+                    "label": "总延误时间",
+                    "unit": "秒",
+                    "direction": "lower",
+                    "description": "所有车辆累计延误时间（来自tripinfo.xml，需要output_tripinfo=true）"
+                },
+                "avg_travel_time": {
+                    "label": "平均行程时间",
+                    "unit": "秒",
+                    "direction": "lower",
+                    "description": "车辆平均行程时间（来自tripinfo.xml，需要output_tripinfo=true）"
                 }
             }
         }
