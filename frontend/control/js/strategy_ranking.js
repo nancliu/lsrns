@@ -27,9 +27,13 @@ let currentCaseId = null;
 // ========== 初始化：从 URL 参数加载批次 ==========
 
 /**
- * 页面加载时初始化 - 从 URL 参数获取 batch_id，自动加载和排序
+ * 页面加载时初始化 - 从 URL 参数获取 batch_id，或从 localStorage 恢复上次查看的批次
  *
  * URL 格式: optimization.html?batch_id=batch_20251105_000102&case_id=case_20251103_141612
+ *
+ * 如果 URL 中没有参数，尝试加载：
+ * 1. localStorage 中保存的上次查看的批次
+ * 2. 若无，尝试加载最新完成的批次
  */
 function initializeRankingPage() {
     // 从 URL 获取参数
@@ -37,11 +41,26 @@ function initializeRankingPage() {
     currentBatchId = params.get('batch_id');
     currentCaseId = params.get('case_id');
 
+    // 如果 URL 中没有参数，尝试从 localStorage 恢复
     if (!currentBatchId || !currentCaseId) {
-        console.warn('Missing batch_id or case_id in URL parameters');
-        showError('缺少批次或案例信息，请从批量仿真页面进入');
-        return;
+        const lastBatchId = localStorage.getItem('lastViewedBatchId');
+        const lastCaseId = localStorage.getItem('lastViewedCaseId');
+
+        if (lastBatchId && lastCaseId) {
+            console.log(`📋 从 localStorage 恢复上次查看的批次: ${lastBatchId}`);
+            currentBatchId = lastBatchId;
+            currentCaseId = lastCaseId;
+        } else {
+            console.warn('缺少批次信息，尝试加载最新完成的批次...');
+            // 尝试加载最新完成的批次
+            loadLatestCompletedBatch();
+            return;
+        }
     }
+
+    // 保存当前查看的批次到 localStorage
+    localStorage.setItem('lastViewedBatchId', currentBatchId);
+    localStorage.setItem('lastViewedCaseId', currentCaseId);
 
     // 自动加载排序结果
     loadAndDisplayRanking();
@@ -100,6 +119,89 @@ async function loadAndDisplayRanking() {
         console.error('Error loading ranking:', error);
         hideLoadingIndicator();
         showError('生成优化方案失败: ' + error.message);
+    }
+}
+
+/**
+ * 加载最新完成的批次
+ * 当用户从导航栏进入优化方案页面，但没有指定批次时调用
+ * 逻辑：
+ * 1. 获取所有案例
+ * 2. 对每个案例，获取批次列表
+ * 3. 找到最新完成的批次
+ * 4. 加载该批次的排序结果
+ */
+async function loadLatestCompletedBatch() {
+    try {
+        showLoadingIndicator('正在查找最新批次...');
+
+        // 获取案例列表
+        const casesResponse = await fetch(`${API_BASE}/data/case-management/cases`);
+        if (!casesResponse.ok) {
+            throw new Error('无法获取案例列表');
+        }
+
+        const casesData = await casesResponse.json();
+        const cases = casesData.cases || [];
+
+        let latestBatch = null;
+        let latestCaseId = null;
+        let latestCompletedTime = null;
+
+        // 遍历所有案例，找到最新完成的批次
+        for (const caseItem of cases) {
+            try {
+                const caseId = caseItem.case_id;
+                // 获取该案例的批次列表
+                const batchesResponse = await fetch(
+                    `${API_BASE}/control/batch-optimization/case/${caseId}/batches`
+                );
+
+                if (!batchesResponse.ok) continue;
+
+                const batchesData = await batchesResponse.json();
+                const batches = batchesData.batches || [];
+
+                // 找到已完成的批次中最新的
+                for (const batch of batches) {
+                    if (batch.status === 'completed' && batch.completed_at) {
+                        const completedTime = new Date(batch.completed_at);
+                        if (!latestCompletedTime || completedTime > latestCompletedTime) {
+                            latestCompletedTime = completedTime;
+                            latestBatch = batch;
+                            latestCaseId = caseId;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn(`无法获取案例 ${caseItem.case_id} 的批次列表:`, error);
+                continue;
+            }
+        }
+
+        if (!latestBatch || !latestCaseId) {
+            hideLoadingIndicator();
+            showError('未找到已完成的批次，请从批量仿真页面创建并运行批次');
+            return;
+        }
+
+        console.log(`✅ 找到最新完成的批次: ${latestBatch.batch_id} (${latestCaseId})`);
+
+        // 加载找到的最新批次
+        currentBatchId = latestBatch.batch_id;
+        currentCaseId = latestCaseId;
+
+        // 保存到 localStorage
+        localStorage.setItem('lastViewedBatchId', currentBatchId);
+        localStorage.setItem('lastViewedCaseId', currentCaseId);
+
+        // 加载排序结果
+        await loadAndDisplayRanking();
+
+    } catch (error) {
+        console.error('Error loading latest batch:', error);
+        hideLoadingIndicator();
+        showError('加载最新批次失败: ' + error.message);
     }
 }
 

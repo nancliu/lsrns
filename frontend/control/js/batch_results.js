@@ -138,6 +138,11 @@ async function loadBatchResults(batchId, caseId) {
         currentBatchId = batchId;
         currentCaseId = caseId;
 
+        // 💾 保存上次查看的批次 (用于导航栏进入时恢复)
+        localStorage.setItem('lastViewedBatchId', batchId);
+        localStorage.setItem('lastViewedCaseId', caseId);
+        localStorage.setItem('lastViewedBatchTimestamp', new Date().toISOString());
+
         // 🚀 优化 1: 检查缓存
         let fromCache = false;
         let cachedData = getCachedBatchResults(batchId);

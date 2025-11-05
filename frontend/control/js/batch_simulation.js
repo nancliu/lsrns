@@ -189,8 +189,14 @@ function switchView(view) {
     // Load results when switching to results view
     // 注意：如果数据已经通过 loadBatchResultsAndSwitch() 加载，不需要再次加载
     // 只在直接切换标签页时加载（batchResultsData 为空时）
-    if (view === 'results' && currentBatchId && !batchResultsData) {
-        loadResults();
+    if (view === 'results') {
+        if (currentBatchId && !batchResultsData) {
+            // 有当前批次且数据未加载，加载数据
+            loadResults();
+        } else if (!currentBatchId && !batchResultsData) {
+            // 无当前批次，尝试加载上次查看的批次
+            loadLastViewedBatchResults();
+        }
     }
 }
 
@@ -1342,6 +1348,99 @@ async function loadResults() {
     } catch (error) {
         console.error('Load results error:', error);
         showError('加载结果失败');
+    }
+}
+
+/**
+ * 加载上次查看的批次结果
+ * 当用户点击"结果"标签页，但当前没有选择任何批次时调用
+ * 逻辑：
+ * 1. 从 localStorage 恢复上次查看的批次 ID 和案例 ID
+ * 2. 如果有，加载该批次的结果
+ * 3. 如果没有，提示用户选择或创建批次
+ */
+async function loadLastViewedBatchResults() {
+    try {
+        const lastBatchId = localStorage.getItem('lastViewedBatchId');
+        const lastCaseId = localStorage.getItem('lastViewedCaseId');
+
+        if (lastBatchId && lastCaseId) {
+            console.log(`📋 从 localStorage 恢复上次查看的批次: ${lastBatchId}`);
+            currentBatchId = lastBatchId;
+            currentCaseId = lastCaseId;
+            window.currentBatchId = currentBatchId;
+            window.currentCaseId = currentCaseId;
+
+            // 加载该批次的结果
+            await loadBatchResults(currentBatchId, currentCaseId);
+        } else {
+            // 没有上次查看的批次，尝试加载最新完成的批次
+            console.log('未找到上次查看的批次，尝试加载最新完成的批次...');
+            await loadLatestCompletedBatchResults();
+        }
+    } catch (error) {
+        console.error('Load last viewed batch error:', error);
+        showError('加载批次结果失败: ' + error.message);
+    }
+}
+
+/**
+ * 加载最新完成的批次结果（在结果标签页中）
+ * 当用户没有上次查看的批次记录时调用
+ */
+async function loadLatestCompletedBatchResults() {
+    try {
+        // 获取当前案例的批次列表
+        if (!currentCaseId) {
+            showError('请先选择案例');
+            return;
+        }
+
+        const batchesResponse = await fetch(
+            `${API_BASE}/control/batch-optimization/case/${currentCaseId}/batches`
+        );
+
+        if (!batchesResponse.ok) {
+            throw new Error('无法获取批次列表');
+        }
+
+        const batchesData = await batchesResponse.json();
+        const batches = batchesData.batches || [];
+
+        // 找到最新完成的批次
+        let latestBatch = null;
+        let latestCompletedTime = null;
+
+        for (const batch of batches) {
+            if (batch.status === 'completed' && batch.completed_at) {
+                const completedTime = new Date(batch.completed_at);
+                if (!latestCompletedTime || completedTime > latestCompletedTime) {
+                    latestCompletedTime = completedTime;
+                    latestBatch = batch;
+                }
+            }
+        }
+
+        if (!latestBatch) {
+            showError('当前案例没有已完成的批次，请创建并运行一个批次');
+            return;
+        }
+
+        console.log(`✅ 找到最新完成的批次: ${latestBatch.batch_id}`);
+
+        currentBatchId = latestBatch.batch_id;
+        window.currentBatchId = currentBatchId;
+
+        // 保存到 localStorage
+        localStorage.setItem('lastViewedBatchId', currentBatchId);
+        localStorage.setItem('lastViewedCaseId', currentCaseId);
+
+        // 加载该批次的结果
+        await loadBatchResults(currentBatchId, currentCaseId);
+
+    } catch (error) {
+        console.error('Load latest batch results error:', error);
+        showError('加载最新批次失败: ' + error.message);
     }
 }
 
