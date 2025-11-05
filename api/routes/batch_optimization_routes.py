@@ -467,15 +467,15 @@ async def rank_strategies(case_id: str, batch_id: str, request: StrategyRankingR
         # Get all plans if not specified
         plan_ids = request.strategy_plan_ids
         if not plan_ids:
-            # Auto-detect plans from batch config
+            # Auto-detect plans from batch metadata
             import json
-            config_path = batch_dir / "simulation_config.json"
-            if config_path.exists():
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                    plan_ids = list(config.get("plan_configs", {}).keys())
+            metadata_path = batch_dir / "batch_metadata.json"
+            if metadata_path.exists():
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    metadata = json.load(f)
+                    plan_ids = metadata.get("plan_ids", [])
             else:
-                raise FileNotFoundError(f"批次配置文件不存在")
+                raise FileNotFoundError(f"批次元数据文件不存在")
 
         if not plan_ids:
             raise ValueError("未找到任何方案")
