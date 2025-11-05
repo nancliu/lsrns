@@ -136,6 +136,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // document.getElementById('cancelBatchBtn').addEventListener('click', cancelBatch);
     // document.getElementById('toggleLiveCurveBtn').addEventListener('click', toggleLiveCurveVisibility);
 
+    // ========== 视图标签页按钮事件监听 ==========
+    document.getElementById('configViewTab').addEventListener('click', () => switchView('config'));
+    document.getElementById('monitoringViewTab').addEventListener('click', () => switchView('monitoring'));
+    document.getElementById('resultsViewTab').addEventListener('click', () => switchView('results'));
+
     document.getElementById('clearConfigBtn').addEventListener('click', clearConfig);
     document.getElementById('backToConfigBtn').addEventListener('click', () => switchView('config'));
     document.getElementById('viewOptimizationBtn').addEventListener('click', viewOptimizationAnalysis);
