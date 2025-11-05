@@ -45,7 +45,8 @@ class BatchResultAnalyzer:
             Dict: 分析结果，包含对比指标和改进率
 
         说明：
-        - 从每个方案目录读取summary.xml
+        - 首先尝试从缓存的批次结果加载
+        - 如果缓存不可用，从每个方案目录读取summary.xml
         - 提取关键指标（运行步数、流量、拥堵等）
         - 与baseline方案比较，计算改进率
         """
@@ -59,6 +60,21 @@ class BatchResultAnalyzer:
             "comparison_summary": {},
             "improvement_rates": {}
         }
+
+        # 首先尝试从缓存加载批次结果
+        cache_results = self._try_load_batch_cache(batch_dir, plan_ids, baseline_plan_id)
+        if cache_results:
+            logger.info("Using cached batch results")
+            self.baseline_results = cache_results["baseline_metrics"]
+            self.test_results = cache_results["test_metrics"]
+            self.improvement_rates = cache_results["improvement_rates"]
+            results["plan_results"] = cache_results["plan_results"]
+            results["improvement_rates"] = cache_results["improvement_rates"]
+            results["comparison_summary"] = self._generate_comparison_summary()
+            return results
+
+        # 备选方案：从XML文件读取（如果缓存不可用）
+        logger.info("Cache not available, analyzing from XML files")
 
         # 1. 加载baseline方案结果
         if baseline_plan_id in plan_ids:
@@ -104,6 +120,126 @@ class BatchResultAnalyzer:
         results["comparison_summary"] = self._generate_comparison_summary()
 
         return results
+
+    def _try_load_batch_cache(
+        self,
+        batch_dir: Path,
+        plan_ids: List[str],
+        baseline_plan_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        尝试从批次缓存加载结果
+
+        缓存格式: batch_results_cache.json
+        {
+          "results": {
+            "include_time_series=False": {
+              "plan_results": [
+                {
+                  "plan_id": "baseline_plan",
+                  "simulations": [
+                    {"seed": 66, "ended": 71090, "avgSpeed": 21.32, ...},
+                    {"seed": 67, ...},
+                    ...
+                  ],
+                  "aggregated_metrics": {...}
+                },
+                ...
+              ]
+            }
+          }
+        }
+
+        Args:
+            batch_dir: 批次目录
+            plan_ids: 方案ID列表
+            baseline_plan_id: 基准方案ID
+
+        Returns:
+            Dict with plan_results, improvement_rates, or None if cache not available
+        """
+        cache_file = batch_dir / "batch_results_cache.json"
+        if not cache_file.exists():
+            logger.debug(f"No cache file found: {cache_file}")
+            return None
+
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+
+            # 提取缓存中的结果（处理时间序列选项）
+            results_dict = cache.get("results", {})
+            cached_data = results_dict.get("include_time_series=False")
+
+            if not cached_data or "plan_results" not in cached_data:
+                logger.warning("Invalid cache format")
+                return None
+
+            cached_plans = cached_data["plan_results"]
+
+            # 从缓存提取基准和测试方案的聚合指标
+            baseline_metrics = None
+            test_metrics = {}
+            plan_results = {}
+
+            for plan_data in cached_plans:
+                plan_id = plan_data.get("plan_id")
+                if plan_id not in plan_ids:
+                    continue
+
+                # 从缓存提取聚合指标
+                agg_metrics = plan_data.get("aggregated_metrics", {})
+
+                # 转换聚合指标格式：{"metric": {"mean": ..., "std": ...}} → {"metric": value}
+                metrics = {
+                    key: agg[
+"mean"] if isinstance(agg, dict) else agg
+                    for key, agg in agg_metrics.items()
+                }
+
+                # 保留原始种子数据用于可靠性计算
+                simulations = plan_data.get("simulations", [])
+                metrics["num_seeds"] = len(simulations)
+                metrics["seed_metrics"] = simulations
+
+                if plan_id == baseline_plan_id:
+                    baseline_metrics = metrics
+                    plan_results[plan_id] = {
+                        "type": "baseline",
+                        "metrics": metrics
+                    }
+                else:
+                    test_metrics[plan_id] = metrics
+                    plan_results[plan_id] = {
+                        "type": "test",
+                        "metrics": metrics
+                    }
+
+            if not baseline_metrics:
+                logger.warning(f"Baseline plan {baseline_plan_id} not found in cache")
+                return None
+
+            # 计算改进率
+            improvement_rates = {}
+            for plan_id, test_metric in test_metrics.items():
+                improvement_rate = self._calculate_improvement_rate(
+                    baseline_metrics=baseline_metrics,
+                    test_metrics=test_metric
+                )
+                improvement_rates[plan_id] = improvement_rate
+                self.improvement_rates[plan_id] = improvement_rate
+
+            logger.info(f"Successfully loaded {len(plan_results)} plans from cache")
+            return {
+                "baseline_metrics": baseline_metrics,
+                "test_metrics": test_metrics,
+                "plan_results": plan_results,
+                "improvement_rates": improvement_rates
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to load batch cache: {e}")
+            return None
 
     def _extract_aggregated_metrics(self, plan_dir: Path, plan_id: str) -> Dict[str, Any]:
         """
