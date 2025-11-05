@@ -70,7 +70,7 @@ async function loadAndDisplayRanking() {
 
         // 发送请求
         const response = await fetch(
-            `${API_BASE}/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
+            `${API_BASE}/control/batch-optimization/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
             {
                 method: 'POST',
                 headers: {
@@ -140,7 +140,7 @@ async function triggerStrategyRanking() {
 
         // 发送请求
         const response = await fetch(
-            `${API_BASE}/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
+            `${API_BASE}/control/batch-optimization/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
             {
                 method: 'POST',
                 headers: {
