@@ -13,10 +13,80 @@
 // to avoid duplicate declaration errors when both scripts are loaded
 let batchResultsData = null;
 
+// 🚀 性能优化：批次结果内存缓存
+// 避免用户重复加载同一批次时的重复 API 请求和渲染
+const batchResultsCache = new Map();  // { batchId → { data, timestamp } }
+
+const CACHE_CONFIG = {
+    enabled: true,           // 缓存开关
+    ttl: 5 * 60 * 1000,      // 缓存时间：5分钟
+    maxSize: 10              // 最多缓存 10 个批次
+};
+
+/**
+ * 获取缓存的批次结果
+ * @param {string} batchId - 批次ID
+ * @returns {Object|null} 缓存的数据或 null
+ */
+function getCachedBatchResults(batchId) {
+    if (!CACHE_CONFIG.enabled) return null;
+
+    const cached = batchResultsCache.get(batchId);
+    if (!cached) return null;
+
+    // 检查缓存是否过期
+    const age = Date.now() - cached.timestamp;
+    if (age > CACHE_CONFIG.ttl) {
+        batchResultsCache.delete(batchId);
+        console.log(`✅ [CACHE] 批次 ${batchId} 缓存已过期`);
+        return null;
+    }
+
+    console.log(`✅ [CACHE HIT] 使用缓存数据，节省API请求 (年龄: ${(age / 1000).toFixed(1)}s)`);
+    return cached.data;
+}
+
+/**
+ * 存储批次结果到缓存
+ * @param {string} batchId - 批次ID
+ * @param {Object} data - 批次数据
+ */
+function setCachedBatchResults(batchId, data) {
+    if (!CACHE_CONFIG.enabled) return;
+
+    // 限制缓存大小，FIFO 清理最旧的条目
+    if (batchResultsCache.size >= CACHE_CONFIG.maxSize) {
+        const firstKey = batchResultsCache.keys().next().value;
+        batchResultsCache.delete(firstKey);
+        console.log(`✅ [CACHE] 清理最旧的缓存: ${firstKey}`);
+    }
+
+    batchResultsCache.set(batchId, {
+        data: data,
+        timestamp: Date.now()
+    });
+
+    console.log(`✅ [CACHE] 缓存已保存: ${batchId} (大小: ${batchResultsCache.size}/${CACHE_CONFIG.maxSize})`);
+}
+
+/**
+ * 清空所有缓存
+ */
+function clearBatchResultsCache() {
+    batchResultsCache.clear();
+    console.log(`✅ [CACHE] 已清空所有缓存`);
+}
+
 // ========== T6.1: 加载批次结果 ==========
 
 /**
  * 从API加载批次结果数据
+ * 🚀 优化：添加内存缓存，避免重复加载和渲染
+ *
+ * 性能改进：
+ * - 首次加载: 正常 (1-3 秒)
+ * - 后续相同批次: 0 秒 (从缓存读取，直接渲染)
+ *
  * @param {string} batchId - 批次ID
  * @param {string} caseId - 案例ID
  */
@@ -25,23 +95,41 @@ async function loadBatchResults(batchId, caseId) {
         currentBatchId = batchId;
         currentCaseId = caseId;
 
-        const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`, {
-            method: 'GET'
-        });
+        // 🚀 优化 1: 检查缓存
+        let fromCache = false;
+        let cachedData = getCachedBatchResults(batchId);
+        if (cachedData) {
+            batchResultsData = cachedData;
+            fromCache = true;
+            // 缓存命中，直接渲染（不需要 API 请求）
+        } else {
+            // 缓存未命中，发起 API 请求
+            console.log(`📡 [API] 加载批次 ${batchId} 的结果...`);
+            const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`, {
+                method: 'GET'
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to load batch results');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to load batch results');
+            }
+
+            batchResultsData = await response.json();
+
+            // 🚀 优化 2: 存入缓存
+            setCachedBatchResults(batchId, batchResultsData);
+
+            // DEBUG: 打印API响应结构，帮助排查数据字段问题
+            console.log('Batch Results API Response:', batchResultsData);
+            console.log('Available fields:', Object.keys(batchResultsData));
         }
 
-        batchResultsData = await response.json();
-
-        // DEBUG: 打印API响应结构，帮助排查数据字段问题
-        console.log('Batch Results API Response:', batchResultsData);
-        console.log('Available fields:', Object.keys(batchResultsData));
-
         // 渲染结果视图（元数据直接来自结果数据，无需额外API调用）
+        const renderStartTime = performance.now();
         renderBatchResultsView();
+        const renderTime = performance.now() - renderStartTime;
+
+        console.log(`✨ 批次结果加载完成 (来源: ${fromCache ? '缓存' : 'API'}, 渲染耗时: ${renderTime.toFixed(0)}ms)`);
 
     } catch (error) {
         console.error('Error loading batch results:', error);
