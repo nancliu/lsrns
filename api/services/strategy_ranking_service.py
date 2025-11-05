@@ -47,7 +47,7 @@ class StrategyRankingService:
             Dict with ranking results
         """
         case_dir = Path(case_dir)
-        batch_dir = case_dir / "simulations" / batch_id
+        batch_dir = case_dir / "simulations" / "plan_opti" / batch_id
 
         logger.info(
             f"Starting strategy ranking: batch={batch_id}, plans={len(plan_ids)}"
