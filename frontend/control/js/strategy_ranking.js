@@ -1,69 +1,103 @@
 /**
  * 控制策略排序结果展示 (Layer 2)
  *
+ * 页面位置：方案优化 (optimization.html)
+ *
  * 职责：
- * - 触发策略排序分析
+ * - 从 batch_id 参数自动加载批次数据
+ * - 自动触发策略排序分析
  * - 加载并展示排序结果
  * - 渲染排序表格和推荐等级
  * - 展示雷达图表和分数对比
+ *
+ * 架构：两层分离
+ * - Layer 1（simulations.html）: 批次结果分析 - 8 个基础指标对比
+ * - Layer 2（optimization.html）: 控制策略排序 - 多准则评分和推荐
  */
 
 // ========== 全局变量 ==========
 let rankingResultsData = null;
 let rankingCharts = {};
+let currentBatchId = null;
+let currentCaseId = null;
 
-// ========== 4.1.1: 添加排序触发按钮 ==========
+// ========== 初始化：从 URL 参数加载批次 ==========
 
 /**
- * 在批次结果页面添加"生成优化方案"按钮
+ * 页面加载时初始化 - 从 URL 参数获取 batch_id，自动加载和排序
+ *
+ * URL 格式: optimization.html?batch_id=batch_20251105_000102&case_id=case_20251103_141612
  */
-function addRankingTriggerButton() {
-    const resultsContainer = document.getElementById('batchResultsContainer');
-    if (!resultsContainer) {
-        console.warn('Batch results container not found');
+function initializeRankingPage() {
+    // 从 URL 获取参数
+    const params = new URLSearchParams(window.location.search);
+    currentBatchId = params.get('batch_id');
+    currentCaseId = params.get('case_id');
+
+    if (!currentBatchId || !currentCaseId) {
+        console.warn('Missing batch_id or case_id in URL parameters');
+        showError('缺少批次或案例信息，请从批量仿真页面进入');
         return;
     }
 
-    // 检查按钮是否已存在
-    if (document.getElementById('btn-generate-ranking')) {
-        return;
+    // 自动加载排序结果
+    loadAndDisplayRanking();
+}
+
+/**
+ * 加载并展示排序结果
+ */
+async function loadAndDisplayRanking() {
+    try {
+        // 显示加载指示器
+        showLoadingIndicator('正在生成优化方案...');
+
+        // 构建请求
+        const request = {
+            case_id: currentCaseId,
+            batch_id: currentBatchId,
+            baseline_plan_id: 'baseline_plan',
+            ranking_criteria: {
+                effectiveness_weight: 0.40,
+                coverage_weight: 0.25,
+                efficiency_weight: 0.20,
+                reliability_weight: 0.15
+            }
+        };
+
+        // 发送请求
+        const response = await fetch(
+            `${API_BASE}/control/batch-optimization/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request)
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || '策略排序失败');
+        }
+
+        rankingResultsData = await response.json();
+        console.log('Ranking Results:', rankingResultsData);
+
+        // 隐藏加载指示器
+        hideLoadingIndicator();
+
+        // 显示排序结果
+        renderRankingResults();
+
+        showSuccess('优化方案生成成功');
+
+    } catch (error) {
+        console.error('Error loading ranking:', error);
+        hideLoadingIndicator();
+        showError('生成优化方案失败: ' + error.message);
     }
-
-    // 创建按钮容器
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.marginTop = '20px';
-    buttonContainer.style.marginBottom = '20px';
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.gap = '10px';
-    buttonContainer.style.justifyContent = 'center';
-
-    // 创建排序按钮
-    const rankingButton = document.createElement('button');
-    rankingButton.id = 'btn-generate-ranking';
-    rankingButton.className = 'btn btn-primary';
-    rankingButton.textContent = '🎯 生成优化方案';
-    rankingButton.style.minWidth = '160px';
-    rankingButton.style.padding = '10px 20px';
-    rankingButton.style.fontSize = '14px';
-    rankingButton.style.fontWeight = 'bold';
-    rankingButton.onclick = triggerStrategyRanking;
-
-    // 创建报告下载按钮（初始隐藏）
-    const reportButton = document.createElement('button');
-    reportButton.id = 'btn-download-report';
-    reportButton.className = 'btn btn-info';
-    reportButton.textContent = '📄 下载报告';
-    reportButton.style.minWidth = '160px';
-    reportButton.style.padding = '10px 20px';
-    reportButton.style.fontSize = '14px';
-    reportButton.style.display = 'none';
-    reportButton.onclick = downloadRankingReport;
-
-    buttonContainer.appendChild(rankingButton);
-    buttonContainer.appendChild(reportButton);
-
-    // 插入到结果容器
-    resultsContainer.insertBefore(buttonContainer, resultsContainer.firstChild);
 }
 
 // ========== 4.1.2: 实现排序请求逻辑 ==========
@@ -145,7 +179,15 @@ async function triggerStrategyRanking() {
 // ========== 4.1.3: 创建排序结果展示模块 ==========
 
 /**
- * 渲染排序结果
+ * 渲染排序结果 (Layer 2: 控制策略排序)
+ *
+ * 位置：optimization.html
+ * 容器：resultsSection (页面设计中已定义)
+ *
+ * 约束：
+ * - 独立页面展示，与 Layer 1 (simulations.html) 完全分离
+ * - 使用 optimization.html 中的 #resultsSection 容器
+ * - 清晰的两层架构
  */
 function renderRankingResults() {
     if (!rankingResultsData) {
@@ -153,77 +195,38 @@ function renderRankingResults() {
         return;
     }
 
-    // 获取或创建结果容器
-    let resultsSection = document.getElementById('strategyRankingSection');
+    // Layer 2: 获取优化页面的结果容器
+    const resultsSection = document.getElementById('resultsSection');
     if (!resultsSection) {
-        resultsSection = createRankingResultsSection();
-        const container = document.getElementById('batchResultsContainer');
-        if (container) {
-            container.appendChild(resultsSection);
-        }
-    }
-
-    // 清空旧内容
-    resultsSection.innerHTML = '';
-
-    // 添加标题
-    const title = document.createElement('h2');
-    title.textContent = '🏆 控制策略排序结果';
-    title.style.color = '#1976D2';
-    title.style.marginBottom = '20px';
-    title.style.borderLeft = '4px solid #2196F3';
-    title.style.paddingLeft = '15px';
-    resultsSection.appendChild(title);
-
-    // 添加摘要信息
-    renderRankingSummary(resultsSection);
-
-    // 添加排序表格
-    renderRankingTable(resultsSection);
-
-    // 添加首推方案详情
-    if (rankingResultsData.ranked_strategies && rankingResultsData.ranked_strategies.length > 0) {
-        renderTopStrategyDetails(resultsSection, rankingResultsData.ranked_strategies[0]);
-    }
-
-    // 添加可视化图表
-    renderRankingCharts(resultsSection);
-}
-
-/**
- * 创建排序结果容器
- */
-function createRankingResultsSection() {
-    const section = document.createElement('section');
-    section.id = 'strategyRankingSection';
-    section.style.marginTop = '40px';
-    section.style.padding = '20px';
-    section.style.backgroundColor = '#f9f9f9';
-    section.style.borderRadius = '4px';
-    section.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-    return section;
-}
-
-/**
- * 渲染排序摘要
- */
-function renderRankingSummary(container) {
-    if (!rankingResultsData.ranking_metadata) {
+        console.error('Results section not found in optimization.html');
         return;
     }
 
-    const metadata = rankingResultsData.ranking_metadata;
+    // 清空旧内容并显示容器
+    resultsSection.innerHTML = '';
+    resultsSection.style.display = 'block';
+
+    // ===== 第一部分：排序摘要卡片 =====
+    const summaryCard = document.createElement('div');
+    summaryCard.className = 'section';
+    summaryCard.style.marginBottom = '20px';
+
+    const summaryTitle = document.createElement('h3');
+    summaryTitle.textContent = '🎯 策略排序摘要';
+    summaryCard.appendChild(summaryTitle);
+
+    // 添加摘要信息
     const summary = document.createElement('div');
-    summary.className = 'summary-text';
     summary.style.backgroundColor = '#e8f5e9';
     summary.style.borderLeft = '4px solid #4CAF50';
     summary.style.padding = '15px';
-    summary.style.marginBottom = '20px';
     summary.style.borderRadius = '4px';
 
     const topStrategy = rankingResultsData.ranked_strategies[0];
+    const metadata = rankingResultsData.ranking_metadata || {};
+
     summary.innerHTML = `
-        <strong>🎯 最优策略: ${topStrategy.plan_name}</strong><br>
+        <strong>🏆 首推策略: ${topStrategy.plan_name}</strong><br>
         总体评分 <span style="color: #2196F3; font-weight: bold;">${topStrategy.overall_score.toFixed(1)}/100</span>，
         推荐等级为"<strong>${topStrategy.recommendation}</strong>"。<br><br>
         📊 本次评估共纳入 <strong>${metadata.total_strategies}</strong> 个控制策略。
@@ -231,8 +234,37 @@ function renderRankingSummary(container) {
         为交通管理者提供科学的决策支持。
     `;
 
-    container.appendChild(summary);
+    summaryCard.appendChild(summary);
+    resultsSection.appendChild(summaryCard);
+
+    // ===== 第二部分：排序表格 =====
+    const tableCard = document.createElement('div');
+    tableCard.className = 'section';
+    tableCard.style.marginBottom = '20px';
+
+    const tableTitle = document.createElement('h3');
+    tableTitle.textContent = '📋 策略排序表';
+    tableCard.appendChild(tableTitle);
+
+    renderRankingTable(tableCard);
+    resultsSection.appendChild(tableCard);
+
+    // ===== 第三部分：首推方案详情 =====
+    const detailCard = document.createElement('div');
+    detailCard.className = 'section';
+    detailCard.style.marginBottom = '20px';
+
+    const detailTitle = document.createElement('h3');
+    detailTitle.textContent = '✨ 首推方案详情';
+    detailCard.appendChild(detailTitle);
+
+    renderTopStrategyDetails(detailCard, topStrategy);
+    resultsSection.appendChild(detailCard);
+
+    // ===== 第四部分：可视化图表 =====
+    renderRankingCharts(resultsSection);
 }
+
 
 /**
  * 渲染排序表格

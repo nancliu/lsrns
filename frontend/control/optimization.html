@@ -386,7 +386,15 @@
 
     <!-- 通用提示组件 -->
     <script src="js/notification.js"></script>
+    <!-- 控制策略排序逻辑 (Layer 2) -->
+    <script src="js/strategy_ranking.js"></script>
     <!-- 方案优化分析逻辑 -->
     <script src="js/optimization.js"></script>
+    <script>
+        // 页面加载时初始化排序模块
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeRankingPage();
+        });
+    </script>
 </body>
 </html>

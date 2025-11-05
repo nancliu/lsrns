@@ -1562,16 +1562,37 @@ async function loadBatchResultsAndSwitch(batchId, caseId) {
     }
 }
 
-// ========== 导航到优化页面 ==========
+// ========== 导航到优化页面 (Layer 1 → Layer 2) ==========
 
+/**
+ * 导航到优化页面并加载策略排序结果 (Layer 2)
+ *
+ * 流程：
+ * 1. 用户在 simulations.html 查看批次结果 (Layer 1)
+ * 2. 点击"查看详细优化分析"按钮
+ * 3. 跳转到 optimization.html 并自动加载策略排序 (Layer 2)
+ */
 function viewOptimizationAnalysis() {
     if (!currentBatchId) {
         showError('未找到批次ID');
         return;
     }
 
-    // 跳转到方案优化页面，传递 batch_id 参数
-    window.location.href = `optimization.html?batch_id=${currentBatchId}`;
+    // 获取 case_id（可能来自 batchResultsData）
+    let caseId = currentCaseId;
+    if (!caseId && batchResultsData && batchResultsData.case_id) {
+        caseId = batchResultsData.case_id;
+    }
+
+    if (!caseId) {
+        // 如果没有 case_id，尝试从全局变量或其他来源获取
+        console.warn('Missing case_id, attempting fallback...');
+        caseId = 'unknown';
+    }
+
+    // 跳转到方案优化页面，传递 batch_id 和 case_id 参数
+    // 优化页面会自动加载策略排序结果 (Layer 2)
+    window.location.href = `optimization.html?batch_id=${currentBatchId}&case_id=${caseId}`;
 }
 
 // ========== 批次历史管理 (Phase 1: 已升级为case分组视图) ==========
