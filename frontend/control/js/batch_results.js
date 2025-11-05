@@ -13,6 +13,49 @@
 // to avoid duplicate declaration errors when both scripts are loaded
 let batchResultsData = null;
 
+// 🚀 优化: 加载指示器函数
+/**
+ * 显示加载指示器
+ * @param {string} message - 加载消息
+ */
+function showLoadingIndicator(message = '加载中，请稍候...') {
+    // 移除已存在的指示器（如果有）
+    const existing = document.getElementById('results-loading-indicator');
+    if (existing) {
+        existing.remove();
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'results-loading-indicator';
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>${message}</p>
+            <div class="loading-message">
+                首次加载会等待服务器计算结果，可能需要 3-5 秒
+            </div>
+            <div class="progress-hint">
+                <p>稍后查看会更快</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+/**
+ * 隐藏加载指示器
+ */
+function hideLoadingIndicator() {
+    const indicator = document.getElementById('results-loading-indicator');
+    if (indicator) {
+        indicator.style.animation = 'fadeOut 0.3s ease-out forwards';
+        setTimeout(() => {
+            indicator.remove();
+        }, 300);
+    }
+}
+
 // 🚀 性能优化：批次结果内存缓存
 // 避免用户重复加载同一批次时的重复 API 请求和渲染
 const batchResultsCache = new Map();  // { batchId → { data, timestamp } }
@@ -105,23 +148,33 @@ async function loadBatchResults(batchId, caseId) {
         } else {
             // 缓存未命中，发起 API 请求
             console.log(`📡 [API] 加载批次 ${batchId} 的结果...`);
-            const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`, {
-                method: 'GET'
-            });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to load batch results');
+            // 🚀 优化 3: 显示加载指示器（首次查询时）
+            showLoadingIndicator('正在加载结果...');
+
+            try {
+                const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}/results`, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    hideLoadingIndicator();
+                    throw new Error(error.detail || 'Failed to load batch results');
+                }
+
+                batchResultsData = await response.json();
+
+                // 🚀 优化 2: 存入缓存
+                setCachedBatchResults(batchId, batchResultsData);
+
+                // DEBUG: 打印API响应结构，帮助排查数据字段问题
+                console.log('Batch Results API Response:', batchResultsData);
+                console.log('Available fields:', Object.keys(batchResultsData));
+            } finally {
+                // 隐藏加载指示器
+                hideLoadingIndicator();
             }
-
-            batchResultsData = await response.json();
-
-            // 🚀 优化 2: 存入缓存
-            setCachedBatchResults(batchId, batchResultsData);
-
-            // DEBUG: 打印API响应结构，帮助排查数据字段问题
-            console.log('Batch Results API Response:', batchResultsData);
-            console.log('Available fields:', Object.keys(batchResultsData));
         }
 
         // 渲染结果视图（元数据直接来自结果数据，无需额外API调用）

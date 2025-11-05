@@ -1,0 +1,165 @@
+/* 加载指示器样式 */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.loading-content {
+    background: white;
+    padding: 40px 50px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    animation: slideUp 0.3s ease-out;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #f0f0f0;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.loading-content p {
+    font-size: 16px;
+    margin: 15px 0 10px 0;
+    color: #333;
+    font-weight: 500;
+}
+
+.loading-content .loading-message {
+    font-size: 14px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.loading-content small {
+    display: block;
+    color: #999;
+    font-size: 12px;
+    margin-top: 15px;
+    line-height: 1.5;
+}
+
+/* 进度提示 */
+.progress-hint {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.progress-hint p {
+    font-size: 13px;
+    color: #0066cc;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-hint p::before {
+    content: "⏱️";
+    margin-right: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .loading-content {
+        padding: 30px 40px;
+        max-width: 90%;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border-width: 3px;
+    }
+
+    .loading-content p {
+        font-size: 14px;
+    }
+
+    .loading-content small {
+        font-size: 11px;
+    }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .loading-overlay {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    .loading-content {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+
+    .loading-content p {
+        color: #e0e0e0;
+    }
+
+    .loading-content .loading-message {
+        color: #b0b0b0;
+    }
+
+    .loading-content small {
+        color: #808080;
+    }
+
+    .progress-hint p {
+        color: #66b3ff;
+    }
+}
