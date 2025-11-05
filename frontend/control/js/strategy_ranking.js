@@ -21,6 +21,17 @@ let rankingCharts = {};
 let currentBatchId = null;
 let currentCaseId = null;
 
+// 🔧 修复: API_BASE 定义 (备用)
+// 主要定义在 batch_simulation.js,这里作为备用
+// 确保 API_BASE 全局可用
+if (typeof window.API_BASE === 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const host = window.location.host;
+    window.API_BASE = `${protocol}//${host}/api/v1`;
+    console.warn('[strategy_ranking.js] API_BASE not found, using fallback:', window.API_BASE);
+}
+const API_BASE = window.API_BASE;
+
 // ========== 初始化：从 URL 参数加载批次 ==========
 
 /**
