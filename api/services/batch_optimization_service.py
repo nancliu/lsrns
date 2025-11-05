@@ -1303,15 +1303,16 @@ class BatchOptimizationService:
             # 【解决】: 时序数据仅在明确请求时计算(如results页面加载)
             # progress轮询只返回基本的进度信息,不计算复杂的时序聚合
             # 性能提升: 27秒 → <100ms (-99%)
+            # 计算预计完成时间
+            from datetime import datetime
+
             live_time_series = {
                 'time_points': [],
                 'total_running': [],
                 'task_count': len(progress_data["tasks"]),
+                'last_update': datetime.now().isoformat(),
                 'data_source': 'disabled_for_progress_optimization'
             }
-
-            # 计算预计完成时间
-            from datetime import datetime
             estimated_completion = None
             if batch_remaining_seconds is not None and batch_remaining_seconds > 0:
                 estimated_time = datetime.now().timestamp() + batch_remaining_seconds
