@@ -11,7 +11,7 @@ Responsibilities:
 import logging
 from typing import Dict, List, Any, Optional
 
-from multi_criteria_scorer import MultiCriteriaScorer
+from .multi_criteria_scorer import MultiCriteriaScorer
 
 logger = logging.getLogger(__name__)
 

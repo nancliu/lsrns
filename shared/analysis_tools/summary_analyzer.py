@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from batch_result_analyzer import BatchResultAnalyzer
+from .batch_result_analyzer import BatchResultAnalyzer
 
 logger = logging.getLogger(__name__)
 
