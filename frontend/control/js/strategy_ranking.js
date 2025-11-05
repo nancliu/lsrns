@@ -18,20 +18,10 @@
 // ========== 全局变量 ==========
 let rankingResultsData = null;
 let rankingCharts = {};
-let currentBatchId = null;
-let currentCaseId = null;
 
-// 🔧 修复: API_BASE 共享
-// API_BASE 可能在以下文件中定义:
-// 1. batch_simulation.js (const API_BASE = ...)
-// 2. optimization.js (const API_BASE = ...)
-// 3. 其他脚本
-// 这里使用备用定义,仅当全局 API_BASE 不存在时
-if (typeof API_BASE === 'undefined') {
-    // 注意: 不能使用 const API_BASE 避免重复声明
-    // 使用全局对象或检查 window.API_BASE
-    console.warn('[strategy_ranking.js] API_BASE not defined, will use fallback');
-}
+// 注意: currentBatchId, currentCaseId 由 optimization.js 定义和管理
+// 本模块使用 optimization.js 中定义的全局变量，避免重复声明
+// API_BASE 也由 optimization.js 定义和管理
 
 // ========== 初始化：从 URL 参数加载批次 ==========
 
@@ -43,14 +33,18 @@ if (typeof API_BASE === 'undefined') {
 function initializeRankingPage() {
     // 从 URL 获取参数
     const params = new URLSearchParams(window.location.search);
-    currentBatchId = params.get('batch_id');
-    currentCaseId = params.get('case_id');
+    const batchId = params.get('batch_id');
+    const caseId = params.get('case_id');
 
-    if (!currentBatchId || !currentCaseId) {
+    if (!batchId || !caseId) {
         console.warn('Missing batch_id or case_id in URL parameters');
         showError('缺少批次或案例信息，请从批量仿真页面进入');
         return;
     }
+
+    // 使用 optimization.js 中的全局变量
+    currentBatchId = batchId;
+    currentCaseId = caseId;
 
     // 自动加载排序结果
     loadAndDisplayRanking();
