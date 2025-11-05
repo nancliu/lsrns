@@ -21,16 +21,17 @@ let rankingCharts = {};
 let currentBatchId = null;
 let currentCaseId = null;
 
-// 🔧 修复: API_BASE 定义 (备用)
-// 主要定义在 batch_simulation.js,这里作为备用
-// 确保 API_BASE 全局可用
-if (typeof window.API_BASE === 'undefined') {
-    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-    const host = window.location.host;
-    window.API_BASE = `${protocol}//${host}/api/v1`;
-    console.warn('[strategy_ranking.js] API_BASE not found, using fallback:', window.API_BASE);
+// 🔧 修复: API_BASE 共享
+// API_BASE 可能在以下文件中定义:
+// 1. batch_simulation.js (const API_BASE = ...)
+// 2. optimization.js (const API_BASE = ...)
+// 3. 其他脚本
+// 这里使用备用定义,仅当全局 API_BASE 不存在时
+if (typeof API_BASE === 'undefined') {
+    // 注意: 不能使用 const API_BASE 避免重复声明
+    // 使用全局对象或检查 window.API_BASE
+    console.warn('[strategy_ranking.js] API_BASE not defined, will use fallback');
 }
-const API_BASE = window.API_BASE;
 
 // ========== 初始化：从 URL 参数加载批次 ==========
 
@@ -78,7 +79,7 @@ async function loadAndDisplayRanking() {
 
         // 发送请求
         const response = await fetch(
-            `${API_BASE}/control/batch-optimization/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
+            `${API_BASE}/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
             {
                 method: 'POST',
                 headers: {
@@ -148,7 +149,7 @@ async function triggerStrategyRanking() {
 
         // 发送请求
         const response = await fetch(
-            `${API_BASE}/control/batch-optimization/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
+            `${API_BASE}/batch/${currentCaseId}/${currentBatchId}/strategy-ranking`,
             {
                 method: 'POST',
                 headers: {
