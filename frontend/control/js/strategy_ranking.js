@@ -16,13 +16,18 @@
  */
 
 // ========== API 配置 ==========
-const API_BASE = '/api/v1';
+// 注意：API_BASE 在 batch_simulation.js 中已定义
+// 在 optimization.html 中需要定义（该页面不加载 batch_simulation.js）
+if (typeof API_BASE === 'undefined') {
+    var API_BASE = '/api/v1';
+}
 
 // ========== 全局变量 ==========
 let rankingResultsData = null;
 let rankingCharts = {};
 let currentBatchId = null;
 let currentCaseId = null;
+let batchResultsData = null; // 批次结果数据（包含批次元数据）
 
 // ========== 初始化：从 URL 参数加载批次 ==========
 
@@ -72,6 +77,28 @@ function initializeRankingPage() {
 async function loadAndDisplayRanking() {
     try {
         // 显示加载指示器
+        showLoadingIndicator('正在加载批次信息...');
+
+        // 步骤1: 先加载批次结果数据（包含批次元数据）
+        const batchResponse = await fetch(
+            `${API_BASE}/control/batch-optimization/batch/${currentBatchId}/results`,
+            {
+                method: 'GET'
+            }
+        );
+
+        if (!batchResponse.ok) {
+            const error = await batchResponse.json();
+            throw new Error(error.detail || '加载批次结果失败');
+        }
+
+        batchResultsData = await batchResponse.json();
+        console.log('Batch Results Data:', batchResultsData);
+
+        // 显示批次信息面板
+        renderBatchInfoPanel(batchResultsData);
+
+        // 步骤2: 更新加载提示
         showLoadingIndicator('正在生成优化方案...');
 
         // 构建请求
@@ -665,6 +692,360 @@ function downloadRankingReport() {
 
 // ========== 工具函数 ==========
 
+// ========== 批次信息面板 ==========
+
+/**
+ * 渲染批次信息面板 - 显示批次的完整概览
+ * 复用 batch_results.js 中的实现
+ * 包括：案例信息、创建时间、仿真参数、方案列表等
+ * @param {Object} batchData - 批次数据
+ */
+function renderBatchInfoPanel(batchData) {
+    // 查找 optimization.html 中的结果容器
+    const container = document.getElementById('batchInfoContainer');
+    if (!container) {
+        console.warn('Batch info container not found in optimization.html');
+        return;
+    }
+
+    // DEBUG: 检查仿真配置数据
+    console.log('[DEBUG] Batch simulation config:', {
+        num_seeds: batchData.num_seeds,
+        base_seed: batchData.base_seed,
+        simulation_duration: batchData.simulation_duration,
+        output_config: batchData.output_config
+    });
+
+    // 移除旧的批次信息面板（防止重复）
+    const existingPanel = container.querySelector('.batch-info-panel');
+    if (existingPanel) {
+        existingPanel.remove();
+    }
+
+    // 创建批次信息面板（顶部标题 + 网格布局）
+    let infoPanelHtml = '<div class="batch-info-panel">';
+    infoPanelHtml += '<div class="batch-info-header">';
+
+    // 标题
+    infoPanelHtml += '<h3>📌 批次概览</h3>';
+
+    // 批次ID 在标题行显示
+    if (batchData.batch_id) {
+        infoPanelHtml += `<p class="batch-id"><strong>批次ID:</strong> <code>${batchData.batch_id}</code></p>`;
+    }
+    infoPanelHtml += '</div>'; // 结束 batch-info-header
+
+    // 信息网格容器（3列布局，对比方案网格显示）
+    infoPanelHtml += '<div class="batch-info-grid">';
+
+    // 1. 案例信息
+    infoPanelHtml += '<div class="batch-info-card">';
+    infoPanelHtml += '<h4>📋 案例信息</h4>';
+
+    // 从新增的case_info字段中获取数据（优先级最高）
+    if (batchData.case_info) {
+        const caseInfo = batchData.case_info;
+        const caseName = caseInfo.case_name || caseInfo.case_id || '未知';
+        infoPanelHtml += `<p><strong>${caseName}</strong></p>`;
+
+        if (caseInfo.case_id) {
+            infoPanelHtml += `<p class="text-muted">ID: ${caseInfo.case_id}</p>`;
+        }
+
+        // 显示时间范围（开始时间保留日期，结束时间只显示时间，避免日期重复）
+        if (caseInfo.time_range && (caseInfo.time_range.start || caseInfo.time_range.end)) {
+            const startTime = caseInfo.time_range.start || '未知';
+            const endTime = caseInfo.time_range.end || '未知';
+            // 提取结束时间的纯时间部分 (HH:MM:SS 格式)
+            const endTimeOnly = endTime && endTime.includes(' ') ? endTime.split(' ')[1] : endTime;
+            infoPanelHtml += `<p class="text-highlight"><strong>案例时间:</strong> ${startTime} - ${endTimeOnly}</p>`;
+        }
+
+        if (caseInfo.description) {
+            infoPanelHtml += `<p class="text-muted"><em>${caseInfo.description}</em></p>`;
+        }
+    } else if (batchData.caseInfo && batchData.caseInfo.case_name) {
+        // 备选：使用旧的caseInfo格式
+        infoPanelHtml += `<p><strong>${batchData.caseInfo.case_name}</strong></p>`;
+        if (batchData.caseInfo.case_id) {
+            infoPanelHtml += `<p class="text-muted">ID: ${batchData.caseInfo.case_id}</p>`;
+        }
+    } else if (batchData.case_id) {
+        // 备选：直接使用case_id（现在已在API响应中）
+        infoPanelHtml += `<p><strong>案例ID:</strong> <code>${batchData.case_id}</code></p>`;
+    } else {
+        infoPanelHtml += `<p class="text-muted">暂无信息</p>`;
+    }
+
+    infoPanelHtml += '</div>';
+
+    // 2. 执行时间
+    infoPanelHtml += '<div class="batch-info-card">';
+    infoPanelHtml += '<h4>⏰ 执行时间</h4>';
+    const createdAt = batchData.created_at ? new Date(batchData.created_at).toLocaleString('zh-CN') : '未知';
+    const completedAt = batchData.completed_at ? new Date(batchData.completed_at).toLocaleString('zh-CN') : '进行中';
+    infoPanelHtml += `<p><strong>创建:</strong> ${createdAt}</p>`;
+    infoPanelHtml += `<p><strong>完成:</strong> ${completedAt}</p>`;
+    if (batchData.duration_seconds) {
+        infoPanelHtml += `<p class="text-highlight"><strong>耗时:</strong> ${formatDurationFromSeconds(batchData.duration_seconds)}</p>`;
+    }
+    infoPanelHtml += '</div>';
+
+    // 3. 仿真配置
+    infoPanelHtml += '<div class="batch-info-card">';
+    infoPanelHtml += '<h4>⚙️ 仿真配置</h4>';
+    infoPanelHtml += `<p><strong>种子数:</strong> ${batchData.num_seeds || 3}</p>`;
+    infoPanelHtml += `<p><strong>起始种子:</strong> ${batchData.base_seed || 66}</p>`;
+
+    // 显示仿真时长
+    if (batchData.simulation_duration && typeof batchData.simulation_duration === 'object') {
+        const duration = batchData.simulation_duration;
+        const hours = duration.hours || 0;
+        const minutes = duration.minutes || 0;
+        const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        infoPanelHtml += `<p class="text-highlight"><strong>仿真时长:</strong> ${durationText}</p>`;
+        console.log('[DEBUG] simulation_duration displayed:', durationText);
+    } else {
+        console.log('[DEBUG] simulation_duration not available:', batchData.simulation_duration);
+    }
+
+    // 输出配置详情
+    if (batchData.output_config && typeof batchData.output_config === 'object' && Object.keys(batchData.output_config).length > 0) {
+        const outputConfig = batchData.output_config;
+        const configs = [];
+
+        if (outputConfig.output_tripinfo) configs.push('✓ tripinfo');
+        if (outputConfig.output_emission) configs.push('✓ E1检测器');
+        if (outputConfig.output_edgedata) configs.push('✓ edgedata');
+        if (outputConfig.output_netstate || outputConfig.output_vehroute) {
+            configs.push('✓ summary');
+        }
+
+        if (configs.length > 0) {
+            const configsText = configs.join(' • ');
+            infoPanelHtml += `<p><strong>仿真输出配置:</strong> ${configsText}</p>`;
+            console.log('[DEBUG] output_config displayed:', configs);
+        }
+    }
+    infoPanelHtml += '</div>';
+
+    // 4. 对比方案（网格布局，3列显示）
+    if (batchData.plan_results && batchData.plan_results.length > 0) {
+        infoPanelHtml += '<div class="batch-info-card batch-info-card-full">';
+        infoPanelHtml += '<h4>📊 对比方案</h4>';
+        infoPanelHtml += '<div class="batch-plans-grid">';
+        batchData.plan_results.forEach((plan, index) => {
+            const planName = plan.plan_name || plan.plan_id || `方案 ${index + 1}`;
+            const isBaseline = plan.is_baseline ? ' <span class="baseline-badge">基准</span>' : '';
+            const samplesInfo = plan.sample_count ? ` (${plan.sample_count})` : '';
+            infoPanelHtml += `<div class="batch-plan-item"><strong>${planName}</strong>${isBaseline}<span class="text-muted">${samplesInfo}</span></div>`;
+        });
+        infoPanelHtml += '</div>';
+        infoPanelHtml += '</div>';
+    }
+
+    infoPanelHtml += '</div>'; // 结束 batch-info-grid
+    infoPanelHtml += '</div>'; // 结束 batch-info-panel
+
+    // 插入到容器中
+    container.innerHTML = infoPanelHtml;
+
+    // 添加样式
+    addBatchInfoStyles();
+}
+
+/**
+ * 添加批次信息面板的样式
+ */
+function addBatchInfoStyles() {
+    // 检查样式是否已添加
+    if (document.getElementById('batch-info-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'batch-info-styles';
+    style.textContent = `
+        /* 主面板 */
+        .batch-info-panel {
+            background: linear-gradient(135deg, #f5f9ff 0%, #f0f6ff 100%);
+            border: 1px solid #d6e4f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+        }
+
+        /* 头部区域（标题 + Batch ID） */
+        .batch-info-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(52, 152, 219, 0.15);
+        }
+
+        .batch-info-header h3 {
+            color: #2c3e50;
+            font-size: 1.3em;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .batch-id {
+            color: #1a1a1a;
+            font-size: 1em;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .batch-id code {
+            background: white;
+            color: #1a1a1a;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            font-weight: 700;
+        }
+
+        /* 网格容器 */
+        .batch-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        /* 网格卡片 */
+        .batch-info-card {
+            background: white;
+            border: 1px solid #ecf0f1;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .batch-info-card:hover {
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.1);
+        }
+
+        .batch-info-card h4 {
+            color: #2c3e50;
+            font-size: 0.95em;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .batch-info-card p {
+            margin: 6px 0;
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        /* 卡片中的强调文本 */
+        .batch-info-card strong {
+            color: #2980b9;
+        }
+
+        /* 全宽卡片（对比方案） */
+        .batch-info-card-full {
+            grid-column: 1 / -1;
+        }
+
+        /* 辅助文本 */
+        .text-muted {
+            color: #95a5a6;
+            font-size: 0.85em;
+        }
+
+        .text-highlight {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+        /* 基准标记 */
+        .baseline-badge {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 6px;
+            font-weight: 500;
+        }
+
+        /* 方案网格（新的3列布局） */
+        .batch-plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .batch-plan-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .batch-plan-item strong {
+            color: #2c3e50;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .batch-info-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .batch-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .batch-info-card-full {
+                grid-column: auto;
+            }
+
+            .batch-info-panel {
+                padding: 15px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * 格式化时间间隔（秒）
+ * @param {number} seconds - 秒数
+ */
+function formatDurationFromSeconds(seconds) {
+    if (!seconds) return '未知';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}小时`);
+    if (minutes > 0) parts.push(`${minutes}分钟`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}秒`);
+    return parts.join(' ');
+}
+
+// ========== 工具函数 ==========
+
 /**
  * 获取推荐等级的样式
  */
@@ -790,6 +1171,28 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// ========== 导航功能 ==========
+
+/**
+ * 返回批量仿真结果页面
+ * 导航回 simulations.html 的"结果"标签页，并保留批次上下文
+ */
+function backToBatchSimulation() {
+    // 从 URL 参数获取当前批次信息
+    const params = new URLSearchParams(window.location.search);
+    const batchId = params.get('batch_id') || currentBatchId;
+    const caseId = params.get('case_id') || currentCaseId;
+
+    if (batchId && caseId) {
+        // 导航回仿真页面，使用 URL 参数传递批次信息
+        // simulations.html 可以通过 URL 参数自动切换到结果视图并加载该批次
+        window.location.href = `simulations.html?batch_id=${batchId}&case_id=${caseId}&view=results`;
+    } else {
+        // 如果参数缺失，回到仿真页面首页
+        window.location.href = 'simulations.html';
+    }
+}
+
 // ========== 初始化 ==========
 
 /**
@@ -801,6 +1204,15 @@ function initStrategyRanking() {
     // 此函数仅用于 optimization.html 中的 Layer 2 展示
     // Layer 1 (simulations.html) 和 Layer 2 (optimization.html) 是完全独立的页面
     console.log('Strategy Ranking module loaded - for optimization.html Layer 2 display only');
+
+    // 绑定返回按钮事件
+    const backBtn = document.getElementById('backToBatchBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', backToBatchSimulation);
+    }
+
+    // 页面加载完成后自动初始化（从 optimization.html 调用）
+    // initializeRankingPage() 在 optimization.html 中被显式调用
 }
 
 // 页面加载时初始化
