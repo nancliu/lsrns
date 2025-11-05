@@ -1224,35 +1224,64 @@ class BatchOptimizationService:
         try:
             progress_data = self.scheduler.get_batch_progress(case_id, batch_id)
 
+            # 🚀 性能优化：加载批次配置（包含缓存的end_time）
+            # 避免在progress轮询时重复从磁盘提取end_time
+            batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
+            batch_metadata_path = batch_dir / "batch_metadata.json"
+            cached_end_times = {}  # {task_id: end_time}
+            needs_metadata_update = False
+
+            if batch_metadata_path.exists():
+                try:
+                    with open(batch_metadata_path, "r", encoding="utf-8") as f:
+                        batch_metadata = json.load(f)
+                        # 从metadata获取缓存的end_times(如果存在)
+                        cached_end_times = batch_metadata.get("task_end_times", {})
+                except Exception as e:
+                    logger.debug(f"Failed to load task_end_times from metadata: {e}")
+            else:
+                batch_metadata = {}
+
             # 对每个任务添加live_status（运行中任务使用实时数据，已完成任务使用最后一步数据）
             for task_dict in progress_data["tasks"]:
                 if task_dict.get('status') in ['running', 'completed']:
-                    # 为每个任务从其 summary.xml 提取实际的 end_time（仿真时长）
-                    # 如果提取失败，使用默认值 14400
-                    simulation_id = task_dict.get('simulation_id')
-                    plan_id = task_dict.get('plan_id')
-                    seed = task_dict.get('seed')
+                    # 获取task_id作为缓存key
                     task_id = task_dict.get('task_id', 'unknown')
 
-                    # 定位 simulation.sumocfg 文件
-                    if plan_id and seed:
-                        # 批量仿真：使用 plan_opti 路径
-                        sumocfg_file = (
-                            Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" /
-                            batch_id / plan_id / f"sim_{seed}" / "simulation.sumocfg"
-                        )
+                    # 🚀 优化：优先使用缓存的end_time，避免磁盘I/O
+                    task_total_steps = cached_end_times.get(task_id)
+
+                    if task_total_steps is None:
+                        # 缓存未命中，从磁盘提取(这只发生在第一次poll或metadata损坏时)
+                        plan_id = task_dict.get('plan_id')
+                        seed = task_dict.get('seed')
+
+                        # 定位 simulation.sumocfg 文件
+                        if plan_id and seed:
+                            # 批量仿真：使用 plan_opti 路径
+                            sumocfg_file = (
+                                Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" /
+                                batch_id / plan_id / f"sim_{seed}" / "simulation.sumocfg"
+                            )
+                        else:
+                            # 单次仿真：使用标准路径
+                            simulation_id = task_dict.get('simulation_id')
+                            sumocfg_file = (
+                                Path(self.cases_base_dir) / case_id / "simulations" / simulation_id / "simulation.sumocfg"
+                            )
+
+                        # 提取实际的 end_time，如果失败则使用默认值
+                        extracted_end_time = self._extract_simulation_end_time(sumocfg_file)
+                        task_total_steps = extracted_end_time if extracted_end_time is not None else 14400
+
+                        if extracted_end_time is None:
+                            logger.debug(f"Task {task_id}: Using default end_time 14400 seconds")
+
+                        # 缓存到cached_end_times供后续保存到metadata
+                        cached_end_times[task_id] = task_total_steps
+                        needs_metadata_update = True
                     else:
-                        # 单次仿真：使用标准路径
-                        sumocfg_file = (
-                            Path(self.cases_base_dir) / case_id / "simulations" / simulation_id / "simulation.sumocfg"
-                        )
-
-                    # 提取实际的 end_time，如果失败则使用默认值
-                    extracted_end_time = self._extract_simulation_end_time(sumocfg_file)
-                    task_total_steps = extracted_end_time if extracted_end_time is not None else 14400
-
-                    if extracted_end_time is None:
-                        logger.debug(f"Task {task_id}: Using default end_time 14400 seconds")
+                        logger.debug(f"Task {task_id}: Using cached end_time {task_total_steps} seconds")
 
                     live_status = self._get_simulation_live_status(
                         case_id=case_id,
@@ -1275,22 +1304,26 @@ class BatchOptimizationService:
                 estimated_time = datetime.now().timestamp() + batch_remaining_seconds
                 estimated_completion = datetime.fromtimestamp(estimated_time).isoformat()
 
-            # 从batch_metadata.json读取配置信息
-            batch_dir = Path(self.cases_base_dir) / case_id / "simulations" / "plan_opti" / batch_id
-            batch_metadata_path = batch_dir / "batch_metadata.json"
-            batch_config = {}
-            if batch_metadata_path.exists():
+            # 🚀 优化：延迟写入task_end_times到metadata,避免重复磁盘I/O
+            # 每个progress poll只需读一次metadata,而不是两次
+            if needs_metadata_update and batch_metadata:
                 try:
-                    with open(batch_metadata_path, "r", encoding="utf-8") as f:
-                        batch_metadata = json.load(f)
-                        batch_config = {
-                            "num_seeds": batch_metadata.get("num_seeds", 3),
-                            "base_seed": batch_metadata.get("base_seed", 66),
-                            "simulation_duration": batch_metadata.get("simulation_duration"),
-                            "output_config": batch_metadata.get("output_config", {}),
-                        }
+                    batch_metadata["task_end_times"] = cached_end_times
+                    with open(batch_metadata_path, "w", encoding="utf-8") as f:
+                        json.dump(batch_metadata, f, indent=2, ensure_ascii=False)
+                    logger.debug(f"Cached {len(cached_end_times)} task end_times to batch_metadata.json")
                 except Exception as e:
-                    logger.debug(f"Failed to load batch config from metadata: {e}")
+                    logger.warning(f"Failed to save task_end_times to metadata: {e}")
+
+            # 提取batch配置信息（reuse已加载的batch_metadata)
+            batch_config = {}
+            if batch_metadata:
+                batch_config = {
+                    "num_seeds": batch_metadata.get("num_seeds", 3),
+                    "base_seed": batch_metadata.get("base_seed", 66),
+                    "simulation_duration": batch_metadata.get("simulation_duration"),
+                    "output_config": batch_metadata.get("output_config", {}),
+                }
 
             response = {
                 **progress_data,
