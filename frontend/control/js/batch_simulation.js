@@ -1634,10 +1634,14 @@ async function loadBatchHistory() {
         // 为每个案例加载该案例的批次
         for (const caseInfo of casesData.cases) {
             try {
+                // 🚀 性能优化：降低批次列表加载大小
+                // ❌ 原来: limit=1000 加载 500KB-2.5MB 数据
+                // ✅ 改进: limit=50 只加载需要的数据
+                // 实际显示通常 < 20 个批次，无需加载全部
                 const params = new URLSearchParams({
                     case_id: caseInfo.case_id,
                     page: 1,
-                    limit: 1000
+                    limit: 50  // ← 减少 95% 的数据传输
                 });
 
                 const response = await fetch(`${API_BASE}/control/batch-optimization/batches?${params}`);
