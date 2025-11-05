@@ -16,17 +16,14 @@
  */
 
 // ========== API 配置 ==========
-// 注意：API_BASE 在 batch_simulation.js 中已定义
-// 在 optimization.html 中需要定义（该页面不加载 batch_simulation.js）
-if (typeof API_BASE === 'undefined') {
-    var API_BASE = '/api/v1';
-}
+const API_BASE = '/api/v1';
 
 // ========== 全局变量 ==========
 let rankingResultsData = null;
 let rankingCharts = {};
-// 注意：currentBatchId, currentCaseId, batchResultsData
-// 由 batch_simulation.js 声明，这里仅引用，不重复声明
+let currentBatchId = null;
+let currentCaseId = null;
+let batchResultsData = null; // 批次结果数据（包含批次元数据）
 
 // ========== 初始化：从 URL 参数加载批次 ==========
 
