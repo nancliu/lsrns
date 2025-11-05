@@ -323,12 +323,77 @@ class MultiCriteriaScorer:
         Returns:
             Score 0-100
         """
-        # TODO: In future phases, extract std_dev from batch results
-        # For now, use a default reliability score
-        logger.debug(
-            f"Reliability score calculation: using default (single-seed run)"
+        # Get seed data from combined analysis
+        seed_data = combined_analysis.get("summary", {}).get("seed_data", {}).get(plan_id, [])
+        batch_metadata = combined_analysis.get("batch_metadata", {})
+        num_seeds = batch_metadata.get("num_seeds", 1)
+
+        # If no seed data or only 1 seed, use default
+        if not seed_data or len(seed_data) <= 1 or num_seeds <= 1:
+            logger.debug(
+                f"Reliability score for {plan_id}: using default (num_seeds={num_seeds})"
+            )
+            return 70.0  # Default for single-seed or missing seed data
+
+        # Calculate effectiveness scores for each seed
+        effectiveness_scores = []
+        improvement_rates_baseline = combined_analysis.get("summary", {}).get("improvement_rates", {}).get(plan_id, {})
+
+        for seed_metrics in seed_data:
+            # Recalculate effectiveness for this seed using its metrics
+            effectiveness = self._calculate_effectiveness_from_metrics(seed_metrics, improvement_rates_baseline)
+            effectiveness_scores.append(effectiveness)
+
+        if len(effectiveness_scores) < 2:
+            logger.debug(f"Not enough seed data for {plan_id}")
+            return 70.0
+
+        # Calculate standard deviation
+        std_dev = statistics.stdev(effectiveness_scores)
+        reliability = max(0, min(100, 100 - (std_dev * 10)))
+
+        logger.info(
+            f"Reliability for {plan_id}: std_dev={std_dev:.2f}, "
+            f"effectiveness_scores={[round(s, 2) for s in effectiveness_scores]}, "
+            f"reliability={reliability:.2f}"
         )
-        return 70.0  # Default for single-seed simulations
+
+        return round(reliability, 2)
+
+    def _calculate_effectiveness_from_metrics(
+        self,
+        seed_metrics: Dict[str, float],
+        improvement_rates: Dict[str, float]
+    ) -> float:
+        """
+        Calculate effectiveness for a single seed's metrics
+
+        Args:
+            seed_metrics: Metrics dict from one seed
+            improvement_rates: Pre-calculated improvement rates
+
+        Returns:
+            Effectiveness score 0-100
+        """
+        # Extract improvement rates for this seed
+        ended_improvement = improvement_rates.get("ended", 0) or 0
+        avgSpeed_improvement = improvement_rates.get("avgSpeed", 0) or 0
+        waiting_reduction = improvement_rates.get("waiting", 0) or 0
+        teleports_reduction = improvement_rates.get("teleports", 0) or 0
+        running_reduction = improvement_rates.get("running", 0) or 0
+        collisions_reduction = improvement_rates.get("collisions", 0) or 0
+
+        # Calculate effectiveness
+        effectiveness = (
+            0.25 * self._normalize_score(ended_improvement)
+            + 0.25 * self._normalize_score(avgSpeed_improvement)
+            + 0.20 * self._normalize_score(waiting_reduction)
+            + 0.20 * self._normalize_score(teleports_reduction)
+            + 0.05 * self._normalize_score(running_reduction)
+            + 0.05 * self._normalize_score(collisions_reduction)
+        )
+
+        return max(0, min(100, effectiveness))
 
     def _normalize_score(self, value: float) -> float:
         """

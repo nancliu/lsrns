@@ -62,9 +62,9 @@ class BatchResultAnalyzer:
 
         # 1. 加载baseline方案结果
         if baseline_plan_id in plan_ids:
-            baseline_summary_path = batch_dir / baseline_plan_id / "summary.xml"
-            if baseline_summary_path.exists():
-                baseline_metrics = self._extract_summary_metrics(baseline_summary_path)
+            plan_dir = batch_dir / baseline_plan_id
+            baseline_metrics = self._extract_aggregated_metrics(plan_dir, baseline_plan_id)
+            if baseline_metrics:
                 results["plan_results"][baseline_plan_id] = {
                     "type": "baseline",
                     "metrics": baseline_metrics
@@ -72,16 +72,16 @@ class BatchResultAnalyzer:
                 self.baseline_results = baseline_metrics
                 logger.info(f"Loaded baseline metrics: {baseline_metrics}")
             else:
-                logger.warning(f"Baseline summary.xml not found: {baseline_summary_path}")
+                logger.warning(f"Could not extract metrics for baseline plan: {baseline_plan_id}")
 
         # 2. 加载test方案结果并计算改进率
         for plan_id in plan_ids:
             if plan_id == baseline_plan_id:
                 continue
 
-            summary_path = batch_dir / plan_id / "summary.xml"
-            if summary_path.exists():
-                test_metrics = self._extract_summary_metrics(summary_path)
+            plan_dir = batch_dir / plan_id
+            test_metrics = self._extract_aggregated_metrics(plan_dir, plan_id)
+            if test_metrics:
                 results["plan_results"][plan_id] = {
                     "type": "test",
                     "metrics": test_metrics
@@ -98,12 +98,96 @@ class BatchResultAnalyzer:
                     self.improvement_rates[plan_id] = improvement_rate
                     logger.info(f"Improvement rates for {plan_id}: {improvement_rate}")
             else:
-                logger.warning(f"Summary.xml not found for plan {plan_id}: {summary_path}")
+                logger.warning(f"Could not extract metrics for plan {plan_id}: {plan_dir}")
 
         # 4. 生成对比总结 (T2.3: 对比表生成)
         results["comparison_summary"] = self._generate_comparison_summary()
 
         return results
+
+    def _extract_aggregated_metrics(self, plan_dir: Path, plan_id: str) -> Dict[str, Any]:
+        """
+        从计划目录中聚合多个种子的指标
+
+        目录结构：
+        plan_dir/
+          ├── sim_66/summary.xml
+          ├── sim_67/summary.xml
+          └── sim_68/summary.xml
+
+        Args:
+            plan_dir: 计划目录路径
+            plan_id: 计划ID
+
+        Returns:
+            Dict: 聚合后的指标数据（使用平均值）
+        """
+        sim_dirs = sorted([d for d in plan_dir.iterdir() if d.is_dir() and d.name.startswith('sim_')])
+
+        if not sim_dirs:
+            logger.warning(f"No simulation directories found in {plan_dir}")
+            return {}
+
+        all_metrics = []
+
+        for sim_dir in sim_dirs:
+            summary_path = sim_dir / "summary.xml"
+            if summary_path.exists():
+                metrics = self._extract_summary_metrics(summary_path)
+                if metrics:
+                    all_metrics.append(metrics)
+                    logger.debug(f"Loaded metrics from {summary_path}")
+            else:
+                logger.warning(f"Summary.xml not found: {summary_path}")
+
+        if not all_metrics:
+            logger.warning(f"No metrics extracted for plan {plan_id}")
+            return {}
+
+        # 聚合指标：对所有种子的值进行平均
+        aggregated = self._aggregate_metrics_list(all_metrics, plan_id)
+        aggregated['num_seeds'] = len(all_metrics)
+        aggregated['seed_metrics'] = all_metrics  # 保存原始数据用于可靠性计算
+
+        logger.info(f"Aggregated metrics for {plan_id} from {len(all_metrics)} seeds: {aggregated}")
+        return aggregated
+
+    def _aggregate_metrics_list(self, metrics_list: List[Dict[str, Any]], plan_id: str) -> Dict[str, Any]:
+        """
+        聚合多个种子的指标（使用平均值）
+
+        Args:
+            metrics_list: 指标字典列表
+            plan_id: 计划ID
+
+        Returns:
+            Dict: 聚合后的指标
+        """
+        if not metrics_list:
+            return {}
+
+        aggregated = {}
+
+        # 获取所有指标的键
+        all_keys = set()
+        for metrics in metrics_list:
+            all_keys.update(metrics.keys())
+
+        # 对每个指标计算平均值
+        for key in all_keys:
+            values = []
+            for metrics in metrics_list:
+                if key in metrics:
+                    try:
+                        values.append(float(metrics[key]))
+                    except (ValueError, TypeError):
+                        pass
+
+            if values:
+                aggregated[key] = round(statistics.mean(values), 2)
+                logger.debug(f"Plan {plan_id}: {key} = {aggregated[key]} (from {len(values)} seeds)")
+
+        return aggregated
 
     def _extract_summary_metrics(self, summary_path: Path) -> Dict[str, Any]:
         """

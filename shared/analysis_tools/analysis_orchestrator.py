@@ -48,11 +48,29 @@ class AnalysisOrchestrator:
         Returns:
             Dict with combined analysis results from all available sources
         """
+        import json
+
         batch_dir = Path(batch_dir)
         logger.info(
             f"Starting batch analysis: {len(plan_ids)} plans, "
             f"baseline={baseline_plan_id}"
         )
+
+        # Load batch metadata to get seed information
+        batch_metadata = {}
+        metadata_path = batch_dir / "batch_metadata.json"
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    batch_metadata = json.load(f)
+                logger.info(
+                    f"Loaded batch metadata: num_seeds={batch_metadata.get('num_seeds')}, "
+                    f"base_seed={batch_metadata.get('base_seed')}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load batch metadata: {e}")
+        else:
+            logger.warning(f"Batch metadata not found: {metadata_path}")
 
         # Step 1: Detect available outputs
         output_detection = self.output_detector.detect_outputs(batch_dir, baseline_plan_id)
@@ -103,7 +121,7 @@ class AnalysisOrchestrator:
 
         # Step 5: Combine results
         combined_results = self._combine_results(
-            summary_results, tripinfo_results, edgedata_results, output_combination
+            summary_results, tripinfo_results, edgedata_results, output_combination, batch_metadata
         )
 
         logger.info("Batch analysis completed successfully")
@@ -114,7 +132,8 @@ class AnalysisOrchestrator:
         summary_results: Dict[str, Any],
         tripinfo_results: Dict[str, Any],
         edgedata_results: Dict[str, Any],
-        output_combination: str
+        output_combination: str,
+        batch_metadata: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Combine analysis results from all sources
@@ -124,17 +143,23 @@ class AnalysisOrchestrator:
             tripinfo_results: Results from tripinfo analyzer
             edgedata_results: Results from edgedata analyzer
             output_combination: String indicating which outputs were analyzed
+            batch_metadata: Batch metadata including seed information
 
         Returns:
             Dict with combined results for ranking engine
         """
         return {
             "output_combination": output_combination,
+            "batch_metadata": {
+                "num_seeds": batch_metadata.get("num_seeds", 1),
+                "base_seed": batch_metadata.get("base_seed"),
+            },
             "summary": {
                 "baseline_metrics": summary_results.get("baseline_metrics", {}),
                 "plan_metrics": summary_results.get("plan_metrics", {}),
                 "improvement_rates": summary_results.get("improvement_rates", {}),
                 "metrics_metadata": summary_results.get("metrics_metadata", {}),
+                "seed_data": summary_results.get("seed_data", {}),  # 多种子数据用于可靠性计算
             },
             "tripinfo": {
                 "baseline_tripinfo": tripinfo_results.get("baseline_tripinfo", {}),

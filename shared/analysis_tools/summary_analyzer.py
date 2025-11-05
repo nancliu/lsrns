@@ -105,11 +105,20 @@ class SummaryAnalyzer:
         # Store improvement rates from batch analyzer
         self.improvement_rates = batch_results.get("improvement_rates", {})
 
+        # Extract seed data for reliability calculation
+        seed_data = {}
+        for plan_id, plan_data in batch_results.get("plan_results", {}).items():
+            seed_metrics = plan_data.get("metrics", {}).get("seed_metrics", [])
+            if seed_metrics:
+                seed_data[plan_id] = seed_metrics
+                logger.info(f"Extracted {len(seed_metrics)} seeds for {plan_id}")
+
         return {
             "baseline_metrics": self.baseline_metrics.copy(),
             "plan_metrics": self.plan_metrics.copy(),
             "improvement_rates": self.improvement_rates.copy(),
             "metrics_metadata": self._get_metrics_metadata(),
+            "seed_data": seed_data,  # 种子数据用于可靠性计算
             "batch_analysis": batch_results,
         }
 
