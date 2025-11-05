@@ -25,9 +25,8 @@ if (typeof API_BASE === 'undefined') {
 // ========== 全局变量 ==========
 let rankingResultsData = null;
 let rankingCharts = {};
-let currentBatchId = null;
-let currentCaseId = null;
-let batchResultsData = null; // 批次结果数据（包含批次元数据）
+// 注意：currentBatchId, currentCaseId, batchResultsData
+// 由 batch_simulation.js 声明，这里仅引用，不重复声明
 
 // ========== 初始化：从 URL 参数加载批次 ==========
 
