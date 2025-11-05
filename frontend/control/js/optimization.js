@@ -491,8 +491,28 @@ function renderRadarChart(data) {
 
 // ========== 导航和导出 ==========
 
+/**
+ * 返回批次仿真结果页面
+ *
+ * 流程：
+ * 1. 从 URL 参数获取 batch_id 和 case_id
+ * 2. 导航回 simulations.html 的"结果"标签页
+ * 3. 保留批次上下文，自动加载该批次的结果
+ */
 function backToBatchSimulation() {
-    window.location.href = 'simulations.html';
+    // 从 URL 参数获取当前批次信息
+    const params = new URLSearchParams(window.location.search);
+    const batchId = params.get('batch_id');
+    const caseId = params.get('case_id');
+
+    if (batchId && caseId) {
+        // 导航回仿真页面，使用 URL 参数传递批次信息
+        // simulations.html 可以通过 URL 参数自动加载该批次的结果
+        window.location.href = `simulations.html?batch_id=${batchId}&case_id=${caseId}#results`;
+    } else {
+        // 如果参数缺失，回到仿真页面首页
+        window.location.href = 'simulations.html';
+    }
 }
 
 async function exportReport() {

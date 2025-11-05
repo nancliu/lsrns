@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 恢复案例ID（从URL参数或localStorage）
     const urlParams = new URLSearchParams(window.location.search);
     const caseIdFromUrl = urlParams.get('case_id');
+    const batchIdFromUrl = urlParams.get('batch_id');
 
     let selectedCaseId = null;
 
@@ -143,6 +144,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 计算预估 (Phase 1-4: 包含seed变化)
     document.getElementById('numSeeds').addEventListener('input', updateEstimate);
     document.getElementById('baseSeed').addEventListener('input', updateEstimate);
+
+    // ========== 从优化页面返回时自动加载批次结果 ==========
+    // 如果 URL 中有 batch_id，说明是从 optimization.html 返回
+    // 自动加载该批次的结果并切换到结果视图
+    if (batchIdFromUrl && caseIdFromUrl) {
+        // 延迟执行，确保 DOM 完全加载
+        setTimeout(async () => {
+            await loadBatchResultsAndSwitch(batchIdFromUrl, caseIdFromUrl);
+        }, 500);
+    }
 });
 
 // ========== 视图切换 ==========
