@@ -1092,17 +1092,55 @@ pytest tests/integration/test_scenario_simulation.py -v
   - **File**: `docs/scenarios_library/SCENARIO_XML_REFERENCE.md`
   - **Status**: PENDING
 
-### 5.3 Deployment Preparation
+### 5.3 SUMO Configuration Generation (NEW)
 
-- [ ] 5.3.1 Create scenario library initialization script
-  - Script to run initial batch generation
-  - Verify all dependencies installed (SUMO, network files)
-  - Generate 18+ scenarios for production use
-  - Validate all scenarios before deployment
-  - **File**: `scripts/initialize_scenario_library.ps1`
-  - **Status**: PENDING
+- [x] 5.3.1 Create scenario_sumocfg_generator module
+  - Generate .sumocfg files for each scenario
+  - Integrate with traffic_input_config.json for timing
+  - Create results directories for simulation outputs
+  - Generate scenario library index with SUMO configs
+  - **File**: `shared/control_tools/scenario_sumocfg_generator.py` (NEW)
+  - **Lines of Code**: 350+
+  - **Status**: COMPLETED
+  - **Features**:
+    - ScenarioSUMOConfigGenerator class for single/batch generation
+    - Network file references and path management
+    - Timing validation (duration_seconds from traffic config)
+    - Results directory structure creation
+    - Index generation for scenario library
 
-- [ ] 5.3.2 Add scenario generation to CI/CD
+- [x] 5.3.2 Integrate sumocfg generation into batch script
+  - Import scenario_sumocfg_generator module
+  - Call generate_all_scenario_configs after scenario generation
+  - Create scenario library index with SUMO config references
+  - Handle failures gracefully (non-critical to scenario generation)
+  - **File**: `scripts/generate_scenarios_from_events.py` (modified)
+  - **Status**: COMPLETED
+  - **Integration Points**:
+    - Added import for generate_all_scenario_configs
+    - Called after scenario generation completes
+    - Logs summary statistics for generated configs
+
+- [x] 5.3.3 Create scenario library initialization script
+  - Initialize cases/case_event_scenarios_library/ structure
+  - Copy scenarios from output/scenarios to case directory
+  - Create case metadata.json with scenario library info
+  - Generate scenario_index.json with case-relative paths
+  - Validate SUMO configs and file organization
+  - **File**: `scripts/initialize_scenario_library.py` (NEW)
+  - **Lines of Code**: 400+
+  - **Status**: COMPLETED
+  - **Features**:
+    - ScenarioLibraryInitializer class
+    - Case structure creation (config, scenarios, simulations, analysis)
+    - Recursive scenario copying with validation
+    - Case metadata generation
+    - Case-specific scenario index creation
+    - Statistics reporting (scenarios, files, errors)
+
+### 5.4 Deployment Preparation
+
+- [ ] 5.4.1 Add scenario generation to CI/CD
   - Add unit tests to CI pipeline
   - Add E2E tests to nightly build
   - Validate scenario_index.json format in CI
@@ -1122,7 +1160,8 @@ pytest tests/integration/test_scenario_simulation.py -v
 2. Scenario Orchestration: 4 days (combine event + control, validation)
 3. Batch Generation Script: 5 days (filtering, mapping, index creation)
 4. Integration Testing: 3 days (E2E, SUMO validation, frontend)
-5. Documentation: 2 days (module docs, user guide, deployment)
+5. SUMO Configuration (NEW): 1.5 days (sumocfg generation, library initialization)
+6. Documentation: 2 days (module docs, user guide, deployment)
 
 **Critical Path**:
 
@@ -1130,7 +1169,68 @@ pytest tests/integration/test_scenario_simulation.py -v
 2. Scenario orchestration (depends on event injection)
 3. Batch generation script (depends on orchestration)
 4. Integration testing (depends on batch generation)
-5. Documentation (can parallel with testing)
+5. SUMO configuration generation (NEW - parallel with documentation)
+6. Documentation (can parallel with testing/SUMO config)
+
+**Phase 5 Completion Status**:
+
+- ✅ Phase 5.3.1: scenario_sumocfg_generator.py created (350+ lines)
+- ✅ Phase 5.3.2: Integration into batch script completed
+- ✅ Phase 5.3.3: initialize_scenario_library.py created (400+ lines)
+- ⏳ Phase 5.1-5.2: Documentation tasks (API docs, user guide) - PENDING
+- ⏳ Phase 5.4: CI/CD integration - PENDING
+
+**Implementation Details**:
+
+### Directory Structure After Phase 5 Completion
+
+```
+output/scenarios/
+├── 01_交通事故/
+│   ├── vss/
+│   │   └── scenario_{event_id}_vss/
+│   │       ├── scenario_*.add.xml
+│   │       ├── event_description.json
+│   │       ├── traffic_input_config.json
+│   │       ├── control_strategy_config.json
+│   │       ├── simulation.sumocfg
+│   │       └── results/
+│   ├── dhs/
+│   └── tec/
+├── scenario_index.json
+└── scenarios_with_sumo_index.json
+
+cases/
+└── case_event_scenarios_library/
+    ├── metadata.json
+    ├── scenario_index.json
+    ├── config/
+    ├── scenarios/
+    │   └── 01_交通事故/
+    │       ├── vss/
+    │       │   └── scenario_{event_id}_vss/
+    │       ├── dhs/
+    │       └── tec/
+    ├── simulations/
+    └── analysis/
+```
+
+### Workflow Integration
+
+1. **Generation Phase**: `python scripts/generate_scenarios_from_events.py`
+   - Generates scenarios in `output/scenarios/`
+   - Automatically generates SUMO configs
+   - Creates scenario_index.json
+   - Creates scenarios_with_sumo_index.json
+
+2. **Initialization Phase** (optional): `python scripts/initialize_scenario_library.py`
+   - Creates case structure
+   - Copies scenarios to `cases/case_event_scenarios_library/`
+   - Enables case management integration
+
+3. **Simulation Phase**: Can run SUMO directly
+   - Command: `sumo -c output/scenarios/{event_type}/{strategy}/{scenario_dir}/simulation.sumocfg`
+   - Results saved to: `{scenario_dir}/results/`
 
 **Deliverables**:
 

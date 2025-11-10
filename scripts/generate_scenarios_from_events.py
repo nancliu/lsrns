@@ -31,6 +31,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from shared.control_tools.scenario_generator import ScenarioGenerator
+from shared.control_tools.scenario_sumocfg_generator import generate_all_scenario_configs
 from shared.utilities.toll_mapping_utils import resolve_toll_edges
 
 # Configure logging
@@ -683,6 +684,21 @@ def main():
             network_file=NETWORK_FILE,
             output_dir=OUTPUT_DIR
         )
+
+        # Phase 5: Generate SUMO configuration files for scenarios
+        logger.info("\n" + "=" * 60)
+        logger.info("Phase 5: SUMO Configuration Generation")
+        logger.info("=" * 60)
+
+        try:
+            sumo_config_result = generate_all_scenario_configs(project_root=Path.cwd())
+            logger.info(f"SUMO config generation complete:")
+            logger.info(f"  Generated configs: {sumo_config_result['generation_summary']['successful']}")
+            logger.info(f"  Scenarios in library: {sumo_config_result['library_index']['statistics']['total_with_sumo']}")
+        except Exception as e:
+            logger.warning(f"SUMO config generation warning (non-critical): {e}")
+            # Don't fail the script if SUMO config generation fails
+            # Scenarios were still generated successfully
 
         # Exit with appropriate code
         if results["failed"]:
