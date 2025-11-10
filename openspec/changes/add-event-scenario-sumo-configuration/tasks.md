@@ -1092,51 +1092,85 @@ pytest tests/integration/test_scenario_simulation.py -v
   - **File**: `docs/scenarios_library/SCENARIO_XML_REFERENCE.md`
   - **Status**: PENDING
 
-### 5.3 SUMO Configuration Generation (NEW)
+### 5.3 SUMO Configuration Generation & Architecture (NEW)
 
-- [x] 5.3.1 Create scenario_sumocfg_generator module
-  - Generate .sumocfg files for each scenario
+**Architecture Decision**: Option A - Separate Event Scenarios Library
+- Event scenarios kept in `output/scenarios/` (read-only library)
+- Cases created independently in `cases/` with full input data
+- Event scenarios applied to cases at simulation time
+- Frontend provides quick case creation from event
+
+#### 5.3.1 Create scenario_sumocfg_generator module ✅
+
+- [x] Generate .sumocfg files for each scenario
   - Integrate with traffic_input_config.json for timing
   - Create results directories for simulation outputs
   - Generate scenario library index with SUMO configs
-  - **File**: `shared/control_tools/scenario_sumocfg_generator.py` (NEW)
-  - **Lines of Code**: 350+
+  - **File**: `shared/control_tools/scenario_sumocfg_generator.py`
   - **Status**: COMPLETED
-  - **Features**:
-    - ScenarioSUMOConfigGenerator class for single/batch generation
-    - Network file references and path management
-    - Timing validation (duration_seconds from traffic config)
-    - Results directory structure creation
-    - Index generation for scenario library
 
-- [x] 5.3.2 Integrate sumocfg generation into batch script
-  - Import scenario_sumocfg_generator module
-  - Call generate_all_scenario_configs after scenario generation
+#### 5.3.2 Integrate sumocfg generation into batch script ✅
+
+- [x] Call generate_all_scenario_configs after scenario generation
   - Create scenario library index with SUMO config references
-  - Handle failures gracefully (non-critical to scenario generation)
-  - **File**: `scripts/generate_scenarios_from_events.py` (modified)
+  - Handle failures gracefully (non-critical)
+  - **File**: `scripts/generate_scenarios_from_events.py`
   - **Status**: COMPLETED
-  - **Integration Points**:
-    - Added import for generate_all_scenario_configs
-    - Called after scenario generation completes
-    - Logs summary statistics for generated configs
 
-- [x] 5.3.3 Create scenario library initialization script
-  - Initialize cases/case_event_scenarios_library/ structure
-  - Copy scenarios from output/scenarios to case directory
-  - Create case metadata.json with scenario library info
-  - Generate scenario_index.json with case-relative paths
-  - Validate SUMO configs and file organization
-  - **File**: `scripts/initialize_scenario_library.py` (NEW)
-  - **Lines of Code**: 400+
-  - **Status**: COMPLETED
-  - **Features**:
-    - ScenarioLibraryInitializer class
-    - Case structure creation (config, scenarios, simulations, analysis)
-    - Recursive scenario copying with validation
-    - Case metadata generation
-    - Case-specific scenario index creation
-    - Statistics reporting (scenarios, files, errors)
+#### 5.3.3 Create Event Scenario API for Case Creation (NEW)
+
+- [ ] Backend API for quick case creation from event
+  - Endpoint: `POST /api/v1/case/quick-create-from-event`
+  - Parameters: event_id, scenario_id, network_file, od_file, taz_file, case_name
+  - Create case with event scenario metadata
+  - Link event scenario to case for simulation
+  - **File**: `api/services/case_service.py` (extend), `api/routes/case_routes.py` (add)
+  - **Status**: PENDING
+  - **Responsibility**:
+    - Accept event scenario + case inputs
+    - Validate case prerequisites (network, OD data)
+    - Create case with metadata
+    - Link event scenario in case metadata
+
+#### 5.3.4 Frontend Event Scenario Browser with Case Creation
+
+- [ ] Scenario browser "Quick Create Case" feature
+  - Display event scenarios in table (from scenario_index.json)
+  - Add "Create Case" button for each scenario
+  - Modal form for case creation:
+    - Case name (pre-filled with event info)
+    - Select network file
+    - Select OD/Routes file
+    - Select TAZ file (optional)
+    - Case description
+  - Submit to backend quick-create API
+  - Redirect to created case
+  - **Files**:
+    - `frontend/control/js/scenario_browser.js` (extend)
+    - `frontend/control/pages/scenario_browser.html` (extend)
+    - `frontend/control/css/scenario_browser.css` (create)
+  - **Status**: PENDING
+  - **Responsibility**:
+    - Load scenario_index.json
+    - Provide UI for case creation
+    - Collect case inputs
+    - Call quick-create API
+
+#### 5.3.5 Simulation with Event Scenario Application
+
+- [ ] Modify simulation execution to apply event scenarios
+  - When creating simulation, option to select event scenario
+  - Backend API: `POST /api/v1/simulation/start-with-event`
+  - Parameters: case_id, simulation_name, event_scenario_id
+  - Auto-inject event scenario's .add.xml into SUMO config
+  - Save event scenario reference in simulation metadata
+  - **Files**: `api/services/simulation_service.py` (extend)
+  - **Status**: PENDING
+  - **Integration**:
+    - Load event scenario .add.xml
+    - Merge with case's SUMO config
+    - Add event metadata to simulation results
+    - Update batch monitoring for clarity
 
 ### 5.4 Deployment Preparation
 
@@ -1176,61 +1210,144 @@ pytest tests/integration/test_scenario_simulation.py -v
 
 - ✅ Phase 5.3.1: scenario_sumocfg_generator.py created (350+ lines)
 - ✅ Phase 5.3.2: Integration into batch script completed
-- ✅ Phase 5.3.3: initialize_scenario_library.py created (400+ lines)
+- ⏳ Phase 5.3.3: Backend Event Scenario API for case creation - PENDING
+- ⏳ Phase 5.3.4: Frontend Event Scenario Browser with quick case creation - PENDING
+- ⏳ Phase 5.3.5: Simulation with event scenario application - PENDING
 - ⏳ Phase 5.1-5.2: Documentation tasks (API docs, user guide) - PENDING
 - ⏳ Phase 5.4: CI/CD integration - PENDING
 
-**Implementation Details**:
+**Architecture: Option A - Separate Systems**
 
-### Directory Structure After Phase 5 Completion
+Event Scenarios and Cases are **independent systems**:
 
 ```
-output/scenarios/
-├── 01_交通事故/
-│   ├── vss/
-│   │   └── scenario_{event_id}_vss/
-│   │       ├── scenario_*.add.xml
-│   │       ├── event_description.json
-│   │       ├── traffic_input_config.json
-│   │       ├── control_strategy_config.json
-│   │       ├── simulation.sumocfg
-│   │       └── results/
+output/scenarios/                        cases/
+(事件场景库 - 只读)                      (仿真案例 - 编辑)
+
+├── 01_交通事故/                        ├── case_morning_peak_20251111/
+│   ├── vss/                            │   ├── metadata.json
+│   │   └── scenario_12547_vss/         │   ├── config/
+│   │       ├── scenario_*.add.xml      │   │   ├── network.xml
+│   │       ├── event_description.json  │   │   ├── routes.xml
+│   │       ├── traffic_input_config    │   │   └── taz.xml
+│   │       ├── control_strategy_config │   └── simulations/
+│   │       ├── simulation.sumocfg      │       ├── sim_baseline/
+│   │       └── results/ (simulation)   │       └── sim_with_event/
 │   ├── dhs/
 │   └── tec/
 ├── scenario_index.json
-└── scenarios_with_sumo_index.json
+└── scenarios_with_sumo_index.json      └── case_evening_peak_20251111/
+                                            └── ...
 
-cases/
-└── case_event_scenarios_library/
-    ├── metadata.json
-    ├── scenario_index.json
-    ├── config/
-    ├── scenarios/
-    │   └── 01_交通事故/
-    │       ├── vss/
-    │       │   └── scenario_{event_id}_vss/
-    │       ├── dhs/
-    │       └── tec/
-    ├── simulations/
-    └── analysis/
+                   ↓ 应用关系（前端选择）
+
+            Case + Event Scenario → Simulation
 ```
 
-### Workflow Integration
+### Data Flow & Workflow
 
-1. **Generation Phase**: `python scripts/generate_scenarios_from_events.py`
-   - Generates scenarios in `output/scenarios/`
-   - Automatically generates SUMO configs
-   - Creates scenario_index.json
-   - Creates scenarios_with_sumo_index.json
+**1. Event Scenario Generation** (Batch Phase 1-4)
+```bash
+$ python scripts/generate_scenarios_from_events.py
+  ↓
+  生成18+个event scenarios
+  ├── output/scenarios/01_交通事故/vss/scenario_12547_vss/
+  │   ├── scenario_*.add.xml (事件注入 + 控制响应)
+  │   ├── event_description.json
+  │   ├── traffic_input_config.json
+  │   ├── control_strategy_config.json
+  │   └── simulation.sumocfg
+  └── scenario_index.json (可在前端浏览)
+```
 
-2. **Initialization Phase** (optional): `python scripts/initialize_scenario_library.py`
-   - Creates case structure
-   - Copies scenarios to `cases/case_event_scenarios_library/`
-   - Enables case management integration
+**2. Case Creation** (Traditional workflow or Quick Create)
 
-3. **Simulation Phase**: Can run SUMO directly
-   - Command: `sumo -c output/scenarios/{event_type}/{strategy}/{scenario_dir}/simulation.sumocfg`
-   - Results saved to: `{scenario_dir}/results/`
+**选项A - 前端快速创建** (NEW)
+```
+用户在前端看到event scenarios表格
+  ↓ 点击"创建Case"按钮
+  ↓ 填表单：case名、network、OD文件、TAZ等
+  ↓ POST /api/v1/case/quick-create-from-event
+  ↓
+后端创建case：
+  cases/case_morning_peak_event_20251111/
+  ├── metadata.json (记录关联的event scenario)
+  ├── config/ (network.xml, routes.xml, taz.xml)
+  └── simulations/
+```
+
+**选项B - 传统创建** (Existing)
+```
+用户在Case Management页面创建case
+  ↓ 填表单：时间范围、网络、OD数据
+  ↓ 创建case后，可在simulations中关联event
+```
+
+**3. Simulation with Event** (NEW API)
+```
+用户运行仿真，选择event scenario：
+  ↓ POST /api/v1/simulation/start-with-event
+  ↓ Parameters: case_id, event_scenario_id
+  ↓
+后端自动：
+  1. 读取case的SUMO配置（网络、路由）
+  2. 读取event scenario的.add.xml（事件注入）
+  3. 合并生成临时SUMO配置
+  4. 执行SUMO仿真
+  5. 保存结果到case/simulations/{sim_id}/results/
+  6. 标记结果关联的event scenario
+```
+
+### User Interaction Flow
+
+```
+前端Event Scenario Browser
+
+┌─────────────────────────────────┐
+│ Event Scenarios Table           │
+├─────────────────────────────────┤
+│ Event  Strategy  Timing  Action  │
+├─────────────────────────────────┤
+│ 交通事故  VSS   08:30-09:00 [✓] │  ← 查看详情
+│         [创建Case]              │  ← 快速创建
+│ 交通事故  DHS   08:30-09:00 [✓] │
+│         [创建Case]              │
+│ ...                             │
+└─────────────────────────────────┘
+         ↓ 点击"创建Case"
+┌─────────────────────────────────┐
+│ Quick Create Case Modal         │
+├─────────────────────────────────┤
+│ Case Name: 交通事故_08:30 VSS    │
+│ Network: [Dropdown]             │
+│ OD File: [Upload/Select]        │
+│ TAZ File: [Optional]            │
+│ Description: [Text]             │
+│ [Create] [Cancel]               │
+└─────────────────────────────────┘
+         ↓ Submit
+    Backend API执行：
+    POST /api/v1/case/quick-create-from-event
+         ↓
+    创建新case → 跳转到case详情页面
+         ↓
+    用户在case中创建仿真，选择该event
+         ↓
+    自动注入event scenario.add.xml
+         ↓
+    运行SUMO → 获得结果
+```
+
+### Key Differences from Previous Option
+
+| 方面 | 之前（Case包装） | 现在（选项A） |
+|------|-----------------|------------|
+| **Event存储** | cases/case_event_scenarios_library/ | output/scenarios/ |
+| **Case数据** | 共享库，没有网络/OD | 独立case，包含完整数据 |
+| **创建时机** | 自动（初始化脚本） | 按需（前端UI） |
+| **Event复用** | 仅限该库 | 任何case可用 |
+| **开发工作** | initialize_scenario_library.py | 后端API + 前端UI |
+| **前端体验** | 无法直观操作 | 前端中心化管理 |
 
 **Deliverables**:
 
