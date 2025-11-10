@@ -1,0 +1,136 @@
+{
+  "plan_id": "plan_morning_peak_g4202_vss_dhs_g4202k40k60_severe_v1",
+  "plan_name": "G4202早高峰VSS+DHSg4202_k40k60严重综合管控方案V1",
+  "chinese_name": "G4202早高峰VSS+DHSg4202_k40k60严重综合管控方案V1",
+  "collection": "morning_peak_g4202",
+  "collection_name": "G4202早高峰综合管控方案集",
+  "description": "针对g4202_k40k60区段severe拥堵的复合管控方案",
+  "strategies": [
+    {
+      "strategy_id": "strat_20251110123439_d49832",
+      "strategy_name": "西段可变限速",
+      "template_id": "vss_severe",
+      "strategy_type": "VSS",
+      "parameters": {
+        "affected_edges": [
+          "-7798.460",
+          "-13928",
+          "-7790",
+          "-8014",
+          "-10702",
+          "-9292",
+          "-15220",
+          "-9794"
+        ],
+        "speed_steps": [
+          {
+            "time_hours": 7,
+            "speed_kmh": 120
+          },
+          {
+            "time_hours": 7.25,
+            "speed_kmh": 84
+          },
+          {
+            "time_hours": 7.75,
+            "speed_kmh": 72
+          },
+          {
+            "time_hours": 8.5,
+            "speed_kmh": 60
+          },
+          {
+            "time_hours": 9.5,
+            "speed_kmh": 72
+          },
+          {
+            "time_hours": 10,
+            "speed_kmh": 84
+          },
+          {
+            "time_hours": 10.5,
+            "speed_kmh": 120
+          }
+        ]
+      }
+    },
+    {
+      "strategy_id": "strat_20251110123439_eb928b",
+      "strategy_name": "西段应急车道开放",
+      "template_id": "dhs_severe",
+      "strategy_type": "DHS",
+      "parameters": {
+        "affected_edges": [
+          "-7798.460",
+          "-13928",
+          "-7790",
+          "-8014",
+          "-10702",
+          "-9292"
+        ],
+        "hard_shoulder_lane_index": 0,
+        "opening_schedule": [
+          {
+            "begin_hours": 7,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          },
+          {
+            "begin_hours": 7.1,
+            "status": "EMERGENCY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 7.25,
+            "status": "FULLY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 10,
+            "status": "FULLY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 10.5,
+            "status": "CONTROLLED_CLOSING",
+            "allowed_vehicle_types": [
+              "passenger"
+            ]
+          },
+          {
+            "begin_hours": 11,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "highway": [
+      "G4202"
+    ],
+    "segments": [
+      "g4202_k40k60"
+    ],
+    "time_pattern": "extended_morning",
+    "time_range": "07:00-10:00",
+    "severity": "severe",
+    "strategies": [
+      "vss",
+      "dhs"
+    ],
+    "expected_volume": "very_high",
+    "optimization_goal": "balanced_optimization"
+  },
+  "is_baseline": false,
+  "status": "active",
+  "created_at": "2025-11-10T12:34:39.717568",
+  "version": 1
+}

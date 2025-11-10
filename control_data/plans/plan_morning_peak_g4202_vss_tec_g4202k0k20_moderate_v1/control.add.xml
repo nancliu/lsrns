@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <!--
+    Control Plan: plan_morning_peak_g4202_vss_tec_g4202k0k20_moderate_v1
+    Name: G4202早高峰VSS+TECg4202_k0k20中度综合管控方案V1
+    Generated: 2025-11-10T12:50:38.163907
+    Strategies: VSS, TEC
+    Time Range: 06:30-10:30
+    Severity: moderate
+        -->
+    <!-- VSS Strategy: 东段可变限速 -->
+    <variableSpeedSign id="strat_20251110123439_91c144" file="strat_20251110123439_91c144_schedule.xml" lanes="-8712_0 -8712_1 -8712_2 -15452.627_0 -15452.627_1 -15452.627_2 -9350_0 -9350_1 -9350_2 -6906.1080_0 -6906.1080_1 -6906.1080_2 -2040_0 -2040_1 -2040_2 -13636_0 -13636_1 -13636_2 -12970_0 -12970_1"/>
+    <!-- TEC Strategy: g5_south流量控制 -->
+    <calibrator id="strat_20251110123439_845e8c" edge="-1000" output="strat_20251110123439_845e8c_log.xml" freq="900">
+        <flow begin="25200" end="28800" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="27000" end="30600" vehsPerHour="480" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="28800" end="32400" vehsPerHour="420" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="32400" end="36000" vehsPerHour="360" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="36000" end="39600" vehsPerHour="480" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="37800" end="41400" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+    </calibrator>
+    <!--
+    Speed schedule for strat_20251110123439_91c144:
+    Time: 007.0h ( 25200s) -> Speed: 120 km/h (33.3 m/s)
+    Time: 007.5h ( 27000s) -> Speed:  96 km/h (26.7 m/s)
+    Time: 008.0h ( 28800s) -> Speed:  90 km/h (25.0 m/s)
+    Time: 009.0h ( 32400s) -> Speed:  84 km/h (23.3 m/s)
+    Time: 010.0h ( 36000s) -> Speed:  90 km/h (25.0 m/s)
+    Time: 010.5h ( 37800s) -> Speed: 120 km/h (33.3 m/s)
+-->
+</additional>

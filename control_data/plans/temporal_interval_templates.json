@@ -1,0 +1,226 @@
+{
+  "template_type": "temporal_intervals",
+  "description": "早高峰时间区间模板定义",
+  "base_morning_peak": {
+    "start_time": "07:00:00",
+    "end_time": "10:00:00",
+    "duration_hours": 3
+  },
+  "interval_patterns": {
+    "early_morning": {
+      "pattern_id": "early_morning",
+      "chinese_name": "早高峰前段",
+      "time_range": "07:00-08:30",
+      "description": "First wave of morning commuters",
+      "phases": [
+        {
+          "phase": 1,
+          "start": "07:00",
+          "end": "07:30",
+          "intensity": "building",
+          "control_level": "mild"
+        },
+        {
+          "phase": 2,
+          "start": "07:30",
+          "end": "08:00",
+          "intensity": "increasing",
+          "control_level": "moderate"
+        },
+        {
+          "phase": 3,
+          "start": "08:00",
+          "end": "08:30",
+          "intensity": "high",
+          "control_level": "moderate"
+        }
+      ]
+    },
+    "core_morning": {
+      "pattern_id": "core_morning",
+      "chinese_name": "早高峰核心",
+      "time_range": "07:30-09:00",
+      "description": "Peak congestion period",
+      "phases": [
+        {
+          "phase": 1,
+          "start": "07:30",
+          "end": "08:00",
+          "intensity": "high",
+          "control_level": "moderate"
+        },
+        {
+          "phase": 2,
+          "start": "08:00",
+          "end": "08:30",
+          "intensity": "maximum",
+          "control_level": "severe"
+        },
+        {
+          "phase": 3,
+          "start": "08:30",
+          "end": "09:00",
+          "intensity": "high",
+          "control_level": "moderate"
+        }
+      ]
+    },
+    "extended_morning": {
+      "pattern_id": "extended_morning",
+      "chinese_name": "早高峰延长",
+      "time_range": "07:00-10:00",
+      "description": "Full morning peak coverage",
+      "phases": [
+        {
+          "phase": 1,
+          "start": "07:00",
+          "end": "07:45",
+          "intensity": "building",
+          "control_level": "mild"
+        },
+        {
+          "phase": 2,
+          "start": "07:45",
+          "end": "08:45",
+          "intensity": "maximum",
+          "control_level": "severe"
+        },
+        {
+          "phase": 3,
+          "start": "08:45",
+          "end": "09:30",
+          "intensity": "high",
+          "control_level": "moderate"
+        },
+        {
+          "phase": 4,
+          "start": "09:30",
+          "end": "10:00",
+          "intensity": "reducing",
+          "control_level": "mild"
+        }
+      ]
+    },
+    "phased_morning": {
+      "pattern_id": "phased_morning",
+      "chinese_name": "早高峰分阶段",
+      "time_range": "07:00-10:00",
+      "description": "Three distinct control phases",
+      "phases": [
+        {
+          "phase": 1,
+          "start": "07:00",
+          "end": "08:00",
+          "intensity": "moderate",
+          "control_level": "mild_to_moderate",
+          "description": "Phase 1: Preventive control"
+        },
+        {
+          "phase": 2,
+          "start": "08:00",
+          "end": "09:00",
+          "intensity": "high",
+          "control_level": "moderate_to_severe",
+          "description": "Phase 2: Active management"
+        },
+        {
+          "phase": 3,
+          "start": "09:00",
+          "end": "10:00",
+          "intensity": "decreasing",
+          "control_level": "moderate_to_mild",
+          "description": "Phase 3: Recovery"
+        }
+      ]
+    },
+    "adaptive_morning": {
+      "pattern_id": "adaptive_morning",
+      "chinese_name": "早高峰自适应",
+      "time_range": "06:30-10:30",
+      "description": "Adaptive control with preparation and wind-down",
+      "phases": [
+        {
+          "phase": 0,
+          "start": "06:30",
+          "end": "07:00",
+          "intensity": "preparation",
+          "control_level": "standby",
+          "description": "Pre-activation monitoring"
+        },
+        {
+          "phase": 1,
+          "start": "07:00",
+          "end": "07:30",
+          "intensity": "increasing",
+          "control_level": "adaptive_mild"
+        },
+        {
+          "phase": 2,
+          "start": "07:30",
+          "end": "08:30",
+          "intensity": "peak",
+          "control_level": "adaptive_severe"
+        },
+        {
+          "phase": 3,
+          "start": "08:30",
+          "end": "09:30",
+          "intensity": "sustained",
+          "control_level": "adaptive_moderate"
+        },
+        {
+          "phase": 4,
+          "start": "09:30",
+          "end": "10:00",
+          "intensity": "decreasing",
+          "control_level": "adaptive_mild"
+        },
+        {
+          "phase": 5,
+          "start": "10:00",
+          "end": "10:30",
+          "intensity": "wind_down",
+          "control_level": "deactivating",
+          "description": "Gradual deactivation"
+        }
+      ]
+    }
+  },
+  "activation_triggers": {
+    "proactive": {
+      "type": "time_based",
+      "activation_time": "fixed",
+      "description": "Activate at predetermined time"
+    },
+    "reactive": {
+      "type": "threshold_based",
+      "speed_threshold_kmh": 40,
+      "flow_threshold_veh_hr": 500,
+      "description": "Activate when thresholds exceeded"
+    },
+    "predictive": {
+      "type": "forecast_based",
+      "forecast_horizon_min": 30,
+      "description": "Activate based on traffic prediction"
+    }
+  },
+  "transition_rules": {
+    "smooth_transition": {
+      "duration_min": 15,
+      "step_size_percent": 10,
+      "description": "Gradual parameter changes"
+    },
+    "rapid_transition": {
+      "duration_min": 5,
+      "step_size_percent": 25,
+      "description": "Quick response to conditions"
+    }
+  },
+  "coordination_rules": {
+    "strategy_synchronization": true,
+    "upstream_downstream_offset_min": 5,
+    "multi_strategy_stagger_min": 10
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}

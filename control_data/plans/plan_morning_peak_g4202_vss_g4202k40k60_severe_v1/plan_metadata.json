@@ -1,0 +1,78 @@
+{
+  "plan_id": "plan_morning_peak_g4202_vss_g4202k40k60_severe_v1",
+  "plan_name": "G4202早高峰VSSg4202_k40k60严重综合管控方案V1",
+  "chinese_name": "G4202早高峰VSSg4202_k40k60严重综合管控方案V1",
+  "collection": "morning_peak_g4202",
+  "collection_name": "G4202早高峰综合管控方案集",
+  "description": "针对g4202_k40k60区段severe拥堵的VSS管控方案",
+  "strategies": [
+    {
+      "strategy_id": "strat_20251110123439_bdc5b4",
+      "strategy_name": "西段可变限速",
+      "template_id": "vss_severe",
+      "strategy_type": "VSS",
+      "parameters": {
+        "affected_edges": [
+          "-7798.460",
+          "-13928",
+          "-7790",
+          "-8014",
+          "-10702",
+          "-9292",
+          "-15220",
+          "-9794"
+        ],
+        "speed_steps": [
+          {
+            "time_hours": 7,
+            "speed_kmh": 120
+          },
+          {
+            "time_hours": 7.25,
+            "speed_kmh": 84
+          },
+          {
+            "time_hours": 7.75,
+            "speed_kmh": 72
+          },
+          {
+            "time_hours": 8.5,
+            "speed_kmh": 60
+          },
+          {
+            "time_hours": 9.5,
+            "speed_kmh": 72
+          },
+          {
+            "time_hours": 10,
+            "speed_kmh": 84
+          },
+          {
+            "time_hours": 10.5,
+            "speed_kmh": 120
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "highway": [
+      "G4202"
+    ],
+    "segments": [
+      "g4202_k40k60"
+    ],
+    "time_pattern": "core_morning",
+    "time_range": "07:30-09:00",
+    "severity": "severe",
+    "strategies": [
+      "vss"
+    ],
+    "expected_volume": "high",
+    "optimization_goal": "minimize_delay"
+  },
+  "is_baseline": false,
+  "status": "active",
+  "created_at": "2025-11-10T12:34:39.710567",
+  "version": 1
+}

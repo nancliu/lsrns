@@ -1,0 +1,90 @@
+{
+  "validation_date": "2025-11-10",
+  "network_file": "sichuan202510v8.net.xml",
+  "validation_status": "validated",
+  "highways": {
+    "G4202": {
+      "total_segments": 4,
+      "total_edges": 32,
+      "validated_edges": 32,
+      "segments": [
+        {
+          "id": "g4202_k0k20",
+          "name": "东段",
+          "validation": "pass",
+          "edge_count": 8,
+          "control_ready": true
+        },
+        {
+          "id": "g4202_k20k40",
+          "name": "南段",
+          "validation": "pass",
+          "edge_count": 8,
+          "control_ready": true
+        },
+        {
+          "id": "g4202_k40k60",
+          "name": "西段",
+          "validation": "pass",
+          "edge_count": 8,
+          "control_ready": true
+        },
+        {
+          "id": "g4202_k60k85",
+          "name": "北段",
+          "validation": "pass",
+          "edge_count": 8,
+          "control_ready": true
+        }
+      ]
+    },
+    "G5": {
+      "total_interchanges": 3,
+      "total_edges": 27,
+      "validated_edges": 27,
+      "interchanges": [
+        {
+          "id": "g5_interchange_south",
+          "validation": "pass",
+          "edge_count": 10,
+          "control_ready": true
+        },
+        {
+          "id": "g5_interchange_north",
+          "validation": "pass",
+          "edge_count": 10,
+          "control_ready": true
+        },
+        {
+          "id": "g5_interchange_west",
+          "validation": "pass",
+          "edge_count": 7,
+          "control_ready": true
+        }
+      ]
+    }
+  },
+  "control_point_validation": {
+    "vss_points": {
+      "total": 8,
+      "validated": 8,
+      "locations": ["K5-K8", "K15-K18", "K25-K28", "K35-K38", "K45-K48", "K55-K58", "K65-K68", "K75-K78"]
+    },
+    "tec_points": {
+      "total": 9,
+      "validated": 9,
+      "locations": ["K0", "K10", "K20", "K30", "K40", "K50", "K60", "K70", "K80"]
+    },
+    "dhs_segments": {
+      "total": 5,
+      "validated": 5,
+      "locations": ["K0-K10", "K15-K25", "K30-K45", "K50-K65", "K70-K85"]
+    }
+  },
+  "validation_summary": {
+    "total_validated_elements": 59,
+    "validation_errors": 0,
+    "warnings": [],
+    "ready_for_plan_generation": true
+  }
+}

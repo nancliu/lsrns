@@ -1,0 +1,122 @@
+{
+  "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k0k20_moderate_v1",
+  "plan_name": "G4202早高峰VSS+TECg4202_k0k20中度综合管控方案V1",
+  "chinese_name": "G4202早高峰VSS+TECg4202_k0k20中度综合管控方案V1",
+  "collection": "morning_peak_g4202",
+  "collection_name": "G4202早高峰综合管控方案集",
+  "description": "针对g4202_k0k20区段moderate拥堵的复合管控方案",
+  "strategies": [
+    {
+      "strategy_id": "strat_20251110123439_91c144",
+      "strategy_name": "东段可变限速",
+      "template_id": "vss_moderate",
+      "strategy_type": "VSS",
+      "parameters": {
+        "affected_edges": [
+          "-8712",
+          "-15452.627",
+          "-9350",
+          "-6906.1080",
+          "-2040",
+          "-13636",
+          "-12970",
+          "-15488"
+        ],
+        "speed_steps": [
+          {
+            "time_hours": 7,
+            "speed_kmh": 120
+          },
+          {
+            "time_hours": 7.5,
+            "speed_kmh": 96
+          },
+          {
+            "time_hours": 8,
+            "speed_kmh": 90
+          },
+          {
+            "time_hours": 9,
+            "speed_kmh": 84
+          },
+          {
+            "time_hours": 10,
+            "speed_kmh": 90
+          },
+          {
+            "time_hours": 10.5,
+            "speed_kmh": 120
+          }
+        ]
+      }
+    },
+    {
+      "strategy_id": "strat_20251110123439_845e8c",
+      "strategy_name": "g5_south流量控制",
+      "template_id": "tec_moderate",
+      "strategy_type": "TEC",
+      "parameters": {
+        "control_points": [],
+        "flow_steps": [
+          {
+            "time_hours": 7,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0
+          },
+          {
+            "time_hours": 7.5,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8
+          },
+          {
+            "time_hours": 8,
+            "flow_limit_veh_hr": 420,
+            "green_time_ratio": 0.7
+          },
+          {
+            "time_hours": 9,
+            "flow_limit_veh_hr": 360,
+            "green_time_ratio": 0.6
+          },
+          {
+            "time_hours": 10,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8
+          },
+          {
+            "time_hours": 10.5,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0
+          }
+        ],
+        "ramp_metering": {
+          "type": "adaptive",
+          "cycle_time_s": 45,
+          "vehicles_per_green": 1,
+          "queue_override_length_m": 200
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "highway": [
+      "G4202"
+    ],
+    "segments": [
+      "g4202_k0k20"
+    ],
+    "time_pattern": "adaptive_morning",
+    "time_range": "06:30-10:30",
+    "severity": "moderate",
+    "strategies": [
+      "vss",
+      "tec"
+    ],
+    "expected_volume": "high",
+    "optimization_goal": "balanced_optimization"
+  },
+  "is_baseline": false,
+  "status": "active",
+  "created_at": "2025-11-10T12:34:39.727401",
+  "version": 1
+}

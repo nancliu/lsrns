@@ -1,0 +1,226 @@
+{
+  "template_type": "TEC",
+  "description": "收费站管控(TEC)严重程度参数模板",
+  "severities": {
+    "mild": {
+      "severity_level": "mild",
+      "chinese_name": "轻度",
+      "description": "Light flow control for preventive management",
+      "flow_reduction_percentage": "10-20%",
+      "parameters": {
+        "normal_flow_veh_hr": 600,
+        "controlled_flows": {
+          "phase1": 540,
+          "phase2": 510,
+          "phase3": 480
+        },
+        "control_steps_template": [
+          {
+            "time_offset_hours": 0,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0,
+            "description": "Normal flow"
+          },
+          {
+            "time_offset_hours": 0.5,
+            "flow_limit_veh_hr": 540,
+            "green_time_ratio": 0.9,
+            "description": "10% reduction"
+          },
+          {
+            "time_offset_hours": 1,
+            "flow_limit_veh_hr": 510,
+            "green_time_ratio": 0.85,
+            "description": "15% reduction"
+          },
+          {
+            "time_offset_hours": 2,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8,
+            "description": "20% reduction"
+          },
+          {
+            "time_offset_hours": 3,
+            "flow_limit_veh_hr": 540,
+            "green_time_ratio": 0.9,
+            "description": "Recovery phase"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0,
+            "description": "Normal flow restored"
+          }
+        ],
+        "ramp_metering": {
+          "type": "fixed_time",
+          "cycle_time_s": 60,
+          "vehicles_per_green": 2
+        }
+      },
+      "use_cases": [
+        "Low congestion risk",
+        "Preventive flow management",
+        "Off-peak transition periods"
+      ]
+    },
+    "moderate": {
+      "severity_level": "moderate",
+      "chinese_name": "中度",
+      "description": "Balanced flow control for typical peak hours",
+      "flow_reduction_percentage": "20-40%",
+      "parameters": {
+        "normal_flow_veh_hr": 600,
+        "controlled_flows": {
+          "phase1": 480,
+          "phase2": 420,
+          "phase3": 360
+        },
+        "control_steps_template": [
+          {
+            "time_offset_hours": 0,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0,
+            "description": "Normal flow"
+          },
+          {
+            "time_offset_hours": 0.5,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8,
+            "description": "20% reduction"
+          },
+          {
+            "time_offset_hours": 1,
+            "flow_limit_veh_hr": 420,
+            "green_time_ratio": 0.7,
+            "description": "30% reduction"
+          },
+          {
+            "time_offset_hours": 2,
+            "flow_limit_veh_hr": 360,
+            "green_time_ratio": 0.6,
+            "description": "40% reduction"
+          },
+          {
+            "time_offset_hours": 3,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8,
+            "description": "Recovery phase"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0,
+            "description": "Normal flow restored"
+          }
+        ],
+        "ramp_metering": {
+          "type": "adaptive",
+          "cycle_time_s": 45,
+          "vehicles_per_green": 1,
+          "queue_override_length_m": 200
+        }
+      },
+      "use_cases": [
+        "Regular peak hours",
+        "Moderate mainline congestion",
+        "Standard ramp metering"
+      ]
+    },
+    "severe": {
+      "severity_level": "severe",
+      "chinese_name": "严重",
+      "description": "Aggressive flow control for severe congestion",
+      "flow_reduction_percentage": "40-60%",
+      "parameters": {
+        "normal_flow_veh_hr": 600,
+        "controlled_flows": {
+          "phase1": 360,
+          "phase2": 300,
+          "phase3": 240
+        },
+        "control_steps_template": [
+          {
+            "time_offset_hours": 0,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0,
+            "description": "Normal flow"
+          },
+          {
+            "time_offset_hours": 0.25,
+            "flow_limit_veh_hr": 360,
+            "green_time_ratio": 0.6,
+            "description": "40% reduction"
+          },
+          {
+            "time_offset_hours": 0.75,
+            "flow_limit_veh_hr": 300,
+            "green_time_ratio": 0.5,
+            "description": "50% reduction"
+          },
+          {
+            "time_offset_hours": 1.5,
+            "flow_limit_veh_hr": 240,
+            "green_time_ratio": 0.4,
+            "description": "60% reduction"
+          },
+          {
+            "time_offset_hours": 2.5,
+            "flow_limit_veh_hr": 360,
+            "green_time_ratio": 0.6,
+            "description": "Recovery phase 1"
+          },
+          {
+            "time_offset_hours": 3,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8,
+            "description": "Recovery phase 2"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0,
+            "description": "Normal flow restored"
+          }
+        ],
+        "ramp_metering": {
+          "type": "restrictive",
+          "cycle_time_s": 30,
+          "vehicles_per_green": 1,
+          "queue_override_length_m": 300,
+          "minimum_green_s": 3
+        }
+      },
+      "use_cases": [
+        "Severe mainline congestion",
+        "Incident management",
+        "Emergency flow restriction"
+      ]
+    }
+  },
+  "application_rules": {
+    "minimum_spacing_between_tec_km": 2,
+    "maximum_queue_length_m": 500,
+    "emergency_override": true,
+    "coordination_with_vss": true,
+    "priority_vehicle_bypass": true
+  },
+  "toll_station_types": {
+    "mainline": {
+      "lanes": 4,
+      "processing_rate_veh_hr_lane": 150
+    },
+    "ramp": {
+      "lanes": 2,
+      "processing_rate_veh_hr_lane": 100
+    }
+  },
+  "sumo_configuration": {
+    "element_type": "calibrator",
+    "file_type": "additional",
+    "flow_control_method": "flow",
+    "override_priority": 90
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}

@@ -108,6 +108,103 @@
     cursor: pointer;
 }
 
+/* 方案集合分组 */
+.plan-group {
+    margin-bottom: var(--spacing-30);
+    border: 1px solid var(--color-light-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-15);
+    background: #fafafa;
+}
+
+.plan-group-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-10);
+    margin-bottom: var(--spacing-15);
+    padding-bottom: var(--spacing-10);
+    border-bottom: 2px solid var(--color-info);
+}
+
+.plan-group-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-600);
+    color: var(--color-dark);
+    flex: 1;
+}
+
+.plan-group-count {
+    background: var(--color-info);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-500);
+}
+
+.plan-group .plan-item {
+    margin-left: var(--spacing-20);
+    margin-bottom: var(--spacing-10);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+/* 策略类型徽章 */
+.strategy-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-600);
+    margin-left: var(--spacing-5);
+    white-space: nowrap;
+}
+
+.badge-vss {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-dhs {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.badge-tec {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+/* 严重程度徽章 */
+.severity-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-600);
+    margin-left: var(--spacing-5);
+    white-space: nowrap;
+}
+
+.severity-mild {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.severity-moderate {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.severity-severe {
+    background: #ffebee;
+    color: #c62828;
+}
+
 /* 估算框 */
 .estimate-box {
     background: #e8f4f8;

@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事件注入 - 交通仿真推演系统</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --primary-light: #63a4ff;
+            --primary-dark: #004ba0;
+            --secondary-color: #388e3c;
+            --text-on-primary: white;
+            --background-color: #f5f5f5;
+            --card-color: white;
+            --border-color: #e0e0e0;
+            --header-height: 64px;
+            --drawer-width: 240px;
+            --content-padding: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: rgba(0, 0, 0, 0.87);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: var(--content-padding);
+            padding-bottom: 80px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eee;
+            padding: 15px 20px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .form-select, .form-control {
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }
+
+        .badge.bg-success {
+            background-color: #198754;
+            color: white;
+        }
+
+        .event-param {
+            margin-bottom: 15px;
+        }
+        .severity-options {
+            display: flex;
+            gap: 15px;
+        }
+        .event-type-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        
+        .control-icon {
+            font-size: 18px;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            background-color: #f0f0f0;
+            color: #555;
+            margin-right: 2px;
+        }
+        
+        .control-type {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+            margin-bottom: 8px;
+        }
+        
+        .control-type .material-icons {
+            margin-right: 5px;
+        }
+        
+        .collapse-toggle-btn {
+            border-radius: 20px;
+            padding: 0.25rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .collapse-toggle-btn .material-icons {
+            font-size: 1rem;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        
+        .info-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 50% !important;
+            background-color: #0d6efd !important;
+            color: #ffffff !important;
+            cursor: pointer !important;
+            font-size: 14px !important;
+            border: 1px solid #dee2e6 !important;
+            margin-left: 8px !important;
+            transition: all 0.2s ease !important;
+            padding: 0 !important;
+            position: relative !important;
+            z-index: 5 !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .info-btn:hover {
+            background-color: #0b5ed7 !important;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .info-btn .material-icons {
+            font-size: 16px !important;
+        }
+        
+        .section-heading {
+            background-color: #e9effd;
+            padding: 10px 15px;
+            border-radius: 4px 4px 0 0;
+            border-left: 4px solid #0d6efd;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        
+        .content-section {
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        .content-section ul {
+            margin-bottom: 0.5rem;
+        }
+        
+        .content-section h6 {
+            margin-top: 0.5rem;
+            color: #0d6efd;
+        }
+
+        .app-bar {
+            height: var(--header-height);
+            background-color: var(--primary-color);
+            color: var(--text-on-primary);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-bar-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-left: 16px;
+        }
+
+        .app-bar-spacer {
+            flex-grow: 1;
+        }
+
+        .app-bar-section {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin-left: 32px;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: var(--text-on-primary);
+            text-decoration: none;
+        }
+
+        .icon-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .app-container {
+            display: flex;
+            flex-grow: 1;
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+        }
+
+        .drawer {
+            width: var(--drawer-width);
+            background-color: var(--card-color);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: rgba(0, 0, 0, 0.87);
+            text-decoration: none;
+        }
+
+        .drawer-item:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            color: rgba(0, 0, 0, 0.87);
+        }
+
+        .drawer-item.active {
+            background-color: rgba(25, 118, 210, 0.1);
+            color: var(--primary-color);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .drawer-item i, .drawer-item .material-icons {
+            margin-right: 16px;
+            color: inherit;
+        }
+
+        .drawer-section-title {
+            padding: 16px 16px 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .drawer-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 8px 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: var(--content-padding);
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: calc(100% - var(--drawer-width));
+            background-color: var(--card-color);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            height: 50px;
+        }
+
+        .bottom-bar .text-muted {
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }
+
+        .badge.bg-success {
+            background-color: #198754;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="app-bar">
+        <a href="#" class="icon-button">
+            <i class="material-icons">menu</i>
+        </a>
+        <h1 class="app-bar-title">交通仿真推演系统</h1>
+        <div class="app-bar-spacer"></div>
+        <div class="app-bar-section">事件注入</div>
+        <a href="#" class="icon-button">
+            <i class="material-icons">notifications</i>
+        </a>
+        <a href="#" class="icon-button">
+            <i class="material-icons">account_circle</i>
+        </a>
+    </div>
+
+    <!-- 主应用容器 -->
+    <div class="app-container">
+        <!-- 侧边导航栏 -->
+        <div class="drawer">
+            <div class="drawer-section-title">在线动态仿真</div>
+            <a href="../online_simulation/simulation_preparation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">settings</i>
+                <span>仿真准备</span>
+            </a>
+            <a href="../online_simulation/online_simulation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">play_circle</i>
+                <span>在线仿真</span>
+            </a>
+            <a href="../online_simulation/road_evaluation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">trending_up</i>
+                <span>路况评价</span>
+            </a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">事件触发仿真</div>
+            <a href="event_extraction.html" class="drawer-item active" data-section="事件触发仿真">
+                <i class="material-icons">event</i>
+                <span>事件注入</span>
+            </a>
+            <a href="scenario_library.html" class="drawer-item" data-section="事件触发仿真">
+                <i class="material-icons">library_books</i>
+                <span>仿真场景集</span>
+            </a>
+            <a href="impact_analysis.html" class="drawer-item" data-section="事件触发仿真">
+                <i class="material-icons">analytics</i>
+                <span>影响分析</span>
+            </a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">管控效果仿真</div>
+            <a href="../control_effect_simulation/simulation_execution.html" class="drawer-item" data-section="管控效果仿真">
+                <i class="material-icons">rocket_launch</i>
+                <span>管控方案优化</span>
+            </a>
+            <a href="../control_effect_simulation/plan_management.html" class="drawer-item" data-section="管控效果仿真">
+                <i class="material-icons">folder</i>
+                <span>方案管理</span>
+            </a>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="content-container">
+                <div class="content">
+                    ${getEventExtractionContent()}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="bottom-bar">
+        <div class="text-muted">
+            <span class="badge bg-success me-1"></span> 系统运行正常
+        </div>
+        <div class="text-muted">
+            最后更新: <span id="lastUpdateTime">2024-01-15 14:30:25</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 获取页面内容
+        function getPageContent() {
+            return `
+        <div class="content">
+                    ${getEventExtractionContent()}
+                </div>
+            `;
+        }
+
+        function getEventExtractionContent() {
+            return `
+            <!-- 事件基础信息区 -->
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">事件基础信息</h5>
+                    <button class="btn btn-sm btn-light" id="importFromScenario">
+                            <i class="material-icons small">folder_open</i> 从仿真场景集导入
+                    </button>
+                </div>
+                <div class="card-body pb-2">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="eventType" class="form-label">事件类型</label>
+                            <select class="form-select" id="eventType">
+                                <option value="trafficSurge">流量激增</option>
+                                <option value="accident">交通事故</option>
+                                <option value="roadwork">临时道路养护</option>
+                                <option value="weather">恶劣天气</option>
+                                <option value="disaster">地质灾害</option>
+                                <option value="roadCondition">路面异常</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="simStartTime" class="form-label">仿真开始时间</label>
+                            <input type="datetime-local" class="form-control" id="simStartTime">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="simDuration" class="form-label">仿真总时长</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="simDuration" value="8" min="1">
+                                <span class="input-group-text">小时</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 事件点详细信息区 -->
+            <div class="card mb-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">事件点详细信息</h5>
+                </div>
+                <div class="card-body pt-3 pb-2">
+                    <!-- 动态参数区域 - 根据事件类型显示不同参数 -->
+                    <div id="dynamicParams">
+                        <div class="event-param">
+                            <div class="card">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <span>流量激增监测点位</span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="addMonitorPoint">
+                                        <i class="material-icons small">add</i> 添加监测点
+                                    </button>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0" id="monitorPointsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>监测点名称</th>
+                                                    <th>类型</th>
+                                                    <th>流量比例</th>
+                                                    <th>当前货车占比</th>
+                                                    <th>历史货车占比</th>
+                                                    <th>开始时刻</th>
+                                                    <th>持续时间</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr data-id="point1">
+                                                    <td>
+                                                        <input type="text" class="form-control form-control-sm" value="南城入口" name="pointName">
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm" name="pointType">
+                                                            <option value="entrance" selected>入口</option>
+                                                            <option value="gantry">门架</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control flow-ratio" value="120" min="0" max="300" name="flowRatio">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control current-truck" value="35" min="0" max="100" name="currentTruck">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control history-truck" value="30" min="0" max="100" name="historyTruck">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="time" class="form-control start-time" value="01:00" name="startTime">
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control duration" value="2" min="1" name="duration">
+                                                            <span class="input-group-text">小时</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-danger remove-point">
+                                                            <i class="material-icons small">delete</i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr data-id="point2">
+                                                    <td>
+                                                        <input type="text" class="form-control form-control-sm" value="G1-K120门架" name="pointName">
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm" name="pointType">
+                                                            <option value="entrance">入口</option>
+                                                            <option value="gantry" selected>门架</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control flow-ratio" value="140" min="0" max="300" name="flowRatio">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control current-truck" value="40" min="0" max="100" name="currentTruck">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control history-truck" value="30" min="0" max="100" name="historyTruck">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="time" class="form-control start-time" value="02:00" name="startTime">
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control duration" value="3" min="1" name="duration">
+                                                            <span class="input-group-text">小时</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-danger remove-point">
+                                                            <i class="material-icons small">delete</i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light p-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                            <div><span class="badge bg-success me-1"></span> 正常交通流 <span class="badge bg-warning me-1 ms-2"></span> 动态演化流 <span class="badge bg-danger me-1 ms-2"></span> 异常状态流</div>
+                                            <div><span class="fw-bold">交通流状态：<span id="currentFlowState" class="text-primary">正常交通流</span></span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                    
+                    </div>
+                </div>
+            </div>
+
+            <!-- 事件快速评估指标区 -->
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">交通流状态评估</h5>
+                </div>
+                <div class="card-body pt-3 pb-2">
+                        <!-- 各监测点交通流状态评估表格 -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <h6 class="fw-bold mb-3">各监测点交通流状态评估：</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered" id="trafficFlowEvaluationTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>监测点名称</th>
+                                                <th>流量状态</th>
+                                                <th>流量密度</th>
+                                                <th>预计车速</th>
+                                                <th>饱和度</th>
+                                                <th>交通流等级</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- 动态生成的监测点评估结果 -->
+                                        </tbody>
+                                    </table>
+                        </div>
+                        </div>
+                        </div>
+                        
+                        <!-- 综合评估指标 -->
+                        <div class="row mb-3">
+                            <div class="col-md-3 mb-3">
+                                <span class="fw-bold">综合流量状态：</span>
+                                <span id="overallFlowStatus" class="badge bg-primary">正常</span>
+                    </div>
+                            <div class="col-md-3 mb-3">
+                                <span class="fw-bold">平均流量密度：</span>
+                                <span id="avgFlowDensity" class="badge bg-secondary">--</span>
+                        </div>
+                            <div class="col-md-3 mb-3">
+                                <span class="fw-bold">平均车速：</span>
+                                <span id="avgSpeed" class="badge bg-info">--</span>
+                        </div>
+                            <div class="col-md-3 mb-3">
+                                <span class="fw-bold">综合流量等级：</span>
+                                <span id="overallFlowLevel" class="badge bg-warning">--</span>
+                        </div>
+                    </div>
+                    
+                        <!-- 交通流状态计算方法区域 -->
+                    <div class="section-heading">
+                            交通流状态计算方法
+                    </div>
+                    <div class="content-section">
+                            <div class="d-block mb-2" id="flowCalculationMethods">
+                                <h6 class="fw-bold">基于监测点数据的交通流状态计算：</h6>
+                            <ul class="mb-2">
+                                    <li><strong>流量密度计算</strong> = 监测点流量 / 路段长度，单位：辆/km</li>
+                                    <li><strong>平均车速计算</strong> = Σ(各监测点车速 × 流量权重) / 总流量</li>
+                                    <li><strong>饱和度计算</strong> = 实际流量 / 道路通行能力</li>
+                                    <li><strong>交通流等级判定</strong>：
+                                        <ul>
+                                            <li>自由流：饱和度 < 0.3，车速 > 80km/h</li>
+                                            <li>稳定流：饱和度 0.3-0.7，车速 60-80km/h</li>
+                                            <li>不稳定流：饱和度 0.7-1.0，车速 40-60km/h</li>
+                                            <li>强制流：饱和度 > 1.0，车速 < 40km/h</li>
+                            </ul>
+                                    </li>
+                            </ul>
+                                <h6 class="fw-bold">时段特性分析：</h6>
+                            <ul class="mb-2">
+                                    <li><strong>时变特征</strong> = 流量标准差 / 平均流量</li>
+                                    <li><strong>峰值持续时间</strong> = 高流量时段的持续长度</li>
+                                    <li><strong>流量增长率</strong> = (当前流量 - 历史流量) / 历史流量 × 100%</li>
+                            </ul>
+                                <h6 class="fw-bold">综合评估指标：</h6>
+                            <ul class="mb-0">
+                                    <li><strong>交通效率指数</strong> = 实际通行量 / 理论最大通行量</li>
+                                    <li><strong>拥堵程度指数</strong> = 1 - (实际车速 / 自由流车速)</li>
+                                    <li><strong>稳定性指数</strong> = 1 - (速度方差 / 平均速度²)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" class="btn btn-outline-secondary">取消</button>
+                    <button type="button" class="btn btn-outline-primary">保存到场景集</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="material-icons">play_arrow</i> 启动仿真
+                </button>
+    </div>
+
+    <!-- 从场景库导入模态框 -->
+    <div class="modal fade" id="scenarioLibraryModal" tabindex="-1" aria-labelledby="scenarioLibraryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                                <h5 class="modal-title" id="scenarioLibraryModalLabel">从仿真场景集选择</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                            <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="list-group">
+                                <a href="#" class="list-group-item list-group-item-action active" data-category="trafficSurge">
+                                    <i class="material-icons small">trending_up</i> 流量激增
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" data-category="accident">
+                                    <i class="material-icons small">warning</i> 交通事故
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" data-category="roadwork">
+                                    <i class="material-icons small">construction</i> 临时道路养护
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" data-category="weather">
+                                    <i class="material-icons small">waves</i> 恶劣天气
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" data-category="disaster">
+                                    <i class="material-icons small">terrain</i> 地质灾害
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" data-category="roadCondition">
+                                    <i class="material-icons small">road</i> 路面异常
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="scenarioTable">
+                                    <thead>
+                                        <tr>
+                                            <th>名称</th>
+                                            <th>适用区域</th>
+                                            <th>严重程度</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr data-id="scenario1">
+                                            <td>节假日交通高峰</td>
+                                            <td>城市主干道</td>
+                                            <td><span class="badge bg-warning">中等</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary select-scenario">选择</button>
+                                            </td>
+                                        </tr>
+                                        <tr data-id="scenario2">
+                                            <td>拥堵高峰期</td>
+                                            <td>高速公路</td>
+                                            <td><span class="badge bg-danger">严重</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary select-scenario">选择</button>
+                                            </td>
+                                        </tr>
+                                        <tr data-id="scenario3">
+                                            <td>春运返程高峰</td>
+                                            <td>全路网</td>
+                                            <td><span class="badge bg-danger">严重</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary select-scenario">选择</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+            `;
+        }
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加页面内容到导航组件的内容区域
+            const appContainer = document.querySelector('.app-container');
+            if (appContainer) {
+                const pageContent = getPageContent();
+                const mainContent = appContainer.querySelector('.main-content .content-container');
+                if (mainContent) {
+                    mainContent.innerHTML = pageContent;
+                }
+            }
+
+            // 等待DOM更新后初始化页面功能
+            setTimeout(() => {
+                initializeEventExtraction();
+            }, 100);
+        });
+
+        // 初始化事件注入页面功能
+        function initializeEventExtraction() {
+            const eventType = document.getElementById('eventType');
+            const dynamicParams = document.getElementById('dynamicParams');
+            
+            if (!eventType || !dynamicParams) {
+                console.error('页面元素未找到');
+                return;
+            }
+
+            // 从场景库导入按钮事件
+            const importFromScenarioBtn = document.getElementById('importFromScenario');
+            const scenarioLibraryModal = new bootstrap.Modal(document.getElementById('scenarioLibraryModal'));
+            
+            if (importFromScenarioBtn) {
+            importFromScenarioBtn.addEventListener('click', function() {
+                scenarioLibraryModal.show();
+            });
+            }
+            
+            // 场景选择事件
+            const selectScenarioBtns = document.querySelectorAll('.select-scenario');
+            selectScenarioBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const scenarioRow = this.closest('tr');
+                    const scenarioId = scenarioRow.dataset.id;
+                    const scenarioName = scenarioRow.cells[0].textContent;
+                    
+                    console.log('选择场景:', scenarioName, '(ID:', scenarioId + ')');
+                    loadScenarioData(scenarioId);
+                    scenarioLibraryModal.hide();
+                });
+            });
+            
+            // 加载场景数据的函数
+            function loadScenarioData(scenarioId) {
+                alert('场景 ' + scenarioId + ' 已导入！');
+                const scenarioCategory = getScenarioCategoryById(scenarioId);
+                eventType.value = scenarioCategory;
+                renderDynamicParams(scenarioCategory);
+                renderQuickEval(scenarioCategory);
+            }
+            
+            // 模拟获取场景类型
+            function getScenarioCategoryById(scenarioId) {
+                const scenarioCategories = {
+                    'scenario1': 'trafficSurge',
+                    'scenario2': 'trafficSurge',
+                    'scenario3': 'trafficSurge'
+                };
+                return scenarioCategories[scenarioId] || 'trafficSurge';
+            }
+            
+            // 场景库中类别筛选
+            const categoryLinks = document.querySelectorAll('.list-group-item[data-category]');
+            categoryLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    categoryLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    const category = this.dataset.category;
+                    console.log('选择类别:', category);
+                });
+            });
+            
+            // URL参数处理
+            function handleUrlParams() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const importScenario = urlParams.get('import_scenario');
+                const caseId = urlParams.get('case_id');
+                const caseData = urlParams.get('case_data');
+                const adjust = urlParams.get('adjust');
+                
+                if (caseData) {
+                    try {
+                        const decodedData = JSON.parse(decodeURIComponent(caseData));
+                        loadCaseDataFromLibrary(decodedData, adjust === 'true');
+                    } catch (error) {
+                        console.error('解析案例数据失败:', error);
+                    }
+                } else if (caseId) {
+                    loadCaseData(caseId, adjust === 'true');
+                } else if (importScenario) {
+                    let scenarioId = null;
+                    const scenarioMap = {
+                        '节假日交通高峰': 'scenario1',
+                        '拥堵高峰期': 'scenario2',
+                        '春运返程高峰': 'scenario3'
+                    };
+                    scenarioId = scenarioMap[importScenario];
+                    if (scenarioId) {
+                        setTimeout(() => {
+                            loadScenarioData(scenarioId);
+                        }, 500);
+                    }
+                }
+            }
+            
+            // 加载从场景库传来的案例数据
+            function loadCaseDataFromLibrary(caseData, adjustMode = false) {
+                console.log('加载场景库案例数据:', caseData);
+                
+                if (caseData.event_type) {
+                    document.getElementById('eventType').value = caseData.event_type;
+                }
+                
+                if (caseData.sim_start_time) {
+                    document.getElementById('simStartTime').value = caseData.sim_start_time;
+                }
+                
+                if (caseData.sim_duration) {
+                    document.getElementById('simDuration').value = caseData.sim_duration;
+                }
+                
+                renderDynamicParams(caseData.event_type);
+                
+                setTimeout(() => {
+                    fillEventDetails(caseData.event_type, caseData.event_details, adjustMode);
+                    calculateTrafficFlowState();
+                }, 100);
+                
+                if (adjustMode) {
+                    highlightAdjustableParams();
+                }
+            }
+            
+            // 填充事件详细参数
+            function fillEventDetails(eventType, eventDetails, adjustMode = false) {
+                switch(eventType) {
+                    case 'trafficSurge':
+                        if (eventDetails.monitor_points) {
+                            fillMonitorPoints(eventDetails.monitor_points, adjustMode);
+                        }
+                        break;
+                    case 'accident':
+                        if (eventDetails.accident_points) {
+                            fillAccidentPoints(eventDetails.accident_points, adjustMode);
+                        }
+                        break;
+                    case 'roadwork':
+                        if (eventDetails.construction_points) {
+                            fillConstructionPoints(eventDetails.construction_points, adjustMode);
+                        }
+                        break;
+                    case 'weather':
+                        if (eventDetails.weather_events) {
+                            fillWeatherEvents(eventDetails.weather_events, adjustMode);
+                        }
+                        break;
+                    case 'disaster':
+                        if (eventDetails.disaster_events) {
+                            fillDisasterEvents(eventDetails.disaster_events, adjustMode);
+                        }
+                        break;
+                }
+            }
+            
+            // 填充监测点位数据
+            function fillMonitorPoints(monitorPoints, adjustMode = false) {
+                const tableBody = document.querySelector('#monitorPointsTable tbody');
+                if (!tableBody) return;
+                
+                tableBody.innerHTML = '';
+                
+                monitorPoints.forEach((point, index) => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-id', 'point' + (index + 1));
+                    
+                    row.innerHTML = '<td><input type="text" class="form-control form-control-sm ' + (adjustMode ? 'highlight-adjust' : '') + '" value="' + point.point_name + '" name="pointName"></td>' +
+                                   '<td><select class="form-select form-select-sm" name="pointType">' +
+                                   '<option value="entrance"' + (point.point_type === 'entrance' ? ' selected' : '') + '>入口</option>' +
+                                   '<option value="gantry"' + (point.point_type === 'gantry' ? ' selected' : '') + '>门架</option>' +
+                                   '</select></td>' +
+                                   '<td><div class="input-group input-group-sm">' +
+                                   '<input type="number" class="form-control flow-ratio ' + (adjustMode ? 'highlight-adjust' : '') + '" value="' + point.flow_ratio + '" min="0" max="300" name="flowRatio">' +
+                                   '<span class="input-group-text">%</span></div></td>' +
+                                   '<td><div class="input-group input-group-sm">' +
+                                   '<input type="number" class="form-control current-truck ' + (adjustMode ? 'highlight-adjust' : '') + '" value="' + point.current_truck_ratio + '" min="0" max="100" name="currentTruck">' +
+                                   '<span class="input-group-text">%</span></div></td>' +
+                                   '<td><div class="input-group input-group-sm">' +
+                                   '<input type="number" class="form-control history-truck" value="' + point.history_truck_ratio + '" min="0" max="100" name="historyTruck">' +
+                                   '<span class="input-group-text">%</span></div></td>' +
+                                   '<td><div class="input-group input-group-sm">' +
+                                   '<input type="time" class="form-control start-time ' + (adjustMode ? 'highlight-adjust' : '') + '" value="' + point.start_time + '" name="startTime">' +
+                                   '</div></td>' +
+                                   '<td><div class="input-group input-group-sm">' +
+                                   '<input type="number" class="form-control duration ' + (adjustMode ? 'highlight-adjust' : '') + '" value="' + point.duration + '" min="1" name="duration">' +
+                                   '<span class="input-group-text">小时</span></div></td>' +
+                                   '<td><button class="btn btn-sm btn-outline-danger remove-point">' +
+                                   '<i class="material-icons small">delete</i></button></td>';
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // 高亮显示可调整的参数
+            function highlightAdjustableParams() {
+                const adjustableInputs = document.querySelectorAll('.highlight-adjust');
+                adjustableInputs.forEach(input => {
+                    input.style.backgroundColor = '#fff3cd';
+                    input.style.borderColor = '#ffc107';
+                });
+                
+                const notification = document.createElement('div');
+                notification.style.cssText = 'position: fixed; top: 80px; right: 20px; padding: 12px 16px; background-color: #0dcaf0; color: white; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; font-size: 0.875rem; max-width: 300px;';
+                notification.textContent = '已进入参数调整模式，黄色高亮的字段可以修改';
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 5000);
+            }
+
+            // 渲染动态参数
+            function renderDynamicParams(type) {
+                switch(type) {
+                    case 'trafficSurge':
+                        dynamicParams.innerHTML = `
+                            <div class="event-param">
+                                <div class="card">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                        <span>流量激增监测点位</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addMonitorPoint">
+                                            <i class="material-icons small">add</i> 添加监测点
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="monitorPointsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>监测点名称</th>
+                                                        <th>类型</th>
+                                                        <th>流量比例</th>
+                                                        <th>当前货车占比</th>
+                                                        <th>历史货车占比</th>
+                                                        <th>开始时刻</th>
+                                                        <th>持续时间</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr data-id="point1">
+                                                        <td><input type="text" class="form-control form-control-sm" value="南城入口" name="pointName"></td>
+                                                        <td><select class="form-select form-select-sm" name="pointType"><option value="entrance" selected>入口</option><option value="gantry">门架</option></select></td>
+                                                        <td><div class="input-group input-group-sm"><input type="number" class="form-control flow-ratio" value="120" min="0" max="300"><span class="input-group-text">%</span></div></td>
+                                                        <td><div class="input-group input-group-sm"><input type="number" class="form-control current-truck" value="35" min="0" max="100"><span class="input-group-text">%</span></div></td>
+                                                        <td><div class="input-group input-group-sm"><input type="number" class="form-control history-truck" value="30" min="0" max="100"><span class="input-group-text">%</span></div></td>
+                                                        <td><div class="input-group input-group-sm"><input type="time" class="form-control start-time" value="01:00" name="startTime"></div></td>
+                                                        <td><div class="input-group input-group-sm"><input type="number" class="form-control duration" value="2" min="1"><span class="input-group-text">小时</span></div></td>
+                                                        <td><button class="btn btn-sm btn-outline-danger remove-point"><i class="material-icons small">delete</i></button></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+                    case 'accident':
+                        dynamicParams.innerHTML = `
+                            <div class="event-param">
+                                <div class="card">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                        <span>交通事故点位</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addAccidentPoint">
+                                            <i class="material-icons small">add</i> 添加事故点
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="accidentPointsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>位置</th>
+                                                        <th>占用车道</th>
+                                                        <th>事故类型</th>
+                                                        <th>伤亡程度</th>
+                                                        <th>开始时刻</th>
+                                                        <th>处理时长</th>
+                                                        <th>应急车辆</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr data-id="accident1">
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="text" class="form-control" value="K120+500" name="accidentPosition" placeholder="桩号或经纬度">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <input type="checkbox" class="btn-check" id="accLane1" name="accidentLanes" value="1" autocomplete="off" checked>
+                                                                <label class="btn btn-outline-secondary" for="accLane1">1</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="accLane2" name="accidentLanes" value="2" autocomplete="off" checked>
+                                                                <label class="btn btn-outline-secondary" for="accLane2">2</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="accLane3" name="accidentLanes" value="3" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="accLane3">3</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="accLaneEmergency" name="accidentLanes" value="emergency" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="accLaneEmergency">应急</label>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="accidentType">
+                                                                <option value="rearEnd" selected>追尾事故</option>
+                                                                <option value="collision">刮擦事故</option>
+                                                                <option value="rollover">侧翻事故</option>
+                                                                <option value="fireAccident">起火事故</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="casualtyLevel">
+                                                                <option value="minorInjury" selected>轻微伤</option>
+                                                                <option value="seriousInjury">重伤</option>
+                                                                <option value="fatality">死亡</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="time" class="form-control" value="02:00" name="startTime">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="60" min="15" name="processingTime">
+                                                                <span class="input-group-text">分钟</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="1" min="1" name="emergencyVehicles">
+                                                                <span class="input-group-text">辆</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger remove-accident">
+                                                                <i class="material-icons small">delete</i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+                    case 'roadwork':
+                        dynamicParams.innerHTML = `
+                            <div class="event-param">
+                                <div class="card">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                        <span>临时占道施工点位</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addConstructionPoint">
+                                            <i class="material-icons small">add</i> 添加施工点
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="constructionPointsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>位置</th>
+                                                        <th>施工长度</th>
+                                                        <th>施工类型</th>
+                                                        <th>占用车道</th>
+                                                        <th>开始时刻</th>
+                                                        <th>持续时长</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr data-id="construction1">
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="text" class="form-control" value="K135+200" name="constructionPosition" placeholder="桩号或经纬度">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="500" min="50" max="5000" name="constructionLength">
+                                                                <span class="input-group-text">米</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="constructionType">
+                                                                <option value="roadMaintenance" selected>路面维修</option>
+                                                                <option value="bridgeMaintenance">桥梁维护</option>
+                                                                <option value="pipelineInstallation">管网铺设</option>
+                                                                <option value="other">其他</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <input type="checkbox" class="btn-check" id="lane1" name="occupiedLanes" value="1" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="lane1">1</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="lane2" name="occupiedLanes" value="2" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="lane2">2</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="lane3" name="occupiedLanes" value="3" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="lane3">3</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="laneEmergency" name="occupiedLanes" value="emergency" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="laneEmergency">应急</label>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="time" class="form-control" value="01:00" name="startTime">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="4" min="1" name="duration">
+                                                                <span class="input-group-text">小时</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger remove-construction">
+                                                                <i class="material-icons small">delete</i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+                    case 'weather':
+                        dynamicParams.innerHTML = `
+                            <div class="event-param">
+                                <div class="card">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                        <span>恶劣天气事件</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addWeatherEvent">
+                                            <i class="material-icons small">add</i> 添加天气事件
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="weatherEventsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>影响区域(桩号范围)</th>
+                                                        <th>天气类型</th>
+                                                        <th>能见度</th>
+                                                        <th>限速值</th>
+                                                        <th>路面湿滑程度</th>
+                                                        <th>开始时刻</th>
+                                                        <th>持续时间</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr data-id="weather1">
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="text" class="form-control" value="K120+000~K150+000" name="weatherArea" placeholder="起始~结束桩号">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="weatherType">
+                                                                <option value="rain" selected>暴雨</option>
+                                                                <option value="snow">大雪</option>
+                                                                <option value="fog">大雾</option>
+                                                                <option value="wind">大风</option>
+                                                                <option value="hail">冰雹</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="100" min="50" max="500" name="visibility">
+                                                                <span class="input-group-text">米</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="60" min="20" max="120" name="speedLimit">
+                                                                <span class="input-group-text">公里/小时</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="slipperyLevel">
+                                                                <option value="slight" selected>轻微</option>
+                                                                <option value="moderate">中等</option>
+                                                                <option value="severe">严重</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="time" class="form-control" value="01:00" name="startTime">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="3" min="1" name="duration">
+                                                                <span class="input-group-text">小时</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger remove-weather">
+                                                                <i class="material-icons small">delete</i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+                    case 'disaster':
+                        dynamicParams.innerHTML = `
+                            <div class="event-param">
+                                <div class="card">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                        <span>地质灾害事件</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addDisasterEvent">
+                                            <i class="material-icons small">add</i> 添加灾害事件
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="disasterEventsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>影响区域(桩号范围)</th>
+                                                        <th>灾害类型</th>
+                                                        <th>影响道路长度</th>
+                                                        <th>封闭车道</th>
+                                                        <th>开始时刻</th>
+                                                        <th>清理预计时间</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr data-id="disaster1">
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="text" class="form-control" value="K160+000~K161+000" name="disasterArea" placeholder="起始~结束桩号">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="disasterType">
+                                                                <option value="landslide" selected>山体滑坡</option>
+                                                                <option value="mudslide">泥石流</option>
+                                                                <option value="collapse">地面塌陷</option>
+                                                                <option value="flood">洪水</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="200" min="50" max="2000" name="affectedLength">
+                                                                <span class="input-group-text">米</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <input type="checkbox" class="btn-check" id="disLane1" name="disasterLanes" value="1" autocomplete="off" checked>
+                                                                <label class="btn btn-outline-secondary" for="disLane1">1</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="disLane2" name="disasterLanes" value="2" autocomplete="off" checked>
+                                                                <label class="btn btn-outline-secondary" for="disLane2">2</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="disLane3" name="disasterLanes" value="3" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="disLane3">3</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="disLaneEmergency" name="disasterLanes" value="emergency" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="disLaneEmergency">应急</label>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="time" class="form-control" value="02:00" name="startTime">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="24" min="1" name="clearanceTime">
+                                                                <span class="input-group-text">小时</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger remove-disaster">
+                                                                <i class="material-icons small">delete</i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+                    case 'roadCondition':
+                        dynamicParams.innerHTML = `
+                            <div class="event-param">
+                                <div class="card">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                        <span>路面异常点位</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addRoadConditionPoint">
+                                            <i class="material-icons small">add</i> 添加异常点
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="roadConditionPointsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>位置</th>
+                                                        <th>异常类型</th>
+                                                        <th>影响范围</th>
+                                                        <th>占用车道</th>
+                                                        <th>限速值</th>
+                                                        <th>开始时刻</th>
+                                                        <th>修复预计时间</th>
+                                                        <th>操作</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr data-id="roadCondition1">
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="text" class="form-control" value="K145+500" name="conditionPosition" placeholder="桩号">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select form-select-sm" name="conditionType">
+                                                                <option value="pothole" selected>路面坑洼</option>
+                                                                <option value="waterlogging">路面积水</option>
+                                                                <option value="icing">路面结冰</option>
+                                                                <option value="obstacle">路面障碍物</option>
+                                                                <option value="collapse">路面塌陷</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="50" min="10" max="1000" name="affectedRange">
+                                                                <span class="input-group-text">米</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <input type="checkbox" class="btn-check" id="condLane1" name="conditionLanes" value="1" autocomplete="off" checked>
+                                                                <label class="btn btn-outline-secondary" for="condLane1">1</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="condLane2" name="conditionLanes" value="2" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="condLane2">2</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="condLane3" name="conditionLanes" value="3" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="condLane3">3</label>
+                                                                
+                                                                <input type="checkbox" class="btn-check" id="condLaneEmergency" name="conditionLanes" value="emergency" autocomplete="off">
+                                                                <label class="btn btn-outline-secondary" for="condLaneEmergency">应急</label>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="40" min="20" max="120" name="conditionSpeedLimit">
+                                                                <span class="input-group-text">公里/小时</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="time" class="form-control" value="00:00" name="startTime">
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="number" class="form-control" value="4" min="1" name="repairTime">
+                                                                <span class="input-group-text">小时</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger remove-condition">
+                                                                <i class="material-icons small">delete</i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        break;
+                }
+            }
+
+            // 计算交通流状态指标
+            function calculateTrafficFlowState() {
+                const monitorRows = document.querySelectorAll('#monitorPointsTable tbody tr');
+                const evaluationTableBody = document.querySelector('#trafficFlowEvaluationTable tbody');
+                
+                if (!evaluationTableBody) return;
+                
+                let totalFlow = 0;
+                let totalSpeed = 0;
+                let flowData = [];
+                let speedData = [];
+                
+                evaluationTableBody.innerHTML = '';
+                
+                monitorRows.forEach((row, index) => {
+                    const pointNameInput = row.querySelector('input[name="pointName"]');
+                    const flowRatioInput = row.querySelector('input[name="flowRatio"]');
+                    const currentTruckInput = row.querySelector('input[name="currentTruck"]');
+                    
+                    if (!pointNameInput || !flowRatioInput || !currentTruckInput) return;
+                    
+                    const pointName = pointNameInput.value || ('监测点' + (index + 1));
+                    const flowRatio = parseFloat(flowRatioInput.value) || 100;
+                    const currentTruck = parseFloat(currentTruckInput.value) || 0;
+                    
+                    const baseFlow = 1000;
+                    const actualFlow = baseFlow * (flowRatio / 100);
+                    
+                    let estimatedSpeed = 80;
+                    if (flowRatio > 150) {
+                        estimatedSpeed = 35;
+                    } else if (flowRatio > 120) {
+                        estimatedSpeed = 50;
+                    } else if (flowRatio > 100) {
+                        estimatedSpeed = 65;
+                    }
+                    
+                    const roadLength = 5;
+                    const flowDensity = actualFlow / roadLength;
+                    const roadCapacity = 2000;
+                    const saturationRatio = actualFlow / roadCapacity;
+                    
+                    let flowLevel = "自由流";
+                    let flowStatus = "正常";
+                    let statusClass = "bg-primary";
+                    let levelClass = "bg-primary";
+                    
+                    if (saturationRatio > 1.0) {
+                        flowLevel = "强制流";
+                        flowStatus = "拥堵";
+                        statusClass = "bg-danger";
+                        levelClass = "bg-danger";
+                    } else if (saturationRatio > 0.7) {
+                        flowLevel = "不稳定流";
+                        flowStatus = "缓慢";
+                        statusClass = "bg-warning";
+                        levelClass = "bg-warning";
+                    } else if (saturationRatio > 0.3) {
+                        flowLevel = "稳定流";
+                        flowStatus = "良好";
+                        statusClass = "bg-success";
+                        levelClass = "bg-success";
+                    }
+                    
+                    const evaluationRow = document.createElement('tr');
+                    evaluationRow.innerHTML = '<td>' + pointName + '</td>' +
+                        '<td><span class="badge ' + statusClass + '">' + flowStatus + '</span></td>' +
+                        '<td>' + flowDensity.toFixed(0) + ' 辆/km</td>' +
+                        '<td>' + estimatedSpeed.toFixed(1) + ' km/h</td>' +
+                        '<td>' + (saturationRatio * 100).toFixed(1) + '%</td>' +
+                        '<td><span class="badge ' + levelClass + '">' + flowLevel + '</span></td>';
+                    evaluationTableBody.appendChild(evaluationRow);
+                    
+                    flowData.push(actualFlow);
+                    speedData.push(estimatedSpeed);
+                    totalFlow += actualFlow;
+                    totalSpeed += estimatedSpeed;
+                });
+                
+                if (flowData.length === 0) return;
+                
+                const avgFlow = totalFlow / flowData.length;
+                const avgSpeed = totalSpeed / speedData.length;
+                const roadLength = 5;
+                const avgFlowDensity = avgFlow / roadLength;
+                const roadCapacity = 2000;
+                const overallSaturationRatio = avgFlow / roadCapacity;
+                
+                let overallFlowLevel = "自由流";
+                let overallFlowStatus = "正常";
+                if (overallSaturationRatio > 1.0) {
+                    overallFlowLevel = "强制流";
+                    overallFlowStatus = "拥堵";
+                } else if (overallSaturationRatio > 0.7) {
+                    overallFlowLevel = "不稳定流";
+                    overallFlowStatus = "缓慢";
+                } else if (overallSaturationRatio > 0.3) {
+                    overallFlowLevel = "稳定流";
+                    overallFlowStatus = "良好";
+                }
+                
+                document.getElementById('overallFlowStatus').textContent = overallFlowStatus;
+                document.getElementById('avgFlowDensity').textContent = avgFlowDensity.toFixed(0) + ' 辆/km';
+                document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(1) + ' km/h';
+                document.getElementById('overallFlowLevel').textContent = overallFlowLevel;
+                
+                const statusBadge = document.getElementById('overallFlowStatus');
+                const levelBadge = document.getElementById('overallFlowLevel');
+                
+                statusBadge.className = 'badge';
+                levelBadge.className = 'badge';
+                
+                if (overallFlowStatus === "拥堵") {
+                    statusBadge.classList.add('bg-danger');
+                    levelBadge.classList.add('bg-danger');
+                } else if (overallFlowStatus === "缓慢") {
+                    statusBadge.classList.add('bg-warning');
+                    levelBadge.classList.add('bg-warning');
+                } else if (overallFlowStatus === "良好") {
+                    statusBadge.classList.add('bg-success');
+                    levelBadge.classList.add('bg-success');
+                } else {
+                    statusBadge.classList.add('bg-primary');
+                    levelBadge.classList.add('bg-primary');
+                }
+            }
+
+            function renderQuickEval(type) {
+                console.log('渲染 ' + type + ' 事件的交通流状态评估');
+            }
+
+            // 事件类型选择事件监听
+            eventType.addEventListener('change', function() {
+                const selectedType = this.value;
+                renderDynamicParams(selectedType);
+                calculateTrafficFlowState();
+            });
+
+            // 监测点位输入变化时重新计算指标
+            document.addEventListener('input', function(e) {
+                if (e.target.closest('#monitorPointsTable')) {
+                    calculateTrafficFlowState();
+                }
+            });
+
+            // 初始化页面
+            renderDynamicParams('trafficSurge');
+            calculateTrafficFlowState();
+            
+            // 处理URL参数
+            handleUrlParams();
+        }
+    </script>
+</body>
+</html> 
+

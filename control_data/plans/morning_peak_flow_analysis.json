@@ -1,0 +1,186 @@
+{
+  "analysis_period": "2025-09-01 to 2025-09-07",
+  "data_source": "Historical gantry and detector data",
+  "highway": "G4202",
+  "time_window": "06:30-10:30",
+  "peak_patterns": {
+    "pre_peak": {
+      "time_range": "06:30-07:30",
+      "characteristics": {
+        "flow_level": "moderate",
+        "speed_range_kmh": [80, 100],
+        "congestion_level": "low",
+        "description": "Traffic building up, preventive control beneficial"
+      }
+    },
+    "early_peak": {
+      "time_range": "07:00-08:00",
+      "characteristics": {
+        "flow_level": "high",
+        "speed_range_kmh": [60, 80],
+        "congestion_level": "moderate",
+        "description": "First wave of commuters, speed beginning to drop"
+      }
+    },
+    "core_peak": {
+      "time_range": "07:30-09:00",
+      "characteristics": {
+        "flow_level": "very_high",
+        "speed_range_kmh": [30, 60],
+        "congestion_level": "high",
+        "description": "Maximum congestion period, severe speed reduction"
+      }
+    },
+    "late_peak": {
+      "time_range": "08:30-10:00",
+      "characteristics": {
+        "flow_level": "high",
+        "speed_range_kmh": [50, 70],
+        "congestion_level": "moderate",
+        "description": "Second wave, gradual recovery"
+      }
+    },
+    "post_peak": {
+      "time_range": "09:30-10:30",
+      "characteristics": {
+        "flow_level": "moderate",
+        "speed_range_kmh": [70, 90],
+        "congestion_level": "low",
+        "description": "Traffic normalizing, control wind-down"
+      }
+    }
+  },
+  "bottleneck_analysis": {
+    "critical_bottlenecks": [
+      {
+        "location": "K42.35",
+        "segment": "g4202_k40k60",
+        "description": "成雅站-锦城湖站",
+        "peak_flow_veh_hr": 581,
+        "min_speed_kmh": 15,
+        "severity": "severe",
+        "peak_time": "08:15"
+      },
+      {
+        "location": "K52.4",
+        "segment": "g4202_k40k60",
+        "description": "绕西成新蒲站-双流站",
+        "peak_flow_veh_hr": 445,
+        "min_speed_kmh": 26,
+        "severity": "high",
+        "peak_time": "08:00"
+      },
+      {
+        "location": "K12",
+        "segment": "g4202_k0k20",
+        "description": "东段成龙大道附近",
+        "peak_flow_veh_hr": 520,
+        "min_speed_kmh": 35,
+        "severity": "high",
+        "peak_time": "07:45"
+      },
+      {
+        "location": "K35",
+        "segment": "g4202_k20k40",
+        "description": "G5立交南",
+        "peak_flow_veh_hr": 490,
+        "min_speed_kmh": 40,
+        "severity": "moderate",
+        "peak_time": "08:30"
+      },
+      {
+        "location": "K70",
+        "segment": "g4202_k60k85",
+        "description": "G5立交北",
+        "peak_flow_veh_hr": 510,
+        "min_speed_kmh": 45,
+        "severity": "moderate",
+        "peak_time": "07:30"
+      }
+    ],
+    "high_flow_segments": [
+      {
+        "segment": "g4202_k0k20",
+        "avg_morning_flow": 450,
+        "flow_pattern": "commuter_dominated"
+      },
+      {
+        "segment": "g4202_k40k60",
+        "avg_morning_flow": 480,
+        "flow_pattern": "mixed_commuter_freight"
+      },
+      {
+        "segment": "g4202_k60k85",
+        "avg_morning_flow": 430,
+        "flow_pattern": "interchange_weaving"
+      }
+    ]
+  },
+  "strategy_placement_recommendations": {
+    "vss_priority_locations": [
+      {
+        "location": "K40-K45",
+        "reason": "Upstream of K42.35 bottleneck",
+        "recommended_speed_reduction": "30-50%"
+      },
+      {
+        "location": "K50-K55",
+        "reason": "Upstream of K52.4 bottleneck",
+        "recommended_speed_reduction": "20-30%"
+      },
+      {
+        "location": "K10-K15",
+        "reason": "Before eastern commuter merge",
+        "recommended_speed_reduction": "20-30%"
+      }
+    ],
+    "tec_priority_locations": [
+      {
+        "location": "K0",
+        "reason": "Eastern entry control",
+        "recommended_flow_reduction": "20-40%"
+      },
+      {
+        "location": "K40",
+        "reason": "Western section flow control",
+        "recommended_flow_reduction": "30-50%"
+      },
+      {
+        "location": "G5_ramps",
+        "reason": "Interchange flow metering",
+        "recommended_flow_reduction": "20-30%"
+      }
+    ],
+    "dhs_priority_segments": [
+      {
+        "segment": "K40-K55",
+        "reason": "Highest congestion area",
+        "recommended_hours": "07:00-09:00"
+      },
+      {
+        "segment": "K10-K20",
+        "reason": "Eastern bottleneck relief",
+        "recommended_hours": "07:30-09:00"
+      }
+    ]
+  },
+  "temporal_control_patterns": {
+    "proactive": {
+      "activation": "07:00",
+      "description": "Start control before peak",
+      "suitable_for": ["mild", "moderate"]
+    },
+    "reactive": {
+      "activation": "07:30",
+      "description": "Respond to building congestion",
+      "suitable_for": ["moderate", "severe"]
+    },
+    "phased": {
+      "phases": ["07:00-08:00", "08:00-09:00", "09:00-10:00"],
+      "description": "Gradual escalation and de-escalation",
+      "suitable_for": ["all_severities"]
+    }
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}

@@ -1,0 +1,829 @@
+{
+  "network_file": "templates\\network_files\\sichuan202508v7.net.xml",
+  "total_edges_in_network": 21106,
+  "plans": [
+    {
+      "plan_id": "plan_morning_peak_g4202_dhs_g4202k0k20_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_709035",
+          "strategy_type": "DHS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 6,
+      "valid_edges": 6,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_dhs_g4202k40k60_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_de46e0",
+          "strategy_type": "DHS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 6,
+      "valid_edges": 6,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_dhs_g4202k60k85_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_32a1ab",
+          "strategy_type": "DHS",
+          "edges": [
+            "-10896",
+            "-9428",
+            "-15632",
+            "-12324",
+            "-11456",
+            "-8932"
+          ],
+          "valid": [
+            "-10896",
+            "-9428",
+            "-12324",
+            "-11456"
+          ],
+          "invalid": [
+            "-15632",
+            "-8932"
+          ]
+        }
+      ],
+      "total_edges": 6,
+      "valid_edges": 4,
+      "invalid_edges": 2,
+      "validation_status": "FAIL"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k20k40_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_f7c1dd",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_372243",
+          "strategy_type": "DHS",
+          "edges": [
+            "-12680",
+            "-10376.203",
+            "-10376",
+            "-6906",
+            "-1438",
+            "-3324"
+          ],
+          "valid": [
+            "-12680",
+            "-10376.203",
+            "-10376",
+            "-6906",
+            "-1438",
+            "-3324"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 6,
+      "valid_edges": 6,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k40k60_mild_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_9fde63",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_a13328",
+          "strategy_type": "DHS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 6,
+      "valid_edges": 6,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k60k85_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_1b33bc",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_784890",
+          "strategy_type": "DHS",
+          "edges": [
+            "-10896",
+            "-9428",
+            "-15632",
+            "-12324",
+            "-11456",
+            "-8932"
+          ],
+          "valid": [
+            "-10896",
+            "-9428",
+            "-12324",
+            "-11456"
+          ],
+          "invalid": [
+            "-15632",
+            "-8932"
+          ]
+        }
+      ],
+      "total_edges": 6,
+      "valid_edges": 4,
+      "invalid_edges": 2,
+      "validation_status": "FAIL"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_tec_k0_mild_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_d50009",
+          "strategy_type": "TEC",
+          "edges": [
+            "-1000",
+            "-2000"
+          ],
+          "valid": [
+            "-1000",
+            "-2000"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 2,
+      "valid_edges": 2,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_tec_k40_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_1f9f5c",
+          "strategy_type": "TEC",
+          "edges": [
+            "-1000",
+            "-2000"
+          ],
+          "valid": [
+            "-1000",
+            "-2000"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 2,
+      "valid_edges": 2,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_dhs_g4202k0k20_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_68c907",
+          "strategy_type": "VSS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_b328ce",
+          "strategy_type": "DHS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 14,
+      "valid_edges": 14,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_dhs_g4202k40k60_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_d49832",
+          "strategy_type": "VSS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_eb928b",
+          "strategy_type": "DHS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 14,
+      "valid_edges": 14,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_g4202k0k20_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_bcd766",
+          "strategy_type": "VSS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 8,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_g4202k20k40_mild_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_3245de",
+          "strategy_type": "VSS",
+          "edges": [
+            "-12680",
+            "-10376.203",
+            "-10376",
+            "-6906",
+            "-1438",
+            "-3324",
+            "-4360",
+            "-10188"
+          ],
+          "valid": [
+            "-12680",
+            "-10376.203",
+            "-10376",
+            "-6906",
+            "-1438",
+            "-3324",
+            "-4360",
+            "-10188"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 8,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_g4202k40k60_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_bdc5b4",
+          "strategy_type": "VSS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 8,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_dhs_g4202k0k20_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_774993",
+          "strategy_type": "VSS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_cfb47c",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_6f0e0f",
+          "strategy_type": "DHS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 14,
+      "valid_edges": 14,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_dhs_g4202k40k60_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_e178e8",
+          "strategy_type": "VSS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_1dd7ad",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_448242",
+          "strategy_type": "DHS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292"
+          ],
+          "invalid": []
+        }
+      ],
+      "total_edges": 14,
+      "valid_edges": 14,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_dhs_g4202k60k85_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_51dafe",
+          "strategy_type": "VSS",
+          "edges": [
+            "-10896",
+            "-9428",
+            "-15632",
+            "-12324",
+            "-11456",
+            "-8932",
+            "-7654",
+            "-5432"
+          ],
+          "valid": [
+            "-10896",
+            "-9428",
+            "-12324",
+            "-11456",
+            "-7654",
+            "-5432"
+          ],
+          "invalid": [
+            "-15632",
+            "-8932"
+          ]
+        },
+        {
+          "strategy_id": "strat_20251110123439_576c0c",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_8c8806",
+          "strategy_type": "DHS",
+          "edges": [
+            "-10896",
+            "-9428",
+            "-15632",
+            "-12324",
+            "-11456",
+            "-8932"
+          ],
+          "valid": [
+            "-10896",
+            "-9428",
+            "-12324",
+            "-11456"
+          ],
+          "invalid": [
+            "-15632",
+            "-8932"
+          ]
+        }
+      ],
+      "total_edges": 14,
+      "valid_edges": 10,
+      "invalid_edges": 4,
+      "validation_status": "FAIL"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k0k20_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_91c144",
+          "strategy_type": "VSS",
+          "edges": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "valid": [
+            "-8712",
+            "-15452.627",
+            "-9350",
+            "-6906.1080",
+            "-2040",
+            "-13636",
+            "-12970",
+            "-15488"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_845e8c",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 8,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k20k40_mild_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_b2a9f2",
+          "strategy_type": "VSS",
+          "edges": [
+            "-12680",
+            "-10376.203",
+            "-10376",
+            "-6906",
+            "-1438",
+            "-3324",
+            "-4360",
+            "-10188"
+          ],
+          "valid": [
+            "-12680",
+            "-10376.203",
+            "-10376",
+            "-6906",
+            "-1438",
+            "-3324",
+            "-4360",
+            "-10188"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_85541c",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 8,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k40k60_moderate_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_d3bdf5",
+          "strategy_type": "VSS",
+          "edges": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "valid": [
+            "-7798.460",
+            "-13928",
+            "-7790",
+            "-8014",
+            "-10702",
+            "-9292",
+            "-15220",
+            "-9794"
+          ],
+          "invalid": []
+        },
+        {
+          "strategy_id": "strat_20251110123439_85871b",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 8,
+      "invalid_edges": 0,
+      "validation_status": "PASS"
+    },
+    {
+      "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k60k85_severe_v1",
+      "strategies": [
+        {
+          "strategy_id": "strat_20251110123439_1ccdbc",
+          "strategy_type": "VSS",
+          "edges": [
+            "-10896",
+            "-9428",
+            "-15632",
+            "-12324",
+            "-11456",
+            "-8932",
+            "-7654",
+            "-5432"
+          ],
+          "valid": [
+            "-10896",
+            "-9428",
+            "-12324",
+            "-11456",
+            "-7654",
+            "-5432"
+          ],
+          "invalid": [
+            "-15632",
+            "-8932"
+          ]
+        },
+        {
+          "strategy_id": "strat_20251110123439_4d2e5c",
+          "strategy_type": "TEC",
+          "edges": [],
+          "valid": [],
+          "invalid": []
+        }
+      ],
+      "total_edges": 8,
+      "valid_edges": 6,
+      "invalid_edges": 2,
+      "validation_status": "FAIL"
+    }
+  ],
+  "summary": {
+    "total_plans": 20,
+    "passed": 16,
+    "failed": 4,
+    "total_edge_references": 166,
+    "valid_references": 156,
+    "invalid_references": 10
+  },
+  "suggested_fixes": {
+    "-15632": "-15632#0"
+  }
+}

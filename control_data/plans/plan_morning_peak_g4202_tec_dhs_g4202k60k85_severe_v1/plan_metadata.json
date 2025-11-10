@@ -1,0 +1,141 @@
+{
+  "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k60k85_severe_v1",
+  "plan_name": "G4202早高峰TEC+DHSg4202_k60k85严重综合管控方案V1",
+  "chinese_name": "G4202早高峰TEC+DHSg4202_k60k85严重综合管控方案V1",
+  "collection": "morning_peak_g4202",
+  "collection_name": "G4202早高峰综合管控方案集",
+  "description": "针对g4202_k60k85区段severe拥堵的复合管控方案",
+  "strategies": [
+    {
+      "strategy_id": "strat_20251110123439_1b33bc",
+      "strategy_name": "g5_south流量控制",
+      "template_id": "tec_severe",
+      "strategy_type": "TEC",
+      "parameters": {
+        "control_points": [],
+        "flow_steps": [
+          {
+            "time_hours": 7,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0
+          },
+          {
+            "time_hours": 7.25,
+            "flow_limit_veh_hr": 360,
+            "green_time_ratio": 0.6
+          },
+          {
+            "time_hours": 7.75,
+            "flow_limit_veh_hr": 300,
+            "green_time_ratio": 0.5
+          },
+          {
+            "time_hours": 8.5,
+            "flow_limit_veh_hr": 240,
+            "green_time_ratio": 0.4
+          },
+          {
+            "time_hours": 9.5,
+            "flow_limit_veh_hr": 360,
+            "green_time_ratio": 0.6
+          },
+          {
+            "time_hours": 10,
+            "flow_limit_veh_hr": 480,
+            "green_time_ratio": 0.8
+          },
+          {
+            "time_hours": 10.5,
+            "flow_limit_veh_hr": 600,
+            "green_time_ratio": 1.0
+          }
+        ],
+        "ramp_metering": {
+          "type": "restrictive",
+          "cycle_time_s": 30,
+          "vehicles_per_green": 1,
+          "queue_override_length_m": 300,
+          "minimum_green_s": 3
+        }
+      }
+    },
+    {
+      "strategy_id": "strat_20251110123439_784890",
+      "strategy_name": "北段应急车道开放",
+      "template_id": "dhs_severe",
+      "strategy_type": "DHS",
+      "parameters": {
+        "affected_edges": [
+          "-10896",
+          "-9428",
+          "-15632",
+          "-12324",
+          "-11456",
+          "-8932"
+        ],
+        "hard_shoulder_lane_index": 0,
+        "opening_schedule": [
+          {
+            "begin_hours": 7,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          },
+          {
+            "begin_hours": 7.1,
+            "status": "EMERGENCY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 7.25,
+            "status": "FULLY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 10,
+            "status": "FULLY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 10.5,
+            "status": "CONTROLLED_CLOSING",
+            "allowed_vehicle_types": [
+              "passenger"
+            ]
+          },
+          {
+            "begin_hours": 11,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "highway": [
+      "G4202"
+    ],
+    "segments": [
+      "g4202_k60k85"
+    ],
+    "time_pattern": "core_morning",
+    "time_range": "07:30-09:00",
+    "severity": "severe",
+    "strategies": [
+      "tec",
+      "dhs"
+    ],
+    "expected_volume": "very_high",
+    "optimization_goal": "balanced_optimization"
+  },
+  "is_baseline": false,
+  "status": "active",
+  "created_at": "2025-11-10T12:34:39.717568",
+  "version": 1
+}

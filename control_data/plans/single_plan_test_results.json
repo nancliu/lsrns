@@ -1,0 +1,12 @@
+[
+  {
+    "plan_id": "plan_morning_peak_g4202_vss_g4202k0k20_moderate_v1",
+    "case_id": "case_20251110_130339",
+    "test_time": "2025-11-10T13:09:29.743561",
+    "status": "start_failed",
+    "simulation_id": null,
+    "duration": 0,
+    "results": null,
+    "error": "Failed to start simulation"
+  }
+]

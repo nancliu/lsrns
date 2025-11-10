@@ -1,0 +1,89 @@
+{
+  "plan_id": "plan_morning_peak_g4202_dhs_g4202k60k85_moderate_v1",
+  "plan_name": "G4202早高峰DHSg4202_k60k85中度综合管控方案V1",
+  "chinese_name": "G4202早高峰DHSg4202_k60k85中度综合管控方案V1",
+  "collection": "morning_peak_g4202",
+  "collection_name": "G4202早高峰综合管控方案集",
+  "description": "针对g4202_k60k85区段moderate拥堵的DHS管控方案",
+  "strategies": [
+    {
+      "strategy_id": "strat_20251110123439_32a1ab",
+      "strategy_name": "北段应急车道开放",
+      "template_id": "dhs_moderate",
+      "strategy_type": "DHS",
+      "parameters": {
+        "affected_edges": [
+          "-10896",
+          "-9428",
+          "-15632",
+          "-12324",
+          "-11456",
+          "-8932"
+        ],
+        "hard_shoulder_lane_index": 0,
+        "opening_schedule": [
+          {
+            "begin_hours": 7,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          },
+          {
+            "begin_hours": 7.25,
+            "status": "OPENING",
+            "allowed_vehicle_types": [
+              "passenger"
+            ]
+          },
+          {
+            "begin_hours": 7.5,
+            "status": "OPEN",
+            "allowed_vehicle_types": [
+              "passenger",
+              "truck"
+            ]
+          },
+          {
+            "begin_hours": 9.5,
+            "status": "OPEN",
+            "allowed_vehicle_types": [
+              "passenger",
+              "truck"
+            ]
+          },
+          {
+            "begin_hours": 10,
+            "status": "CLOSING",
+            "allowed_vehicle_types": [
+              "passenger"
+            ]
+          },
+          {
+            "begin_hours": 10.5,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "highway": [
+      "G4202"
+    ],
+    "segments": [
+      "g4202_k60k85"
+    ],
+    "time_pattern": "adaptive_morning",
+    "time_range": "06:30-10:30",
+    "severity": "moderate",
+    "strategies": [
+      "dhs"
+    ],
+    "expected_volume": "moderate",
+    "optimization_goal": "minimize_delay"
+  },
+  "is_baseline": false,
+  "status": "active",
+  "created_at": "2025-11-10T12:34:39.727401",
+  "version": 1
+}

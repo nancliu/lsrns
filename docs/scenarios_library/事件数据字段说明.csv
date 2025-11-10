@@ -1,0 +1,93 @@
+﻿属性,描述,类型,规则说明,必填,是否保留
+id,,int,,是,是
+type,类型 1:首报;2:续报;3:终报；4：跟进,tinyint,,是,是
+report_id,上报事件对应id,int,,否,是
+event_position_stake,事发桩号 K500+200,varchar,,否,是
+event_start_time,事件发生时间,datetime,,否,是
+event_start,事件开始位置（id）,varchar,,否,是
+event_end,事件结束位置（id）,varchar,,否,是
+event_desc,事件描述,varchar,,否,是
+influence_road_id,影响路段，逗号分割,varchar,,否,是
+lane_direction,车道方向,varchar,,否,是
+lane_direction_in_out,车道方向入口出口，1入口，2出口,varchar,,否,是
+quake_magnitude,震级,decimal,,否,是
+quake_road_damage_situation,地震 路段受损情况,varchar,,否,是
+is_block,事件影响  是否阻断  1:阻断,tinyint,,否,是
+lane_occupy,117事件影响 占用车道  逗号分割,varchar,,否,是
+event_consequence,事故后果,varchar,,否,是
+traffic_control_situation,103交通管制情况 ,int,,否,是
+control_start_time,管制开始时间,datetime,,否,是
+control_end_time,管制结束时间,datetime,,否,是
+influence_duration,影响时长，小时,int,,否,是
+control_expect_duration,管制预计时长，小时,int,,否,是
+control_range,管制范围,varchar,,否,是
+control_range_start,管制范围开始桩号,varchar,,否,是
+control_range_end,管制范围结束桩号,varchar,,否,是
+control_method,交通管制措施,varchar,,否,是
+shunt_method,分流措施,varchar,,否,是
+linkage_unit,104联动单位 逗号分割  ,varchar,,否,是
+control_stake,管制起止点桩号   逗号分隔,varchar,,否,是
+control_toll_station,管制站点,varchar,,否,是
+event_level_reason,事件等级修改理由,varchar,,否,是
+sketch_content,简报内容  自动生成,varchar,,否,是
+scene_pic,现场图片url，多张图片逗号分割,varchar,,否,是
+scene_video,现场视频url，多张视频逗号分割,varchar,,否,是
+injured_num,事件影响 受伤人数,int,,否,是
+death_num,事件影响 死亡人数,int,,否,是
+end_content,终报内容,varchar,,否,是
+magnitude_city,震级市区,varchar,,否,是
+magnitude_area,震级区县,varchar,,否,是
+damage_type,地质灾害类型,varchar,,否,是
+damage_tool_num,地质灾害抢险机具数,int,,否,是
+damage_rescue_personnel,地质灾害抢险人数,int,,否,是
+damage_clear_method,地质灾害 抢险清障措施,varchar,,否,是
+clear_situation,清障救援情况,varchar,,否,是
+is_out,是否社外，1是,tinyint,,否,是
+rescue_green_channel_num,救援绿色通道数,int,,否,是
+accident_detail,涉事车辆信息，json格式，逗号分割,varchar,,否,是
+belong_company,所属公司,varchar,,否,是
+still_need_duration,仍需时长，小时,varchar,,否,是
+good_type,106货物类型 ,varchar,,否,是
+carry_good_name,所载货物,varchar,,否,是
+travel_route,行驶路线,varchar,,否,是
+is_reveal,是否泄露  1:泄露,tinyint,,否,是
+road_unsmooth_type,115道路不通畅类型,int,,否,是
+road_unsmooth_length,道路不通畅拥堵长度,decimal,,否,是
+construction_type,施工类型,varchar,,否,是
+block_type,118阻塞类型,int,,否,是
+block_reason,阻塞原因,varchar,,否,是
+is_permit,是否许可，1是,tinyint,,否,是
+is_record,是否备案，1是,tinyint,,否,
+construction_unit,施工单位,varchar,,否,是
+construction_project,施工项目,varchar,,否,是
+accident_type,105事故种类(交通事故类型(traffic_accident_type)) ,int,,否,是
+accident_class,119事故种类，交通事故，作业事故,int,,否,是
+event_occur_address,事件发生地址  公共卫生事件,varchar,,否,是
+health_event_type,107卫生事件类型 ,int,,否,是
+involve_num,卫生事件 受影响人数,int,,否,是
+gather_num,人员阻塞交通  涉及人数,int,,否,是
+gather_reason,人员阻塞交通 聚集原因,varchar,,否,是
+vehicle_damage_num,受损车辆数,int,,否,是
+service_zone_id,事发服务区id,varchar,,否,是
+not_work_injured_num,事件影响 非施工人员受伤人数,int,,否,是
+not_work_death_num,事件影响 非施工人员死亡人数,int,,否,是
+work_injured_num,事件影响 施工人员受伤人数,int,,否,是
+work_death_num,事件影响 施工人员死亡人数,int,,否,是
+shunt_start_site,分流开始站点,varchar,,否,是
+shunt_end_site,分流结束站点,varchar,,否,是
+is_sign,是否在业务系统中登记,tinyint,,否,是
+traffic_accident_type,交通事故类型,int,,否,是
+disposal_situation,参与处置情况,varchar,,否,是
+up_traffic_interrupt,上行方向交通阻断  是否阻断  1:阻断,tinyint,,否,是
+down_traffic_interrupt,下行方向交通阻断  是否阻断  1:阻断,tinyint,,否,是
+is_noticed,是否已经通知，1是，0否,tinyint,,否,是
+fault_vehicle_license_plate,故障车辆号牌,varchar,,否,是
+operation_route,运营路线,varchar,,否,是
+allow_number,核载人数,smallint,,否,是
+reality_number,实载人数,smallint,,否,是
+fault_vehicle_type,故障车辆类型字典(124),char,,否,是
+involved_vehicle_list,涉事车辆信息列表,Array,,否,是
+section_code,事故路段编号,varchar,,是,是
+section_name,事故路段名称,varchar,,是,是
+create_time,首次上报时间,datetime,,是,是
+detail_create_time,详情上报时间,datetime,,是,是

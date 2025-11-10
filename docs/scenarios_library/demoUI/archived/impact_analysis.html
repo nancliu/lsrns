@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影响分析 - 交通仿真推演系统</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --primary-light: #63a4ff;
+            --primary-dark: #004ba0;
+            --secondary-color: #388e3c;
+            --text-on-primary: white;
+            --background-color: #f5f5f5;
+            --card-color: white;
+            --border-color: #e0e0e0;
+            --header-height: 64px;
+            --drawer-width: 240px;
+            --content-padding: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: rgba(0, 0, 0, 0.87);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: var(--content-padding);
+            padding-bottom: 80px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #eee;
+            padding: 15px 20px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .analysis-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .map-container {
+            height: 350px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .map-legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 2px;
+            margin-right: 5px;
+        }
+
+        .chart-container {
+            height: 250px;
+            position: relative;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .suggestion-item .material-icons {
+            margin-right: 10px;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .suggestion-content {
+            flex-grow: 1;
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 15px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 500;
+            margin: 5px 0;
+        }
+
+        .metric-label {
+            color: var(--light-text);
+            font-size: 14px;
+        }
+
+        .arrow-up {
+            color: #c62828;
+        }
+
+        .arrow-down {
+            color: #2e7d32;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }
+
+        .badge.bg-success {
+            background-color: #198754;
+            color: white;
+        }
+
+        /* 导航栏样式 */
+        .app-bar {
+            height: var(--header-height);
+            background-color: var(--primary-color);
+            color: var(--text-on-primary);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-bar-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-left: 16px;
+        }
+
+        .app-bar-spacer {
+            flex-grow: 1;
+        }
+
+        .app-bar-section {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin-left: 32px;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: var(--text-on-primary);
+            text-decoration: none;
+        }
+
+        .icon-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .app-container {
+            display: flex;
+            flex-grow: 1;
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+        }
+
+        .drawer {
+            width: var(--drawer-width);
+            background-color: var(--card-color);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: rgba(0, 0, 0, 0.87);
+            text-decoration: none;
+        }
+
+        .drawer-item:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            color: rgba(0, 0, 0, 0.87);
+        }
+
+        .drawer-item.active {
+            background-color: rgba(25, 118, 210, 0.1);
+            color: var(--primary-color);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .drawer-item i, .drawer-item .material-icons {
+            margin-right: 16px;
+            color: inherit;
+        }
+
+        .drawer-section-title {
+            padding: 16px 16px 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .drawer-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 8px 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: var(--content-padding);
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: calc(100% - var(--drawer-width));
+            background-color: var(--card-color);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            height: 50px;
+        }
+
+        .bottom-bar .text-muted {
+            color: rgba(0, 0, 0, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="app-bar">
+        <a href="#" class="icon-button">
+            <i class="material-icons">menu</i>
+        </a>
+        <h1 class="app-bar-title">交通仿真推演系统</h1>
+        <div class="app-bar-spacer"></div>
+        <div class="app-bar-section">影响分析</div>
+        <a href="#" class="icon-button">
+            <i class="material-icons">notifications</i>
+        </a>
+        <a href="#" class="icon-button">
+            <i class="material-icons">account_circle</i>
+        </a>
+    </div>
+
+    <!-- 主应用容器 -->
+    <div class="app-container">
+        <!-- 侧边导航栏 -->
+        <div class="drawer">
+            <div class="drawer-section-title">在线动态仿真</div>
+            <a href="../online_simulation/simulation_preparation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">settings</i>
+                <span>仿真准备</span>
+            </a>
+            <a href="../online_simulation/online_simulation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">play_circle</i>
+                <span>在线仿真</span>
+            </a>
+            <a href="../online_simulation/road_evaluation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">trending_up</i>
+                <span>路况评价</span>
+            </a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">事件触发仿真</div>
+            <a href="../event_trigger_simulation/event_extraction.html" class="drawer-item" data-section="事件触发仿真">
+                <i class="material-icons">event</i>
+                <span>事件注入</span>
+            </a>
+            <a href="../event_trigger_simulation/scenario_library.html" class="drawer-item" data-section="事件触发仿真">
+                <i class="material-icons">library_books</i>
+                <span>仿真场景集</span>
+            </a>
+            <a href="../event_trigger_simulation/impact_analysis.html" class="drawer-item active" data-section="事件触发仿真">
+                <i class="material-icons">analytics</i>
+                <span>影响分析</span>
+            </a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">管控效果仿真</div>
+            <a href="../control_effect_simulation/simulation_execution.html" class="drawer-item" data-section="管控效果仿真">
+                <i class="material-icons">rocket_launch</i>
+                <span>管控方案优化</span>
+            </a>
+            <a href="../control_effect_simulation/plan_management.html" class="drawer-item" data-section="管控效果仿真">
+                <i class="material-icons">folder</i>
+                <span>方案管理</span>
+            </a>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="content-container">
+                <div class="content">
+                    ${getImpactAnalysisContent()}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="bottom-bar">
+        <div class="text-muted">
+            <span class="badge bg-success me-1"></span> 系统运行正常
+        </div>
+        <div class="text-muted">
+            最后更新: <span id="lastUpdateTime">2024-01-15 14:30:25</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const appContainer = document.querySelector('.app-container');
+            if (appContainer) {
+                const pageContent = getPageContent();
+                const mainContent = appContainer.querySelector('.main-content .content-container');
+                if (mainContent) {
+                    mainContent.innerHTML = pageContent;
+                }
+            }
+            setTimeout(() => {
+                initializeImpactAnalysis();
+            }, 100);
+        });
+
+        // 获取页面内容
+        function getPageContent() {
+            return `
+                <div class="content">
+                    ${getImpactAnalysisContent()}
+                </div>
+            `;
+        }
+
+        function getImpactAnalysisContent() {
+            return `
+            <!-- 分析控制区 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">影响分析设置</h5>
+                </div>
+                <div class="card-body">
+                    <div class="analysis-controls">
+                        <div class="flex-grow-1">
+                            <label for="eventSelect" class="form-label">选择事件</label>
+                            <select class="form-select" id="eventSelect">
+                                <option value="1" selected>G15高速K102公里处交通事故</option>
+                                <option value="2">主城区节假日流量激增</option>
+                                <option value="3">机场快速路临时道路养护</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="baselineSelect" class="form-label">对比基准</label>
+                            <select class="form-select" id="baselineSelect">
+                                <option value="noEvent" selected>无事件</option>
+                                <option value="history">历史平均</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="scopeSelect" class="form-label">分析范围</label>
+                            <select class="form-select" id="scopeSelect">
+                                <option value="5km" selected>事件周边5公里</option>
+                                <option value="10km">事件周边10公里</option>
+                                <option value="all">全路网</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="analyzeButton">
+                        <i class="material-icons">play_circle</i> 执行分析
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- 核心指标比较 -->
+                <div class="col-md-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">核心指标比较</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card metric-card">
+                                        <div class="d-flex justify-content-center">
+                                            <i class="material-icons text-primary" style="font-size: 36px;">speed</i>
+                                        </div>
+                                        <div class="metric-value">-47% <i class="material-icons arrow-down" style="font-size: 18px;">arrow_downward</i></div>
+                                        <div class="metric-label">平均车速变化</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card metric-card">
+                                        <div class="d-flex justify-content-center">
+                                            <i class="material-icons text-primary" style="font-size: 36px;">schedule</i>
+                                        </div>
+                                        <div class="metric-value">+32min <i class="material-icons arrow-up" style="font-size: 18px;">arrow_upward</i></div>
+                                        <div class="metric-label">通行时间增加</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card metric-card">
+                                        <div class="d-flex justify-content-center">
+                                            <i class="material-icons text-primary" style="font-size: 36px;">trending_up</i>
+                                        </div>
+                                        <div class="metric-value">2.1x <i class="material-icons arrow-up" style="font-size: 18px;">arrow_upward</i></div>
+                                        <div class="metric-label">拥堵指数变化</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card metric-card">
+                                        <div class="d-flex justify-content-center">
+                                            <i class="material-icons text-primary" style="font-size: 36px;">access_time</i>
+                                        </div>
+                                        <div class="metric-value">120min</div>
+                                        <div class="metric-label">预计恢复时间</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 路况对比地图和趋势图 -->
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">路况对比</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="map-container">
+                                <div class="text-center">
+                                    <img src="https://via.placeholder.com/800x400/e9ecef/777777?text=路况对比热力图" alt="路况对比热力图" style="max-width: 100%; max-height: 100%; border-radius: 8px;">
+                                </div>
+                                <div class="map-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: #ef5350;"></div>
+                                        <span>严重拥堵</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: #ffb74d;"></div>
+                                        <span>中度拥堵</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: #fff176;"></div>
+                                        <span>轻微拥堵</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background-color: #81c784;"></div>
+                                        <span>畅通</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 指标趋势图 -->
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">时间趋势</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 管控建议 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">管控建议</h5>
+                </div>
+                <div class="card-body">
+                    <div class="suggestion-item">
+                        <i class="material-icons">traffic</i>
+                        <div class="suggestion-content">
+                            <h6 class="mb-1">建议实施交通管制</h6>
+                            <p class="mb-0">事发点周边500米范围实施临时交通管制，并在事发点前2公里设置提示标志。</p>
+                        </div>
+                    </div>
+                    <div class="suggestion-item">
+                        <i class="material-icons">alt_route</i>
+                        <div class="suggestion-content">
+                            <h6 class="mb-1">建议启动分流预案</h6>
+                            <p class="mb-0">导航G15高速避让，从K98出口分流至S12省道，在K105重新进入G15高速。</p>
+                        </div>
+                    </div>
+                    <div class="suggestion-item">
+                        <i class="material-icons">schedule</i>
+                        <div class="suggestion-content">
+                            <h6 class="mb-1">预计影响持续时间</h6>
+                            <p class="mb-0">约2小时，预计在18:30恢复正常通行。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 加载导航组件
+            await loadNavigation();
+            
+            // 添加页面内容到导航组件的内容区域
+            const appContainer = document.querySelector('.app-container');
+            if (appContainer) {
+                const pageContent = getPageContent();
+                const mainContent = appContainer.querySelector('.main-content .content-container');
+                if (mainContent) {
+                    mainContent.innerHTML = pageContent;
+                }
+            }
+
+            // 等待DOM更新后初始化页面功能
+            setTimeout(() => {
+                initializeImpactAnalysis();
+            }, 100);
+        });
+
+        // 初始化影响分析页面功能
+        function initializeImpactAnalysis() {
+            // 初始化趋势图表
+            const ctx = document.getElementById('trendChart');
+            if (ctx) {
+                const trendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'],
+                        datasets: [
+                            {
+                                label: '有事件',
+                                data: [60, 55, 30, 15, 20, 25, 30, 35, 40],
+                                borderColor: '#ef5350',
+                                backgroundColor: 'rgba(239, 83, 80, 0.1)',
+                                tension: 0.3,
+                                borderWidth: 2,
+                                fill: true
+                            },
+                            {
+                                label: '无事件',
+                                data: [60, 58, 56, 57, 60, 62, 63, 62, 60],
+                                borderColor: '#42a5f5',
+                                backgroundColor: 'rgba(66, 165, 245, 0.1)',
+                                tension: 0.3,
+                                borderWidth: 2,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '平均车速趋势 (km/h)',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 0,
+                                max: 80
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 执行分析按钮事件处理
+            const analyzeButton = document.getElementById('analyzeButton');
+            if (analyzeButton) {
+                analyzeButton.addEventListener('click', function() {
+                    const event = document.getElementById('eventSelect').value;
+                    const baseline = document.getElementById('baselineSelect').value;
+                    const scope = document.getElementById('scopeSelect').value;
+                    
+                    console.log(`执行分析: 事件=${event}, 基准=${baseline}, 范围=${scope}`);
+                    
+                    // 显示加载提示
+                    this.innerHTML = '<i class="material-icons">hourglass_empty</i> 分析中...';
+                    this.disabled = true;
+                    
+                    // 模拟分析过程
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="material-icons">play_circle</i> 执行分析';
+                        this.disabled = false;
+                        
+                        // 实际项目中这里应该发送AJAX请求获取分析结果
+                        // 然后更新页面上的图表和数据
+                        alert('分析完成！结果已更新。');
+                    }, 2000);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,849 @@
+{
+  "metadata": {
+    "total_scenarios": 34,
+    "total_events": 18,
+    "success_count": 34,
+    "failed_count": 9,
+    "last_updated": "2025-11-10T13:09:01.796791",
+    "version": "1.0.0",
+    "stats_by_event_type": {
+      "交通事故": 34
+    },
+    "stats_by_strategy": {
+      "VSS": 15,
+      "TEC": 15,
+      "DHS": 4
+    }
+  },
+  "scenarios": [
+    {
+      "event_id": "12547",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\scenario_交通事故_vss_12547.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1576.0+000",
+        "junction_id": "-35882",
+        "edge_id": "-4688"
+      },
+      "time": {
+        "start_time": "2025-07-14 01:53:49",
+        "end_time": "2025-07-14 03:22:39",
+        "duration_hours": 1.48
+      }
+    },
+    {
+      "event_id": "12547",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\scenario_交通事故_tec_12547.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1576.0+000",
+        "junction_id": "-35882",
+        "edge_id": "-4688"
+      },
+      "time": {
+        "start_time": "2025-07-14 01:53:49",
+        "end_time": "2025-07-14 03:22:39",
+        "duration_hours": 1.48
+      }
+    },
+    {
+      "event_id": "12575",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\scenario_交通事故_vss_12575.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1558.4+000",
+        "junction_id": "-51354",
+        "edge_id": "-2046"
+      },
+      "time": {
+        "start_time": "2025-07-15 12:48:57",
+        "end_time": "2025-07-15 14:24:53",
+        "duration_hours": 1.6
+      }
+    },
+    {
+      "event_id": "12575",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\scenario_交通事故_tec_12575.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1558.4+000",
+        "junction_id": "-51354",
+        "edge_id": "-2046"
+      },
+      "time": {
+        "start_time": "2025-07-15 12:48:57",
+        "end_time": "2025-07-15 14:24:53",
+        "duration_hours": 1.6
+      }
+    },
+    {
+      "event_id": "12587",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\scenario_交通事故_vss_12587.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成雅段）",
+        "direction": "上行",
+        "mileage": "K1846.0+000",
+        "junction_id": "4529169654",
+        "edge_id": "-2000000059"
+      },
+      "time": {
+        "start_time": "2025-07-15 21:46:34",
+        "end_time": "2025-07-15 23:08:59",
+        "duration_hours": 1.37
+      }
+    },
+    {
+      "event_id": "12587",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\scenario_交通事故_tec_12587.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成雅段）",
+        "direction": "上行",
+        "mileage": "K1846.0+000",
+        "junction_id": "4529169654",
+        "edge_id": "-2000000059"
+      },
+      "time": {
+        "start_time": "2025-07-15 21:46:34",
+        "end_time": "2025-07-15 23:08:59",
+        "duration_hours": 1.37
+      }
+    },
+    {
+      "event_id": "13028",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\scenario_交通事故_vss_13028.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1576.0+000",
+        "junction_id": "-35882",
+        "edge_id": "-4688"
+      },
+      "time": {
+        "start_time": "2025-07-21 00:02:52",
+        "end_time": "2025-07-21 01:46:25",
+        "duration_hours": 1.73
+      }
+    },
+    {
+      "event_id": "13028",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\scenario_交通事故_tec_13028.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1576.0+000",
+        "junction_id": "-35882",
+        "edge_id": "-4688"
+      },
+      "time": {
+        "start_time": "2025-07-21 00:02:52",
+        "end_time": "2025-07-21 01:46:25",
+        "duration_hours": 1.73
+      }
+    },
+    {
+      "event_id": "12641",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\scenario_交通事故_vss_12641.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1537.2+000",
+        "junction_id": "-42361",
+        "edge_id": "-14588"
+      },
+      "time": {
+        "start_time": "2025-07-18 01:10:18",
+        "end_time": "2025-07-18 02:41:31",
+        "duration_hours": 1.52
+      }
+    },
+    {
+      "event_id": "12641",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\scenario_交通事故_tec_12641.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1537.2+000",
+        "junction_id": "-42361",
+        "edge_id": "-14588"
+      },
+      "time": {
+        "start_time": "2025-07-18 01:10:18",
+        "end_time": "2025-07-18 02:41:31",
+        "duration_hours": 1.52
+      }
+    },
+    {
+      "event_id": "18268",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_18268_vss\\scenario_交通事故_vss_18268.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_18268_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_18268_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_18268_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "下行",
+        "mileage": "K1709.7+000",
+        "junction_id": "-43032",
+        "edge_id": "-6506"
+      },
+      "time": {
+        "start_time": "2025-11-01 23:06:51",
+        "end_time": "2025-11-02 00:34:18",
+        "duration_hours": 1.46
+      }
+    },
+    {
+      "event_id": "18268",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_18268_tec\\scenario_交通事故_tec_18268.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_18268_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_18268_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_18268_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "下行",
+        "mileage": "K1709.7+000",
+        "junction_id": "-43032",
+        "edge_id": "-6506"
+      },
+      "time": {
+        "start_time": "2025-11-01 23:06:51",
+        "end_time": "2025-11-02 00:34:18",
+        "duration_hours": 1.46
+      }
+    },
+    {
+      "event_id": "10814",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_10814_vss\\scenario_交通事故_vss_10814.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_10814_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_10814_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_10814_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "上行",
+        "mileage": "K1555.0+000",
+        "junction_id": "-28279",
+        "edge_id": "-5576"
+      },
+      "time": {
+        "start_time": "2025-06-13 15:22:37",
+        "end_time": "2025-06-13 16:49:16",
+        "duration_hours": 1.44
+      }
+    },
+    {
+      "event_id": "10814",
+      "event_type": "交通事故",
+      "strategy": "DHS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_10814_dhs\\scenario_交通事故_dhs_10814.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_10814_dhs\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_10814_dhs\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_10814_dhs\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "上行",
+        "mileage": "K1555.0+000",
+        "junction_id": "-28279",
+        "edge_id": "-5576"
+      },
+      "time": {
+        "start_time": "2025-06-13 15:22:37",
+        "end_time": "2025-06-13 16:49:16",
+        "duration_hours": 1.44
+      }
+    },
+    {
+      "event_id": "10814",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_10814_tec\\scenario_交通事故_tec_10814.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_10814_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_10814_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_10814_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "上行",
+        "mileage": "K1555.0+000",
+        "junction_id": "-28279",
+        "edge_id": "-5576"
+      },
+      "time": {
+        "start_time": "2025-06-13 15:22:37",
+        "end_time": "2025-06-13 16:49:16",
+        "duration_hours": 1.44
+      }
+    },
+    {
+      "event_id": "13087",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\scenario_交通事故_vss_13087.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G76厦蓉高速（纳黔段）",
+        "direction": "双向",
+        "mileage": "K1817.0+000",
+        "junction_id": "-40007|-33402",
+        "edge_id": "-8982|-2000000377"
+      },
+      "time": {
+        "start_time": "2025-07-22 23:41:03",
+        "end_time": "2025-07-23 00:41:34",
+        "duration_hours": 1.01
+      }
+    },
+    {
+      "event_id": "13087",
+      "event_type": "交通事故",
+      "strategy": "DHS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\scenario_交通事故_dhs_13087.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G76厦蓉高速（纳黔段）",
+        "direction": "双向",
+        "mileage": "K1817.0+000",
+        "junction_id": "-40007|-33402",
+        "edge_id": "-8982|-2000000377"
+      },
+      "time": {
+        "start_time": "2025-07-22 23:41:03",
+        "end_time": "2025-07-23 00:41:34",
+        "duration_hours": 1.01
+      }
+    },
+    {
+      "event_id": "13087",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\scenario_交通事故_tec_13087.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G76厦蓉高速（纳黔段）",
+        "direction": "双向",
+        "mileage": "K1817.0+000",
+        "junction_id": "-40007|-33402",
+        "edge_id": "-8982|-2000000377"
+      },
+      "time": {
+        "start_time": "2025-07-22 23:41:03",
+        "end_time": "2025-07-23 00:41:34",
+        "duration_hours": 1.01
+      }
+    },
+    {
+      "event_id": "13820",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13820_vss\\scenario_交通事故_vss_13820.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13820_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13820_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13820_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成雅段）",
+        "direction": "下行",
+        "mileage": "K1909.0+000",
+        "junction_id": "-43117",
+        "edge_id": "-3170"
+      },
+      "time": {
+        "start_time": "2025-08-06 05:13:42",
+        "end_time": "2025-08-06 07:09:55",
+        "duration_hours": 1.94
+      }
+    },
+    {
+      "event_id": "13820",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13820_tec\\scenario_交通事故_tec_13820.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_13820_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13820_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13820_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成雅段）",
+        "direction": "下行",
+        "mileage": "K1909.0+000",
+        "junction_id": "-43117",
+        "edge_id": "-3170"
+      },
+      "time": {
+        "start_time": "2025-08-06 05:13:42",
+        "end_time": "2025-08-06 07:09:55",
+        "duration_hours": 1.94
+      }
+    },
+    {
+      "event_id": "14028",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14028_vss\\scenario_交通事故_vss_14028.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14028_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14028_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14028_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1606.0+000",
+        "junction_id": "-62985",
+        "edge_id": "-1062"
+      },
+      "time": {
+        "start_time": "2025-08-07 22:18:05",
+        "end_time": "2025-08-07 23:46:58",
+        "duration_hours": 1.48
+      }
+    },
+    {
+      "event_id": "14028",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14028_tec\\scenario_交通事故_tec_14028.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14028_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14028_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14028_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "下行",
+        "mileage": "K1606.0+000",
+        "junction_id": "-62985",
+        "edge_id": "-1062"
+      },
+      "time": {
+        "start_time": "2025-08-07 22:18:05",
+        "end_time": "2025-08-07 23:46:58",
+        "duration_hours": 1.48
+      }
+    },
+    {
+      "event_id": "14583",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\scenario_交通事故_vss_14583.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "上行",
+        "mileage": "K1624.0+000",
+        "junction_id": "-51738",
+        "edge_id": "-15950"
+      },
+      "time": {
+        "start_time": "2025-08-11 15:10:19",
+        "end_time": "2025-08-11 16:40:00",
+        "duration_hours": 1.49
+      }
+    },
+    {
+      "event_id": "14583",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\scenario_交通事故_tec_14583.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（绵广段）",
+        "direction": "上行",
+        "mileage": "K1624.0+000",
+        "junction_id": "-51738",
+        "edge_id": "-15950"
+      },
+      "time": {
+        "start_time": "2025-08-11 15:10:19",
+        "end_time": "2025-08-11 16:40:00",
+        "duration_hours": 1.49
+      }
+    },
+    {
+      "event_id": "14738",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14738_vss\\scenario_交通事故_vss_14738.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14738_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14738_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14738_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "上行",
+        "mileage": "K1733.4+000",
+        "junction_id": "-38996",
+        "edge_id": "-9758"
+      },
+      "time": {
+        "start_time": "2025-08-16 13:20:18",
+        "end_time": "2025-08-16 14:22:22",
+        "duration_hours": 1.03
+      }
+    },
+    {
+      "event_id": "14738",
+      "event_type": "交通事故",
+      "strategy": "DHS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14738_dhs\\scenario_交通事故_dhs_14738.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14738_dhs\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14738_dhs\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14738_dhs\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "上行",
+        "mileage": "K1733.4+000",
+        "junction_id": "-38996",
+        "edge_id": "-9758"
+      },
+      "time": {
+        "start_time": "2025-08-16 13:20:18",
+        "end_time": "2025-08-16 14:22:22",
+        "duration_hours": 1.03
+      }
+    },
+    {
+      "event_id": "14738",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14738_tec\\scenario_交通事故_tec_14738.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14738_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14738_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14738_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "上行",
+        "mileage": "K1733.4+000",
+        "junction_id": "-38996",
+        "edge_id": "-9758"
+      },
+      "time": {
+        "start_time": "2025-08-16 13:20:18",
+        "end_time": "2025-08-16 14:22:22",
+        "duration_hours": 1.03
+      }
+    },
+    {
+      "event_id": "15541",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_15541_vss\\scenario_交通事故_vss_15541.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_15541_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_15541_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_15541_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "SA2成都第二绕城高速（西段）",
+        "direction": "上行",
+        "mileage": "K134.0+000",
+        "junction_id": "-39511",
+        "edge_id": "-8360"
+      },
+      "time": {
+        "start_time": "2025-08-26 20:29:12",
+        "end_time": "2025-08-26 22:14:00",
+        "duration_hours": 1.75
+      }
+    },
+    {
+      "event_id": "15541",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_15541_tec\\scenario_交通事故_tec_15541.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_15541_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_15541_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_15541_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "SA2成都第二绕城高速（西段）",
+        "direction": "上行",
+        "mileage": "K134.0+000",
+        "junction_id": "-39511",
+        "edge_id": "-8360"
+      },
+      "time": {
+        "start_time": "2025-08-26 20:29:12",
+        "end_time": "2025-08-26 22:14:00",
+        "duration_hours": 1.75
+      }
+    },
+    {
+      "event_id": "15723",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_15723_vss\\scenario_交通事故_vss_15723.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_15723_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_15723_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_15723_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "下行",
+        "mileage": "K1737.9+000",
+        "junction_id": "-38732",
+        "edge_id": "-8698"
+      },
+      "time": {
+        "start_time": "2025-08-29 04:47:41",
+        "end_time": "2025-08-29 06:01:09",
+        "duration_hours": 1.22
+      }
+    },
+    {
+      "event_id": "15723",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_15723_tec\\scenario_交通事故_tec_15723.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_15723_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_15723_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_15723_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（成绵段）",
+        "direction": "下行",
+        "mileage": "K1737.9+000",
+        "junction_id": "-38732",
+        "edge_id": "-8698"
+      },
+      "time": {
+        "start_time": "2025-08-29 04:47:41",
+        "end_time": "2025-08-29 06:01:09",
+        "duration_hours": 1.22
+      }
+    },
+    {
+      "event_id": "14631",
+      "event_type": "交通事故",
+      "strategy": "VSS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14631_vss\\scenario_交通事故_vss_14631.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14631_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14631_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14631_vss\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（泸黄段）",
+        "direction": "上行",
+        "mileage": "K2240.64+000",
+        "junction_id": "-33397",
+        "edge_id": "-9698"
+      },
+      "time": {
+        "start_time": "2025-08-14 02:00:18",
+        "end_time": "2025-08-14 03:51:18",
+        "duration_hours": 1.85
+      }
+    },
+    {
+      "event_id": "14631",
+      "event_type": "交通事故",
+      "strategy": "DHS",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14631_dhs\\scenario_交通事故_dhs_14631.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14631_dhs\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14631_dhs\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14631_dhs\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（泸黄段）",
+        "direction": "上行",
+        "mileage": "K2240.64+000",
+        "junction_id": "-33397",
+        "edge_id": "-9698"
+      },
+      "time": {
+        "start_time": "2025-08-14 02:00:18",
+        "end_time": "2025-08-14 03:51:18",
+        "duration_hours": 1.85
+      }
+    },
+    {
+      "event_id": "14631",
+      "event_type": "交通事故",
+      "strategy": "TEC",
+      "files": {
+        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14631_tec\\scenario_交通事故_tec_14631.add.xml",
+        "event_description": "output\\scenarios\\01_交通事故\\scenario_14631_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14631_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14631_tec\\control_strategy_config.json"
+      },
+      "location": {
+        "road": "G5京昆高速（泸黄段）",
+        "direction": "上行",
+        "mileage": "K2240.64+000",
+        "junction_id": "-33397",
+        "edge_id": "-9698"
+      },
+      "time": {
+        "start_time": "2025-08-14 02:00:18",
+        "end_time": "2025-08-14 03:51:18",
+        "duration_hours": 1.85
+      }
+    }
+  ],
+  "failed": [
+    {
+      "event_id": "13663",
+      "strategy": "VSS",
+      "error": "No valid lanes resolved for accident 13663. Provided lanes: ['第三车道'], edge: -1694"
+    },
+    {
+      "event_id": "13663",
+      "strategy": "DHS",
+      "error": "No valid lanes resolved for accident 13663. Provided lanes: ['第三车道'], edge: -1694"
+    },
+    {
+      "event_id": "13663",
+      "strategy": "TEC",
+      "error": "No valid lanes resolved for accident 13663. Provided lanes: ['第三车道'], edge: -1694"
+    },
+    {
+      "event_id": "14074",
+      "strategy": "VSS",
+      "error": "No valid lanes resolved for accident 14074. Provided lanes: ['第二车道', '第三车道'], edge: -4786#2"
+    },
+    {
+      "event_id": "14074",
+      "strategy": "DHS",
+      "error": "No valid lanes resolved for accident 14074. Provided lanes: ['第二车道', '第三车道'], edge: -4786#2"
+    },
+    {
+      "event_id": "14074",
+      "strategy": "TEC",
+      "error": "No valid lanes resolved for accident 14074. Provided lanes: ['第二车道', '第三车道'], edge: -4786#2"
+    },
+    {
+      "event_id": "15031",
+      "strategy": "VSS",
+      "error": "No valid lanes resolved for accident 15031. Provided lanes: ['匝道'], edge: -4000000079"
+    },
+    {
+      "event_id": "15031",
+      "strategy": "DHS",
+      "error": "No valid lanes resolved for accident 15031. Provided lanes: ['匝道'], edge: -4000000079"
+    },
+    {
+      "event_id": "15031",
+      "strategy": "TEC",
+      "error": "No valid lanes resolved for accident 15031. Provided lanes: ['匝道'], edge: -4000000079"
+    }
+  ]
+}

@@ -172,6 +172,17 @@ class ControlPlanService:
         try:
             plans = plan_file_manager.list_plans(filters)
 
+            # 确保每个方案都有 strategy_count 字段
+            # 优先使用 strategy_ids 长度，其次使用 strategies 数组长度
+            for plan in plans:
+                if "strategy_count" not in plan:
+                    if "strategy_ids" in plan and plan["strategy_ids"]:
+                        plan["strategy_count"] = len(plan["strategy_ids"])
+                    elif "strategies" in plan and plan["strategies"]:
+                        plan["strategy_count"] = len(plan["strategies"])
+                    else:
+                        plan["strategy_count"] = 0
+
             return {"plans": plans, "total": len(plans)}
 
         except Exception as e:

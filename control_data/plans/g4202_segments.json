@@ -1,0 +1,111 @@
+{
+  "highway": "G4202",
+  "description": "G4202成都绕城高速分段定义",
+  "total_length_km": 85,
+  "segments": [
+    {
+      "segment_id": "g4202_k0k20",
+      "segment_name": "东段",
+      "start_km": 0,
+      "end_km": 20,
+      "description": "G4202东段，高通勤流量区域",
+      "edge_ids": [
+        "-8712", "-15452.627", "-9350", "-6906.1080",
+        "-2040", "-13636", "-12970", "-15488"
+      ],
+      "characteristics": {
+        "traffic_type": "commuter",
+        "peak_flow": "high",
+        "bottleneck_points": ["K5", "K12", "K18"],
+        "interchanges": ["成龙大道", "三环路"]
+      }
+    },
+    {
+      "segment_id": "g4202_k20k40",
+      "segment_name": "南段",
+      "start_km": 20,
+      "end_km": 40,
+      "description": "G4202南段，混合交通流量",
+      "edge_ids": [
+        "-12680", "-10376.203", "-10376", "-6906",
+        "-1438", "-3324", "-4360", "-10188"
+      ],
+      "characteristics": {
+        "traffic_type": "mixed",
+        "peak_flow": "medium",
+        "bottleneck_points": ["K25", "K32", "K38"],
+        "interchanges": ["天府大道", "剑南大道"]
+      }
+    },
+    {
+      "segment_id": "g4202_k40k60",
+      "segment_name": "西段",
+      "start_km": 40,
+      "end_km": 60,
+      "description": "G4202西段，工业运输区域",
+      "edge_ids": [
+        "-7798.460", "-13928", "-7790", "-8014",
+        "-10702", "-9292", "-15220", "-9794"
+      ],
+      "characteristics": {
+        "traffic_type": "industrial",
+        "peak_flow": "medium-high",
+        "bottleneck_points": ["K42.35", "K52.4", "K58"],
+        "interchanges": ["成雅站", "锦城湖站", "双流站"]
+      }
+    },
+    {
+      "segment_id": "g4202_k60k85",
+      "segment_name": "北段",
+      "start_km": 60,
+      "end_km": 85,
+      "description": "G4202北段，立交密集区域",
+      "edge_ids": [
+        "-10896", "-9428", "-15632", "-12324",
+        "-11456", "-8932", "-7654", "-5432"
+      ],
+      "characteristics": {
+        "traffic_type": "interchange_heavy",
+        "peak_flow": "high",
+        "bottleneck_points": ["K65", "K72", "K78", "K82"],
+        "interchanges": ["成灌高速", "成彭高速", "成绵高速"]
+      }
+    }
+  ],
+  "g5_interchanges": [
+    {
+      "interchange_id": "g5_g4202_interchange_1",
+      "name": "G5-G4202立交1",
+      "location_km": 35,
+      "g4202_segment": "g4202_k20k40",
+      "edge_ids": ["-5678", "-9012", "-3456"],
+      "upstream_edges": ["-5677", "-5676"],
+      "downstream_edges": ["-5679", "-5680"],
+      "control_zone_km": 2
+    },
+    {
+      "interchange_id": "g5_g4202_interchange_2",
+      "name": "G5-G4202立交2",
+      "location_km": 70,
+      "g4202_segment": "g4202_k60k85",
+      "edge_ids": ["-7890", "-2345", "-6789"],
+      "upstream_edges": ["-7889", "-7888"],
+      "downstream_edges": ["-7891", "-7892"],
+      "control_zone_km": 2
+    }
+  ],
+  "control_points": {
+    "vss_suitable": [
+      "K5-K8", "K15-K18", "K25-K28", "K35-K38",
+      "K45-K48", "K55-K58", "K65-K68", "K75-K78"
+    ],
+    "tec_suitable": [
+      "K0", "K10", "K20", "K30", "K40", "K50", "K60", "K70", "K80"
+    ],
+    "dhs_suitable": [
+      "K0-K10", "K15-K25", "K30-K45", "K50-K65", "K70-K85"
+    ]
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}

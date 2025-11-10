@@ -67,6 +67,18 @@
                             <strong>ℹ️ 基准方案强制包含:</strong> 系统会自动将基准方案（无管控）包含在批次中，作为所有方案的对比基准，即使您未手动选择。
                         </p>
                     </div>
+                    <!-- Task 5.1b: 快速选择按钮 -->
+                    <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary btn-sm" onclick="selectPlansByRegex('plan_morning_peak_g4202_.*')" title="选择所有G4202早高峰方案">
+                            📋 全选早高峰方案
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="selectAllPlans()" title="选择所有方案">
+                            ✅ 全选所有方案
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="deselectAllPlans()" title="取消选择所有方案（基准方案除外）">
+                            ❌ 取消全选
+                        </button>
+                    </div>
                     <div id="planSelector">
                         <!-- 动态加载 -->
                     </div>

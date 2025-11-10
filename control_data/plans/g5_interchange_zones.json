@@ -1,0 +1,121 @@
+{
+  "highway": "G5",
+  "description": "G5京昆高速与G4202立交区域定义",
+  "interchanges": [
+    {
+      "zone_id": "g5_interchange_south",
+      "zone_name": "G5南部立交区",
+      "g4202_connection_km": 35,
+      "description": "G5南向与G4202连接点",
+      "control_zones": {
+        "upstream": {
+          "start_km": 33,
+          "end_km": 35,
+          "edge_ids": ["-5676", "-5677", "-5678"],
+          "description": "立交上游2km控制区"
+        },
+        "interchange": {
+          "center_km": 35,
+          "edge_ids": ["-9012", "-3456", "-7823"],
+          "ramp_edges": ["-r001", "-r002", "-r003", "-r004"],
+          "description": "立交核心区域"
+        },
+        "downstream": {
+          "start_km": 35,
+          "end_km": 37,
+          "edge_ids": ["-5679", "-5680", "-5681"],
+          "description": "立交下游2km控制区"
+        }
+      },
+      "traffic_characteristics": {
+        "merge_type": "weaving",
+        "bottleneck_severity": "high",
+        "peak_hours": ["7:30-9:00", "17:30-19:00"],
+        "typical_queue_length_km": 1.5
+      }
+    },
+    {
+      "zone_id": "g5_interchange_north",
+      "zone_name": "G5北部立交区",
+      "g4202_connection_km": 70,
+      "description": "G5北向与G4202连接点",
+      "control_zones": {
+        "upstream": {
+          "start_km": 68,
+          "end_km": 70,
+          "edge_ids": ["-7888", "-7889", "-7890"],
+          "description": "立交上游2km控制区"
+        },
+        "interchange": {
+          "center_km": 70,
+          "edge_ids": ["-2345", "-6789", "-4567"],
+          "ramp_edges": ["-r101", "-r102", "-r103", "-r104"],
+          "description": "立交核心区域"
+        },
+        "downstream": {
+          "start_km": 70,
+          "end_km": 72,
+          "edge_ids": ["-7891", "-7892", "-7893"],
+          "description": "立交下游2km控制区"
+        }
+      },
+      "traffic_characteristics": {
+        "merge_type": "direct",
+        "bottleneck_severity": "medium",
+        "peak_hours": ["7:00-8:30", "18:00-19:30"],
+        "typical_queue_length_km": 1.0
+      }
+    },
+    {
+      "zone_id": "g5_interchange_west",
+      "zone_name": "G5西部连接区",
+      "g4202_connection_km": 50,
+      "description": "G5西向辅助连接点",
+      "control_zones": {
+        "upstream": {
+          "start_km": 48,
+          "end_km": 50,
+          "edge_ids": ["-9876", "-9877", "-9878"],
+          "description": "连接点上游2km控制区"
+        },
+        "interchange": {
+          "center_km": 50,
+          "edge_ids": ["-5432", "-6543", "-7654"],
+          "ramp_edges": ["-r201", "-r202"],
+          "description": "连接核心区域"
+        },
+        "downstream": {
+          "start_km": 50,
+          "end_km": 52,
+          "edge_ids": ["-9879", "-9880", "-9881"],
+          "description": "连接点下游2km控制区"
+        }
+      },
+      "traffic_characteristics": {
+        "merge_type": "auxiliary",
+        "bottleneck_severity": "low",
+        "peak_hours": ["8:00-9:00", "17:00-18:00"],
+        "typical_queue_length_km": 0.5
+      }
+    }
+  ],
+  "control_strategies": {
+    "vss_placement": {
+      "description": "VSS应置于立交上游1-2km处",
+      "typical_distance_km": 1.5,
+      "purpose": "提前降速，减少立交区汇流冲突"
+    },
+    "tec_placement": {
+      "description": "TEC应置于入口匝道",
+      "typical_location": "on_ramp",
+      "purpose": "控制汇入流量，保护主线通行"
+    },
+    "dhs_placement": {
+      "description": "DHS应覆盖立交前后各1km",
+      "coverage_km": 2,
+      "purpose": "增加立交区通行能力"
+    }
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}

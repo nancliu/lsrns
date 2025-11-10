@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <!--
+    Control Plan: plan_morning_peak_g4202_tec_k0_mild_v1
+    Name: G4202早高峰TECk0轻度综合管控方案V1
+    Generated: 2025-11-10T12:50:38.150764
+    Strategies: TEC
+    Time Range: 07:00-08:30
+    Severity: mild
+        -->
+    <!-- TEC Strategy: K0入口流量控制 -->
+    <calibrator id="strat_20251110123439_d50009" edge="-1000" output="strat_20251110123439_d50009_log.xml" freq="900">
+        <flow begin="25200" end="28800" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="27000" end="30600" vehsPerHour="540" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="28800" end="32400" vehsPerHour="510" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="32400" end="36000" vehsPerHour="480" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="36000" end="39600" vehsPerHour="540" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="37800" end="41400" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+    </calibrator>
+</additional>

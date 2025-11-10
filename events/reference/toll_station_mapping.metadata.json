@@ -1,0 +1,15 @@
+{
+  "total_stations":266,
+  "stations_with_edges":251,
+  "stations_with_taz":212,
+  "routes":{
+    "G5":110,
+    "G4202":58,
+    "SA2":32,
+    "S4":24,
+    "G76":18,
+    "G4215":14,
+    "S81":10
+  },
+  "generation_timestamp":"2025-11-10T10:25:04.362159"
+}

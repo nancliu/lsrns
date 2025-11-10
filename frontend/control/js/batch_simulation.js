@@ -260,43 +260,203 @@ async function loadPlans() {
         const container = document.getElementById('planSelector');
         container.innerHTML = '';
 
-        data.plans.forEach(plan => {
-            const div = document.createElement('div');
-            div.className = 'plan-item';
+        // 分离基准方案和其他方案
+        const baselinePlans = data.plans.filter(p => p.is_baseline);
+        const otherPlans = data.plans.filter(p => !p.is_baseline);
 
-            // Phase 4: 标记基准方案为特殊样式
-            if (plan.is_baseline) {
-                div.classList.add('baseline-plan-item');
-            }
+        // 按集合分组
+        const plansByCollection = {};
+        const ungroupedPlans = [];
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `plan-${plan.plan_id}`;
-            checkbox.value = plan.plan_id;
-            checkbox.checked = plan.is_baseline; // baseline自动选中
-            checkbox.disabled = plan.is_baseline; // baseline不可取消
-            checkbox.addEventListener('change', updateEstimate);
-
-            const label = document.createElement('label');
-            label.htmlFor = `plan-${plan.plan_id}`;
-
-            // Phase 4: 在基准方案名称后添加徽章
-            if (plan.is_baseline) {
-                label.innerHTML = `${plan.plan_name} <span class="baseline-badge">基准方案（必选）</span>`;
+        otherPlans.forEach(plan => {
+            const collection = plan.collection || plan.collection_id;
+            if (collection) {
+                if (!plansByCollection[collection]) {
+                    plansByCollection[collection] = {
+                        name: plan.collection_name || collection,
+                        plans: []
+                    };
+                }
+                plansByCollection[collection].plans.push(plan);
             } else {
-                label.textContent = plan.plan_name;
+                ungroupedPlans.push(plan);
             }
-
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            container.appendChild(div);
         });
+
+        // 渲染基准方案
+        if (baselinePlans.length > 0) {
+            baselinePlans.forEach(plan => {
+                const div = createPlanItem(plan);
+                container.appendChild(div);
+            });
+        }
+
+        // 渲染集合分组
+        Object.keys(plansByCollection).forEach(collectionId => {
+            const collection = plansByCollection[collectionId];
+            const collectionDiv = createCollectionGroup(collectionId, collection);
+            container.appendChild(collectionDiv);
+        });
+
+        // 渲染未分组的方案
+        if (ungroupedPlans.length > 0) {
+            const ungroupedDiv = document.createElement('div');
+            ungroupedDiv.className = 'plan-group';
+            ungroupedDiv.innerHTML = '<h4 class="plan-group-title">其他方案</h4>';
+            ungroupedPlans.forEach(plan => {
+                const div = createPlanItem(plan);
+                ungroupedDiv.appendChild(div);
+            });
+            container.appendChild(ungroupedDiv);
+        }
 
         updateEstimate();
     } catch (error) {
         console.error('Load plans error:', error);
         showError('加载方案失败');
     }
+}
+
+function createCollectionGroup(collectionId, collection) {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'plan-group';
+    groupDiv.dataset.collectionId = collectionId;
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'plan-group-header';
+
+    const title = document.createElement('h4');
+    title.className = 'plan-group-title';
+    title.textContent = collection.name;
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'plan-group-count';
+    countBadge.textContent = `${collection.plans.length} 个方案`;
+
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.className = 'btn btn-sm btn-secondary';
+    selectAllBtn.textContent = '全选';
+    selectAllBtn.onclick = () => selectCollectionPlans(collectionId, true);
+
+    const deselectAllBtn = document.createElement('button');
+    deselectAllBtn.className = 'btn btn-sm btn-secondary';
+    deselectAllBtn.textContent = '取消全选';
+    deselectAllBtn.onclick = () => selectCollectionPlans(collectionId, false);
+
+    headerDiv.appendChild(title);
+    headerDiv.appendChild(countBadge);
+    headerDiv.appendChild(selectAllBtn);
+    headerDiv.appendChild(deselectAllBtn);
+    groupDiv.appendChild(headerDiv);
+
+    collection.plans.forEach(plan => {
+        const div = createPlanItem(plan);
+        groupDiv.appendChild(div);
+    });
+
+    return groupDiv;
+}
+
+function createPlanItem(plan) {
+    const div = document.createElement('div');
+    div.className = 'plan-item';
+
+    if (plan.is_baseline) {
+        div.classList.add('baseline-plan-item');
+    }
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `plan-${plan.plan_id}`;
+    checkbox.value = plan.plan_id;
+    checkbox.checked = plan.is_baseline;
+    checkbox.disabled = plan.is_baseline;
+    checkbox.addEventListener('change', updateEstimate);
+
+    const label = document.createElement('label');
+    label.htmlFor = `plan-${plan.plan_id}`;
+
+    let labelHtml = plan.plan_name || plan.plan_id;
+
+    // 添加基准方案徽章
+    if (plan.is_baseline) {
+        labelHtml += ` <span class="baseline-badge">基准方案（必选）</span>`;
+    }
+
+    // 添加策略类型徽章
+    if (plan.strategies && plan.strategies.length > 0) {
+        plan.strategies.forEach(strategy => {
+            labelHtml += ` <span class="strategy-badge badge-${strategy.toLowerCase()}">${strategy}</span>`;
+        });
+    }
+
+    // 添加严重程度徽章
+    if (plan.severity) {
+        const severityMap = {
+            'mild': { text: '轻度', class: 'severity-mild' },
+            'moderate': { text: '中度', class: 'severity-moderate' },
+            'severe': { text: '严重', class: 'severity-severe' }
+        };
+        const severity = severityMap[plan.severity.toLowerCase()];
+        if (severity) {
+            labelHtml += ` <span class="severity-badge ${severity.class}">${severity.text}</span>`;
+        }
+    }
+
+    label.innerHTML = labelHtml;
+
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    return div;
+}
+
+function selectCollectionPlans(collectionId, select) {
+    const groupDiv = document.querySelector(`[data-collection-id="${collectionId}"]`);
+    if (!groupDiv) return;
+
+    const checkboxes = groupDiv.querySelectorAll('input[type="checkbox"]:not(:disabled)');
+    checkboxes.forEach(cb => {
+        cb.checked = select;
+    });
+
+    updateEstimate();
+}
+
+function selectPlansByRegex(pattern) {
+    try {
+        const regex = new RegExp(pattern);
+        const checkboxes = document.querySelectorAll('#planSelector input[type="checkbox"]:not(:disabled)');
+        let count = 0;
+        checkboxes.forEach(cb => {
+            if (regex.test(cb.value)) {
+                cb.checked = true;
+                count++;
+            }
+        });
+        updateEstimate();
+        if (count > 0) {
+            showNotification(`已选择 ${count} 个方案`, 'success');
+        } else {
+            showNotification('未找到匹配的方案', 'info');
+        }
+    } catch (error) {
+        console.error('Invalid regex pattern:', error);
+        showError('正则表达式格式错误');
+    }
+}
+
+function selectAllPlans() {
+    const checkboxes = document.querySelectorAll('#planSelector input[type="checkbox"]:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = true);
+    updateEstimate();
+    showNotification(`已选择 ${checkboxes.length} 个方案`, 'success');
+}
+
+function deselectAllPlans() {
+    const checkboxes = document.querySelectorAll('#planSelector input[type="checkbox"]:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateEstimate();
+    showNotification('已取消选择所有方案（基准方案保持选中）', 'info');
 }
 
 // ========== 配置和启动 ==========

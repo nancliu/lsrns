@@ -1,0 +1,87 @@
+{
+  "plan_id": "plan_morning_peak_g4202_dhs_g4202k0k20_severe_v1",
+  "plan_name": "G4202早高峰DHSg4202_k0k20严重综合管控方案V1",
+  "chinese_name": "G4202早高峰DHSg4202_k0k20严重综合管控方案V1",
+  "collection": "morning_peak_g4202",
+  "collection_name": "G4202早高峰综合管控方案集",
+  "description": "针对g4202_k0k20区段severe拥堵的DHS管控方案",
+  "strategies": [
+    {
+      "strategy_id": "strat_20251110123439_709035",
+      "strategy_name": "东段应急车道开放",
+      "template_id": "dhs_severe",
+      "strategy_type": "DHS",
+      "parameters": {
+        "affected_edges": [
+          "-8712",
+          "-15452.627",
+          "-9350",
+          "-6906.1080",
+          "-2040",
+          "-13636"
+        ],
+        "hard_shoulder_lane_index": 0,
+        "opening_schedule": [
+          {
+            "begin_hours": 7,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          },
+          {
+            "begin_hours": 7.1,
+            "status": "EMERGENCY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 7.25,
+            "status": "FULLY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 10,
+            "status": "FULLY_OPEN",
+            "allowed_vehicle_types": [
+              "all"
+            ]
+          },
+          {
+            "begin_hours": 10.5,
+            "status": "CONTROLLED_CLOSING",
+            "allowed_vehicle_types": [
+              "passenger"
+            ]
+          },
+          {
+            "begin_hours": 11,
+            "status": "CLOSED",
+            "allowed_vehicle_types": []
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "highway": [
+      "G4202"
+    ],
+    "segments": [
+      "g4202_k0k20"
+    ],
+    "time_pattern": "core_morning",
+    "time_range": "07:30-09:00",
+    "severity": "severe",
+    "strategies": [
+      "dhs"
+    ],
+    "expected_volume": "high",
+    "optimization_goal": "minimize_delay"
+  },
+  "is_baseline": false,
+  "status": "active",
+  "created_at": "2025-11-10T12:34:39.710567",
+  "version": 1
+}

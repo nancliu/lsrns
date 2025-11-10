@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <!--
+    Control Plan: plan_morning_peak_g4202_vss_tec_g4202k60k85_severe_v1
+    Name: G4202早高峰VSS+TECg4202_k60k85严重综合管控方案V1
+    Generated: 2025-11-10T12:50:38.166907
+    Strategies: VSS, TEC
+    Time Range: 07:00-10:00
+    Severity: severe
+        -->
+    <!-- VSS Strategy: 北段可变限速 -->
+    <variableSpeedSign id="strat_20251110123439_1ccdbc" file="strat_20251110123439_1ccdbc_schedule.xml" lanes="-10896_0 -10896_1 -10896_2 -9428_0 -9428_1 -9428_2 -15632#0_0 -15632#0_1 -15632#0_2 -12324_0 -12324_1 -12324_2 -11456#0_0 -11456#0_1 -11456#0_2 -10812_0 -10812_1 -10812_2 -7654#0_0 -7654#0_1"/>
+    <!-- TEC Strategy: g5_south流量控制 -->
+    <calibrator id="strat_20251110123439_4d2e5c" edge="-1000" output="strat_20251110123439_4d2e5c_log.xml" freq="900">
+        <flow begin="25200" end="28800" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="26100" end="29700" vehsPerHour="360" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="27900" end="31500" vehsPerHour="300" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="30600" end="34200" vehsPerHour="240" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="34200" end="37800" vehsPerHour="360" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="36000" end="39600" vehsPerHour="480" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="37800" end="41400" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+    </calibrator>
+    <!--
+    Speed schedule for strat_20251110123439_1ccdbc:
+    Time: 007.0h ( 25200s) -> Speed: 120 km/h (33.3 m/s)
+    Time: 007.2h ( 26100s) -> Speed:  84 km/h (23.3 m/s)
+    Time: 007.8h ( 27900s) -> Speed:  72 km/h (20.0 m/s)
+    Time: 008.5h ( 30600s) -> Speed:  60 km/h (16.7 m/s)
+    Time: 009.5h ( 34200s) -> Speed:  72 km/h (20.0 m/s)
+    Time: 010.0h ( 36000s) -> Speed:  84 km/h (23.3 m/s)
+    Time: 010.5h ( 37800s) -> Speed: 120 km/h (33.3 m/s)
+-->
+</additional>

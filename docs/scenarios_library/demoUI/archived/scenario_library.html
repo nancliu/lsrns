@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仿真场景集管理 - 交通仿真推演系统</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* 确保CSS变量定义正确，避免与导航组件冲突 */
+        :root {
+            --primary-color: #1976d2;
+            --primary-light: #63a4ff;
+            --primary-dark: #004ba0;
+            --secondary-color: #388e3c;
+            --text-on-primary: white;
+            --background-color: #f5f5f5;
+            --card-color: white;
+            --border-color: #e0e0e0;
+            --header-height: 64px;
+            --drawer-width: 240px;
+            --content-padding: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: rgba(0, 0, 0, 0.87);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+        }
+
+        /* 页面特有样式 */
+        .four-dimensional-filter {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dimension-group {
+            margin-bottom: 15px;
+        }
+
+        .dimension-group label {
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.8);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .dimension-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .dimension-chip {
+            padding: 6px 12px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .dimension-chip:hover {
+            background-color: #e3f2fd;
+            border-color: #1976d2;
+        }
+
+        .dimension-chip.active {
+            background-color: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+
+        .dimension-chip.all {
+            background-color: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        .dimension-chip.all.active {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .scenario-code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .selected-row {
+            background-color: rgba(25, 118, 210, 0.08) !important;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .table th, .table td {
+            padding: 12px 8px;
+            vertical-align: middle;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .sticky-top {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            padding: 15px 20px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .scenario-detail {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .scenario-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            background-color: #1976d2;
+            border-color: #1976d2;
+        }
+
+        .btn-outline-primary {
+            color: #1976d2;
+            border-color: #1976d2;
+        }
+
+        /* 导航栏样式 */
+        .app-bar {
+            height: var(--header-height);
+            background-color: var(--primary-color);
+            color: var(--text-on-primary);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .app-bar-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-left: 16px;
+        }
+
+        .app-bar-spacer {
+            flex-grow: 1;
+        }
+
+        .app-bar-section {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin-left: 32px;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: var(--text-on-primary);
+            text-decoration: none;
+        }
+
+        .icon-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .app-container {
+            display: flex;
+            flex-grow: 1;
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+        }
+
+        .drawer {
+            width: var(--drawer-width);
+            background-color: var(--card-color);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: rgba(0, 0, 0, 0.87);
+            text-decoration: none;
+        }
+
+        .drawer-item:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            color: rgba(0, 0, 0, 0.87);
+        }
+
+        .drawer-item.active {
+            background-color: rgba(25, 118, 210, 0.1);
+            color: var(--primary-color);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .drawer-item i, .drawer-item .material-icons {
+            margin-right: 16px;
+            color: inherit;
+        }
+
+        .drawer-section-title {
+            padding: 16px 16px 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .drawer-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 8px 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: var(--content-padding);
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: calc(100% - var(--drawer-width));
+            background-color: var(--card-color);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            height: 50px;
+        }
+
+        .bottom-bar .text-muted {
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }
+
+        .badge.bg-success {
+            background-color: #198754;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="app-bar">
+        <a href="#" class="icon-button">
+            <i class="material-icons">menu</i>
+        </a>
+        <h1 class="app-bar-title">交通仿真推演系统</h1>
+        <div class="app-bar-spacer"></div>
+        <div class="app-bar-section">场景库</div>
+        <a href="#" class="icon-button">
+            <i class="material-icons">notifications</i>
+        </a>
+        <a href="#" class="icon-button">
+            <i class="material-icons">account_circle</i>
+        </a>
+    </div>
+
+    <!-- 主应用容器 -->
+    <div class="app-container">
+        <!-- 侧边导航栏 -->
+        <div class="drawer">
+            <div class="drawer-section-title">在线动态仿真</div>
+            <a href="../online_simulation/simulation_preparation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">settings</i>
+                <span>仿真准备</span>
+            </a>
+            <a href="../online_simulation/online_simulation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">play_circle</i>
+                <span>在线仿真</span>
+            </a>
+            <a href="../online_simulation/road_evaluation.html" class="drawer-item" data-section="在线动态仿真">
+                <i class="material-icons">trending_up</i>
+                <span>路况评价</span>
+            </a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">事件触发仿真</div>
+            <a href="../event_trigger_simulation/event_extraction.html" class="drawer-item" data-section="事件触发仿真">
+                <i class="material-icons">event</i>
+                <span>事件注入</span>
+            </a>
+            <a href="../event_trigger_simulation/scenario_library.html" class="drawer-item active" data-section="事件触发仿真">
+                <i class="material-icons">library_books</i>
+                <span>仿真场景集</span>
+            </a>
+            <a href="../event_trigger_simulation/impact_analysis.html" class="drawer-item" data-section="事件触发仿真">
+                <i class="material-icons">analytics</i>
+                <span>影响分析</span>
+            </a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-section-title">管控效果仿真</div>
+            <a href="../control_effect_simulation/simulation_execution.html" class="drawer-item" data-section="管控效果仿真">
+                <i class="material-icons">rocket_launch</i>
+                <span>管控方案优化</span>
+            </a>
+            <a href="../control_effect_simulation/plan_management.html" class="drawer-item" data-section="管控效果仿真">
+                <i class="material-icons">folder</i>
+                <span>方案管理</span>
+            </a>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="content-container">
+                <!-- 二维分类筛选器 -->
+                <div class="four-dimensional-filter">
+                    <h5 class="mb-3">二维分类筛选器</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="dimension-group">
+                                <label>事件类型：</label>
+                                <div class="dimension-chips" id="eventTypeChips">
+                                    <div class="dimension-chip all active" data-value="all">全部</div>
+                                    <div class="dimension-chip" data-value="01">流量激增</div>
+                                    <div class="dimension-chip" data-value="02">交通事故</div>
+                                    <div class="dimension-chip" data-value="03">临时道路养护</div>
+                                    <div class="dimension-chip" data-value="04">恶劣天气</div>
+                                    <div class="dimension-chip" data-value="05">地质灾害</div>
+                                    <div class="dimension-chip" data-value="06">路面异常</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="dimension-group">
+                                <label>管控策略：</label>
+                                <div class="dimension-chips" id="controlStrategyChips">
+                                    <div class="dimension-chip all active" data-value="all">全部</div>
+                                    <div class="dimension-chip" data-value="02">动态限速(VSS)</div>
+                                    <div class="dimension-chip" data-value="03">动态车道(DHS)</div>
+                                    <div class="dimension-chip" data-value="05">收费管控(TEC)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="hasOnlyCases" checked>
+                                <label class="form-check-label" for="hasOnlyCases">
+                                    只显示有案例的类别
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="material-icons">search</i></span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="关键词检索">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">场景类别列表</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="sticky-top bg-light">
+                                            <tr>
+                                                <th>编码</th>
+                                                <th>类别描述</th>
+                                                <th>案例数</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="categoryTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-7">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">当前选中类别信息</h6>
+                            </div>
+                            <div class="card-body" id="categoryInfo">
+                                <div class="text-center text-muted">
+                                    <i class="material-icons" style="font-size: 36px;">category</i>
+                                    <p>请选择一个场景类别</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">案例列表</h6>
+                                <button class="btn btn-sm btn-outline-primary" id="addCaseBtn" style="display: none;">
+                                    <i class="material-icons small">add</i> 添加案例
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="sticky-top bg-light">
+                                            <tr>
+                                                <th>案例ID</th>
+                                                <th>案例名称</th>
+                                                <th>开始时间</th>
+                                                <th>持续时长</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="caseTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="scenario-detail mt-4" id="scenarioDetail">
+                    <div class="text-center text-muted">
+                        <i class="material-icons" style="font-size: 48px;">library_books</i>
+                        <p>请选择一个案例查看详情</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="bottom-bar">
+        <div class="text-muted">
+            场景类别总数: 8个 | 当前显示: 8个 | 总案例数: 19个
+        </div>
+        <div class="text-muted">
+            最后更新: <span id="lastUpdateTime">2024-01-15 14:30:25</span>
+        </div>
+    </div>
+
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化页面功能
+            initializePage();
+        });
+
+        // 数据定义
+        const categoryData = [
+            {
+                code: "01-02",
+                name: "流量激增-动态限速(VSS)",
+                classification: {
+                    event_type: "01",
+                    control_strategy: "02"
+                },
+                case_count: 3,
+                has_cases: true,
+                applicable_conditions: ["高速公路主线", "重大节假日或早晚高峰", "流量增长明显的路段", "具备动态限速设施"]
+            },
+            {
+                code: "01-03",
+                name: "流量激增-动态车道(DHS)",
+                classification: {
+                    event_type: "01",
+                    control_strategy: "03"
+                },
+                case_count: 2,
+                has_cases: true,
+                applicable_conditions: ["互通枢纽区域", "动态演化交通流", "具备应急车道开放条件", "多股车流汇合点"]
+            },
+            {
+                code: "02-02",
+                name: "交通事故-动态限速(VSS)",
+                classification: {
+                    event_type: "02",
+                    control_strategy: "02"
+                },
+                case_count: 2,
+                has_cases: true,
+                applicable_conditions: ["事故路段上游", "需要降速避险", "事故未完全封闭车道", "具备动态限速设施"]
+            },
+            {
+                code: "02-03",
+                name: "交通事故-动态车道(DHS)",
+                classification: {
+                    event_type: "02",
+                    control_strategy: "03"
+                },
+                case_count: 2,
+                has_cases: true,
+                applicable_conditions: ["事故占用主车道", "应急车道可开放", "缓解事故拥堵", "保障救援通道"]
+            },
+            {
+                code: "03-03",
+                name: "临时道路养护-动态车道(DHS)",
+                classification: {
+                    event_type: "03",
+                    control_strategy: "03"
+                },
+                case_count: 4,
+                has_cases: true,
+                applicable_conditions: ["路段级施工", "稳态交通流", "具备应急车道或可变车道", "计划性维护作业"]
+            },
+            {
+                code: "04-02",
+                name: "恶劣天气-动态限速(VSS)",
+                classification: {
+                    event_type: "04",
+                    control_strategy: "02"
+                },
+                case_count: 3,
+                has_cases: true,
+                applicable_conditions: ["大雾雨雪天气", "能见度降低", "路面湿滑", "需要强制降速"]
+            },
+            {
+                code: "05-05",
+                name: "地质灾害-收费管控(TEC)",
+                classification: {
+                    event_type: "05",
+                    control_strategy: "05"
+                },
+                case_count: 1,
+                has_cases: true,
+                applicable_conditions: ["路网级灾害", "异常状态交通流", "需要收费站管控", "完全或部分封闭路段"]
+            },
+            {
+                code: "06-02",
+                name: "路面异常-动态限速(VSS)",
+                classification: {
+                    event_type: "06",
+                    control_strategy: "02"
+                },
+                case_count: 2,
+                has_cases: true,
+                applicable_conditions: ["路面坑洼破损", "抛洒物影响", "需要降速通过", "避免二次事故"]
+            }
+        ];
+
+        // 简化案例数据
+        const caseData = {
+            "01-02": [
+                {
+                    case_id: "01-02-001",
+                    case_name: "高速公路春运返程高峰限速管控",
+                    sim_start_time: "2024-02-15T08:00:00",
+                    sim_duration: 8,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "01-02-002",
+                    case_name: "早高峰流量激增限速管控",
+                    sim_start_time: "2024-12-19T07:00:00",
+                    sim_duration: 4,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "01-02-003",
+                    case_name: "景区流量激增限速管控",
+                    sim_start_time: "2024-10-01T09:00:00",
+                    sim_duration: 6,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "01-03": [
+                {
+                    case_id: "01-03-001",
+                    case_name: "互通枢纽流量激增应急车道开放",
+                    sim_start_time: "2024-12-19T17:00:00",
+                    sim_duration: 4,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "01-03-002",
+                    case_name: "收费站拥堵应急车道开放",
+                    sim_start_time: "2024-12-19T08:30:00",
+                    sim_duration: 3,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "02-02": [
+                {
+                    case_id: "02-02-001",
+                    case_name: "事故路段上游限速管控",
+                    sim_start_time: "2024-12-19T14:20:00",
+                    sim_duration: 3,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "02-02-002",
+                    case_name: "多车追尾区域限速",
+                    sim_start_time: "2024-12-19T09:45:00",
+                    sim_duration: 4,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "02-03": [
+                {
+                    case_id: "02-03-001",
+                    case_name: "事故占道应急车道开放",
+                    sim_start_time: "2024-12-19T11:30:00",
+                    sim_duration: 2,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "02-03-002",
+                    case_name: "救援通道应急车道管控",
+                    sim_start_time: "2024-12-19T16:15:00",
+                    sim_duration: 3,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "03-03": [
+                {
+                    case_id: "03-03-001",
+                    case_name: "路面维修应急车道开放",
+                    sim_start_time: "2024-12-19T02:00:00",
+                    sim_duration: 6,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "03-03-002",
+                    case_name: "桥梁检测车道管控",
+                    sim_start_time: "2024-12-19T01:00:00",
+                    sim_duration: 8,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "03-03-003",
+                    case_name: "管网铺设临时管控",
+                    sim_start_time: "2024-12-19T22:00:00",
+                    sim_duration: 10,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "03-03-004",
+                    case_name: "应急抢修动态车道",
+                    sim_start_time: "2024-12-19T15:30:00",
+                    sim_duration: 3,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "01-03": [
+                {
+                    case_id: "01-03-001",
+                    case_name: "互通枢纽流量激增应急车道开放",
+                    sim_start_time: "2024-12-19T17:00:00",
+                    sim_duration: 4,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "01-03-002",
+                    case_name: "收费站拥堵应急车道开放",
+                    sim_start_time: "2024-12-19T08:30:00",
+                    sim_duration: 3,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "04-02": [
+                {
+                    case_id: "04-02-001",
+                    case_name: "大雾天气限速管控",
+                    sim_start_time: "2024-12-19T06:30:00",
+                    sim_duration: 5,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "04-02-002",
+                    case_name: "雨雪天气降速管控",
+                    sim_start_time: "2024-01-20T08:00:00",
+                    sim_duration: 6,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "04-02-003",
+                    case_name: "路面结冰限速管控",
+                    sim_start_time: "2024-01-15T05:00:00",
+                    sim_duration: 8,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "05-05": [
+                {
+                    case_id: "05-05-001",
+                    case_name: "山体滑坡路网封闭管控",
+                    sim_start_time: "2024-12-19T03:00:00",
+                    sim_duration: 24,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ],
+            "06-02": [
+                {
+                    case_id: "06-02-001",
+                    case_name: "路面坑洼降速管控",
+                    sim_start_time: "2024-12-19T10:00:00",
+                    sim_duration: 2,
+                    source: "system",
+                    created_date: "2024-12-19"
+                },
+                {
+                    case_id: "06-02-002",
+                    case_name: "抛洒物路段限速",
+                    sim_start_time: "2024-12-19T14:30:00",
+                    sim_duration: 1,
+                    source: "system",
+                    created_date: "2024-12-19"
+                }
+            ]
+        };
+
+        // 全局变量
+        let currentFilters = {
+            event_type: "all",
+            control_strategy: "all",
+            has_cases_only: true,
+            keywords: ""
+        };
+
+        let currentCategory = null;
+        let currentCase = null;
+
+        // 页面初始化
+        function initializePage() {
+            // 等待DOM元素加载完成
+            setTimeout(() => {
+                updateCategoryList();
+                initializeFilters();
+                updateStatus();
+            }, 100);
+        }
+
+        function initializeFilters() {
+            // 等待DOM元素加载
+            setTimeout(() => {
+                const dimensionGroups = ['eventTypeChips', 'controlStrategyChips'];
+                const filterKeys = ['event_type', 'control_strategy'];
+                
+                dimensionGroups.forEach((groupId, index) => {
+                    const chips = document.querySelectorAll('#' + groupId + ' .dimension-chip');
+                    const filterKey = filterKeys[index];
+                    
+                    chips.forEach(chip => {
+                        chip.addEventListener('click', function() {
+                            chips.forEach(c => c.classList.remove('active'));
+                            this.classList.add('active');
+                            currentFilters[filterKey] = this.getAttribute('data-value');
+                            updateCategoryList();
+                        });
+                    });
+                });
+
+                const hasOnlyCasesElement = document.getElementById('hasOnlyCases');
+                if (hasOnlyCasesElement) {
+                    hasOnlyCasesElement.addEventListener('change', function() {
+                        currentFilters.has_cases_only = this.checked;
+                        updateCategoryList();
+                    });
+                }
+
+                const searchInputElement = document.getElementById('searchInput');
+                if (searchInputElement) {
+                    searchInputElement.addEventListener('input', function() {
+                        currentFilters.keywords = this.value.toLowerCase();
+                        updateCategoryList();
+                    });
+                }
+            }, 200);
+        }
+
+        function updateCategoryList() {
+            const tableBody = document.getElementById('categoryTableBody');
+            
+            if (!tableBody) {
+                console.error('categoryTableBody element not found');
+                return;
+            }
+            
+            let filteredCategories = categoryData.filter(category => {
+                const matchesDimensions = (currentFilters.event_type === 'all' || category.classification.event_type === currentFilters.event_type) &&
+                           (currentFilters.control_strategy === 'all' || category.classification.control_strategy === currentFilters.control_strategy);
+                
+                const matchesCases = !currentFilters.has_cases_only || category.has_cases;
+                
+                const matchesKeywords = !currentFilters.keywords || 
+                                      category.name.toLowerCase().includes(currentFilters.keywords) ||
+                                      category.code.toLowerCase().includes(currentFilters.keywords);
+                
+                return matchesDimensions && matchesCases && matchesKeywords;
+            });
+            
+            tableBody.innerHTML = '';
+            
+            filteredCategories.forEach((category, index) => {
+                const row = document.createElement('tr');
+                row.style.cursor = 'pointer';
+                
+                if (index === 0 && !currentCategory) {
+                    row.classList.add('selected-row');
+                    currentCategory = category;
+                    updateCategoryInfo();
+                    updateCaseList();
+                }
+                
+                row.innerHTML = '<td><code class="scenario-code">' + category.code + '</code></td><td>' + category.name + '</td><td><span class="badge bg-secondary">' + category.case_count + '</span></td>';
+                
+                row.addEventListener('click', function() {
+                    document.querySelectorAll('#categoryTableBody tr').forEach(r => r.classList.remove('selected-row'));
+                    this.classList.add('selected-row');
+                    currentCategory = category;
+                    updateCategoryInfo();
+                    updateCaseList();
+                });
+                
+                tableBody.appendChild(row);
+            });
+            
+            const totalCases = categoryData.reduce((sum, category) => sum + category.case_count, 0);
+            
+            // 更新底部状态栏
+            updateBottomStatus(categoryData.length, filteredCategories.length, totalCases);
+        }
+
+        function updateCategoryInfo() {
+            const infoDiv = document.getElementById('categoryInfo');
+            
+            if (!infoDiv) {
+                console.error('categoryInfo element not found');
+                return;
+            }
+            
+            if (!currentCategory) {
+                infoDiv.innerHTML = '<div class="text-center text-muted"><i class="material-icons" style="font-size: 36px;">category</i><p>请选择一个场景类别</p></div>';
+                return;
+            }
+            
+            const conditionsHtml = currentCategory.applicable_conditions.map(condition => '<li>' + condition + '</li>').join('');
+            
+            infoDiv.innerHTML = '<div class="row"><div class="col-md-8"><h6><strong>类别编码：</strong> <code class="scenario-code">' + currentCategory.code + '</code></h6><p><strong>类别描述：</strong> ' + currentCategory.name + '</p></div><div class="col-md-4 text-end"><p><strong>案例数：</strong> <span class="badge bg-primary">' + currentCategory.case_count + '个</span></p></div></div><div class="row mt-2"><div class="col-12"><h6><strong>适用条件：</strong></h6><ul class="mb-0">' + conditionsHtml + '</ul></div></div>';
+        }
+
+        function updateCaseList() {
+            const tableBody = document.getElementById('caseTableBody');
+            const addCaseBtn = document.getElementById('addCaseBtn');
+            
+            if (!tableBody) {
+                console.error('caseTableBody element not found');
+                return;
+            }
+            
+            if (!currentCategory) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">请选择场景类别</td></tr>';
+                if (addCaseBtn) addCaseBtn.style.display = 'none';
+                return;
+            }
+            
+            const cases = caseData[currentCategory.code] || [];
+            if (addCaseBtn) addCaseBtn.style.display = 'inline-block';
+            
+            tableBody.innerHTML = '';
+            
+            if (cases.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">该类别暂无案例</td></tr>';
+                return;
+            }
+            
+            cases.forEach((caseItem, index) => {
+                const row = document.createElement('tr');
+                row.style.cursor = 'pointer';
+                
+                if (index === 0) {
+                    row.classList.add('selected-row');
+                    currentCase = caseItem;
+                    updateCaseDetail();
+                }
+                
+                row.innerHTML = '<td><code class="scenario-code">' + caseItem.case_id + '</code></td><td>' + caseItem.case_name + '</td><td>' + formatDateTime(caseItem.sim_start_time) + '</td><td>' + caseItem.sim_duration + '小时</td><td><div class="btn-group"><button class="btn btn-sm btn-primary apply-case">应用</button><button class="btn btn-sm btn-outline-primary adjust-case">调整</button></div></td>';
+                
+                row.addEventListener('click', function() {
+                    document.querySelectorAll('#caseTableBody tr').forEach(r => r.classList.remove('selected-row'));
+                    this.classList.add('selected-row');
+                    currentCase = caseItem;
+                    updateCaseDetail();
+                });
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateCaseDetail() {
+            const detailDiv = document.getElementById('scenarioDetail');
+            
+            if (!detailDiv) {
+                console.error('scenarioDetail element not found');
+                return;
+            }
+            
+            if (!currentCase) {
+                detailDiv.innerHTML = '<div class="text-center text-muted"><i class="material-icons" style="font-size: 48px;">library_books</i><p>请选择一个案例查看详情</p></div>';
+                return;
+            }
+            
+            detailDiv.innerHTML = '<h5>案例详情配置</h5><div class="row mb-4"><div class="col-md-6"><h6>基本信息</h6><table class="table table-sm table-borderless"><tr><td width="30%"><strong>案例ID：</strong></td><td><code class="scenario-code">' + currentCase.case_id + '</code></td></tr><tr><td><strong>案例名称：</strong></td><td>' + currentCase.case_name + '</td></tr><tr><td><strong>开始时间：</strong></td><td>' + formatDateTime(currentCase.sim_start_time) + '</td></tr><tr><td><strong>持续时长：</strong></td><td>' + currentCase.sim_duration + '小时</td></tr><tr><td><strong>数据来源：</strong></td><td><span class="badge bg-info">' + (currentCase.source === 'system' ? '系统生成' : currentCase.source) + '</span></td></tr><tr><td><strong>创建日期：</strong></td><td>' + currentCase.created_date + '</td></tr></table></div><div class="col-md-6"><h6>所属类别</h6><table class="table table-sm table-borderless"><tr><td width="30%"><strong>类别编码：</strong></td><td><code class="scenario-code">' + currentCategory.code + '</code></td></tr><tr><td><strong>类别描述：</strong></td><td>' + currentCategory.name + '</td></tr></table></div></div><div class="scenario-actions"><button class="btn btn-primary" onclick="applyCase(\'' + currentCase.case_id + '\')"><i class="material-icons small">play_arrow</i> 应用此案例</button><button class="btn btn-outline-primary" onclick="adjustCase(\'' + currentCase.case_id + '\')"><i class="material-icons small">edit</i> 调整参数</button><button class="btn btn-outline-secondary" onclick="duplicateCase(\'' + currentCase.case_id + '\')"><i class="material-icons small">content_copy</i> 复制案例</button><button class="btn btn-outline-danger" onclick="deleteCase(\'' + currentCase.case_id + '\')"><i class="material-icons small">delete</i> 删除案例</button></div>';
+        }
+
+        function formatDateTime(dateTimeStr) {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleString();
+        }
+
+        function updateStatus() {
+            // 初始化状态
+            updateBottomStatus(8, 8, 19);
+        }
+
+        function updateBottomStatus(totalCategories, filteredCategories, totalCases) {
+            const statusElement = document.querySelector('.bottom-bar .text-muted');
+            if (statusElement) {
+                statusElement.innerHTML = `场景类别总数: ${totalCategories}个 | 当前显示: ${filteredCategories}个 | 总案例数: ${totalCases}个`;
+            }
+        }
+
+        function applyCase(caseId) {
+            if (confirm('确定要应用案例 ' + caseId + ' 吗？这将把案例参数应用到当前仿真场景中。')) {
+                alert('案例 ' + caseId + ' 已应用到仿真场景！\n\n将跳转到事件注入页面进行具体配置...');
+            }
+        }
+
+        function adjustCase(caseId) {
+            alert('调整案例 ' + caseId + ' 参数\n\n将打开参数调整界面...');
+        }
+
+        function duplicateCase(caseId) {
+            if (confirm('确定要复制案例 ' + caseId + ' 吗？')) {
+                alert('案例 ' + caseId + ' 已复制！\n\n新案例将生成一个新的ID。');
+            }
+        }
+
+        function deleteCase(caseId) {
+            if (confirm('警告：确定要删除案例 ' + caseId + ' 吗？此操作不可撤销！')) {
+                alert('案例 ' + caseId + ' 已删除！');
+            }
+        }
+    </script>
+</body>
+</html> 

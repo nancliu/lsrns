@@ -1,0 +1,70 @@
+<?xml version="1.0" ?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <!--
+    Control Plan: plan_morning_peak_g4202_vss_tec_dhs_g4202k40k60_severe_v1
+    Name: G4202早高峰VSS_TEC_DHSg4202_k40k60严重综合管控方案V1
+    Generated: 2025-11-10T12:50:38.159897
+    Strategies: VSS, TEC, DHS
+    Time Range: 06:30-10:30
+    Severity: severe
+        -->
+    <!-- VSS Strategy: 西段可变限速 -->
+    <variableSpeedSign id="strat_20251110123439_e178e8" file="strat_20251110123439_e178e8_schedule.xml" lanes="-7798.460_0 -7798.460_1 -7798.460_2 -13928_0 -13928_1 -13928_2 -7790_0 -7790_1 -7790_2 -8014_0 -8014_1 -8014_2 -10702_0 -10702_1 -10702_2 -9292_0 -9292_1 -9292_2 -15220_0 -15220_1"/>
+    <!-- TEC Strategy: g5_south流量控制 -->
+    <calibrator id="strat_20251110123439_1dd7ad" edge="-1000" output="strat_20251110123439_1dd7ad_log.xml" freq="900">
+        <flow begin="25200" end="28800" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="26100" end="29700" vehsPerHour="360" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="27900" end="31500" vehsPerHour="300" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="30600" end="34200" vehsPerHour="240" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="34200" end="37800" vehsPerHour="360" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="36000" end="39600" vehsPerHour="480" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+        <flow begin="37800" end="41400" vehsPerHour="600" speed="27.78" type="passenger" departLane="best" departSpeed="desired"/>
+    </calibrator>
+    <!-- DHS Strategy: 西段应急车道开放 -->
+    <lane id="-7798.460_0" time="25200" disallow="all"/>
+    <lane id="-7798.460_0" time="25560" disallow="all"/>
+    <lane id="-7798.460_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-7798.460_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-7798.460_0" time="37800" disallow="all"/>
+    <lane id="-7798.460_0" time="39600" disallow="all"/>
+    <lane id="-13928_0" time="25200" disallow="all"/>
+    <lane id="-13928_0" time="25560" disallow="all"/>
+    <lane id="-13928_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-13928_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-13928_0" time="37800" disallow="all"/>
+    <lane id="-13928_0" time="39600" disallow="all"/>
+    <lane id="-7790_0" time="25200" disallow="all"/>
+    <lane id="-7790_0" time="25560" disallow="all"/>
+    <lane id="-7790_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-7790_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-7790_0" time="37800" disallow="all"/>
+    <lane id="-7790_0" time="39600" disallow="all"/>
+    <lane id="-8014_0" time="25200" disallow="all"/>
+    <lane id="-8014_0" time="25560" disallow="all"/>
+    <lane id="-8014_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-8014_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-8014_0" time="37800" disallow="all"/>
+    <lane id="-8014_0" time="39600" disallow="all"/>
+    <lane id="-10702_0" time="25200" disallow="all"/>
+    <lane id="-10702_0" time="25560" disallow="all"/>
+    <lane id="-10702_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-10702_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-10702_0" time="37800" disallow="all"/>
+    <lane id="-10702_0" time="39600" disallow="all"/>
+    <lane id="-9292_0" time="25200" disallow="all"/>
+    <lane id="-9292_0" time="25560" disallow="all"/>
+    <lane id="-9292_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-9292_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-9292_0" time="37800" disallow="all"/>
+    <lane id="-9292_0" time="39600" disallow="all"/>
+    <!--
+    Speed schedule for strat_20251110123439_e178e8:
+    Time: 007.0h ( 25200s) -> Speed: 120 km/h (33.3 m/s)
+    Time: 007.2h ( 26100s) -> Speed:  84 km/h (23.3 m/s)
+    Time: 007.8h ( 27900s) -> Speed:  72 km/h (20.0 m/s)
+    Time: 008.5h ( 30600s) -> Speed:  60 km/h (16.7 m/s)
+    Time: 009.5h ( 34200s) -> Speed:  72 km/h (20.0 m/s)
+    Time: 010.0h ( 36000s) -> Speed:  84 km/h (23.3 m/s)
+    Time: 010.5h ( 37800s) -> Speed: 120 km/h (33.3 m/s)
+-->
+</additional>

@@ -1,0 +1,179 @@
+{
+  "template_type": "VSS",
+  "description": "可变限速(VSS)严重程度参数模板",
+  "severities": {
+    "mild": {
+      "severity_level": "mild",
+      "chinese_name": "轻度",
+      "description": "Conservative speed reduction for preventive control",
+      "speed_reduction_percentage": "10-20%",
+      "parameters": {
+        "normal_speed_kmh": 120,
+        "controlled_speeds": {
+          "phase1": 108,
+          "phase2": 100,
+          "phase3": 96
+        },
+        "speed_steps_template": [
+          {
+            "time_offset_hours": 0,
+            "speed_kmh": 120,
+            "description": "Normal speed"
+          },
+          {
+            "time_offset_hours": 0.5,
+            "speed_kmh": 108,
+            "description": "10% reduction"
+          },
+          {
+            "time_offset_hours": 1,
+            "speed_kmh": 100,
+            "description": "17% reduction"
+          },
+          {
+            "time_offset_hours": 2,
+            "speed_kmh": 96,
+            "description": "20% reduction"
+          },
+          {
+            "time_offset_hours": 3,
+            "speed_kmh": 108,
+            "description": "Recovery phase"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "speed_kmh": 120,
+            "description": "Normal speed restored"
+          }
+        ]
+      },
+      "use_cases": [
+        "Preventive control before congestion",
+        "Low to moderate traffic flow",
+        "Weather conditions (light rain/fog)"
+      ]
+    },
+    "moderate": {
+      "severity_level": "moderate",
+      "chinese_name": "中度",
+      "description": "Balanced speed reduction for typical congestion",
+      "speed_reduction_percentage": "20-30%",
+      "parameters": {
+        "normal_speed_kmh": 120,
+        "controlled_speeds": {
+          "phase1": 96,
+          "phase2": 90,
+          "phase3": 84
+        },
+        "speed_steps_template": [
+          {
+            "time_offset_hours": 0,
+            "speed_kmh": 120,
+            "description": "Normal speed"
+          },
+          {
+            "time_offset_hours": 0.5,
+            "speed_kmh": 96,
+            "description": "20% reduction"
+          },
+          {
+            "time_offset_hours": 1,
+            "speed_kmh": 90,
+            "description": "25% reduction"
+          },
+          {
+            "time_offset_hours": 2,
+            "speed_kmh": 84,
+            "description": "30% reduction"
+          },
+          {
+            "time_offset_hours": 3,
+            "speed_kmh": 90,
+            "description": "Recovery phase"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "speed_kmh": 120,
+            "description": "Normal speed restored"
+          }
+        ]
+      },
+      "use_cases": [
+        "Typical morning/evening peak",
+        "Moderate to high traffic flow",
+        "Upstream of known bottlenecks"
+      ]
+    },
+    "severe": {
+      "severity_level": "severe",
+      "chinese_name": "严重",
+      "description": "Aggressive speed reduction for severe congestion",
+      "speed_reduction_percentage": "30-50%",
+      "parameters": {
+        "normal_speed_kmh": 120,
+        "controlled_speeds": {
+          "phase1": 84,
+          "phase2": 72,
+          "phase3": 60
+        },
+        "speed_steps_template": [
+          {
+            "time_offset_hours": 0,
+            "speed_kmh": 120,
+            "description": "Normal speed"
+          },
+          {
+            "time_offset_hours": 0.25,
+            "speed_kmh": 84,
+            "description": "30% reduction"
+          },
+          {
+            "time_offset_hours": 0.75,
+            "speed_kmh": 72,
+            "description": "40% reduction"
+          },
+          {
+            "time_offset_hours": 1.5,
+            "speed_kmh": 60,
+            "description": "50% reduction"
+          },
+          {
+            "time_offset_hours": 2.5,
+            "speed_kmh": 72,
+            "description": "Recovery phase 1"
+          },
+          {
+            "time_offset_hours": 3,
+            "speed_kmh": 84,
+            "description": "Recovery phase 2"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "speed_kmh": 120,
+            "description": "Normal speed restored"
+          }
+        ]
+      },
+      "use_cases": [
+        "Severe congestion events",
+        "Accident upstream control",
+        "Emergency traffic management"
+      ]
+    }
+  },
+  "application_rules": {
+    "minimum_segment_length_km": 2,
+    "maximum_segment_length_km": 10,
+    "transition_zone_length_m": 500,
+    "minimum_spacing_between_vss_km": 1,
+    "coordination_required": true
+  },
+  "sumo_configuration": {
+    "element_type": "variableSpeedSign",
+    "file_type": "additional",
+    "lane_coverage": "all_lanes",
+    "override_priority": 100
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}

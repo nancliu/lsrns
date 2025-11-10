@@ -67,6 +67,8 @@ class PlanListItem(BaseModel):
     tags: List[str] = Field(default_factory=list, description="标签")
     created_at: datetime = Field(..., description="创建时间")
 
+    model_config = {"extra": "allow"}  # 允许额外字段（如 collection, strategies, severity 等）
+
 
 class PlanListResponse(BaseModel):
     """方案列表响应"""

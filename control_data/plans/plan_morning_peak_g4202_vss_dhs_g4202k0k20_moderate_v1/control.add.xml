@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <!--
+    Control Plan: plan_morning_peak_g4202_vss_dhs_g4202k0k20_moderate_v1
+    Name: G4202早高峰VSS+DHSg4202_k0k20中度综合管控方案V1
+    Generated: 2025-11-10T12:50:38.152763
+    Strategies: VSS, DHS
+    Time Range: 07:30-09:00
+    Severity: moderate
+        -->
+    <!-- VSS Strategy: 东段可变限速 -->
+    <variableSpeedSign id="strat_20251110123439_68c907" file="strat_20251110123439_68c907_schedule.xml" lanes="-8712_0 -8712_1 -8712_2 -15452.627_0 -15452.627_1 -15452.627_2 -9350_0 -9350_1 -9350_2 -6906.1080_0 -6906.1080_1 -6906.1080_2 -2040_0 -2040_1 -2040_2 -13636_0 -13636_1 -13636_2 -12970_0 -12970_1"/>
+    <!-- DHS Strategy: 东段应急车道开放 -->
+    <lane id="-8712_0" time="25200" disallow="all"/>
+    <lane id="-8712_0" time="26100" disallow="all"/>
+    <lane id="-8712_0" time="27000" allow="passenger truck" speed="27.78"/>
+    <lane id="-8712_0" time="34200" allow="passenger truck" speed="27.78"/>
+    <lane id="-8712_0" time="36000" disallow="all"/>
+    <lane id="-8712_0" time="37800" disallow="all"/>
+    <lane id="-15452.627_0" time="25200" disallow="all"/>
+    <lane id="-15452.627_0" time="26100" disallow="all"/>
+    <lane id="-15452.627_0" time="27000" allow="passenger truck" speed="27.78"/>
+    <lane id="-15452.627_0" time="34200" allow="passenger truck" speed="27.78"/>
+    <lane id="-15452.627_0" time="36000" disallow="all"/>
+    <lane id="-15452.627_0" time="37800" disallow="all"/>
+    <lane id="-9350_0" time="25200" disallow="all"/>
+    <lane id="-9350_0" time="26100" disallow="all"/>
+    <lane id="-9350_0" time="27000" allow="passenger truck" speed="27.78"/>
+    <lane id="-9350_0" time="34200" allow="passenger truck" speed="27.78"/>
+    <lane id="-9350_0" time="36000" disallow="all"/>
+    <lane id="-9350_0" time="37800" disallow="all"/>
+    <lane id="-6906.1080_0" time="25200" disallow="all"/>
+    <lane id="-6906.1080_0" time="26100" disallow="all"/>
+    <lane id="-6906.1080_0" time="27000" allow="passenger truck" speed="27.78"/>
+    <lane id="-6906.1080_0" time="34200" allow="passenger truck" speed="27.78"/>
+    <lane id="-6906.1080_0" time="36000" disallow="all"/>
+    <lane id="-6906.1080_0" time="37800" disallow="all"/>
+    <lane id="-2040_0" time="25200" disallow="all"/>
+    <lane id="-2040_0" time="26100" disallow="all"/>
+    <lane id="-2040_0" time="27000" allow="passenger truck" speed="27.78"/>
+    <lane id="-2040_0" time="34200" allow="passenger truck" speed="27.78"/>
+    <lane id="-2040_0" time="36000" disallow="all"/>
+    <lane id="-2040_0" time="37800" disallow="all"/>
+    <lane id="-13636_0" time="25200" disallow="all"/>
+    <lane id="-13636_0" time="26100" disallow="all"/>
+    <lane id="-13636_0" time="27000" allow="passenger truck" speed="27.78"/>
+    <lane id="-13636_0" time="34200" allow="passenger truck" speed="27.78"/>
+    <lane id="-13636_0" time="36000" disallow="all"/>
+    <lane id="-13636_0" time="37800" disallow="all"/>
+    <!--
+    Speed schedule for strat_20251110123439_68c907:
+    Time: 007.0h ( 25200s) -> Speed: 120 km/h (33.3 m/s)
+    Time: 007.5h ( 27000s) -> Speed:  96 km/h (26.7 m/s)
+    Time: 008.0h ( 28800s) -> Speed:  90 km/h (25.0 m/s)
+    Time: 009.0h ( 32400s) -> Speed:  84 km/h (23.3 m/s)
+    Time: 010.0h ( 36000s) -> Speed:  90 km/h (25.0 m/s)
+    Time: 010.5h ( 37800s) -> Speed: 120 km/h (33.3 m/s)
+-->
+</additional>

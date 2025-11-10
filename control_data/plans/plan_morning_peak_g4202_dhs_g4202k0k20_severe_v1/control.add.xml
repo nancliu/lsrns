@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <!--
+    Control Plan: plan_morning_peak_g4202_dhs_g4202k0k20_severe_v1
+    Name: G4202早高峰DHSg4202_k0k20严重综合管控方案V1
+    Generated: 2025-11-10T12:50:38.135763
+    Strategies: DHS
+    Time Range: 07:30-09:00
+    Severity: severe
+        -->
+    <!-- DHS Strategy: 东段应急车道开放 -->
+    <lane id="-8712_0" time="25200" disallow="all"/>
+    <lane id="-8712_0" time="25560" disallow="all"/>
+    <lane id="-8712_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-8712_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-8712_0" time="37800" disallow="all"/>
+    <lane id="-8712_0" time="39600" disallow="all"/>
+    <lane id="-15452.627_0" time="25200" disallow="all"/>
+    <lane id="-15452.627_0" time="25560" disallow="all"/>
+    <lane id="-15452.627_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-15452.627_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-15452.627_0" time="37800" disallow="all"/>
+    <lane id="-15452.627_0" time="39600" disallow="all"/>
+    <lane id="-9350_0" time="25200" disallow="all"/>
+    <lane id="-9350_0" time="25560" disallow="all"/>
+    <lane id="-9350_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-9350_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-9350_0" time="37800" disallow="all"/>
+    <lane id="-9350_0" time="39600" disallow="all"/>
+    <lane id="-6906.1080_0" time="25200" disallow="all"/>
+    <lane id="-6906.1080_0" time="25560" disallow="all"/>
+    <lane id="-6906.1080_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-6906.1080_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-6906.1080_0" time="37800" disallow="all"/>
+    <lane id="-6906.1080_0" time="39600" disallow="all"/>
+    <lane id="-2040_0" time="25200" disallow="all"/>
+    <lane id="-2040_0" time="25560" disallow="all"/>
+    <lane id="-2040_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-2040_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-2040_0" time="37800" disallow="all"/>
+    <lane id="-2040_0" time="39600" disallow="all"/>
+    <lane id="-13636_0" time="25200" disallow="all"/>
+    <lane id="-13636_0" time="25560" disallow="all"/>
+    <lane id="-13636_0" time="26100" allow="all" speed="27.78"/>
+    <lane id="-13636_0" time="36000" allow="all" speed="27.78"/>
+    <lane id="-13636_0" time="37800" disallow="all"/>
+    <lane id="-13636_0" time="39600" disallow="all"/>
+</additional>

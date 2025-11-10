@@ -1,0 +1,216 @@
+{
+  "template_type": "DHS",
+  "description": "动态硬路肩(DHS)严重程度参数模板",
+  "severities": {
+    "mild": {
+      "severity_level": "mild",
+      "chinese_name": "轻度",
+      "description": "Limited shoulder opening for capacity increase",
+      "capacity_increase_percentage": "15-20%",
+      "parameters": {
+        "shoulder_status": "partially_open",
+        "allowed_vehicle_types": ["passenger"],
+        "opening_schedule_template": [
+          {
+            "time_offset_hours": 0,
+            "status": "CLOSED",
+            "allowed_types": [],
+            "description": "Shoulder closed"
+          },
+          {
+            "time_offset_hours": 0.5,
+            "status": "RESTRICTED",
+            "allowed_types": ["passenger"],
+            "max_speed_kmh": 80,
+            "description": "Limited opening for cars only"
+          },
+          {
+            "time_offset_hours": 1.5,
+            "status": "RESTRICTED",
+            "allowed_types": ["passenger"],
+            "max_speed_kmh": 80,
+            "description": "Continued restricted use"
+          },
+          {
+            "time_offset_hours": 2.5,
+            "status": "CLOSING",
+            "allowed_types": ["passenger"],
+            "max_speed_kmh": 60,
+            "description": "Preparing to close"
+          },
+          {
+            "time_offset_hours": 3,
+            "status": "CLOSED",
+            "allowed_types": [],
+            "description": "Shoulder closed"
+          }
+        ],
+        "lane_change_rules": {
+          "mandatory_merge_distance_m": 500,
+          "advisory_signs_distance_m": 1000,
+          "speed_differential_max_kmh": 20
+        }
+      },
+      "use_cases": [
+        "Minor capacity enhancement",
+        "Passenger vehicles only",
+        "Low to moderate congestion"
+      ]
+    },
+    "moderate": {
+      "severity_level": "moderate",
+      "chinese_name": "中度",
+      "description": "Standard shoulder opening for regular peak hours",
+      "capacity_increase_percentage": "20-25%",
+      "parameters": {
+        "shoulder_status": "open",
+        "allowed_vehicle_types": ["passenger", "truck"],
+        "opening_schedule_template": [
+          {
+            "time_offset_hours": 0,
+            "status": "CLOSED",
+            "allowed_types": [],
+            "description": "Shoulder closed"
+          },
+          {
+            "time_offset_hours": 0.25,
+            "status": "OPENING",
+            "allowed_types": ["passenger"],
+            "max_speed_kmh": 60,
+            "description": "Opening phase"
+          },
+          {
+            "time_offset_hours": 0.5,
+            "status": "OPEN",
+            "allowed_types": ["passenger", "truck"],
+            "max_speed_kmh": 100,
+            "description": "Fully open"
+          },
+          {
+            "time_offset_hours": 2.5,
+            "status": "OPEN",
+            "allowed_types": ["passenger", "truck"],
+            "max_speed_kmh": 100,
+            "description": "Continued full operation"
+          },
+          {
+            "time_offset_hours": 3,
+            "status": "CLOSING",
+            "allowed_types": ["passenger"],
+            "max_speed_kmh": 80,
+            "description": "Closing phase"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "status": "CLOSED",
+            "allowed_types": [],
+            "description": "Shoulder closed"
+          }
+        ],
+        "lane_change_rules": {
+          "mandatory_merge_distance_m": 750,
+          "advisory_signs_distance_m": 1500,
+          "speed_differential_max_kmh": 30
+        }
+      },
+      "use_cases": [
+        "Regular peak hours",
+        "Mixed traffic types",
+        "Moderate congestion relief"
+      ]
+    },
+    "severe": {
+      "severity_level": "severe",
+      "chinese_name": "严重",
+      "description": "Full shoulder utilization for maximum capacity",
+      "capacity_increase_percentage": "25-33%",
+      "parameters": {
+        "shoulder_status": "fully_open",
+        "allowed_vehicle_types": ["all"],
+        "opening_schedule_template": [
+          {
+            "time_offset_hours": 0,
+            "status": "CLOSED",
+            "allowed_types": [],
+            "description": "Shoulder closed"
+          },
+          {
+            "time_offset_hours": 0.1,
+            "status": "EMERGENCY_OPEN",
+            "allowed_types": ["all"],
+            "max_speed_kmh": 80,
+            "description": "Emergency opening"
+          },
+          {
+            "time_offset_hours": 0.25,
+            "status": "FULLY_OPEN",
+            "allowed_types": ["all"],
+            "max_speed_kmh": 100,
+            "description": "Maximum capacity mode"
+          },
+          {
+            "time_offset_hours": 3,
+            "status": "FULLY_OPEN",
+            "allowed_types": ["all"],
+            "max_speed_kmh": 100,
+            "description": "Sustained operation"
+          },
+          {
+            "time_offset_hours": 3.5,
+            "status": "CONTROLLED_CLOSING",
+            "allowed_types": ["passenger"],
+            "max_speed_kmh": 60,
+            "description": "Gradual closure"
+          },
+          {
+            "time_offset_hours": 4,
+            "status": "CLOSED",
+            "allowed_types": [],
+            "description": "Shoulder closed"
+          }
+        ],
+        "lane_change_rules": {
+          "mandatory_merge_distance_m": 1000,
+          "advisory_signs_distance_m": 2000,
+          "speed_differential_max_kmh": 40,
+          "emergency_vehicle_priority": true
+        }
+      },
+      "use_cases": [
+        "Severe congestion events",
+        "Incident bypass",
+        "Maximum capacity required"
+      ]
+    }
+  },
+  "shoulder_specifications": {
+    "standard_width_m": 3.5,
+    "minimum_width_m": 3.0,
+    "surface_type": "asphalt",
+    "marking_type": "dashed_white",
+    "emergency_refuge_spacing_km": 2
+  },
+  "safety_requirements": {
+    "minimum_visibility_m": 200,
+    "wet_weather_restrictions": true,
+    "night_time_lighting": "required",
+    "incident_detection_spacing_m": 500,
+    "emergency_phone_spacing_m": 1000
+  },
+  "application_rules": {
+    "minimum_segment_length_km": 2,
+    "maximum_segment_length_km": 15,
+    "continuous_segments_required": true,
+    "coordination_with_vss": true,
+    "emergency_vehicle_access": "always_maintained"
+  },
+  "sumo_configuration": {
+    "element_type": "lane",
+    "attribute": "allow",
+    "file_type": "additional",
+    "lane_index": 0,
+    "override_priority": 95
+  },
+  "created_date": "2025-11-10",
+  "version": "1.0"
+}
