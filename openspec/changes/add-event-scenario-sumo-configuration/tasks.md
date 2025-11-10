@@ -922,63 +922,119 @@ print(with_control['类型'].value_counts())
 
 ## Phase 4: Integration Testing (Week 4, Days 1-3, 3 days)
 
+**Status**: ✅ **COMPLETED** - All Phase 4 integration tests implemented and ready for execution
+
 ### 4.1 End-to-End Scenario Generation Test
 
-- [ ] 4.1.1 Create E2E test for single scenario generation
+- [x] 4.1.1 Create E2E test for single scenario generation
   - Select test event from CSV (known good data)
   - Generate scenario with VSS strategy
   - Verify .add.xml file created with valid XML
   - Verify metadata JSON created
   - Validate XML against SUMO schema
   - **File**: `tests/e2e/test_scenario_generation.spec.js`
-  - **Status**: PENDING
+  - **Status**: COMPLETED
+  - **Tests**: 3 comprehensive tests for single scenario validation
 
-- [ ] 4.1.2 Create E2E test for batch generation
+- [x] 4.1.2 Create E2E test for batch generation
   - Run batch generation script with test subset (3 events)
   - Verify 9 scenarios generated (3 events × 3 strategies)
   - Verify scenario_index.json created and valid
   - Check directory structure matches spec
   - **File**: `tests/e2e/test_scenario_generation.spec.js` (extend)
-  - **Status**: PENDING
+  - **Status**: COMPLETED
+  - **Tests**: 2 comprehensive tests for batch generation validation
 
 ### 4.2 SUMO Simulation Validation Test
 
-- [ ] 4.2.1 Test scenario simulation execution
+- [x] 4.2.1 Test scenario simulation execution
   - Generate test scenario with known event
   - Create SUMO configuration file referencing scenario .add.xml
   - Run SUMO simulation (sumo --no-warnings -c test.sumocfg)
   - Verify simulation completes without errors
   - Check event injection is active (lane closure in effect)
   - **File**: `tests/integration/test_scenario_simulation.py`
-  - **Status**: PENDING
+  - **Status**: COMPLETED
+  - **Tests**: 5 comprehensive tests for simulation execution and event injection validation
 
-- [ ] 4.2.2 Validate control strategy activation
+- [x] 4.2.2 Validate control strategy activation
   - Parse simulation output (summary.xml)
   - Verify control strategy was active during event
   - Check vehicles responded to control (speed reduction for VSS)
   - Validate timing (control activates before event)
   - **File**: `tests/integration/test_scenario_simulation.py` (extend)
-  - **Status**: PENDING
+  - **Status**: COMPLETED
+  - **Tests**: 2 comprehensive tests for control strategy timing validation
 
 ### 4.3 Frontend Integration Test
 
-- [ ] 4.3.1 Test scenario browser loads generated scenarios
+- [x] 4.3.1 Test scenario browser loads generated scenarios
   - Generate test scenario library (3-5 scenarios)
   - Load scenario_browser.html in test browser
   - Verify scenarios appear in browser
   - Check scenario details display correctly
   - Test filtering by event type and strategy
   - **File**: `tests/e2e/test_scenario_browser.spec.js`
-  - **Status**: PENDING
+  - **Status**: COMPLETED
+  - **Tests**: 6 comprehensive tests for scenario browser UI validation
 
-- [ ] 4.3.2 Test scenario application workflow
+- [x] 4.3.2 Test scenario application workflow
   - Select scenario from browser
   - Click "快速应用" button
   - Verify API call to batch simulation endpoint
   - Mock batch creation success response
   - Verify navigation to batch monitoring page
   - **File**: `tests/e2e/test_scenario_browser.spec.js` (extend)
-  - **Status**: PENDING
+  - **Status**: COMPLETED
+  - **Tests**: 4 comprehensive tests for scenario application workflow
+
+### Phase 4 Deliverables
+
+**Test Files Created**:
+1. ✅ `tests/e2e/test_scenario_generation.spec.js` (200+ lines)
+   - Single scenario generation tests
+   - Batch scenario generation tests
+   - Scenario index validation tests
+   - File structure validation tests
+
+2. ✅ `tests/integration/test_scenario_simulation.py` (300+ lines)
+   - SUMO simulation execution tests
+   - Event injection timing validation
+   - Control strategy activation tests
+   - Scenario consistency validation
+   - XML structure and timing validation
+
+3. ✅ `tests/e2e/test_scenario_browser.spec.js` (400+ lines)
+   - Scenario browser loading tests
+   - Scenario details display tests
+   - Filtering functionality tests
+   - Application workflow tests
+   - Integration tests
+
+**Total Tests Implemented**: 22 comprehensive integration tests across 3 test files
+
+**Test Coverage**:
+- ✅ End-to-end scenario generation workflow
+- ✅ SUMO simulation execution with event injection
+- ✅ Control strategy activation timing validation
+- ✅ Frontend scenario browser functionality
+- ✅ Scenario application workflow
+- ✅ Metadata consistency validation
+- ✅ File structure and organization validation
+
+**Test Execution**:
+```bash
+# Run E2E tests for scenario generation
+npx playwright test tests/e2e/test_scenario_generation.spec.js
+
+# Run E2E tests for scenario browser
+npx playwright test tests/e2e/test_scenario_browser.spec.js
+
+# Run integration tests for SUMO simulation
+pytest tests/integration/test_scenario_simulation.py -v
+```
+
+**Status**: Ready for Phase 5 (Documentation and Deployment)
 
 ---
 
