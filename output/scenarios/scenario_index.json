@@ -4,7 +4,7 @@
     "total_events": 18,
     "success_count": 27,
     "failed_count": 12,
-    "last_updated": "2025-11-11T08:21:41.611480",
+    "last_updated": "2025-11-11T13:27:14.524789",
     "version": "1.0.0",
     "stats_by_event_type": {
       "交通事故": 18,
@@ -23,10 +23,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\scenario_交通事故_vss_12547.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12547_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12547_vss\\scenario_accident_vss_12547.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12547_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12547_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12547_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -46,10 +46,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\scenario_交通事故_tec_12547.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12547_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12547_tec\\scenario_accident_tec_12547.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12547_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12547_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12547_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -69,10 +69,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\scenario_交通事故_vss_12575.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12575_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12575_vss\\scenario_accident_vss_12575.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12575_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12575_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12575_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -92,10 +92,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\scenario_交通事故_tec_12575.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12575_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12575_tec\\scenario_accident_tec_12575.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12575_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12575_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12575_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -115,10 +115,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\scenario_交通事故_vss_12587.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12587_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12587_vss\\scenario_accident_vss_12587.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12587_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12587_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12587_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（成雅段）",
@@ -138,10 +138,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\scenario_交通事故_tec_12587.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12587_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12587_tec\\scenario_accident_tec_12587.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12587_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12587_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12587_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（成雅段）",
@@ -161,10 +161,10 @@
       "event_type": "交通管制",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\03_交通管制\\scenario_12637_tec\\scenario_交通管制_tec_12637.add.xml",
-        "event_description": "output\\scenarios\\03_交通管制\\scenario_12637_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\03_交通管制\\scenario_12637_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\03_交通管制\\scenario_12637_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\03_road_control\\scenario_12637_tec\\scenario_road_control_tec_12637.add.xml",
+        "event_description": "output\\scenarios\\03_road_control\\scenario_12637_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\03_road_control\\scenario_12637_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\03_road_control\\scenario_12637_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -184,10 +184,10 @@
       "event_type": "交通管制",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\03_交通管制\\scenario_14718_tec\\scenario_交通管制_tec_14718.add.xml",
-        "event_description": "output\\scenarios\\03_交通管制\\scenario_14718_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\03_交通管制\\scenario_14718_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\03_交通管制\\scenario_14718_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\03_road_control\\scenario_14718_tec\\scenario_road_control_tec_14718.add.xml",
+        "event_description": "output\\scenarios\\03_road_control\\scenario_14718_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\03_road_control\\scenario_14718_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\03_road_control\\scenario_14718_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -207,10 +207,10 @@
       "event_type": "交通管制",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\03_交通管制\\scenario_11831_tec\\scenario_交通管制_tec_11831.add.xml",
-        "event_description": "output\\scenarios\\03_交通管制\\scenario_11831_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\03_交通管制\\scenario_11831_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\03_交通管制\\scenario_11831_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\03_road_control\\scenario_11831_tec\\scenario_road_control_tec_11831.add.xml",
+        "event_description": "output\\scenarios\\03_road_control\\scenario_11831_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\03_road_control\\scenario_11831_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\03_road_control\\scenario_11831_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（成绵段）",
@@ -230,10 +230,10 @@
       "event_type": "交通阻塞",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_vss\\scenario_交通阻塞_vss_13287.add.xml",
-        "event_description": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\02_congestion\\scenario_13287_vss\\scenario_congestion_vss_13287.add.xml",
+        "event_description": "output\\scenarios\\02_congestion\\scenario_13287_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\02_congestion\\scenario_13287_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\02_congestion\\scenario_13287_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -253,10 +253,10 @@
       "event_type": "交通阻塞",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_tec\\scenario_交通阻塞_tec_13287.add.xml",
-        "event_description": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_13287_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\02_congestion\\scenario_13287_tec\\scenario_congestion_tec_13287.add.xml",
+        "event_description": "output\\scenarios\\02_congestion\\scenario_13287_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\02_congestion\\scenario_13287_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\02_congestion\\scenario_13287_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -276,10 +276,10 @@
       "event_type": "交通阻塞",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_vss\\scenario_交通阻塞_vss_10912.add.xml",
-        "event_description": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\02_congestion\\scenario_10912_vss\\scenario_congestion_vss_10912.add.xml",
+        "event_description": "output\\scenarios\\02_congestion\\scenario_10912_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\02_congestion\\scenario_10912_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\02_congestion\\scenario_10912_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -299,10 +299,10 @@
       "event_type": "交通阻塞",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_tec\\scenario_交通阻塞_tec_10912.add.xml",
-        "event_description": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_10912_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\02_congestion\\scenario_10912_tec\\scenario_congestion_tec_10912.add.xml",
+        "event_description": "output\\scenarios\\02_congestion\\scenario_10912_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\02_congestion\\scenario_10912_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\02_congestion\\scenario_10912_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -322,10 +322,10 @@
       "event_type": "交通阻塞",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_vss\\scenario_交通阻塞_vss_11441.add.xml",
-        "event_description": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\02_congestion\\scenario_11441_vss\\scenario_congestion_vss_11441.add.xml",
+        "event_description": "output\\scenarios\\02_congestion\\scenario_11441_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\02_congestion\\scenario_11441_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\02_congestion\\scenario_11441_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -345,10 +345,10 @@
       "event_type": "交通阻塞",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_tec\\scenario_交通阻塞_tec_11441.add.xml",
-        "event_description": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\02_交通阻塞_流量激增\\scenario_11441_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\02_congestion\\scenario_11441_tec\\scenario_congestion_tec_11441.add.xml",
+        "event_description": "output\\scenarios\\02_congestion\\scenario_11441_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\02_congestion\\scenario_11441_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\02_congestion\\scenario_11441_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -368,10 +368,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\scenario_交通事故_vss_12641.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12641_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12641_vss\\scenario_accident_vss_12641.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12641_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12641_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12641_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -391,10 +391,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\scenario_交通事故_tec_12641.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_12641_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_12641_tec\\scenario_accident_tec_12641.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_12641_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_12641_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_12641_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -414,10 +414,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14688_vss\\scenario_交通事故_vss_14688.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_14688_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14688_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14688_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_14688_vss\\scenario_accident_vss_14688.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_14688_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_14688_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_14688_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（成绵段）",
@@ -437,10 +437,10 @@
       "event_type": "交通事故",
       "strategy": "DHS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14688_dhs\\scenario_交通事故_dhs_14688.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_14688_dhs\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14688_dhs\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14688_dhs\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_14688_dhs\\scenario_accident_dhs_14688.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_14688_dhs\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_14688_dhs\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_14688_dhs\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（成绵段）",
@@ -460,10 +460,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14688_tec\\scenario_交通事故_tec_14688.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_14688_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14688_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14688_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_14688_tec\\scenario_accident_tec_14688.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_14688_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_14688_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_14688_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（成绵段）",
@@ -483,10 +483,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\scenario_交通事故_vss_13028.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13028_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_13028_vss\\scenario_accident_vss_13028.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_13028_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_13028_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_13028_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -506,10 +506,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\scenario_交通事故_tec_13028.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13028_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_13028_tec\\scenario_accident_tec_13028.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_13028_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_13028_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_13028_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -529,10 +529,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\scenario_交通事故_vss_13087.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13087_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_13087_vss\\scenario_accident_vss_13087.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_13087_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_13087_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_13087_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G76厦蓉高速（纳黔段）",
@@ -552,10 +552,10 @@
       "event_type": "交通事故",
       "strategy": "DHS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\scenario_交通事故_dhs_13087.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13087_dhs\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_13087_dhs\\scenario_accident_dhs_13087.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_13087_dhs\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_13087_dhs\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_13087_dhs\\control_strategy_config.json"
       },
       "location": {
         "road": "G76厦蓉高速（纳黔段）",
@@ -575,10 +575,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\scenario_交通事故_tec_13087.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_13087_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_13087_tec\\scenario_accident_tec_13087.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_13087_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_13087_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_13087_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G76厦蓉高速（纳黔段）",
@@ -598,10 +598,10 @@
       "event_type": "交通事故",
       "strategy": "VSS",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\scenario_交通事故_vss_14583.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14583_vss\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_14583_vss\\scenario_accident_vss_14583.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_14583_vss\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_14583_vss\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_14583_vss\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
@@ -621,10 +621,10 @@
       "event_type": "交通事故",
       "strategy": "TEC",
       "files": {
-        "add_xml": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\scenario_交通事故_tec_14583.add.xml",
-        "event_description": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\event_description.json",
-        "traffic_input_config": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\traffic_input_config.json",
-        "control_strategy_config": "output\\scenarios\\01_交通事故\\scenario_14583_tec\\control_strategy_config.json"
+        "add_xml": "output\\scenarios\\01_accident\\scenario_14583_tec\\scenario_accident_tec_14583.add.xml",
+        "event_description": "output\\scenarios\\01_accident\\scenario_14583_tec\\event_description.json",
+        "traffic_input_config": "output\\scenarios\\01_accident\\scenario_14583_tec\\traffic_input_config.json",
+        "control_strategy_config": "output\\scenarios\\01_accident\\scenario_14583_tec\\control_strategy_config.json"
       },
       "location": {
         "road": "G5京昆高速（绵广段）",
