@@ -1,0 +1,35 @@
+=== PATCH FOR tasks.md ===
+Location: After line 7 (after "**Timeline**: 3-4 weeks (15-20 person-days)")
+
+INSERT:
+
+---
+
+## ⚠️ ARCHITECTURE UPDATE (2025-11-11)
+
+**IMPORTANT**: Architecture has been revised to follow existing cases structure:
+
+### Key Changes
+- ❌ **Removed from scenario library**: `simulation.sumocfg`, `results/`, Chinese filenames, nested directories
+- ✅ **Added to scenario library**: Per-scenario `scenario_metadata.json`, `no_control` scenario type
+- ✅ **Simulations moved to cases branch**: `cases/xxx/simulations/scenario_sim_xxx/`
+- ✅ **English-only filenames**: `scenario_accident_vss_12547.add.xml` (no Chinese)
+- ✅ **Relative paths only**: Network, routes, additional files use relative paths
+
+### Quick Reference
+📄 **Architecture Summary**: See `ARCHITECTURE_SUMMARY.md` (English) or `ARCHITECTURE_SUMMARY_ZH.md` (中文)
+📄 **Full Details**: See `ARCHITECTURE_CHANGES.md`
+
+### Event Type Mapping (English Names)
+| Chinese | English | Directory |
+|---------|---------|-----------|
+| 交通事故 | accident | 01_accident |
+| 交通阻塞 | congestion | 02_congestion |
+| 交通管制 | road_control | 03_road_control |
+| 地质灾害 | geological | 04_geological |
+| 车辆故障 | breakdown | 05_breakdown |
+| 恶劣天气 | weather | 06_weather |
+
+---
+
+=== END PATCH ===

@@ -5,7 +5,17 @@
 **Implementation Approach**: Extend existing control strategy XML generation framework to support event injection scenarios. Reuse proven patterns while adding event-specific capabilities.
 
 **Timeline**: 3-4 weeks (15-20 person-days)
+---
 
+## ⚠️ ARCHITECTURE UPDATE (2025-11-11)
+
+**IMPORTANT**: Architecture has been revised...
+(复制 01_tasks_md_header.patch 的全部内容)
+4. 保存文件
+
+详细步骤见: patches/APPLY_PATCHES.md
+
+---
 **Key Features**:
 
 - ✅ Reuse existing control strategy XML generation (`additional_generator.py`)
@@ -1216,48 +1226,72 @@ pytest tests/integration/test_scenario_simulation.py -v
 - ⏳ Phase 5.1-5.2: Documentation tasks (API docs, user guide) - PENDING
 - ⏳ Phase 5.4: CI/CD integration - PENDING
 
-**Architecture: Option A - Separate Systems**
+**Architecture: Option A - Separate Systems** ✏️ **UPDATED 2025-11-11**
 
-Event Scenarios and Cases are **independent systems**:
+**⚠️ ARCHITECTURAL REVISION**: Simulations moved to cases branch. Scenario library is read-only (no sumocfg/results).
+
+Event Scenarios (read-only definitions) and Cases (executable simulations) are **independent systems**:
 
 ```
 output/scenarios/                        cases/
-(事件场景库 - 只读)                      (仿真案例 - 编辑)
+(事件场景库 - 只读定义)                   (仿真案例 - 包含完整配置和结果)
 
-├── 01_交通事故/                        ├── case_morning_peak_20251111/
-│   ├── vss/                            │   ├── metadata.json
-│   │   └── scenario_12547_vss/         │   ├── config/
-│   │       ├── scenario_*.add.xml      │   │   ├── network.xml
-│   │       ├── event_description.json  │   │   ├── routes.xml
-│   │       ├── traffic_input_config    │   │   └── taz.xml
-│   │       ├── control_strategy_config │   └── simulations/
-│   │       ├── simulation.sumocfg      │       ├── sim_baseline/
-│   │       └── results/ (simulation)   │       └── sim_with_event/
-│   ├── dhs/
-│   └── tec/
-├── scenario_index.json
-└── scenarios_with_sumo_index.json      └── case_evening_peak_20251111/
-                                            └── ...
+├── 01_accident/  ✏️                     ├── case_morning_peak_20251111/
+│   ├── scenario_12547_vss/             │   ├── metadata.json
+│   │   ├── scenario_accident_vss_12547.add.xml  ✏️ (no Chinese)
+│   │   ├── event_description.json      │   ├── config/  ✏️ (OD+TAZ, NO network)
+│   │   ├── traffic_input_config.json   │   │   ├── *.od.xml
+│   │   ├── control_strategy_config.json│   │   ├── *.rou.xml
+│   │   └── scenario_metadata.json  ✏️  │   │   └── TAZ_*.add.xml
+│   ├── scenario_12547_no_control/  ✏️  │   ├── analysis/
+│   │   ├── scenario_accident_event_12547.add.xml
+│   │   └── scenario_metadata.json      │   └── simulations/
+│   └── scenario_12547_dhs/             │       └── scenario_sim_12547/  ✏️ NEW
+└── scenario_index.json  ✏️              │           ├── sim_baseline/  ✏️
+                                         │           │   ├── simulation.sumocfg (relative paths)
+                                         │           │   ├── TAZ_6.add.xml (copied)
+                                         │           │   ├── e1/ (detector outputs)
+                                         │           │   ├── summary.xml (no results/ subdir)
+                                         │           │   └── tripinfo.xml
+                                         │           ├── sim_with_event/  ✏️
+                                         │           │   ├── simulation.sumocfg
+                                         │           │   ├── scenario_accident_event_12547.add.xml (copied)
+                                         │           │   └── e1/
+                                         │           ├── sim_with_implemented_control/  ✏️
+                                         │           └── sim_with_option_control_vss/  ✏️
+                                         └── case_evening_peak_20251111/
 
                    ↓ 应用关系（前端选择）
 
-            Case + Event Scenario → Simulation
+            Case + Event Scenario → Simulations (in cases branch)
 ```
+
+**Key Changes** ✏️:
+- ❌ Removed from scenarios: `simulation.sumocfg`, `results/`, Chinese filenames
+- ✅ Added to scenarios: `scenario_metadata.json` (per-scenario), `no_control` type
+- ✅ Added to cases: `scenario_sim_{id}/` with 4 simulation types
+- ✅ Files copied to sim dirs: `.add.xml`, `TAZ_*.add.xml`
+- ✅ Relative paths only in sumocfg
 
 ### Data Flow & Workflow
 
-**1. Event Scenario Generation** (Batch Phase 1-4)
+**1. Event Scenario Generation** (Batch Phase 1-4) ✏️ UPDATED
 ```bash
 $ python scripts/generate_scenarios_from_events.py
   ↓
-  生成18+个event scenarios
-  ├── output/scenarios/01_交通事故/vss/scenario_12547_vss/
-  │   ├── scenario_*.add.xml (事件注入 + 控制响应)
+  生成40+个event scenarios (18 events × 2-3 strategies + no_control)
+  ├── output/scenarios/01_accident/scenario_12547_vss/
+  │   ├── scenario_accident_vss_12547.add.xml  ✏️ (English only)
   │   ├── event_description.json
   │   ├── traffic_input_config.json
   │   ├── control_strategy_config.json
-  │   └── simulation.sumocfg
-  └── scenario_index.json (可在前端浏览)
+  │   └── scenario_metadata.json  ✏️ (per-scenario)
+  ├── output/scenarios/01_accident/scenario_12547_no_control/  ✏️ NEW
+  │   ├── scenario_accident_event_12547.add.xml
+  │   └── scenario_metadata.json
+  └── scenario_index.json (前端浏览)
+
+  ❌ NO sumocfg or results in scenario library
 ```
 
 **2. Case Creation** (Traditional workflow or Quick Create)

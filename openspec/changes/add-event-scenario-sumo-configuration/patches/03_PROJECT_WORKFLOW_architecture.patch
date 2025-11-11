@@ -1,0 +1,91 @@
+=== PATCH FOR docs/scenarios_library/PROJECT_WORKFLOW.md ===
+Location: Line ~386 (Section "### 场景分类体系")
+
+REPLACE THE SECTION starting with "### 场景分类体系" (keep the header):
+
+### 场景分类体系
+
+**⚠️ 架构更新 (2025-11-11)**:
+- ✅ 场景库仅存储场景定义（不含仿真配置和结果）
+- ✅ 仿真执行移至cases分支（`cases/xxx/simulations/scenario_sim_xxx/`）
+- ✅ 文件命名仅用英文（SUMO兼容性）
+- ✅ 每个场景独立metadata文件
+- 📄 详见: `openspec/changes/add-event-scenario-sumo-configuration/ARCHITECTURE_SUMMARY_ZH.md`
+
+---
+
+**二维分类矩阵**（事件类型 × 管控策略）：
+
+```
+场景库结构 (output/scenarios/):
+output/scenarios/
+├── 01_accident/  ✏️ (英文目录名)
+│   ├── scenario_12547_vss/  ✏️ (扁平化结构)
+│   │   ├── scenario_accident_vss_12547.add.xml  ✏️ (SUMO additional文件，无中文)
+│   │   ├── event_description.json
+│   │   ├── traffic_input_config.json
+│   │   ├── control_strategy_config.json
+│   │   └── scenario_metadata.json  ✏️ (per-scenario)
+│   ├── scenario_12547_no_control/  ✏️ NEW (仅事件，无控制)
+│   │   ├── scenario_accident_event_12547.add.xml
+│   │   ├── event_description.json
+│   │   ├── traffic_input_config.json
+│   │   └── scenario_metadata.json
+│   └── scenario_12547_dhs/
+│       ├── scenario_accident_dhs_12547.add.xml
+│       └── scenario_metadata.json
+├── 02_congestion/  ✏️ (英文)
+│   ├── scenario_12837_vss/
+│   └── scenario_12853_dhs/
+├── 03_road_control/  ✏️ (英文)
+│   └── scenario_12637_tec/
+├── 04_geological/  ✏️ (英文)
+│   └── scenario_13470_tec/
+├── 05_breakdown/  ✏️ (英文)
+└── 06_weather/  ✏️ (英文)
+    └── scenario_13270_vss/
+
+❌ 不再包含: simulation.sumocfg, results/ 目录
+✅ 新增: per-scenario metadata, no_control 场景类型
+```
+
+**事件类型英文映射表**:
+
+| 中文 | 英文 | 目录 |
+|------|------|------|
+| 交通事故 | accident | 01_accident |
+| 交通阻塞 | congestion | 02_congestion |
+| 交通管制 | road_control | 03_road_control |
+| 地质灾害 | geological | 04_geological |
+| 车辆故障 | breakdown | 05_breakdown |
+| 恶劣天气 | weather | 06_weather |
+
+**文件命名规范**:
+```
+scenario_{event_type}_{strategy}_{event_id}.add.xml
+
+示例:
+- scenario_accident_vss_12547.add.xml
+- scenario_accident_event_12547.add.xml (no_control)
+- scenario_congestion_tec_12837.add.xml
+```
+
+**仿真执行位置** (Cases分支):
+```
+cases/case_xxx/simulations/scenario_sim_12547/
+├── sim_baseline/               # 无事件无控制
+│   ├── simulation.sumocfg      # 使用相对路径
+│   ├── TAZ_6.add.xml          # 从config/复制
+│   ├── e1/                     # E1检测器输出
+│   ├── summary.xml             # 直接存放，无results/子目录
+│   └── tripinfo.xml
+├── sim_with_event/             # 仅事件
+│   ├── simulation.sumocfg
+│   ├── scenario_accident_event_12547.add.xml  # 从场景库复制
+│   ├── TAZ_6.add.xml
+│   └── e1/
+├── sim_with_implemented_control/  # 事件+实际控制
+└── sim_with_option_control_vss/   # 事件+备选控制
+```
+
+=== END PATCH ===
