@@ -74,10 +74,11 @@ class EventInjector(ABC):
         - 第一车道 (Lane 1) → index 1
         - 第二车道 (Lane 2) → index 2
         - 第三车道 (Lane 3) → index 3
+        - 匝道 (Ramp) → index 0 (rightmost)
 
         Args:
             edge_id: SUMO edge ID (e.g., "-4688")
-            lane_descriptions: List of Chinese lane descriptions
+            lane_descriptions: List of Chinese lane descriptions (may contain comma-separated values)
 
         Returns:
             List of SUMO lane IDs (e.g., ["-4688_0", "-4688_1"])
@@ -85,6 +86,7 @@ class EventInjector(ABC):
         lane_mapping = {
             "应急车道": 0,
             "紧急停车带": 0,
+            "匝道": 0,  # Ramp lane
             "第一车道": 1,
             "第二车道": 2,
             "第三车道": 3,
@@ -103,21 +105,35 @@ class EventInjector(ABC):
             max_lane_index = 4  # Default assumption
 
         lane_ids = []
+        processed_indices = set()  # Track already added indices to avoid duplicates
+
         for desc in lane_descriptions:
-            if desc in lane_mapping:
-                lane_index = lane_mapping[desc]
+            # Handle comma or Chinese comma separated lane descriptions
+            sub_descs = desc.replace("、", ",").split(",")
 
-                # Validate lane index is within edge's lane count
-                if lane_index > max_lane_index:
-                    logger.warning(f"Lane index {lane_index} exceeds max {max_lane_index} "
-                                 f"for edge {edge_id}, skipping lane '{desc}'")
-                    continue
+            for sub_desc in sub_descs:
+                sub_desc = sub_desc.strip()  # Remove whitespace
 
-                lane_id = f"{edge_id}_{lane_index}"
-                lane_ids.append(lane_id)
-                logger.debug(f"Mapped '{desc}' → {lane_id}")
-            else:
-                logger.warning(f"Unknown lane description: {desc}, skipping")
+                if sub_desc in lane_mapping:
+                    lane_index = lane_mapping[sub_desc]
+
+                    # Validate lane index is within edge's lane count
+                    if lane_index > max_lane_index:
+                        logger.debug(f"Lane index {lane_index} exceeds max {max_lane_index} "
+                                     f"for edge {edge_id}, skipping lane '{sub_desc}'")
+                        continue
+
+                    # Skip if already added this lane index
+                    if lane_index in processed_indices:
+                        logger.debug(f"Lane index {lane_index} already added, skipping duplicate")
+                        continue
+
+                    lane_id = f"{edge_id}_{lane_index}"
+                    lane_ids.append(lane_id)
+                    processed_indices.add(lane_index)
+                    logger.debug(f"Mapped '{sub_desc}' → {lane_id}")
+                elif sub_desc:  # Only warn if not empty
+                    logger.warning(f"Unknown lane description: {sub_desc}, skipping")
 
         if not lane_ids:
             logger.warning(f"No valid lane IDs resolved from descriptions: {lane_descriptions}")

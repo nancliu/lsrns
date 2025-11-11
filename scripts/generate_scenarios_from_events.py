@@ -320,7 +320,7 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
     # Skip for 交通管制 (uses TEC only) - already filtered above
     # For 交通阻塞 (congestion): Only VSS, no lane closure
     # For accidents/disasters: VSS with severity-based speed
-    if event_type != '交通管制':  # Road control uses TEC only
+    if event_type != '交通管制' and edge_id:  # Road control uses TEC only, require edge_id
         if '应急车道' in str(affected_lanes) or '紧急停车带' in str(affected_lanes):
             speed_limit_kmh = 70  # Emergency lane only, less severe
         elif '第一车道' in str(affected_lanes) or '行车道' in str(affected_lanes):
@@ -332,23 +332,25 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
             "strategy_type": "VSS",
             "params": {
                 "speed_limit_kmh": speed_limit_kmh,
-                "affected_edges": [edge_id] if edge_id else [],
+                "affected_edges": [edge_id],
                 "response_delay_seconds": 300,  # 5 min detection + activation
                 "recovery_period_seconds": 600,  # 10 min after event clears
             }
         })
+    elif event_type != '交通管制':
+        logger.warning(f"Event {event_row.get('report_id')} missing edge_id, skipping VSS strategy")
 
     # DHS Strategy: Dynamic Hard Shoulder
     # Skip for 交通管制 (road control uses TEC only)
     # Skip for 交通阻塞 (congestion - no physical lane closure)
-    # For accidents/disasters: Only if emergency lane NOT already occupied
-    if event_type not in ['交通管制', '交通阻塞']:
+    # For accidents/disasters: Only if emergency lane NOT already occupied and edge_id available
+    if event_type not in ['交通管制', '交通阻塞'] and edge_id:
         if '应急车道' not in str(affected_lanes) and '紧急停车带' not in str(affected_lanes):
             strategies.append({
                 "strategy_type": "DHS",
                 "params": {
                     "open_shoulder": True,
-                    "affected_edges": [edge_id] if edge_id else [],
+                    "affected_edges": [edge_id],
                     "response_delay_seconds": 300,
                     "recovery_period_seconds": 600,
                 }
@@ -373,7 +375,7 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
             }
         })
         logger.debug(f"TEC strategy using CSV control data: {len(csv_control['entrance_edges'])} toll stations")
-    else:
+    elif edge_id:
         # Fall back to event-activated control (simulated response)
         if '第一车道' in str(affected_lanes) or '第二车道' in str(affected_lanes):
             flow_reduction = 0.4  # Severe blockage, reduce flow more
@@ -384,13 +386,15 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
             "strategy_type": "TEC",
             "params": {
                 "flow_reduction": flow_reduction,
-                "entrance_edges": [edge_id] if edge_id else [],  # Required by TEC
+                "entrance_edges": [edge_id],  # Required by TEC
                 "response_delay_seconds": 300,
                 "recovery_period_seconds": 600,
                 "csv_control": False,
             }
         })
         logger.debug(f"TEC strategy using event-activated control (no CSV data)")
+    else:
+        logger.warning(f"Event {event_row.get('report_id')} missing edge_id, skipping TEC strategy (no CSV control)")
 
     return strategies
 
