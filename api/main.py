@@ -87,6 +87,8 @@ async def health_check():
 app.mount("/cases", StaticFiles(directory="cases", html=True), name="cases")
 # 添加模板文件静态挂载，解决远程访问模板文件的问题
 app.mount("/templates", StaticFiles(directory="templates", html=True), name="templates")
+# 挂载输出目录，用于访问场景库和仿真结果
+app.mount("/output", StaticFiles(directory="output", html=True), name="output")
 # 再挂载前端
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
