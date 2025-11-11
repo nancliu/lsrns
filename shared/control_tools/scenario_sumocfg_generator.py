@@ -74,19 +74,18 @@ class ScenarioSUMOConfigGenerator:
         Returns:
             SUMO configuration XML as string
         """
-        # Convert paths to forward slashes for SUMO
-        net_file_rel = str(
-            Path(self.NETWORK_FILE).relative_to(scenario_dir)
-        ).replace("\\", "/")
-        add_file_rel = additional_file.name  # Same directory as sumocfg
-        output_dir_rel = "results"  # Subdirectory for results
+        # Use absolute paths for network file and additional file
+        # SUMO requires forward slashes on Windows
+        net_file_abs = str(self.network_file).replace("\\", "/")
+        add_file_abs = str(additional_file).replace("\\", "/")
+        output_dir_rel = "results"  # Subdirectory for results (relative to sumocfg)
 
         sumocfg_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
     <input>
-        <net-file value="{net_file_rel}"/>
-        <additional-files value="{add_file_rel}"/>
+        <net-file value="{net_file_abs}"/>
+        <additional-files value="{add_file_abs}"/>
     </input>
 
     <time>
@@ -209,6 +208,8 @@ class ScenarioSUMOConfigGenerator:
         """
         Generate SUMO configs for all scenarios or specific event type.
 
+        Directory structure: output/scenarios/{event_type_dir}/scenario_{id}_{strategy}/
+
         Args:
             event_type: Optional event type filter (e.g., '01_交通事故')
                        If None, processes all event types
@@ -238,31 +239,27 @@ class ScenarioSUMOConfigGenerator:
                 event_dirs = [self.scenarios_root / event_type]
             else:
                 event_dirs = [d for d in self.scenarios_root.iterdir()
-                             if d.is_dir() and not d.name.startswith('_')]
+                             if d.is_dir() and not d.name.startswith('_') and d.name != 'scenario_index.json']
 
             for event_dir in event_dirs:
                 if not event_dir.exists():
                     logger.warning(f"Event directory not found: {event_dir}")
                     continue
 
-                # Process each strategy subdirectory
-                strategy_dirs = [d for d in event_dir.iterdir()
-                               if d.is_dir() and d.name in ['vss', 'dhs', 'tec']]
+                # Process scenario subdirectories directly (scenario_{id}_{strategy}/)
+                # Structure: output/scenarios/{event_type}/scenario_{id}_{strategy}/
+                scenario_dirs = [d for d in event_dir.iterdir()
+                               if d.is_dir() and d.name.startswith('scenario_')]
 
-                for strategy_dir in strategy_dirs:
-                    # Process each scenario subdirectory
-                    scenario_subdirs = [d for d in strategy_dir.iterdir()
-                                       if d.is_dir() and d.name.startswith('scenario_')]
+                for scenario_dir in scenario_dirs:
+                    result = self.process_scenario(scenario_dir)
+                    summary['results'].append(result)
+                    summary['total_processed'] += 1
 
-                    for scenario_dir in scenario_subdirs:
-                        result = self.process_scenario(scenario_dir)
-                        summary['results'].append(result)
-                        summary['total_processed'] += 1
-
-                        if result['success']:
-                            summary['successful'] += 1
-                        else:
-                            summary['failed'] += 1
+                    if result['success']:
+                        summary['successful'] += 1
+                    else:
+                        summary['failed'] += 1
 
         except Exception as e:
             logger.error(f"Error during batch generation: {str(e)}", exc_info=True)

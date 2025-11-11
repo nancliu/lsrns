@@ -1,0 +1,55 @@
+{
+  "strategy_id": "strat_20251110123439_e178e8",
+  "strategy_name": "西段可变限速",
+  "template_id": "vss_severe",
+  "template_name": "Vss Severe",
+  "strategy_type": "VSS",
+  "parameters": {
+    "affected_edges": [
+      "-7798.460",
+      "-13928",
+      "-7790",
+      "-8014",
+      "-10702",
+      "-9292",
+      "-15220",
+      "-9794"
+    ],
+    "speed_steps": [
+      {
+        "time_hours": 7,
+        "speed_kmh": 120
+      },
+      {
+        "time_hours": 7.25,
+        "speed_kmh": 84
+      },
+      {
+        "time_hours": 7.75,
+        "speed_kmh": 72
+      },
+      {
+        "time_hours": 8.5,
+        "speed_kmh": 60
+      },
+      {
+        "time_hours": 9.5,
+        "speed_kmh": 72
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 84
+      },
+      {
+        "time_hours": 10.5,
+        "speed_kmh": 120
+      }
+    ]
+  },
+  "metadata": {
+    "created_at": "2025-11-10T22:04:19.912721+00:00",
+    "updated_at": "2025-11-10T22:04:19.912721+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

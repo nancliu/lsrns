@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from ..models import (
-    CaseCreationRequest, CaseCloneRequest, CaseMetadata, 
-    CaseListResponse, CaseStatus
+    CaseCreationRequest, CaseCloneRequest, CaseMetadata,
+    CaseListResponse, CaseStatus, EventScenarioQuickCreateRequest
 )
 from .base_service import BaseService, MetadataManager, DirectoryManager
 
@@ -210,6 +210,72 @@ class CaseService(BaseService):
             
         except Exception as e:
             print(f"更新克隆案例元数据失败: {e}")
+
+    async def quick_create_case_from_event(self, request: EventScenarioQuickCreateRequest) -> Dict[str, Any]:
+        """
+        从事件场景快速创建案例 (Phase 5.3.3)
+
+        调用scripts中的QuickCaseCreator来创建case，包括：
+        - 验证event scenario存在
+        - 验证输入文件
+        - 复制文件到case目录
+        - 创建case metadata（记录event关联）
+
+        Args:
+            request: 包含event scenario和case输入文件信息
+
+        Returns:
+            包含新创建case的信息
+        """
+        try:
+            # 动态导入QuickCaseCreator
+            import sys
+            from pathlib import Path
+            scripts_path = Path(__file__).parent.parent.parent / "scripts"
+            if str(scripts_path) not in sys.path:
+                sys.path.insert(0, str(scripts_path))
+
+            from initialize_scenario_library import QuickCaseCreator
+
+            # 生成case_id（如果未提供）
+            case_id = request.case_id or self.generate_unique_id("case_event")
+
+            # 调用QuickCaseCreator创建case
+            creator = QuickCaseCreator(
+                project_root=self.project_root,
+                case_dir=self.cases_dir
+            )
+
+            result = creator.create_case_from_event(
+                case_name=request.case_name,
+                case_id=case_id,
+                event_type=request.event_type,
+                strategy=request.strategy,
+                scenario_id=request.scenario_id,
+                network_file=request.network_file,
+                od_file=request.od_file,
+                taz_file=request.taz_file,
+                description=request.description or f"从事件场景 {request.scenario_id} 创建"
+            )
+
+            if not result.get('success'):
+                raise Exception(result.get('error', '未知错误'))
+
+            # 返回成功结果
+            return {
+                "case_id": case_id,
+                "case_path": result.get('case_path'),
+                "case_name": request.case_name,
+                "event_scenario": {
+                    "event_type": request.event_type,
+                    "strategy": request.strategy,
+                    "scenario_id": request.scenario_id
+                },
+                "created_at": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            raise Exception(f"从事件场景创建案例失败: {str(e)}")
 
 
 # 创建服务实例

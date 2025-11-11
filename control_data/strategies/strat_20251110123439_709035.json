@@ -1,0 +1,70 @@
+{
+  "strategy_id": "strat_20251110123439_709035",
+  "strategy_name": "东段应急车道开放",
+  "template_id": "dhs_severe",
+  "template_name": "Dhs Severe",
+  "strategy_type": "DHS",
+  "parameters": {
+    "affected_edges": [
+      "-8712",
+      "-15452.627",
+      "-9350",
+      "-6906.1080",
+      "-2040",
+      "-13636"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 7,
+        "end_hours": 7.1,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 7.1,
+        "end_hours": 7.25,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "all"
+        ]
+      },
+      {
+        "begin_hours": 7.25,
+        "end_hours": 10,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "all"
+        ]
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 10.5,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "all"
+        ]
+      },
+      {
+        "begin_hours": 10.5,
+        "end_hours": 11,
+        "status": "CLOSED",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 11,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      }
+    ]
+  },
+  "metadata": {
+    "created_at": "2025-11-10T22:04:19.851869+00:00",
+    "updated_at": "2025-11-10T22:04:19.851869+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

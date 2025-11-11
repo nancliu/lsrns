@@ -1,0 +1,51 @@
+{
+  "strategy_id": "strat_20251110123439_b2a9f2",
+  "strategy_name": "南段可变限速",
+  "template_id": "vss_mild",
+  "template_name": "Vss Mild",
+  "strategy_type": "VSS",
+  "parameters": {
+    "affected_edges": [
+      "-12680",
+      "-10376.203",
+      "-10376",
+      "-6906",
+      "-1438",
+      "-3324",
+      "-4360",
+      "-10188"
+    ],
+    "speed_steps": [
+      {
+        "time_hours": 7,
+        "speed_kmh": 120
+      },
+      {
+        "time_hours": 7.5,
+        "speed_kmh": 108
+      },
+      {
+        "time_hours": 8,
+        "speed_kmh": 100
+      },
+      {
+        "time_hours": 9,
+        "speed_kmh": 96
+      },
+      {
+        "time_hours": 10,
+        "speed_kmh": 108
+      },
+      {
+        "time_hours": 10.5,
+        "speed_kmh": 120
+      }
+    ]
+  },
+  "metadata": {
+    "created_at": "2025-11-10T22:04:19.936723+00:00",
+    "updated_at": "2025-11-10T22:04:19.936723+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

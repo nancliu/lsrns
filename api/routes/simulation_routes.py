@@ -4,11 +4,13 @@
 
 from fastapi import APIRouter
 from ..models import SimulationRequest, BaseResponse
+from ..models.requests.simulation_requests import EventScenarioSimulationRequest
 from ..services import (
     run_simulation_service, get_simulation_progress_service,
     get_case_simulations_service, get_simulation_detail_service,
     delete_simulation_service,
-    prepare_simulation_service, start_simulation_service
+    prepare_simulation_service, start_simulation_service,
+    start_simulation_with_event_service
 )
 from .middleware import handle_service_errors, create_success_response
 
@@ -98,3 +100,21 @@ async def cancel_simulation(case_id: str, simulation_id: str):
         return create_success_response("仿真已取消", result)
     else:
         return create_success_response(result.get("message", "取消仿真失败"), result)
+
+
+@router.post("/start-with-event/", response_model=BaseResponse)
+@handle_service_errors
+async def start_simulation_with_event(request: EventScenarioSimulationRequest):
+    """
+    启动应用事件场景的仿真 (Phase 5.3.5)
+
+    将事件场景的.add.xml合并到仿真配置中，并执行仿真。
+
+    Args:
+        request: 包含事件场景信息和仿真参数的请求
+
+    Returns:
+        包含仿真ID和状态的响应
+    """
+    result = await start_simulation_with_event_service(request)
+    return create_success_response("仿真启动成功", result)

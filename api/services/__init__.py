@@ -26,6 +26,7 @@ from .simulation_service import (
     delete_simulation_service,
     prepare_simulation_service,
     start_simulation_service,
+    start_simulation_with_event_service,  # Phase 5.3.5: 应用事件场景的仿真
     simulation_service,  # 导出实例用于进程管理
 )
 
@@ -72,6 +73,7 @@ __all__ = [
     "delete_simulation_service",
     "prepare_simulation_service",
     "start_simulation_service",
+    "start_simulation_with_event_service",
     "simulation_service",
 
     # 分析服务（现在通过独立的服务类在路由中直接使用）

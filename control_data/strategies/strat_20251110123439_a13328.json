@@ -1,0 +1,62 @@
+{
+  "strategy_id": "strat_20251110123439_a13328",
+  "strategy_name": "西段应急车道开放",
+  "template_id": "dhs_mild",
+  "template_name": "Dhs Mild",
+  "strategy_type": "DHS",
+  "parameters": {
+    "affected_edges": [
+      "-7798.460",
+      "-13928",
+      "-7790",
+      "-8014",
+      "-10702",
+      "-9292"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "intervals": [
+      {
+        "begin_hours": 7,
+        "end_hours": 7.5,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      },
+      {
+        "begin_hours": 7.5,
+        "end_hours": 8.5,
+        "status": "RESTRICTED",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 8.5,
+        "end_hours": 9.5,
+        "status": "RESTRICTED",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 9.5,
+        "end_hours": 10,
+        "status": "CLOSING",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 24,
+        "status": "CLOSED",
+        "allowed_vehicle_types": []
+      }
+    ]
+  },
+  "metadata": {
+    "created_at": "2025-11-10T22:04:19.869423+00:00",
+    "updated_at": "2025-11-10T22:04:19.869423+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

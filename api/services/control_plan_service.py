@@ -132,6 +132,56 @@ class ControlPlanService:
             # 加载方案元数据
             plan_metadata = plan_file_manager.get_plan(plan_id)
 
+            # 确保有 updated_at 字段（响应模型要求）
+            if "updated_at" not in plan_metadata:
+                plan_metadata["updated_at"] = plan_metadata.get("created_at", "")
+
+            # 确保 created_at 和 updated_at 是 datetime 格式
+            from datetime import datetime
+            
+            def parse_datetime(dt_value) -> datetime:
+                """解析日期时间值（字符串或datetime对象）"""
+                if isinstance(dt_value, datetime):
+                    return dt_value
+                if not dt_value:
+                    return datetime.now()
+                
+                dt_str = str(dt_value)
+                try:
+                    # 处理带Z的UTC时间
+                    if dt_str.endswith("Z"):
+                        dt_str = dt_str[:-1] + "+00:00"
+                    
+                    # 尝试解析ISO格式
+                    if "+" in dt_str or dt_str.count("-") >= 3:
+                        # 有时区信息
+                        return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                    else:
+                        # 没有时区信息，尝试解析基本格式
+                        # 格式: YYYY-MM-DDTHH:MM:SS 或 YYYY-MM-DDTHH:MM:SS.ffffff
+                        if "." in dt_str:
+                            # 有微秒
+                            base_part = dt_str.split(".")[0]
+                            return datetime.strptime(base_part, "%Y-%m-%dT%H:%M:%S")
+                        else:
+                            # 无微秒
+                            return datetime.strptime(dt_str[:19], "%Y-%m-%dT%H:%M:%S")
+                except Exception:
+                    # 如果所有解析都失败，使用当前时间
+                    logger.warning(f"Failed to parse datetime: {dt_value}, using current time")
+                    return datetime.now()
+            
+            # 解析 created_at
+            created_at_value = plan_metadata.get("created_at")
+            plan_metadata["created_at"] = parse_datetime(created_at_value) if created_at_value else datetime.now()
+            
+            # 解析 updated_at（如果不存在，使用 created_at）
+            updated_at_value = plan_metadata.get("updated_at")
+            if updated_at_value:
+                plan_metadata["updated_at"] = parse_datetime(updated_at_value)
+            else:
+                plan_metadata["updated_at"] = plan_metadata["created_at"]
+
             response = {
                 **plan_metadata,
                 "strategy_count": len(plan_metadata.get("strategy_ids", [])),

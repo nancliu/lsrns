@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+    <input>
+        <net-file value="D:/projects/OD_SIM/templates/network_files/sichuan202508v7.net.xml"/>
+        <additional-files value="D:/projects/OD_SIM/output/scenarios/01_交通事故/scenario_14688_tec/scenario_交通事故_tec_14688.add.xml"/>
+    </input>
+
+    <time>
+        <begin value="0"/>
+        <end value="9648"/>
+        <step-length value="1.0"/>
+    </time>
+
+    <output>
+        <summary-file value="results/summary.xml"/>
+        <tripinfo-output value="results/tripinfo.xml"/>
+        <vehroute-output value="results/vehroute.xml"/>
+    </output>
+
+    <processing>
+        <ignore-route-errors value="true"/>
+        <collision.action value="warn"/>
+        <max-depart-delay value="1"/>
+    </processing>
+
+    <report>
+        <verbose value="false"/>
+        <no-step-log value="true"/>
+    </report>
+</configuration>

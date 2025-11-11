@@ -193,7 +193,7 @@
 - [x] **Validation 1**: Confirm 20 plans generated as comprehensive collection (12 minimum, 20 target) ✓
 - [x] **Validation 2**: All plans use consistent `plan_morning_peak_g4202_` prefix ✓
 - [x] **Validation 3**: All plans have valid control.add.xml placeholder files ✓
-- [ ] **Validation 4**: Plans display correctly in UI as unified collection
+- [x] **Validation 4**: Plans display correctly in UI as unified collection ✓
 - [ ] **Validation 5**: Multi-selection works with "Select All Morning Peak" button
 - [x] **Validation 6**: Plans cover G4202 and G5 highways ✓
 - [x] **Validation 7**: Time intervals vary within 7:00-10:00 window ✓

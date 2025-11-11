@@ -667,6 +667,172 @@ class SimulationService(BaseService):
         except Exception as e:
             raise Exception(f"删除仿真失败: {str(e)}")
 
+    async def start_simulation_with_event(self, request: 'EventScenarioSimulationRequest') -> Dict[str, Any]:
+        """
+        启动应用事件场景的仿真 (Phase 5.3.5)
+
+        将事件场景的.add.xml合并到仿真配置中，然后执行仿真。
+
+        Args:
+            request: 包含事件场景信息的仿真请求
+
+        Returns:
+            包含仿真ID和状态的响应
+        """
+        try:
+            # 验证案例存在
+            case_path = self._validate_case(request.case_id)
+
+            # 加载事件场景信息
+            event_scenario = self._load_event_scenario(request.scenario_id)
+            if not event_scenario:
+                raise Exception(f"事件场景不存在: {request.scenario_id}")
+
+            # 创建仿真目录结构
+            sim_type_short = "micro" if request.simulation_type.value == "microscopic" else "meso"
+            simulation_id = f"sim_event_{request.scenario_id}_{datetime.now().strftime('%m%d_%H%M%S')}_{sim_type_short}"
+            simulation_folder = DirectoryManager.create_simulation_structure(
+                case_path,
+                simulation_id,
+                request.batch_context
+            )
+
+            # 生成配置文件并合并事件场景的.add.xml
+            cfg_file = self._generate_simulation_config_with_event(
+                case_path, simulation_folder, request, event_scenario
+            )
+            cfg_file_abs = str(Path(cfg_file).resolve())
+
+            # 创建仿真元数据（包含事件场景信息）
+            sim_metadata = self._create_simulation_metadata(request, simulation_id, simulation_folder, cfg_file)
+            sim_metadata["event_scenario"] = {
+                "event_type": request.event_type,
+                "strategy": request.strategy,
+                "scenario_id": request.scenario_id,
+                "event_id": event_scenario.get("event_id"),
+                "add_xml_file": event_scenario.get("files", {}).get("add_xml")
+            }
+            sim_metadata["status"] = "pending"
+
+            # 保存元数据
+            MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
+            MetadataManager.update_simulations_index(case_path, simulation_id, sim_metadata)
+
+            # 初始化进度文件
+            self._init_progress_file(simulation_folder)
+
+            # 更新案例状态
+            self._update_case_status(case_path, CaseStatus.SIMULATING)
+
+            # 构建仿真参数
+            request_params = {
+                "run_folder": str(simulation_folder),
+                "gui": request.gui,
+                "mesoscopic": request.simulation_type.value == "mesoscopic",
+                "config_file": cfg_file,
+                "expected_duration": request.expected_duration,
+                "case_id": request.case_id,
+            }
+
+            # 导入仿真处理器
+            from shared.data_processors.simulation_processor import SimulationProcessor
+            sim_processor = SimulationProcessor()
+            self._setup_sumo_environment(sim_processor)
+
+            # 后台运行仿真
+            self._start_background_simulation(sim_processor, request_params, case_path, simulation_id, simulation_folder)
+
+            return {
+                "simulation_id": simulation_id,
+                "run_folder": str(simulation_folder),
+                "config_file": cfg_file,
+                "config_file_abs": cfg_file_abs,
+                "event_scenario": request.scenario_id,
+                "status": "started",
+                "started_at": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            raise Exception(f"启动事件场景仿真失败: {str(e)}")
+
+    def _load_event_scenario(self, scenario_id: str) -> Optional[Dict[str, Any]]:
+        """从scenario_index.json加载事件场景信息"""
+        try:
+            scenario_index_path = Path("output/scenarios/scenario_index.json")
+            if not scenario_index_path.exists():
+                return None
+
+            with open(scenario_index_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # 查找匹配的场景
+            for scenario in data.get("scenarios", []):
+                # 构建scenario_id (format: scenario_{event_id}_{strategy_lower})
+                constructed_id = f"scenario_{scenario['event_id']}_{scenario['strategy'].lower()}"
+                if constructed_id == scenario_id:
+                    return scenario
+
+            return None
+        except Exception as e:
+            print(f"加载事件场景失败: {e}")
+            return None
+
+    def _generate_simulation_config_with_event(self, case_path: Path, simulation_folder: Path,
+                                               request: 'EventScenarioSimulationRequest',
+                                               event_scenario: Dict[str, Any]) -> str:
+        """生成仿真配置文件并合并事件场景的.add.xml"""
+        # 首先生成基础配置文件
+        cfg_file = simulation_folder / "simulation.sumocfg"
+
+        # 加载案例元数据
+        case_metadata = MetadataManager.load_case_metadata(case_path)
+
+        # 生成sumocfg内容
+        from shared.utilities.sumo_utils import generate_sumocfg_for_simulation
+        config_content = generate_sumocfg_for_simulation(
+            case_metadata, request.simulation_type, simulation_folder, case_path,
+            request.simulation_params or {}
+        )
+
+        # 提取add.xml文件路径
+        add_xml_path = event_scenario.get("files", {}).get("add_xml")
+        if add_xml_path and Path(add_xml_path).exists():
+            # 将add.xml路径添加到sumocfg的include部分
+            config_content = self._merge_add_xml_to_config(config_content, add_xml_path)
+
+        # 保存配置文件
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            f.write(config_content)
+
+        return str(cfg_file)
+
+    def _merge_add_xml_to_config(self, config_content: str, add_xml_path: str) -> str:
+        """将.add.xml文件合并到sumocfg配置中"""
+        import xml.etree.ElementTree as ET
+
+        try:
+            # 解析配置文件
+            root = ET.fromstring(config_content)
+
+            # 查找或创建input元素
+            input_elem = root.find("input")
+            if input_elem is None:
+                input_elem = ET.Element("input")
+                root.insert(0, input_elem)
+
+            # 添加additional-files元素指向.add.xml
+            # SUMO支持通过additional-files指定额外的XML文件
+            additional_elem = ET.Element("additional-files")
+            additional_elem.set("value", add_xml_path)
+            input_elem.append(additional_elem)
+
+            # 转换回字符串
+            result = ET.tostring(root, encoding="unicode")
+            return result
+        except Exception as e:
+            print(f"合并.add.xml失败: {e}，继续使用基础配置")
+            return config_content
+
 
 # 创建服务实例
 simulation_service = SimulationService()
@@ -706,3 +872,8 @@ async def prepare_simulation_service(request: SimulationRequest) -> Dict[str, An
 async def start_simulation_service(case_id: str, simulation_id: str, gui: bool = False) -> Dict[str, Any]:
     """启动仿真服务函数：基于已准备的配置启动"""
     return await simulation_service.start_simulation(case_id, simulation_id, gui)
+
+
+async def start_simulation_with_event_service(request: 'EventScenarioSimulationRequest') -> Dict[str, Any]:
+    """启动应用事件场景的仿真服务函数 (Phase 5.3.5)"""
+    return await simulation_service.start_simulation_with_event(request)

@@ -85,5 +85,9 @@
   "is_baseline": false,
   "status": "active",
   "created_at": "2025-11-10T12:34:39.710567",
-  "version": 1
+  "version": 1,
+  "strategy_ids": [
+    "strat_20251110123439_de46e0"
+  ],
+  "updated_at": "2025-11-10T12:34:39.710567"
 }

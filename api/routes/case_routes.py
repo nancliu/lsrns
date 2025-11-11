@@ -4,7 +4,11 @@
 
 from fastapi import APIRouter
 from typing import Optional
-from ..models.requests.case_requests import CaseCreationRequest, CaseCloneRequest
+from ..models.requests.case_requests import (
+    CaseCreationRequest,
+    CaseCloneRequest,
+    EventScenarioQuickCreateRequest
+)
 from ..models.responses.base_response import BaseResponse
 from ..models.entities.case import CaseMetadata, CaseStatus
 from ..models.responses.list_responses import CaseListResponse
@@ -71,3 +75,22 @@ async def clone_case(case_id: str, request: CaseCloneRequest):
     case_service = CaseService()
     result = await case_service.clone_case(case_id, request)
     return create_success_response("案例克隆成功", result)
+
+
+@router.post("/quick-create-from-event", response_model=BaseResponse)
+@handle_service_errors
+async def quick_create_case_from_event(request: EventScenarioQuickCreateRequest):
+    """
+    从事件场景快速创建案例 (Phase 5.3.3)
+
+    从event scenario库中选择一个场景，快速创建关联的case。
+
+    Args:
+        request: 包含event scenario信息和case输入文件
+
+    Returns:
+        包含新创建的case信息的响应
+    """
+    case_service = CaseService()
+    result = await case_service.quick_create_case_from_event(request)
+    return create_success_response("案例创建成功", result)

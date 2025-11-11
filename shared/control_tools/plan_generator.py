@@ -5,11 +5,14 @@ Morning Peak Control Plan Generator
 
 import json
 import os
-from datetime import datetime
+import socket
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import uuid
 from dataclasses import dataclass, asdict
+from shared.control_tools import strategy_file_manager
+from shared.control_tools.template_loader import get_template_by_id
 
 
 @dataclass
@@ -121,10 +124,18 @@ class MorningPeakPlanGenerator:
                 "speed_kmh": step["speed_kmh"]
             })
 
+        # 根据严重程度选择模板
+        template_map = {
+            "mild": "vss_moderate",
+            "moderate": "vss_moderate",
+            "severe": "vss_strict"
+        }
+        template_id = template_map.get(severity, "vss_moderate")
+        
         return {
             "strategy_id": strat_id,
             "strategy_name": f"{segment_data['segment_name']}可变限速",
-            "template_id": f"vss_{severity}",
+            "template_id": template_id,
             "strategy_type": "VSS",
             "parameters": {
                 "affected_edges": segment_data["edge_ids"][:8],  # Use subset of edges
@@ -152,24 +163,34 @@ class MorningPeakPlanGenerator:
             location_name = f"K{location.split('k')[1] if 'k' in location else '0'}入口"
 
         # Adjust flow control based on temporal pattern
-        flow_steps = []
+        # TEC 使用 flow_intervals 格式
+        flow_intervals = []
         base_hour = 7
-        for step in tec_params["control_steps_template"]:
-            flow_steps.append({
-                "time_hours": base_hour + step["time_offset_hours"],
-                "flow_limit_veh_hr": step["flow_limit_veh_hr"],
-                "green_time_ratio": step["green_time_ratio"]
+        for step in tec_params.get("control_steps_template", []):
+            flow_intervals.append({
+                "begin_hours": base_hour + step.get("time_offset_hours", 0),
+                "end_hours": base_hour + step.get("time_offset_hours", 0) + step.get("duration_hours", 2),
+                "vehsPerHour": step.get("flow_limit_veh_hr", 300),
+                "target_speed": step.get("target_speed", 15)
             })
 
+        # 根据严重程度选择模板
+        template_map = {
+            "mild": "tec_flow_metering",
+            "moderate": "tec_flow_metering",
+            "severe": "tec_flow_metering"
+        }
+        template_id = template_map.get(severity, "tec_flow_metering")
+        
         return {
             "strategy_id": strat_id,
             "strategy_name": f"{location_name}流量控制",
-            "template_id": f"tec_{severity}",
+            "template_id": template_id,
             "strategy_type": "TEC",
             "parameters": {
-                "control_points": edge_ids,
-                "flow_steps": flow_steps,
-                "ramp_metering": tec_params["ramp_metering"]
+                "entrance_edges": edge_ids if edge_ids else ["-1000"],  # TEC 使用 entrance_edges
+                "position": 0,
+                "flow_intervals": flow_intervals  # TEC 使用 flow_intervals
             }
         }
 
@@ -186,24 +207,34 @@ class MorningPeakPlanGenerator:
         strat_id = f"strat_{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:6]}"
 
         # Adjust opening schedule based on temporal pattern
-        opening_schedule = []
+        # DHS 使用 intervals 格式
+        intervals = []
         base_hour = 7
-        for step in dhs_params["opening_schedule_template"]:
-            opening_schedule.append({
-                "begin_hours": base_hour + step["time_offset_hours"],
-                "status": step["status"],
-                "allowed_vehicle_types": step.get("allowed_types", [])
+        for step in dhs_params.get("opening_schedule_template", []):
+            intervals.append({
+                "begin_hours": base_hour + step.get("time_offset_hours", 0),
+                "end_hours": base_hour + step.get("time_offset_hours", 0) + step.get("duration_hours", 2),
+                "status": step.get("status", "OPEN"),
+                "allowed_vehicle_types": step.get("allowed_types", ["passenger", "truck"])
             })
 
+        # 根据严重程度选择模板
+        template_map = {
+            "mild": "dhs_peak_hours",
+            "moderate": "dhs_peak_hours",
+            "severe": "dhs_peak_multi_interval"
+        }
+        template_id = template_map.get(severity, "dhs_peak_hours")
+        
         return {
             "strategy_id": strat_id,
             "strategy_name": f"{segment_data['segment_name']}应急车道开放",
-            "template_id": f"dhs_{severity}",
+            "template_id": template_id,
             "strategy_type": "DHS",
             "parameters": {
                 "affected_edges": segment_data["edge_ids"][:6],  # Use subset for DHS
                 "hard_shoulder_lane_index": 0,
-                "opening_schedule": opening_schedule
+                "intervals": intervals  # DHS 使用 intervals
             }
         }
 
@@ -299,26 +330,177 @@ class MorningPeakPlanGenerator:
         )
 
     def save_plan(self, plan: ControlPlan) -> str:
-        """Save plan to file system"""
+        """
+        Save plan to file system
+        
+        1. 为每个策略创建并保存策略实例
+        2. 在方案元数据中设置 strategy_ids
+        3. 更新 plans_index.json 时设置 strategy_count
+        """
         plan_dir = self.base_path / plan.plan_id
         plan_dir.mkdir(parents=True, exist_ok=True)
 
-        # Save plan metadata
+        strategies_dir = Path("control_data/strategies")
+        strategies_dir.mkdir(parents=True, exist_ok=True)
+        templates_dir = Path("templates/control_strategies")
+
+        strategy_ids = []
+        current_time = datetime.now(timezone.utc).isoformat()
+        created_by = socket.gethostname() if socket.gethostname() else "system"
+
+        # 为每个策略创建并保存策略实例
+        for strategy in plan.strategies:
+            if not strategy or not strategy.get("strategy_id"):
+                continue
+
+            # 获取模板信息以获取 template_name
+            template_id = strategy.get("template_id")
+            template_name = strategy.get("template_name", "")
+            
+            if not template_name and template_id:
+                # 尝试从模板文件加载 template_name
+                template = get_template_by_id(template_id, templates_dir)
+                if template:
+                    template_name = template.template_name if hasattr(template, 'template_name') else template.get("template_name", template_id)
+                else:
+                    # 如果模板不存在，使用默认名称
+                    template_name = template_id.replace("_", " ").title()
+
+            # 构建完整的策略实例数据
+            strategy_instance = {
+                "strategy_id": strategy["strategy_id"],
+                "strategy_name": strategy.get("strategy_name", ""),
+                "template_id": template_id,
+                "template_name": template_name,
+                "strategy_type": strategy.get("strategy_type", ""),
+                "parameters": strategy.get("parameters", {}),
+                "metadata": {
+                    "created_at": current_time,
+                    "updated_at": current_time,
+                    "created_by": created_by,
+                    "version": 1
+                }
+            }
+
+            # 保存策略实例
+            success = strategy_file_manager.save_strategy(strategy_instance, str(strategies_dir))
+            if success:
+                strategy_ids.append(strategy["strategy_id"])
+            else:
+                print(f"警告: 保存策略实例失败: {strategy['strategy_id']}")
+
+        # 准备方案元数据
+        plan_metadata = {
+            "plan_id": plan.plan_id,
+            "plan_name": plan.chinese_name,
+            "description": plan.description,
+            "strategy_ids": strategy_ids,
+            "tags": plan.metadata.get("tags", []),
+            "target_scenario": plan.metadata.get("time_range", {}).get("display", ""),
+            "additional_file_path": f"control_data/plans/{plan.plan_id}/control.add.xml",
+            "created_at": plan.created_at,
+            "updated_at": plan.created_at,
+        }
+
+        # 添加集合相关字段
+        if plan.collection:
+            plan_metadata["collection"] = plan.collection
+        if plan.collection_name:
+            plan_metadata["collection_name"] = plan.collection_name
+
+        # 添加其他元数据字段
+        if plan.metadata:
+            plan_metadata.update({
+                "highway": plan.metadata.get("highway", []),
+                "segments": plan.metadata.get("segments", []),
+                "time_pattern": plan.metadata.get("time_pattern"),
+                "time_range": plan.metadata.get("time_range", {}),
+                "severity": plan.metadata.get("severity"),
+                "strategies": plan.metadata.get("strategies", []),
+                "location": plan.metadata.get("location"),
+            })
+
+        # 保存方案元数据
         plan_file = plan_dir / "plan_metadata.json"
         with open(plan_file, 'w', encoding='utf-8') as f:
-            json.dump(asdict(plan), f, ensure_ascii=False, indent=2)
+            json.dump(plan_metadata, f, ensure_ascii=False, indent=2)
 
-        # Create empty control.add.xml placeholder
+        # 保存策略引用
+        refs_file = plan_dir / "strategy_refs.json"
+        with open(refs_file, 'w', encoding='utf-8') as f:
+            json.dump(strategy_ids, f, ensure_ascii=False, indent=2)
+
+        # 创建 control.add.xml 占位符
         xml_file = plan_dir / "control.add.xml"
         xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
     <!-- Control plan: {plan.plan_id} -->
     <!-- Generated: {datetime.now().isoformat()} -->
-    <!-- Strategies: {', '.join([s['strategy_type'] for s in plan.strategies])} -->
+    <!-- Strategies: {', '.join([s.get('strategy_type', '') for s in plan.strategies])} -->
 </additional>"""
 
         with open(xml_file, 'w', encoding='utf-8') as f:
             f.write(xml_content)
+
+        # 更新 plans_index.json
+        # 直接读取和写入索引文件
+        index_file = Path("control_data/plans/plans_index.json")
+        if index_file.exists():
+            with open(index_file, 'r', encoding='utf-8') as f:
+                index = json.load(f)
+        else:
+            index = {"plans": []}
+        
+        # 检查是否已存在
+        existing_index = next((i for i in index["plans"] if i["plan_id"] == plan.plan_id), None)
+        if existing_index:
+            # 更新现有条目
+            existing_index.update({
+                "plan_name": plan.chinese_name,
+                "is_baseline": False,
+                "strategy_count": len(strategy_ids),
+                "tags": plan_metadata.get("tags", []),
+                "created_at": plan.created_at,
+            })
+            # 添加集合相关字段
+            if plan.collection:
+                existing_index["collection"] = plan.collection
+            if plan.collection_name:
+                existing_index["collection_name"] = plan.collection_name
+            # 添加其他字段
+            if plan.metadata:
+                existing_index["description"] = plan.description
+                existing_index["strategies"] = plan.metadata.get("strategies", [])
+                existing_index["severity"] = plan.metadata.get("severity")
+                existing_index["location"] = plan.metadata.get("location")
+        else:
+            # 添加新条目
+            index_entry = {
+                "plan_id": plan.plan_id,
+                "plan_name": plan.chinese_name,
+                "is_baseline": False,
+                "strategy_count": len(strategy_ids),
+                "tags": plan_metadata.get("tags", []),
+                "created_at": plan.created_at,
+            }
+            # 添加集合相关字段
+            if plan.collection:
+                index_entry["collection"] = plan.collection
+            if plan.collection_name:
+                index_entry["collection_name"] = plan.collection_name
+            # 添加其他字段
+            index_entry["description"] = plan.description
+            if plan.metadata:
+                index_entry["strategies"] = plan.metadata.get("strategies", [])
+                index_entry["severity"] = plan.metadata.get("severity")
+                index_entry["location"] = plan.metadata.get("location")
+            
+            index["plans"].append(index_entry)
+
+        # 保存索引文件
+        index_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(index_file, 'w', encoding='utf-8') as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
 
         return str(plan_dir)
 

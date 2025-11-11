@@ -8,6 +8,7 @@
     ],
     "response_delay_seconds": 300,
     "recovery_period_seconds": 600,
+    "csv_control": false,
     "affected_edges": [
       "-2046"
     ],

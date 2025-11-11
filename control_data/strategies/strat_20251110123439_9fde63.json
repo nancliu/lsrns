@@ -1,0 +1,60 @@
+{
+  "strategy_id": "strat_20251110123439_9fde63",
+  "strategy_name": "g5_south流量控制",
+  "template_id": "tec_mild",
+  "template_name": "Tec Mild",
+  "strategy_type": "TEC",
+  "parameters": {
+    "ramp_metering": {
+      "type": "fixed_time",
+      "cycle_time_s": 60,
+      "vehicles_per_green": 2
+    },
+    "entrance_edges": [],
+    "flow_intervals": [
+      {
+        "begin_hours": 7,
+        "end_hours": 7.5,
+        "vehsPerHour": 600,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 7.5,
+        "end_hours": 8,
+        "vehsPerHour": 540,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 8,
+        "end_hours": 9,
+        "vehsPerHour": 510,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 9,
+        "end_hours": 10,
+        "vehsPerHour": 480,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 10,
+        "end_hours": 10.5,
+        "vehsPerHour": 540,
+        "target_speed": 15
+      },
+      {
+        "begin_hours": 10.5,
+        "end_hours": 12.5,
+        "vehsPerHour": 600,
+        "target_speed": 15
+      }
+    ],
+    "position": 0
+  },
+  "metadata": {
+    "created_at": "2025-11-10T22:04:19.866417+00:00",
+    "updated_at": "2025-11-10T22:04:19.866417+00:00",
+    "created_by": "CHINAMI-887TH75",
+    "version": 1
+  }
+}

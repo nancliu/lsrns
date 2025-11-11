@@ -6,6 +6,6 @@
     <closedLane id="accident_14583" edge="-15950" lanes="-15950_0" disallow="all" begin="0" end="5381"/>
 
     <!-- Control Strategy -->
-    <calibrator id="tec_14583" edge="-15950" pos="0" />
+    <calibrator id="tec_14583" edge="-5746" pos="0" />
 
 </additional>

@@ -234,7 +234,8 @@
         "VSS"
       ],
       "severity": "moderate",
-      "location": "K0-K20"
+      "location": "K0-K20",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_g4202k40k60_severe_v1",
@@ -248,7 +249,8 @@
         "VSS"
       ],
       "severity": "severe",
-      "location": "K40-K60"
+      "location": "K40-K60",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_tec_k0_mild_v1",
@@ -262,7 +264,8 @@
         "TEC"
       ],
       "severity": "mild",
-      "location": "K0"
+      "location": "K0",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_tec_k40_moderate_v1",
@@ -276,7 +279,8 @@
         "TEC"
       ],
       "severity": "moderate",
-      "location": "K40"
+      "location": "K40",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_dhs_g4202k40k60_moderate_v1",
@@ -290,7 +294,8 @@
         "DHS"
       ],
       "severity": "moderate",
-      "location": "K40-K60"
+      "location": "K40-K60",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_dhs_g4202k0k20_severe_v1",
@@ -304,7 +309,8 @@
         "DHS"
       ],
       "severity": "severe",
-      "location": "K0-K20"
+      "location": "K0-K20",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k20k40_mild_v1",
@@ -319,7 +325,8 @@
         "TEC"
       ],
       "severity": "mild",
-      "location": "K20-K40"
+      "location": "K20-K40",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k40k60_moderate_v1",
@@ -334,7 +341,8 @@
         "TEC"
       ],
       "severity": "moderate",
-      "location": "K40-K60"
+      "location": "K40-K60",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k60k85_severe_v1",
@@ -349,7 +357,8 @@
         "TEC"
       ],
       "severity": "severe",
-      "location": "K60-K85"
+      "location": "K60-K85",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_dhs_g4202k0k20_moderate_v1",
@@ -364,7 +373,8 @@
         "DHS"
       ],
       "severity": "moderate",
-      "location": "K0-K20"
+      "location": "K0-K20",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_dhs_g4202k40k60_severe_v1",
@@ -379,7 +389,8 @@
         "DHS"
       ],
       "severity": "severe",
-      "location": "K40-K60"
+      "location": "K40-K60",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k20k40_moderate_v1",
@@ -394,7 +405,8 @@
         "DHS"
       ],
       "severity": "moderate",
-      "location": "K20-K40"
+      "location": "K20-K40",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k60k85_severe_v1",
@@ -409,7 +421,8 @@
         "DHS"
       ],
       "severity": "severe",
-      "location": "K60-K85"
+      "location": "K60-K85",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_dhs_g4202k0k20_severe_v1",
@@ -425,7 +438,8 @@
         "DHS"
       ],
       "severity": "severe",
-      "location": "K0-K20"
+      "location": "K0-K20",
+      "strategy_count": 3
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_dhs_g4202k40k60_severe_v1",
@@ -441,7 +455,8 @@
         "DHS"
       ],
       "severity": "severe",
-      "location": "K40-K60"
+      "location": "K40-K60",
+      "strategy_count": 3
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_dhs_g4202k60k85_moderate_v1",
@@ -457,7 +472,8 @@
         "DHS"
       ],
       "severity": "moderate",
-      "location": "K60-K85"
+      "location": "K60-K85",
+      "strategy_count": 3
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_g4202k20k40_mild_v1",
@@ -472,7 +488,8 @@
       ],
       "severity": "mild",
       "location": "K20-K40",
-      "time_pattern": "phased"
+      "time_pattern": "phased",
+      "strategy_count": 1
     },
     {
       "plan_id": "plan_morning_peak_g4202_vss_tec_g4202k0k20_moderate_v1",
@@ -488,7 +505,8 @@
       ],
       "severity": "moderate",
       "location": "K0-K20",
-      "time_pattern": "adaptive"
+      "time_pattern": "adaptive",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_tec_dhs_g4202k40k60_mild_v1",
@@ -504,7 +522,8 @@
       ],
       "severity": "mild",
       "location": "K40-K60",
-      "time_pattern": "phased"
+      "time_pattern": "phased",
+      "strategy_count": 2
     },
     {
       "plan_id": "plan_morning_peak_g4202_dhs_g4202k60k85_moderate_v1",
@@ -519,7 +538,8 @@
       ],
       "severity": "moderate",
       "location": "K60-K85",
-      "time_pattern": "adaptive"
+      "time_pattern": "adaptive",
+      "strategy_count": 1
     }
   ],
   "total": 15,

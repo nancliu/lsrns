@@ -235,6 +235,12 @@ async function loadCases() {
 
             // Revision 4: 在案例列表中显示时间范围信息 (Revision 6: 显示完整日期时间)
             let displayText = c.case_id;
+            
+            // 当案例名称存在且与案例ID不同时，显示案例名称
+            if (c.case_name && c.case_name !== c.case_id) {
+                displayText += ` - ${c.case_name}`;
+            }
+            
             if (c.time_range && c.time_range.start && c.time_range.end) {
                 // 显示完整的日期时间范围：2025/09/01 07:00:00-2025/09/01 07:10:00
                 displayText += ` - 案例时间: ${c.time_range.start}-${c.time_range.end}`;
@@ -1053,6 +1059,12 @@ let liveCurveLastDataState = null;  // 存储上次数据状态用于增量更�
 
 // 创建新图表实例
 function createLiveCurveChart(canvas, liveTimeSeries) {
+    // 检查 Chart.js 是否已加载
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded. Please ensure the Chart.js script is loaded before batch_simulation.js');
+        return null;
+    }
+
     debugLog('Creating new live curve chart with', liveTimeSeries.time_points.length, 'data points');
 
     // 将数据转换为 {x, y} 格式以使用线性x轴
@@ -1295,6 +1307,11 @@ function renderLiveCurve(liveTimeSeries) {
     if (!liveCurveChartInstance) {
         // 首次创建或重置后重新创建
         liveCurveChartInstance = createLiveCurveChart(canvas, liveTimeSeries);
+        if (!liveCurveChartInstance) {
+            // Chart.js 未加载，无法创建图表
+            console.warn('Cannot create chart: Chart.js is not loaded');
+            return;
+        }
         // 创建后调整高度
         setTimeout(() => {
             resizeLiveCurveCanvas();
@@ -1308,6 +1325,11 @@ function renderLiveCurve(liveTimeSeries) {
             debugLog('Chart update failed, recreating chart');
             liveCurveChartInstance.destroy();
             liveCurveChartInstance = createLiveCurveChart(canvas, liveTimeSeries);
+            if (!liveCurveChartInstance) {
+                // Chart.js 未加载，无法重新创建图表
+                console.warn('Cannot recreate chart: Chart.js is not loaded');
+                return;
+            }
             setTimeout(() => {
                 resizeLiveCurveCanvas();
             }, 50);
@@ -2348,13 +2370,23 @@ async function deleteBatchHistory(batchId) {
         const response = await fetch(`${API_BASE}/control/batch-optimization/batch/${batchId}`, {
             method: 'DELETE'
         });
-        if (!response.ok) throw new Error('Failed to delete batch');
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.detail || `删除失败: HTTP ${response.status}`;
+            throw new Error(errorMessage);
+        }
 
+        const result = await response.json().catch(() => ({}));
+        console.log('Batch deleted:', result);
+        
         showSuccess('批次已删除');
+        // 刷新批次历史列表
         loadBatchHistory();
     } catch (error) {
         console.error('Error deleting batch:', error);
-        showError('删除批次失败');
+        const errorMessage = error.message || '删除批次失败';
+        showError(`删除批次失败: ${errorMessage}`);
     }
 }
 
