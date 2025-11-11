@@ -1074,6 +1074,134 @@ class ScenarioGenerator:
 
 ---
 
+---
+
+### AD-5: Flat Structure for Event Scenario Simulations in Cases (2025-11-11)
+
+**Decision**: Use flat directory structure in `cases/{case_id}/simulations/` with naming convention to distinguish event scenario simulations from regular simulations.
+
+**Context**:
+
+Original ARCHITECTURE_CHANGES.md proposed nested structure:
+```
+cases/{case_id}/simulations/
+└── scenario_sim_12547/         ← Scenario group
+    ├── sim_baseline/            ← Actual simulations
+    ├── sim_with_event/
+    └── sim_vss/
+```
+
+**Problem**:
+- Existing API lists `simulations/*` as direct children, expecting each directory to be a runnable simulation
+- Nested structure would require major refactoring of simulation listing logic
+- UI and API both assume flat structure
+
+**Solution**: Flat structure with naming convention
+
+```
+cases/{case_id}/simulations/
+├── sim_1028_093903_micro/       ← Existing regular simulations
+├── scenario_12547_baseline/     ← Event scenario: baseline
+├── scenario_12547_with_event/   ← Event scenario: event only
+├── scenario_12547_vss/          ← Event scenario: event + VSS
+└── simulations_index.json
+```
+
+**Naming Convention**:
+
+- **Regular simulations**: `sim_{timestamp}_{type}/`
+- **Event scenario simulations**: `scenario_{event_id}_{variant}/`
+  - Variants: `baseline`, `with_event`, `vss`, `dhs`, `tec`
+
+**Metadata Association**:
+
+```json
+// simulation_metadata.json
+{
+  "simulation_id": "scenario_12547_vss",
+  "scenario_group": "12547",       ← Links related simulations
+  "scenario_variant": "vss",
+  "scenario_event_type": "accident"
+}
+```
+
+**Benefits**:
+
+- ✅ **Zero breaking changes** to existing API/UI
+- ✅ **Clear identification** through naming convention
+- ✅ **Metadata-based grouping** for filtering/analysis
+- ✅ **Immediate compatibility** with existing code
+
+**Trade-offs**:
+
+- ✅ **Pros**: No refactoring needed, works immediately
+- ✅ **Pros**: Maintains existing code patterns
+- ⚠️ **Cons**: Less visual grouping than nested structure (acceptable, metadata provides logical grouping)
+
+**Alternatives Considered**:
+
+- Option A: **Flat structure (selected)** - maintains compatibility
+- Option B: Nested structure - rejected, breaks existing functionality
+- Option C: Hybrid structure with symlinks - rejected, complex and OS-specific
+
+**Priority**: Phase 5 (Architecture) - affects cases workflow integration
+
+**Reference**: See `openspec/changes/add-event-scenario-sumo-configuration/ARCHITECTURE_CORRECTION.md` for detailed analysis.
+
+---
+
+### AD-6: Read-Only Scenario Library, No SUMO Configs (2025-11-11)
+
+**Decision**: Scenario library (`output/scenarios/`) is read-only and contains only scenario definitions. SUMO configuration files (`.sumocfg`) are NOT generated in scenario library.
+
+**Rationale**:
+
+**Why Read-Only Library?**
+
+- **Separation of concerns**: Scenario definitions (what) vs simulation execution (how)
+- **Reusability**: Same scenario can be applied to multiple cases with different inputs
+- **Portability**: No absolute paths, scenarios are pure definitions
+- **Clarity**: Clear distinction between scenario library and cases branch
+
+**Scenario Library Contents** (4 files per scenario):
+
+```
+output/scenarios/01_accident/scenario_12547_vss/
+├── scenario_accident_vss_12547.add.xml      ← Event + control XML
+├── event_description.json                    ← Event metadata
+├── traffic_input_config.json                 ← Traffic timing/duration
+└── control_strategy_config.json              ← Control strategy params
+```
+
+**Cases Workflow** (when applying scenario):
+
+```
+cases/{case_id}/simulations/scenario_12547_vss/
+├── simulation.sumocfg                         ← Generated here (relative paths)
+├── scenario_accident_vss_12547.add.xml       ← Copied from library
+├── TAZ_6.add.xml                             ← Case-specific
+├── simulation_metadata.json                  ← Links to scenario
+├── e1/                                        ← Output directories
+├── summary.xml
+└── tripinfo.xml
+```
+
+**Implementation**:
+
+- `scenario_sumocfg_generator.py` marked as DEPRECATED for scenario library use
+- Should be refactored for cases workflow
+- Removed from `scripts/generate_scenarios_from_events.py`
+
+**Benefits**:
+
+- ✅ **Clean separation**: Definitions separate from execution
+- ✅ **Reusable scenarios**: Apply same scenario to multiple cases
+- ✅ **No path issues**: Scenarios are portable, .sumocfg has case-specific paths
+
+**Priority**: Phase 5 (Architecture) - corrects initial implementation
+
+---
+
 ## Summary
 
 This design provides a modular, extensible foundation for event scenario generation:
@@ -1083,7 +1211,302 @@ This design provides a modular, extensible foundation for event scenario generat
 - **Validates** all generated XML against SUMO schemas
 - **Handles** errors gracefully during batch generation
 - **Supports** future expansion to additional event types
+- **Maintains** read-only scenario library with flat cases structure (AD-5, AD-6)
 
 The implementation follows established patterns from the control workflow domain while adapting to the unique requirements of event-based simulation scenarios.
 
+**Architecture Corrections (2025-11-11)**:
+- AD-5: Flat structure for event scenario simulations in cases
+- AD-6: Read-only scenario library without SUMO configs
+
 **Next Steps**: Proceed with implementation according to `tasks.md` phased breakdown.
+
+---
+
+## Phase 2 Architectural Decisions: Scenario-to-Case Mapping (2025-11-11)
+
+### AD-7: Case-Scenario Relationship - 1:1 Strong Binding
+
+**Decision**: One case corresponds to exactly one scenario variant.
+
+**Design**:
+```python
+# Metadata: Case strictly links to single scenario
+case.metadata = {
+    "case_id": "case_20251111_001",
+    "source_scenario_id": "scenario_11554_vss",    # Unique binding
+    "source_event_id": "11554",
+    "source_variant": "vss",
+    "event_type": "恶劣天气",
+    "location": {...}
+}
+
+# API: Create case from scenario
+POST /api/v1/scenario/create-case
+{
+    "source_scenario_id": "scenario_11554_vss"
+    # Returns: {case_id, source_scenario_id, ready_for_simulation}
+}
+```
+
+**Advantages**:
+- ✅ Eliminates N:1 relationship complexity
+- ✅ Clear traceability and auditability
+- ✅ Simplifies simulation management
+- ✅ Enables scenario_group metadata for filtering
+
+**Trade-offs**:
+- 3 scenarios per event → 3 cases (manageable)
+- No case reuse across scenarios (acceptable, scenarios are stable)
+
+---
+
+### AD-8: Configuration Override - Scene-Locked, Simulation-Flexible
+
+**Decision**: Scenario-level parameters are immutable; simulation parameters are customizable.
+
+**Immutable Fields** (enforced by ScenarioService):
+```python
+IMMUTABLE_FIELDS = {
+    "event_id",              # Cannot change event
+    "event_type",            # Cannot change event type
+    "location": {            # Cannot change location
+        "edge_id",
+        "junction_id",
+        "road",
+        "direction"
+    },
+    "affected_edges",        # Cannot change impact area
+    "control_strategy_type"  # Cannot change strategy
+}
+```
+
+**Overridable Fields** (user-configurable):
+```python
+OVERRIDABLE_FIELDS = {
+    "simulation_duration_hours": {
+        "default": "event_duration",
+        "allowed_range": [0.5, 8],
+        "rationale": "User may want extended simulation window"
+    },
+    "random_seed": {
+        "default": None,  # Random if not specified
+        "rationale": "For reproducible scenarios"
+    },
+    "output_config": {
+        "generate_edgedata": {
+            "default": True,
+            "override": "NEVER",            # ⭐ MANDATORY
+            "rationale": "Required for EdgeData analysis"
+        },
+        "generate_summary": {
+            "default": True,
+            "override": "ALLOWED"
+        },
+        "generate_tripinfo": {
+            "default": False,
+            "override": "ALLOWED"
+        }
+    }
+}
+```
+
+**Implementation in ScenarioService**:
+```python
+def _apply_safe_overrides(self, overrides: Dict) -> Dict:
+    """Apply user overrides only to allowed fields"""
+    if not overrides:
+        return {}
+
+    safe_overrides = {}
+    for field, value in overrides.items():
+        if field not in OVERRIDABLE_FIELDS:
+            logger.warning(f"Field {field} not overridable, ignoring")
+            continue
+
+        # Special case: never allow disabling edgedata
+        if field == "output_config" and "generate_edgedata" in value:
+            if value["generate_edgedata"] is False:
+                logger.error("generate_edgedata must be True")
+                raise ValueError("edgedata analysis is mandatory")
+
+        safe_overrides[field] = value
+
+    return safe_overrides
+```
+
+**Advantages**:
+- ✅ Preserves scenario integrity
+- ✅ Prevents accidental scenario corruption
+- ✅ Ensures edgedata availability for analysis
+- ✅ Allows legitimate simulation variations
+
+---
+
+### AD-9: Batch Concurrency - Configurable Workers
+
+**Decision**: Support parallel execution with configurable worker count (2-8, default 4).
+
+**Design**:
+```python
+# API Parameter
+POST /api/v1/batch-scenarios/create-and-simulate
+{
+    "scenario_selection": {...},
+    "execution": {
+        "parallel_workers": 4,        # Configurable
+        "timeout_minutes": 120,
+        "auto_run_simulation": True
+    }
+}
+
+# Configuration Recommendations
+CONCURRENCY_RECOMMENDATIONS = {
+    "cpu_cores": 2,  → "workers": 2,
+    "cpu_cores": 4,  → "workers": 4,  # ← Default
+    "cpu_cores": 8,  → "workers": 6,
+    "cpu_cores": 16, → "workers": 8
+}
+```
+
+**Implementation**:
+```python
+class BatchSimulationService:
+    async def batch_simulate_scenarios(
+        self,
+        scenario_ids: List[str],
+        parallel_workers: int = 4
+    ):
+        # Limit workers to safe range
+        workers = max(2, min(parallel_workers, 8))
+
+        # Create worker pool
+        async with asyncio.TaskGroup() as tg:
+            semaphore = asyncio.Semaphore(workers)
+
+            for scenario_id in scenario_ids:
+                async with semaphore:
+                    await self._run_single_simulation(scenario_id)
+```
+
+**Advantages**:
+- ✅ Adapts to hardware capabilities
+- ✅ Allows user optimization based on resources
+- ✅ Prevents resource exhaustion (max 8 workers)
+- ✅ Fair defaults (4 for typical 4-core system)
+
+---
+
+### AD-10: Analysis Automation - Manual with EdgeData Focus
+
+**Decision**: Basic summary auto-generated; primary analysis (EdgeData) on-demand.
+
+**Architecture**:
+```
+Simulation Completion
+    ↓
+    └→ Automatic: Extract summary.xml → summary.json
+                   (basic metrics: vehicles, speed, congestion)
+
+    └→ On-Demand: User calls analysis APIs
+                   - GET /api/v1/scenario-analysis/edgedata/{case_id}/{sim_id}
+                   - Returns: impact_area, control_effectiveness, time_series
+
+Why EdgeData Primary?
+  • Spatial clarity: affected edges, impact range
+  • Control evaluation: strategy effectiveness on specific segments
+  • Incident context: perfect for "location impact" analysis
+  • Visualization: heat maps, spatiotemporal evolution
+```
+
+**Storage**:
+```
+cases/{case_id}/simulations/scenario_11554_vss/
+├── results/
+│   ├── summary.xml
+│   ├── edgedata.xml           ← Must be present
+│   ├── tripinfo.xml           ← Optional
+│   └── vehroute.xml
+├── analysis/
+│   ├── summary.json           ← Auto-generated
+│   └── edgedata_analysis.json ← On-demand
+```
+
+**Analysis Service**:
+```python
+class ScenarioAnalysisService:
+    async def analyze_edgedata(
+        self,
+        case_id: str,
+        simulation_id: str
+    ) -> Dict:
+        """
+        Analyze edgedata.xml to assess control strategy effectiveness
+
+        Returns:
+        {
+            "impact_area": {
+                "primary_edges": [...],
+                "secondary_edges": [...],
+                "recovery_distance_km": 5.2
+            },
+            "control_effectiveness": {
+                "flow_improvement_%": 23.5,
+                "speed_improvement_%": 18.2,
+                "congestion_relief_minutes": 15
+            },
+            "time_series": [...]
+        }
+        """
+```
+
+**Advantages**:
+- ✅ Avoids unnecessary processing (on-demand)
+- ✅ Focuses on relevant analysis (EdgeData for locations)
+- ✅ Reduces storage (no auto tripinfo)
+- ✅ Clear control strategy evaluation
+
+---
+
+### AD-11: Result Retention - Manual Cleanup
+
+**Decision**: No auto-cleanup; users manually delete via API.
+
+**Implementation**:
+```python
+# API: Delete case with all simulations
+DELETE /api/v1/case/{case_id}
+  → Deletes entire cases/{case_id}/ tree
+  → Records deletion in audit log
+
+# API: Storage monitoring (optional)
+GET /api/v1/storage/usage
+  → Returns total case storage
+  → Breakdown by status (active/completed/archived)
+  → Recommendations for cleanup
+```
+
+**Rationale**:
+- ✅ Preserves user data by default
+- ✅ No surprise deletions
+- ✅ Enables long-term scenario comparison
+- ✅ Simple implementation (no scheduled cleanup)
+
+**Best Practice**:
+- Users responsible for storage management
+- Add UI warnings for large cases
+- Periodic storage reporting
+
+---
+
+## Summary of Phase 2 Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **AD-7** | 1:1 binding | Simplicity, traceability |
+| **AD-8** | Scene-locked / Sim-flexible | Integrity + flexibility |
+| **AD-9** | Configurable 2-8 workers | Hardware adaptation |
+| **AD-10** | Manual EdgeData analysis | Focus on spatial impact |
+| **AD-11** | Manual retention | Data preservation |
+
+These decisions balance simplicity with flexibility, enabling Phase 2 rapid implementation.

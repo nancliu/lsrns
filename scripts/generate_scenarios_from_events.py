@@ -31,7 +31,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from shared.control_tools.scenario_generator import ScenarioGenerator
-from shared.control_tools.scenario_sumocfg_generator import generate_all_scenario_configs
+# Note: scenario_sumocfg_generator is not used here - sumocfg files are generated
+# when scenarios are applied to cases, not during scenario library generation
 from shared.utilities.toll_mapping_utils import resolve_toll_edges
 
 # Configure logging
@@ -40,6 +41,24 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# 事件类型映射表 (normalize CSV event types to standard types)
+# 应用于CSV中非标准的事件类型描述
+EVENT_TYPE_MAPPING = {
+    # 标准类型 (直接映射)
+    '交通事故': '交通事故',
+    '交通阻塞': '交通阻塞',
+    '交通管制': '交通管制',
+    '地质灾害': '地质灾害',
+    '车辆故障': '车辆故障',
+    '恶劣天气': '恶劣天气',
+
+    # 非标准类型映射规则 (2025-11-11修复)
+    '暴雨橙色预警': '恶劣天气',        # 暴雨预警属于恶劣天气
+    '暴雨黄色预警': '恶劣天气',        # 黄色预警也属于恶劣天气
+    '暴雨红色预警': '恶劣天气',        # 红色预警也属于恶劣天气
+    '突发事件': '车辆故障',             # 突发事件(如车辆自燃)属于车辆故障
+}
 
 
 def load_events_csv(csv_path: str) -> pd.DataFrame:
@@ -119,7 +138,8 @@ def score_event_quality(row: pd.Series) -> float:
     return score
 
 
-def filter_representative_events(events_df: pd.DataFrame, target_count: int = 18) -> pd.DataFrame:
+def filter_representative_events(events_df: pd.DataFrame, target_count: int = 18,
+                                 specific_event_ids: List[int] = None) -> pd.DataFrame:
     """
     Filter representative events for scenario generation.
 
@@ -132,12 +152,20 @@ def filter_representative_events(events_df: pd.DataFrame, target_count: int = 18
     Args:
         events_df: DataFrame with all events
         target_count: Target number of events to select
+        specific_event_ids: If provided, filter for only these event IDs (skips other filtering)
 
     Returns:
         DataFrame with filtered events
     """
     logger.info(f"Filtering events (target: {target_count} events)")
     logger.info(f"Total events in CSV: {len(events_df)}")
+
+    # If specific event IDs provided, filter for those only
+    if specific_event_ids:
+        logger.info(f"Filtering for specific event IDs: {specific_event_ids}")
+        result = events_df[events_df['report_id'].isin(specific_event_ids)].copy()
+        logger.info(f"Found {len(result)} events matching specific IDs")
+        return result
 
     # Step 1: Calculate duration for all events
     events_df['duration_hours'] = events_df.apply(calculate_duration_hours, axis=1)
@@ -265,6 +293,53 @@ def parse_csv_control_data(event_row: pd.Series) -> Dict[str, Any]:
     return control_data
 
 
+def is_dhs_eligible_location(event_row: pd.Series) -> bool:
+    """
+    Check if the event location is eligible for DHS (Dynamic Hard Shoulder) control.
+
+    DHS requires physical emergency lane (hard shoulder) availability.
+    Only specific highway segments have emergency lanes suitable for DHS.
+
+    Eligibility criteria:
+    - G4202 South segment K30-K55 (成都绕城高速南段): Has emergency lanes
+    - Other segments: No DHS infrastructure
+
+    Args:
+        event_row: Event data row
+
+    Returns:
+        bool: True if location supports DHS, False otherwise
+    """
+    road = event_row.get('所在高速公路', '')
+    mileage_str = event_row.get('发生地点', '')  # e.g., "51.17", "30.5"
+
+    # G4202 South segment check (成都绕城高速南段 K30-K55)
+    if 'G4202' in str(road):
+        try:
+            # Extract mileage number from string
+            # Handle formats like "51.17", "K51.17", "51+170"
+            mileage_cleaned = str(mileage_str).replace('K', '').replace('+', '.').strip()
+            if '|' in mileage_cleaned:  # Handle multiple mileages
+                mileage_cleaned = mileage_cleaned.split('|')[0]
+
+            mileage = float(mileage_cleaned)
+
+            # Check if within K30-K55 range
+            if 30.0 <= mileage <= 55.0:
+                logger.info(f"Event at G4202 K{mileage:.1f} - DHS eligible (K30-K55 range)")
+                return True
+            else:
+                logger.debug(f"Event at G4202 K{mileage:.1f} - outside DHS range (K30-K55)")
+                return False
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.warning(f"Could not parse mileage '{mileage_str}' for DHS eligibility check: {e}")
+            return False
+
+    # For other highways, default to False
+    logger.debug(f"Event on {road} - DHS not eligible (not G4202 South K30-K55)")
+    return False
+
+
 def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
     """
     Map event to control strategies with parameters.
@@ -275,7 +350,7 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
 
     Strategy mapping:
     - VSS (Variable Speed Sign): Speed limit reduction based on event severity
-    - DHS (Dynamic Hard Shoulder): Opens shoulder lane to maintain capacity
+    - DHS (Dynamic Hard Shoulder): Opens shoulder lane to maintain capacity (location-restricted)
     - TEC (Toll Entrance Control): Flow rate control at toll entrances
 
     Args:
@@ -293,6 +368,16 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
 
     # Calculate parameters based on event characteristics
     strategies = []
+
+    # Always add a no-control baseline scenario for every event
+    # This allows comparing event-only impact vs. event+control impact
+    strategies.append({
+        "strategy_type": "NO_CONTROL",
+        "params": {
+            "description": "Event-only baseline (no control strategy applied)",
+            "event_only": True,
+        }
+    })
 
     # Phase 3.5: Event type-specific control logic
     # ============================================
@@ -343,18 +428,23 @@ def map_event_to_strategies(event_row: pd.Series) -> List[Dict[str, Any]]:
     # DHS Strategy: Dynamic Hard Shoulder
     # Skip for 交通管制 (road control uses TEC only)
     # Skip for 交通阻塞 (congestion - no physical lane closure)
-    # For accidents/disasters: Only if emergency lane NOT already occupied and edge_id available
+    # For accidents/disasters: Only if emergency lane NOT already occupied, edge_id available, AND location eligible
     if event_type not in ['交通管制', '交通阻塞'] and edge_id:
         if '应急车道' not in str(affected_lanes) and '紧急停车带' not in str(affected_lanes):
-            strategies.append({
-                "strategy_type": "DHS",
-                "params": {
-                    "open_shoulder": True,
-                    "affected_edges": [edge_id],
-                    "response_delay_seconds": 300,
-                    "recovery_period_seconds": 600,
-                }
-            })
+            # Check if location is DHS-eligible (has emergency lane infrastructure)
+            if is_dhs_eligible_location(event_row):
+                strategies.append({
+                    "strategy_type": "DHS",
+                    "params": {
+                        "open_shoulder": True,
+                        "affected_edges": [edge_id],
+                        "response_delay_seconds": 300,
+                        "recovery_period_seconds": 600,
+                    }
+                })
+                logger.debug(f"DHS strategy added for event {event_row.get('report_id')} at eligible location")
+            else:
+                logger.debug(f"DHS strategy skipped for event {event_row.get('report_id')} - location not eligible (no emergency lane)")
 
     # TEC Strategy: Toll Entrance Control
     # MODE 1: Use CSV control data if available (real toll station closures)
@@ -404,6 +494,7 @@ def prepare_event_data(event_row: pd.Series) -> Dict[str, Any]:
     Convert CSV row to event data dictionary with standardized field names.
 
     Maps CSV column names to ScenarioGenerator expected field names.
+    Normalizes event types using EVENT_TYPE_MAPPING.
 
     Args:
         event_row: Event row from CSV
@@ -411,9 +502,13 @@ def prepare_event_data(event_row: pd.Series) -> Dict[str, Any]:
     Returns:
         Event data dictionary
     """
+    # Normalize event type using mapping table
+    raw_type = event_row.get("类型", "交通事故")
+    normalized_type = EVENT_TYPE_MAPPING.get(raw_type, raw_type)
+
     return {
         "report_id": str(event_row.get("report_id", "")),
-        "event_type": event_row.get("类型", "交通事故"),
+        "event_type": normalized_type,
         "event_description": event_row.get("详细信息", "")[:100] if pd.notna(event_row.get("详细信息")) else "",
         "road": event_row.get("所在高速公路", ""),
         "direction": event_row.get("上下行", ""),
@@ -433,7 +528,9 @@ def prepare_event_data(event_row: pd.Series) -> Dict[str, Any]:
 
 
 def generate_scenario_library(events_csv: str, network_file: str,
-                              output_dir: str = "output/scenarios") -> Dict[str, Any]:
+                              output_dir: str = "output/scenarios",
+                              target_count: int = 18,
+                              specific_event_ids: List[int] = None) -> Dict[str, Any]:
     """
     Generate scenario library from events CSV.
 
@@ -441,6 +538,8 @@ def generate_scenario_library(events_csv: str, network_file: str,
         events_csv: Path to events CSV file
         network_file: Path to SUMO network file
         output_dir: Output directory for scenarios
+        target_count: Number of events to select for scenario generation (default: 18)
+        specific_event_ids: If provided, regenerate only these event IDs
 
     Returns:
         Dictionary with generation results
@@ -448,12 +547,17 @@ def generate_scenario_library(events_csv: str, network_file: str,
     logger.info("=" * 60)
     logger.info("Event Scenario Library Generation")
     logger.info("=" * 60)
+    if specific_event_ids:
+        logger.info(f"Regenerating specific event IDs: {specific_event_ids}")
+    else:
+        logger.info(f"Target event count: {target_count}")
 
     # Load events
     events_df = load_events_csv(events_csv)
 
     # Filter representative events
-    selected_events = filter_representative_events(events_df, target_count=18)
+    selected_events = filter_representative_events(events_df, target_count=target_count,
+                                                   specific_event_ids=specific_event_ids)
 
     # Initialize scenario generator
     generator = ScenarioGenerator(network_file=network_file, output_base_dir=output_dir)
@@ -671,10 +775,68 @@ def validate_input_data(events_csv: str, network_file: str, output_dir: str) -> 
 
 def main():
     """Main entry point"""
-    # Configuration
-    EVENTS_CSV = "events/all_extracted_events.csv"
-    NETWORK_FILE = "templates/network_files/sichuan202508v7.net.xml"
-    OUTPUT_DIR = "output/scenarios"
+    import argparse
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='Generate traffic event scenarios with control strategies',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Generate 18 representative scenarios (default)
+  python scripts/generate_scenarios_from_events.py
+
+  # Generate 50 scenarios
+  python scripts/generate_scenarios_from_events.py --target-count 50
+
+  # Generate 100 scenarios
+  python scripts/generate_scenarios_from_events.py --target-count 100
+
+  # Generate all valid scenarios (329 events)
+  python scripts/generate_scenarios_from_events.py --target-count 329
+        '''
+    )
+    parser.add_argument(
+        '--target-count',
+        type=int,
+        default=18,
+        help='Number of events to generate scenarios for (default: 18)'
+    )
+    parser.add_argument(
+        '--events-csv',
+        default="events/all_extracted_events.csv",
+        help='Path to events CSV file (default: events/all_extracted_events.csv)'
+    )
+    parser.add_argument(
+        '--network-file',
+        default="templates/network_files/sichuan202508v7.net.xml",
+        help='Path to SUMO network file (default: templates/network_files/sichuan202508v7.net.xml)'
+    )
+    parser.add_argument(
+        '--output-dir',
+        default="output/scenarios",
+        help='Output directory for scenarios (default: output/scenarios)'
+    )
+    parser.add_argument(
+        '--specific-event-ids',
+        type=int,
+        nargs='+',
+        help='Regenerate specific event IDs (e.g., --specific-event-ids 11554 12522)'
+    )
+
+    args = parser.parse_args()
+
+    # Configuration from arguments
+    EVENTS_CSV = args.events_csv
+    NETWORK_FILE = args.network_file
+    OUTPUT_DIR = args.output_dir
+    TARGET_COUNT = args.target_count
+    SPECIFIC_EVENT_IDS = args.specific_event_ids
+
+    if SPECIFIC_EVENT_IDS:
+        logger.info(f"🎯 Regenerating specific events: {SPECIFIC_EVENT_IDS}")
+    else:
+        logger.info(f"🎯 Target event count: {TARGET_COUNT}")
 
     # Validate inputs
     if not validate_input_data(EVENTS_CSV, NETWORK_FILE, OUTPUT_DIR):
@@ -686,23 +848,15 @@ def main():
         results = generate_scenario_library(
             events_csv=EVENTS_CSV,
             network_file=NETWORK_FILE,
-            output_dir=OUTPUT_DIR
+            output_dir=OUTPUT_DIR,
+            target_count=TARGET_COUNT,
+            specific_event_ids=SPECIFIC_EVENT_IDS
         )
 
-        # Phase 5: Generate SUMO configuration files for scenarios
-        logger.info("\n" + "=" * 60)
-        logger.info("Phase 5: SUMO Configuration Generation")
-        logger.info("=" * 60)
-
-        try:
-            sumo_config_result = generate_all_scenario_configs(project_root=Path.cwd())
-            logger.info(f"SUMO config generation complete:")
-            logger.info(f"  Generated configs: {sumo_config_result['generation_summary']['successful']}")
-            logger.info(f"  Scenarios in library: {sumo_config_result['library_index']['statistics']['total_with_sumo']}")
-        except Exception as e:
-            logger.warning(f"SUMO config generation warning (non-critical): {e}")
-            # Don't fail the script if SUMO config generation fails
-            # Scenarios were still generated successfully
+        # Note: SUMO configuration files (simulation.sumocfg) are NOT generated
+        # during scenario library generation. They will be created when scenarios
+        # are applied to cases (cases branch workflow).
+        # Scenario library is read-only and contains only scenario definition files.
 
         # Exit with appropriate code
         if results["failed"]:

@@ -1,0 +1,23 @@
+{
+  "strategy_type": "NO_CONTROL",
+  "strategy_name": "NO_CONTROL",
+  "parameters": {
+    "description": "Event-only baseline (no control strategy applied)",
+    "event_only": true,
+    "affected_edges": [
+      "-9222"
+    ],
+    "affected_lanes": [
+      "-9222_1",
+      "-9222_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-09-03 17:17:56",
+    "deactivation_time": "2025-09-03 20:11:55",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

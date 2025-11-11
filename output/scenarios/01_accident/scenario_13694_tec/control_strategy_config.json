@@ -1,0 +1,34 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-5746"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-08-02 09:37:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "225",
+      "236"
+    ],
+    "control_range": "nan",
+    "control_measure": "绵阳南站、绵阳站入口广元方向封闭。",
+    "affected_edges": [
+      "-7944"
+    ],
+    "affected_lanes": [
+      "-7944_1",
+      "-7944_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-08-02 09:22:28",
+    "deactivation_time": "2025-08-02 10:02:22",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

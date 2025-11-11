@@ -1,0 +1,41 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-5746",
+      "-13370",
+      "-9070",
+      "-3802"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-08-11 15:25:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "225",
+      "236",
+      "243",
+      "244",
+      "246",
+      "247",
+      "249"
+    ],
+    "control_range": "nan",
+    "control_measure": "nan",
+    "affected_edges": [
+      "-15950"
+    ],
+    "affected_lanes": [
+      "-15950_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-08-11 15:15:19",
+    "deactivation_time": "2025-08-11 16:50:00",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

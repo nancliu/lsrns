@@ -1,0 +1,35 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-5746"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-08-20 23:26:00",
+    "deactivation_time": "2025-08-21 00:09:00",
+    "toll_station_ids": [
+      "225",
+      "236",
+      "243",
+      "244"
+    ],
+    "control_range": "绵阳南站 到 江油站",
+    "control_measure": "因大雨天气，绵阳南站入口广元方向封闭；绵阳站、绵阳北站入口封闭；科学城站、江油站入口成都方向封闭。",
+    "affected_edges": [
+      "-16326"
+    ],
+    "affected_lanes": [
+      "-16326_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-08-20 23:31:36",
+    "deactivation_time": "2025-08-21 00:19:17",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

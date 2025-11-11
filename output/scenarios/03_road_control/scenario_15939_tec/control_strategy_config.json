@@ -1,0 +1,34 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-13370"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-09-05 10:27:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "243",
+      "244",
+      "246"
+    ],
+    "control_range": "绵阳北站 到 江油站",
+    "control_measure": "绵阳北站入口广元方向封闭、科学城站入口封闭、江油站入口成都方向封闭。",
+    "affected_edges": [
+      "-7944"
+    ],
+    "affected_lanes": [
+      "-7944_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-09-05 10:32:10",
+    "deactivation_time": "2025-09-05 11:14:38",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

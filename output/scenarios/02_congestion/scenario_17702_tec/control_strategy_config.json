@@ -1,0 +1,35 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-13370"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-10-06 11:31:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "236",
+      "243",
+      "244",
+      "246"
+    ],
+    "control_range": "nan",
+    "control_measure": "绵阳站至江油站入口成都方向封闭。",
+    "affected_edges": [
+      "-16050"
+    ],
+    "affected_lanes": [
+      "-16050_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-10-06 11:34:42",
+    "deactivation_time": "2025-10-06 12:12:10",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

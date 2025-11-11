@@ -1,0 +1,39 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-11410",
+      "-3802",
+      "-9070",
+      "-13370"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-09-29 09:47:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "250",
+      "249",
+      "247",
+      "246"
+    ],
+    "control_range": "nan",
+    "control_measure": "绵广向K1606一辆货车发生交通事故，无人员受伤，现场道路中断，已通知高交、执法、路维；在相关情报板发布提示信息。接高交通知：因处置该事故，现江油站至小溪坝站入口广元方向封闭。",
+    "affected_edges": [
+      "-1062"
+    ],
+    "affected_lanes": [
+      "-1062_1",
+      "-1062_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-09-29 09:52:05",
+    "deactivation_time": "2025-09-29 11:18:32",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

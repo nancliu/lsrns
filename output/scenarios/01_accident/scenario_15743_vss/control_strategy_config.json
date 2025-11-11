@@ -1,0 +1,21 @@
+{
+  "strategy_type": "VSS",
+  "strategy_name": "可变限速标志",
+  "parameters": {
+    "speed_limit_kmh": 60,
+    "affected_edges": [
+      "-1024|-2000000090"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600,
+    "affected_lanes": [
+      "-1024|-2000000090_2"
+    ]
+  },
+  "timing": {
+    "activation_time": "2025-08-29 23:55:45",
+    "deactivation_time": "2025-08-30 01:30:58",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

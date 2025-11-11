@@ -67,7 +67,9 @@ output/scenarios/
 └── scenario_index.json  ✏️ (updated format)
 ```
 
-#### Cases Branch (Following Existing Structure)
+#### Cases Branch (Following Existing Structure - CORRECTED)
+
+**⚠️ IMPORTANT**: Use flat structure to maintain compatibility with existing simulation listing functionality.
 
 ```
 cases/
@@ -79,35 +81,48 @@ cases/
 │   │   └── TAZ_6.add.xml
 │   ├── analysis/
 │   └── simulations/
-│       └── scenario_sim_12547/  ✏️ NEW (one per scenario)
-│           ├── sim_baseline/  ✏️ (no event, no control)
-│           │   ├── simulation.sumocfg  ✏️ (relative paths only)
-│           │   ├── simulation_metadata.json
-│           │   ├── TAZ_6.add.xml  ✏️ (copied here)
-│           │   ├── e1/  ✏️ (e1 detector outputs)
-│           │   ├── summary.xml
-│           │   ├── tripinfo.xml
-│           │   └── progress.json
-│           ├── sim_with_event/  ✏️ (event only)
-│           │   ├── simulation.sumocfg  ✏️ (relative paths)
-│           │   ├── scenario_accident_event_12547.add.xml  ✏️ (copied)
-│           │   ├── TAZ_6.add.xml  ✏️ (copied)
-│           │   ├── e1/
-│           │   ├── summary.xml
-│           │   └── tripinfo.xml
-│           ├── sim_with_implemented_control/  ✏️ (event + real control)
-│           │   ├── simulation.sumocfg
-│           │   ├── scenario_accident_vss_12547.add.xml  ✏️ (copied)
-│           │   ├── TAZ_6.add.xml
-│           │   ├── e1/
-│           │   └── ...
-│           └── sim_with_option_control_vss/  ✏️ (event + alternative)
-│               ├── simulation.sumocfg
-│               ├── scenario_accident_vss_12547.add.xml
-│               ├── TAZ_6.add.xml
-│               ├── e1/
-│               └── ...
+│       ├── sim_1028_093903_micro/  ← Existing regular simulations
+│       ├── scenario_12547_baseline/  ✏️ NEW (event scenario: baseline)
+│       │   ├── simulation.sumocfg  ✏️ (relative paths only)
+│       │   ├── simulation_metadata.json  ✏️ (with scenario_group: "12547")
+│       │   ├── TAZ_6.add.xml  ✏️ (copied here)
+│       │   ├── e1/  ✏️ (e1 detector outputs)
+│       │   ├── summary.xml
+│       │   ├── tripinfo.xml
+│       │   └── progress.json
+│       ├── scenario_12547_with_event/  ✏️ NEW (event only, no control)
+│       │   ├── simulation.sumocfg  ✏️ (relative paths)
+│       │   ├── scenario_accident_event_12547.add.xml  ✏️ (copied)
+│       │   ├── TAZ_6.add.xml  ✏️ (copied)
+│       │   ├── e1/
+│       │   ├── summary.xml
+│       │   └── tripinfo.xml
+│       ├── scenario_12547_vss/  ✏️ NEW (event + VSS control)
+│       │   ├── simulation.sumocfg
+│       │   ├── scenario_accident_vss_12547.add.xml  ✏️ (copied)
+│       │   ├── TAZ_6.add.xml
+│       │   ├── e1/
+│       │   └── ...
+│       └── scenario_12547_dhs/  ✏️ NEW (event + DHS control)
+│           ├── simulation.sumocfg
+│           ├── scenario_accident_dhs_12547.add.xml
+│           ├── TAZ_6.add.xml
+│           ├── e1/
+│           └── ...
 ```
+
+**Naming Convention** ✏️:
+- Regular simulations: `sim_{timestamp}_{type}/` (existing pattern)
+- Event scenario simulations: `scenario_{event_id}_{variant}/`
+  - `scenario_{id}_baseline` - No event, no control (baseline comparison)
+  - `scenario_{id}_with_event` - Event only, no control
+  - `scenario_{id}_{strategy}` - Event + control strategy (vss/dhs/tec)
+
+**Benefits** ✅:
+- ✅ Flat structure maintains compatibility with existing simulation listing
+- ✅ Naming convention clearly distinguishes scenario simulations
+- ✅ `simulation_metadata.json` includes `scenario_group` field to link related simulations
+- ✅ No changes needed to existing API/UI code
 
 **Key Principles** ✅:
 1. ✅ **No Chinese in .add.xml filenames** (SUMO compatibility)

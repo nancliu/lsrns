@@ -1,0 +1,36 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-2000000363"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-10-07 14:05:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "183809",
+      "555",
+      "183"
+    ],
+    "control_range": "nan",
+    "control_measure": "麻城站、赤水河站、摩尼站入口往泸州方向关闭",
+    "affected_edges": [
+      "-5670|-3000000312"
+    ],
+    "affected_lanes": [
+      "-5670|-3000000312_1",
+      "-5670|-3000000312_0",
+      "-5670|-3000000312_2"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-10-07 14:09:18",
+    "deactivation_time": "2025-10-07 14:45:41",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

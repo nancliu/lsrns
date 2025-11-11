@@ -1,0 +1,17 @@
+{
+  "od_time_range": {
+    "start": "2025-08-13 16:02:26",
+    "end": "2025-08-13 19:20:26",
+    "event_start": "2025-08-13 16:32:26",
+    "event_end": "2025-08-13 18:50:26",
+    "buffer_before_minutes": 30,
+    "buffer_after_minutes": 30
+  },
+  "od_table": "baseline.od_data_sichuan_202508",
+  "simulation_duration_hours": 3.3,
+  "vehicle_types": [
+    "passenger",
+    "truck",
+    "bus"
+  ]
+}

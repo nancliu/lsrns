@@ -387,10 +387,13 @@ POST /api/v1/control/plan/create
 
 **⚠️ 架构更新 (2025-11-11)**:
 - ✅ 场景库仅存储场景定义（不含仿真配置和结果）
-- ✅ 仿真执行移至cases分支（`cases/xxx/simulations/scenario_sim_xxx/`）
+- ✅ 场景库是只读的（不包含 .sumocfg 文件和 results/ 目录）
+- ✅ 仿真执行移至cases分支，使用**扁平结构**（`cases/{case_id}/simulations/scenario_{event_id}_{variant}/`）
+- ✅ 命名约定区分场景模拟：`scenario_{id}_{variant}/` vs 常规模拟 `sim_{timestamp}_{type}/`
+- ✅ metadata包含 `scenario_group` 字段用于关联同一事件的多个场景
 - ✅ 文件命名仅用英文（SUMO兼容性）
 - ✅ 每个场景独立metadata文件
-- 📄 详见: `openspec/changes/add-event-scenario-sumo-configuration/ARCHITECTURE_SUMMARY_ZH.md`
+- 📄 详见: `openspec/changes/add-event-scenario-sumo-configuration/ARCHITECTURE_CORRECTION.md`
 
 ---
 
@@ -450,23 +453,47 @@ scenario_{event_type}_{strategy}_{event_id}.add.xml
 - scenario_congestion_tec_12837.add.xml
 ```
 
-**仿真执行位置** (Cases分支):
+**仿真执行位置** (Cases分支 - 扁平结构):
+
+**⚠️ 重要**: 使用扁平结构以保持与现有API的兼容性
+
 ```
-cases/case_xxx/simulations/scenario_sim_12547/
-├── sim_baseline/               # 无事件无控制
-│   ├── simulation.sumocfg      # 使用相对路径
-│   ├── TAZ_6.add.xml          # 从config/复制
-│   ├── e1/                     # E1检测器输出
-│   ├── summary.xml             # 直接存放，无results/子目录
-│   └── tripinfo.xml
-├── sim_with_event/             # 仅事件
+cases/{case_id}/simulations/
+├── sim_1028_093903_micro/          # 现有常规仿真（保持不变）
+├── scenario_12547_baseline/        # 场景仿真: 基线（无事件、无管控）
+│   ├── simulation.sumocfg          # SUMO配置（应用场景时生成）
+│   ├── TAZ_6.add.xml              # 从config/复制
+│   ├── e1/                         # E1检测器输出
+│   ├── summary.xml                 # 直接存放，无results/子目录
+│   ├── tripinfo.xml
+│   └── simulation_metadata.json    # 包含 scenario_group: "12547"
+├── scenario_12547_with_event/      # 场景仿真: 仅事件（无管控）
 │   ├── simulation.sumocfg
 │   ├── scenario_accident_event_12547.add.xml  # 从场景库复制
 │   ├── TAZ_6.add.xml
-│   └── e1/
-├── sim_with_implemented_control/  # 事件+实际控制
-└── sim_with_option_control_vss/   # 事件+备选控制
+│   ├── e1/
+│   └── simulation_metadata.json    # 包含 scenario_group: "12547"
+├── scenario_12547_vss/             # 场景仿真: 事件+VSS管控
+│   ├── simulation.sumocfg
+│   ├── scenario_accident_vss_12547.add.xml  # 从场景库复制
+│   ├── TAZ_6.add.xml
+│   ├── e1/
+│   └── simulation_metadata.json    # 包含 scenario_group: "12547"
+└── simulations_index.json
 ```
+
+**命名约定**:
+- 常规仿真: `sim_{timestamp}_{type}/` (现有模式)
+- 场景仿真: `scenario_{event_id}_{variant}/`
+  - `scenario_{id}_baseline` - 基线（无事件、无管控）
+  - `scenario_{id}_with_event` - 仅事件（无管控）
+  - `scenario_{id}_{strategy}` - 事件+管控策略 (vss/dhs/tec)
+
+**关键设计**:
+- ✅ 扁平结构保持现有API兼容性（`api/services/simulation_service.py` 不需修改）
+- ✅ 命名约定清晰区分场景仿真和常规仿真
+- ✅ `scenario_group` 元数据字段关联同一事件的多个变体
+- ✅ 每个目录都是独立可运行的仿真
 
 ### 场景元数据索引
 
@@ -2805,6 +2832,59 @@ Day 3: 决策建议和测试
 
 ---
 
+## 📌 架构修正总结 (2025-11-11)
+
+### 关键架构决策
+
+**AD-6: 只读场景库，不含SUMO配置**
+- **决策**: 场景库 (`output/scenarios/`) 是只读的，仅包含场景定义，不包含 .sumocfg 文件
+- **原因**: 场景库是可复用的模板，SUMO配置在应用场景到cases时生成
+- **影响**: 场景库更简洁，维护性更好
+
+**AD-7: 扁平结构在Cases分支**
+- **决策**: 使用扁平目录结构 `cases/{case_id}/simulations/scenario_{event_id}_{variant}/`
+- **原因**: 保持与现有API兼容，避免破坏性变更
+- **替代方案**: 嵌套结构 `simulations/scenario_sim_12547/sim_baseline/` (已拒绝，会破坏现有功能)
+
+### 场景库结构 (只读)
+
+```
+output/scenarios/01_accident/scenario_12547_vss/
+├── scenario_accident_vss_12547.add.xml  # SUMO定义
+├── event_description.json                # 事件元数据
+├── traffic_input_config.json             # OD时间范围
+└── control_strategy_config.json          # 管控参数
+```
+
+**不包含**: simulation.sumocfg, results/ 目录
+
+### Cases分支结构 (扁平)
+
+```
+cases/{case_id}/simulations/
+├── sim_1028_093903_micro/       # 常规仿真 (现有)
+├── scenario_12547_baseline/     # 场景仿真: 基线
+├── scenario_12547_with_event/   # 场景仿真: 仅事件
+└── scenario_12547_vss/          # 场景仿真: 事件+VSS
+```
+
+**命名约定**:
+- 常规: `sim_{timestamp}_{type}/`
+- 场景: `scenario_{event_id}_{variant}/`
+
+**关联机制**: `simulation_metadata.json` 包含 `scenario_group` 字段
+
+### 兼容性保证
+
+- ✅ 现有仿真列表API无需修改
+- ✅ 现有UI页面无需修改
+- ✅ 扁平结构保持单层迭代
+- ✅ 命名约定清晰区分模拟类型
+
+**参考文档**: `openspec/changes/add-event-scenario-sumo-configuration/ARCHITECTURE_CORRECTION.md`
+
+---
+
 ## 📌 两层分析架构总结
 
 本系统采用**Layer 1 + Layer 2两层分析架构**，与管控方案分析体系保持一致：
@@ -2828,8 +2908,16 @@ Day 3: 决策建议和测试
 
 ---
 
-**文档版本**: v4.0 (两层分析架构版)
+**文档版本**: v4.1 (架构修正版 - 扁平结构)
 
-**最后更新**: 2025-01-10
+**最后更新**: 2025-11-11
+
+**关键更新**:
+- ✅ 架构修正: 场景库只读，不含.sumocfg文件
+- ✅ Cases分支使用扁平结构 (scenario_{id}_{variant}/)
+- ✅ 保持API兼容性，零破坏性变更
+- ✅ 添加架构修正总结章节
 
 **维护者**: OD_SIM 开发组
+
+**架构参考**: `openspec/changes/add-event-scenario-sumo-configuration/ARCHITECTURE_CORRECTION.md`

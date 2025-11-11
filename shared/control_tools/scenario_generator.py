@@ -179,8 +179,12 @@ class ScenarioGenerator:
         # Get directory name with numeric prefix (e.g., "01_accident")
         event_dir = get_event_directory_name(event_type_en)
 
-        # Create unique scenario directory: {event_dir}/scenario_{event_id}_{strategy}/
-        scenario_instance_dir = f"scenario_{event_id}_{strategy.lower()}"
+        # Create unique scenario directory
+        # NO_CONTROL strategy uses "no_control" as directory name
+        if strategy.upper() == "NO_CONTROL":
+            scenario_instance_dir = f"scenario_{event_id}_no_control"
+        else:
+            scenario_instance_dir = f"scenario_{event_id}_{strategy.lower()}"
 
         return self.output_base_dir / event_dir / scenario_instance_dir
 
@@ -206,7 +210,13 @@ class ScenarioGenerator:
         """
         # Convert event type to English for filename
         event_type_en = get_event_type_english(event_data['event_type'])
-        filename = f"scenario_{event_type_en}_{strategy_type.lower()}_{event_data['report_id']}.add.xml"
+
+        # Handle NO_CONTROL strategy (event-only baseline)
+        if strategy_type.upper() == "NO_CONTROL":
+            filename = f"scenario_{event_type_en}_event_{event_data['report_id']}.add.xml"
+        else:
+            filename = f"scenario_{event_type_en}_{strategy_type.lower()}_{event_data['report_id']}.add.xml"
+
         xml_path = scenario_dir / filename
 
         # 1. Generate event injection XML
@@ -216,9 +226,9 @@ class ScenarioGenerator:
         )
         event_xml = event_injector.generate_xml(event_data)
 
-        # 2. Generate control strategy XML (if control_params provided)
+        # 2. Generate control strategy XML (if control_params provided and not NO_CONTROL)
         control_xml = ""
-        if control_params:
+        if control_params and strategy_type.upper() != "NO_CONTROL":
             # Create minimal template structure for additional_generator
             template = {
                 "strategy_type": strategy_type,

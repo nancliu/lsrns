@@ -1,0 +1,39 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-13370",
+      "-9070",
+      "-3802",
+      "-11410"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-10-08 18:10:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "246",
+      "247",
+      "249",
+      "250"
+    ],
+    "control_range": "nan",
+    "control_measure": "因处置绵广向K1607交通事故，现江油站至小溪坝站入口广元方向封闭。",
+    "affected_edges": [
+      "-1062"
+    ],
+    "affected_lanes": [
+      "-1062_1",
+      "-1062_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-10-08 18:14:11",
+    "deactivation_time": "2025-10-08 19:00:55",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-11410",
+      "-6364"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "activation_time": "2025-07-17 19:35:00",
+    "deactivation_time": null,
+    "toll_station_ids": [
+      "250",
+      "255"
+    ],
+    "control_range": "小溪坝站 到 厚坝站",
+    "control_measure": "因大雨天气，现小溪坝站、厚坝站入口广元方向封闭",
+    "affected_edges": [
+      "-12700"
+    ],
+    "affected_lanes": [
+      "-12700_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-07-17 19:40:02",
+    "deactivation_time": "2025-07-17 20:34:58",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

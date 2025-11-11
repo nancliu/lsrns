@@ -1,29 +1,50 @@
 """
 Event Scenario SUMO Configuration Generator (Phase 5)
 
-Generates .sumocfg files for event scenarios to enable SUMO simulation execution.
+⚠️ DEPRECATED FOR SCENARIO LIBRARY: This module should NOT be used to generate
+   .sumocfg files in the scenario library (output/scenarios/). According to
+   ARCHITECTURE_CHANGES.md, scenario library is read-only and contains only
+   scenario definitions.
+
+CORRECT USAGE (Cases Workflow):
+   This module should be refactored to generate .sumocfg files when creating
+   case simulations in the cases branch:
+
+   Location: cases/{case_id}/simulations/scenario_{event_id}_{variant}/simulation.sumocfg
+
+   Naming Convention (Flat Structure):
+   - scenario_{id}_baseline/     - No event, no control (baseline)
+   - scenario_{id}_with_event/   - Event only, no control
+   - scenario_{id}_vss/          - Event + VSS control
+   - scenario_{id}_dhs/          - Event + DHS control
+   - scenario_{id}_tec/          - Event + TEC control
+
+   Requirements:
+   - Use relative paths only (no absolute paths)
+   - Copy .add.xml files to simulation directory
+   - Follow existing cases structure (no results/ subdirectory)
+   - E1 detector outputs in e1/ subdirectory
+   - Add scenario_group field to simulation_metadata.json
 
 Purpose:
-- Creates SUMO configuration files for each generated event scenario
-- Integrates scenario metadata (event, control strategy) with SUMO requirements
-- Organizes simulation results in structured directories
+- Creates SUMO configuration files for simulation execution
+- Integrates scenario definitions with case-specific inputs
+- Configures output files (summary, tripinfo, vehroute, e1)
 
-Design Principles:
-1. Scenarios remain in output/scenarios/ (generated in Phase 1)
-2. SUMO configs generated in output/scenarios/{event_type}/{strategy}/{scenario_dir}/
-3. Results saved to output/scenarios/{event_type}/{strategy}/{scenario_dir}/results/
-4. Copy .add.xml and metadata to case library for case management integration
-5. Support batch generation and individual scenario processing
+Design Principles (CORRECTED):
+1. Scenario library (output/scenarios/) is read-only (NO .sumocfg)
+2. SUMO configs generated in cases/{case_id}/simulations/scenario_{id}_{variant}/
+3. Flat structure maintains compatibility with existing simulation listing
+4. Relative paths for network, routes, and additional files
+5. Files directly in scenario_{id}_{variant}/ (no results/ subdirectory)
+6. E1 detector outputs in scenario_{id}_{variant}/e1/ subdirectory
+7. simulation_metadata.json includes scenario_group field for grouping
 
-Architecture:
-- Uses existing network file from templates/
-- Leverages traffic_input_config.json for timing/duration
-- Integrates event and control strategy metadata
-- Follows existing SUMO configuration patterns
+TODO: Refactor this module for cases workflow
 
 Author: AI Assistant
-Created: 2025-11-11
-Version: 1.0.0
+Created: 2025-11-11 (Updated: 2025-11-11)
+Version: 1.0.0 (DEPRECATED for scenario library)
 """
 
 import json

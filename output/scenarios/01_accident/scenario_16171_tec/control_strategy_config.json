@@ -1,0 +1,26 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "flow_reduction": 0.4,
+    "entrance_edges": [
+      "-8254"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600,
+    "csv_control": false,
+    "affected_edges": [
+      "-8254"
+    ],
+    "affected_lanes": [
+      "-8254_0",
+      "-8254_1"
+    ]
+  },
+  "timing": {
+    "activation_time": "2025-09-09 21:03:59",
+    "deactivation_time": "2025-09-09 21:53:09",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

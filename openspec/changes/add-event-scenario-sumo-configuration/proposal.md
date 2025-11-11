@@ -49,6 +49,8 @@ Extend the existing `shared/control_tools/additional_generator.py` framework to 
 
 ## Scope
 
+⚠️ **ARCHITECTURE CORRECTION (2025-11-11)**: This proposal originally included SUMO configuration file (.sumocfg) generation in scenario library. Architecture has been corrected to use flat structure in cases branch. See ARCHITECTURE_CORRECTION.md for details.
+
 ### In Scope
 
 **Core Capabilities**:
@@ -57,6 +59,8 @@ Extend the existing `shared/control_tools/additional_generator.py` framework to 
 2. Generate combined scenario `.add.xml` files (event + control strategy)
 3. Validate scenario SUMO XML against SUMO schema
 4. Integration with scenario generation script workflow
+5. **✏️ Read-only scenario library** (definitions only, no .sumocfg files)
+6. **✏️ Flat structure in cases branch** (scenario_{id}_{variant}/ simulations)
 
 **Event Types Supported** (Phase 1):
 
@@ -70,12 +74,41 @@ Extend the existing `shared/control_tools/additional_generator.py` framework to 
 - DHS (Dynamic Hard Shoulder) → `rerouter` with lane change
 - TEC (Toll Entrance Control) → `calibrator`
 
+**Directory Structure Decisions** ✏️:
+
+**Scenario Library** (Read-Only):
+```
+output/scenarios/01_交通事故/scenario_12547_no_control/
+├── scenario_accident_event_12547.add.xml
+├── event_description.json
+├── traffic_input_config.json
+└── control_strategy_config.json
+```
+- ✅ Scenario definitions (4 files per scenario)
+- ❌ NO simulation.sumocfg files
+- ❌ NO results/ directories
+
+**Cases Branch** (Flat Structure):
+```
+cases/{case_id}/simulations/
+├── sim_1028_093903_micro/       ← Regular simulations
+├── scenario_12547_baseline/     ← Event scenario: baseline
+├── scenario_12547_with_event/   ← Event scenario: event only
+├── scenario_12547_vss/          ← Event scenario: event + VSS
+└── simulations_index.json
+```
+- ✅ Flat structure maintains API compatibility
+- ✅ Naming convention distinguishes scenario simulations
+- ✅ simulation.sumocfg generated when applying scenario to case
+- ✅ simulation_metadata.json includes scenario_group field
+
 ### Out of Scope
 
 - Event type-specific simulation parameters beyond lane closure
 - Advanced event modeling (weather, visibility reduction)
 - Dynamic event parameter adjustment during simulation
 - Event cascading or multi-event scenarios
+- **SUMO configuration file generation in scenario library** ✏️ (moved to cases workflow)
 
 ### Dependencies
 
@@ -87,6 +120,115 @@ Extend the existing `shared/control_tools/additional_generator.py` framework to 
 **New Capability**:
 
 - `event-scenario-generation` - Event injection and scenario configuration
+
+---
+
+## Phase 2: Scenario-to-Case Mapping System (2025-11-11)
+
+**New Scope Addition**: Build automated system to convert scenario library to executable cases with SUMO configurations.
+
+### Key Decisions for Phase 2 Implementation
+
+**5 Critical Decisions for Scenario→Case Workflow** (Confirmed 2025-11-11):
+
+#### Decision 1: Case-Scenario Relationship Model
+**✅ Approved**: **1:1 Strong Binding**
+- One case corresponds to exactly one scenario variant
+- Single event with 3 variants (no_control, vss, tec) → 3 independent cases
+- `case.metadata.source_scenario_id` uniquely identifies origin
+- Simplifies API and data consistency
+
+#### Decision 2: Configuration Override Policy
+**✅ Approved**: **Scene-Level Locked / Simulation-Level Flexible**
+
+**Immutable Fields** (Cannot modify after case creation from scenario):
+```python
+[
+  "event_id",              # Event source
+  "event_type",            # Event classification
+  "location",              # Position/road/edge_id
+  "affected_edges",        # Impact area
+  "control_strategy_type"  # Strategy type
+]
+```
+
+**Overridable Fields** (User can customize for specific simulation):
+```python
+{
+  "simulation_duration_hours": "OPTIONAL",    # Modify simulation window
+  "random_seed": "OPTIONAL",                  # For reproducibility
+  "output_config": {
+    "generate_edgedata": "REQUIRED",          # ⭐ MUST be enabled
+    "generate_summary": "OPTIONAL",
+    "generate_tripinfo": "OPTIONAL",
+    "generate_vehroute": "OPTIONAL"
+  }
+}
+```
+
+**Rationale**: Ensures scenario integrity while allowing simulation flexibility. EdgeData output is mandatory for analysis.
+
+#### Decision 3: Batch Execution Concurrency
+**✅ Approved**: **Configurable (2-8 workers, default 4)**
+- Adapts to hardware capabilities
+- 2-core: 2 workers
+- 4-core: 4 workers (recommended)
+- 8-core+: 6-8 workers
+- Configurable via API parameter: `parallel_workers`
+
+#### Decision 4: Analysis Automation Strategy
+**✅ Approved**: **Post-Simulation Manual Analysis with EdgeData Focus**
+- **Automatic on completion**: Basic summary.json from summary.xml
+- **On-demand manual**: EdgeData analysis (primary analysis type)
+- **On-demand manual**: TripInfo analysis (optional, optional secondary)
+- **Architecture**: Reuse summary.xml, edgedata.xml, tripinfo.xml from SUMO results
+
+**Why EdgeData as Primary Analysis?**
+- Clear spatial impact visualization (affected edges)
+- Intuitive control strategy effectiveness evaluation
+- Excellent for "incident location impact" assessment
+- Supports heat maps and spatiotemporal evolution charts
+
+#### Decision 5: Result Retention Policy
+**✅ Approved**: **No Auto-Cleanup, Manual Management**
+- All simulation results preserved permanently in case directories
+- User manually deletes unnecessary cases via API
+- No time-based or size-based auto-cleanup
+- Add storage usage tracking/monitoring API
+
+### Phase 2 Implementation Plan
+
+**Immediate Actions** (Based on above decisions):
+
+1. **ScenarioService Creation**
+   - List scenarios from scenario_index.json
+   - Query scenarios by event_id
+   - Create case from scenario (with decision-enforced configuration)
+
+2. **API Endpoints** (New)
+   ```
+   GET  /api/v1/scenario/list
+   GET  /api/v1/scenario/{event_id}
+   POST /api/v1/scenario/create-case
+   POST /api/v1/batch-scenarios/create-and-simulate
+   ```
+
+3. **Case Creation Workflow**
+   - Load scenario definition from output/scenarios/
+   - Apply immutable fields to case.metadata
+   - Enforce edgedata output requirement
+   - Generate SUMO sumocfg when case is applied
+
+4. **Batch Simulation**
+   - Support parallel execution (configurable workers)
+   - Real-time progress monitoring
+   - Auto-retry on failure
+   - Result aggregation
+
+5. **EdgeData Analysis** (Post-Phase 1)
+   - Extract impact area from edgedata.xml
+   - Compare baseline vs control strategies
+   - Generate control effectiveness metrics
 
 ---
 
@@ -231,13 +373,20 @@ scenario_files = generate_event_scenario_config(
 - `event_injector.py`: Generates event injection XML
 - Reuses `additional_generator.py`: Control strategy XML
 
-**Output**: Scenario files per event-strategy pair
+**Output**: Scenario files per event-strategy pair ✏️
 
+**Scenario Library** (Read-Only):
 - `scenario_{id}.add.xml` - SUMO additional file (event + control XML)
 - `event_description.json` - Event metadata and characteristics
 - `traffic_input_config.json` - OD data time range and source configuration
 - `control_strategy_config.json` - Control strategy parameters (if applicable)
 - `scenario_index.json` - Global index of all scenarios (one per library)
+
+**Cases Branch** (Generated When Applying Scenario):
+- `simulation.sumocfg` - SUMO configuration file (NOT in scenario library)
+- `simulation_metadata.json` - Includes scenario_group field for grouping
+- Copied `.add.xml` files from scenario library
+- Output directories (e1/, results/) created during execution
 
 ### Data Flow
 
@@ -322,6 +471,34 @@ output/scenarios/
   - **Integration**: Batch simulation API needs traffic input time range to fetch correct OD data
   - **Analysis**: Event impact analysis requires event metadata to compute baselines
 - **Alternative**: Single combined JSON (rejected, separates concerns and reuses existing patterns)
+
+**AD-6**: **Read-Only Scenario Library, No SUMO Configs** ✏️ (2025-11-11)
+
+- **Decision**: Scenario library (`output/scenarios/`) is read-only and contains only scenario definitions. SUMO configuration files (`.sumocfg`) are NOT generated in scenario library.
+- **Rationale**:
+  - **Separation of concerns**: Library stores definitions, cases branch stores execution instances
+  - **Reusability**: Same scenario can be applied to multiple cases with different parameters
+  - **Maintainability**: No need to regenerate .sumocfg files when network or simulation parameters change
+  - **Consistency**: Follows existing cases workflow pattern
+- **Alternative**: Generate .sumocfg in scenario library (rejected, violates read-only library principle)
+- **Reference**: See ARCHITECTURE_CORRECTION.md for detailed analysis
+
+**AD-7**: **Flat Structure for Event Scenario Simulations in Cases** ✏️ (2025-11-11)
+
+- **Decision**: Use flat directory structure in `cases/{case_id}/simulations/` with naming convention `scenario_{event_id}_{variant}/` to distinguish event scenario simulations from regular simulations.
+- **Rationale**:
+  - **API compatibility**: Existing simulation listing API expects flat structure where each directory is a runnable simulation
+  - **Zero breaking changes**: No refactoring of existing code required
+  - **Clear identification**: Naming convention (scenario_* vs sim_*) clearly distinguishes simulation types
+  - **Metadata-based grouping**: `scenario_group` field in simulation_metadata.json links related simulations
+- **Alternative**: Nested structure `simulations/scenario_sim_12547/sim_baseline/` (rejected, would break existing functionality)
+- **Naming Convention**:
+  - Regular simulations: `sim_{timestamp}_{type}/` (existing pattern)
+  - Event scenario simulations: `scenario_{event_id}_{variant}/`
+    - `scenario_{id}_baseline` - No event, no control (baseline comparison)
+    - `scenario_{id}_with_event` - Event only, no control
+    - `scenario_{id}_{strategy}` - Event + control strategy (vss/dhs/tec)
+- **Reference**: See ARCHITECTURE_CORRECTION.md for comparison with nested structure
 
 **Traffic Input Time Range Calculation**:
 
