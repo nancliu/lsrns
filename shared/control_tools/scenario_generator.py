@@ -28,6 +28,62 @@ from .additional_generator import generate_strategy_xml
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# Event Type Mapping Layer (Architecture Update 2025-11-11)
+# ============================================================================
+
+# Event type Chinese to English mapping
+EVENT_TYPE_MAPPING = {
+    "交通事故": "accident",
+    "交通阻塞": "congestion",
+    "交通管制": "road_control",
+    "地质灾害": "geological",
+    "车辆故障": "breakdown",
+    "恶劣天气": "weather"
+}
+
+# Directory name mapping with numeric prefixes
+EVENT_TYPE_DIRECTORIES = {
+    "accident": "01_accident",
+    "congestion": "02_congestion",
+    "road_control": "03_road_control",
+    "geological": "04_geological",
+    "breakdown": "05_breakdown",
+    "weather": "06_weather"
+}
+
+
+def get_event_type_english(chinese_name: str) -> str:
+    """
+    Convert Chinese event type to English identifier.
+
+    Args:
+        chinese_name: Chinese event type name (e.g., "交通事故")
+
+    Returns:
+        English event type identifier (e.g., "accident")
+        Falls back to input if not found in mapping
+    """
+    return EVENT_TYPE_MAPPING.get(chinese_name, chinese_name)
+
+
+def get_event_directory_name(event_type: str) -> str:
+    """
+    Get directory name for event type (with numeric prefix).
+
+    Args:
+        event_type: Event type in English (e.g., "accident")
+
+    Returns:
+        Directory name (e.g., "01_accident")
+        Falls back to "99_{event_type}" if not found
+    """
+    return EVENT_TYPE_DIRECTORIES.get(event_type, f"99_{event_type}")
+
+
+# ============================================================================
+
+
 class ScenarioGenerator:
     """Generates complete event scenario configuration bundles"""
 
@@ -102,30 +158,28 @@ class ScenarioGenerator:
     def _generate_scenario_path(self, event_type: str, strategy: str,
                                 event_id: str) -> Path:
         """
-        Generate scenario directory path.
+        Generate scenario directory path using English naming convention.
 
         Each scenario instance (event + strategy) gets its own directory.
 
+        Architecture Update (2025-11-11): Now uses English directory names
+        for SUMO compatibility (e.g., "01_accident" instead of "01_交通事故").
+
         Args:
-            event_type: Event type (交通事故, etc.)
+            event_type: Event type (Chinese, e.g., "交通事故")
             strategy: Strategy type (VSS, DHS, TEC)
             event_id: Event report ID
 
         Returns:
-            Path to scenario directory
+            Path to scenario directory (e.g., output/scenarios/01_accident/scenario_12547_vss/)
         """
-        # Event type to directory name mapping (all 6 event types)
-        event_type_dirs = {
-            "交通事故": "01_交通事故",
-            "交通阻塞": "02_交通阻塞_流量激增",
-            "交通管制": "03_交通管制",
-            "地质灾害": "04_地质灾害",
-            "车辆故障": "05_车辆故障",
-            "恶劣天气": "06_恶劣天气",
-        }
-        event_dir = event_type_dirs.get(event_type, event_type)
+        # Convert Chinese event type to English
+        event_type_en = get_event_type_english(event_type)
 
-        # Create unique scenario directory: event_type/scenario_{event_id}_{strategy}/
+        # Get directory name with numeric prefix (e.g., "01_accident")
+        event_dir = get_event_directory_name(event_type_en)
+
+        # Create unique scenario directory: {event_dir}/scenario_{event_id}_{strategy}/
         scenario_instance_dir = f"scenario_{event_id}_{strategy.lower()}"
 
         return self.output_base_dir / event_dir / scenario_instance_dir
@@ -138,6 +192,9 @@ class ScenarioGenerator:
         Combines event injection XML and control strategy XML into a single
         SUMO additional file.
 
+        Architecture Update (2025-11-11): Filenames now use English event types
+        for SUMO compatibility (e.g., "scenario_accident_vss_12547.add.xml").
+
         Args:
             scenario_dir: Directory to save the file
             event_data: Event data dictionary
@@ -147,7 +204,9 @@ class ScenarioGenerator:
         Returns:
             Path to generated .add.xml file
         """
-        filename = f"scenario_{event_data['event_type']}_{strategy_type.lower()}_{event_data['report_id']}.add.xml"
+        # Convert event type to English for filename
+        event_type_en = get_event_type_english(event_data['event_type'])
+        filename = f"scenario_{event_type_en}_{strategy_type.lower()}_{event_data['report_id']}.add.xml"
         xml_path = scenario_dir / filename
 
         # 1. Generate event injection XML
