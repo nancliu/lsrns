@@ -21,6 +21,7 @@ from .control_strategy_routes import router as control_router
 from .control_strategy_instance_routes import router as control_instance_router
 from .control_plan_routes import router as control_plan_router
 from .batch_optimization_routes import router as batch_optimization_router
+from .scenario_routes import router as scenario_router
 
 # 创建主路由器
 router = APIRouter()
@@ -29,6 +30,7 @@ router = APIRouter()
 router.include_router(data_router, prefix="/data", tags=["数据处理"])
 router.include_router(simulation_router, prefix="/simulation", tags=["仿真管理"])
 router.include_router(case_router, prefix="/case", tags=["案例管理"])
+router.include_router(scenario_router, tags=["场景管理"])  # 场景路由已包含/scenario前缀
 router.include_router(analysis_router, prefix="/analysis", tags=["结果分析"])
 router.include_router(template_router, prefix="/template", tags=["模板管理"])
 router.include_router(file_router, prefix="/file", tags=["文件管理"])
