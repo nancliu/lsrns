@@ -245,7 +245,30 @@ class SimulationService(BaseService):
                 "taz_files": []
             }
 
-        return {
+        # Phase 2: 提取 source_scenario 用于三级元数据追踪 (Task 1.4)
+        source_scenario = None
+        metadata_version = "1.0"  # 默认 v1.0 (向后兼容)
+
+        try:
+            case_path = Path("cases") / request.case_id
+            case_metadata = MetadataManager.load_case_metadata(case_path)
+
+            # 检测元数据版本 (使用 BaseService 方法)
+            metadata_version = self.detect_metadata_version(case_metadata)
+
+            # 如果是 v2.0 事件场景案例,提取 source_scenario
+            if metadata_version == "2.0" and "source_scenario_id" in case_metadata:
+                source_scenario = {
+                    "scenario_id": case_metadata.get("source_scenario_id"),
+                    "event_id": case_metadata.get("source_event_id"),
+                    "event_type": case_metadata.get("immutable_fields", {}).get("event_type"),
+                    "control_strategy_type": case_metadata.get("immutable_fields", {}).get("strategy")
+                }
+        except Exception:
+            # 如果无法提取,保持 None (向后兼容)
+            pass
+
+        metadata = {
             "simulation_id": simulation_id,
             "case_id": request.case_id,
             "simulation_name": request.simulation_name,
@@ -260,6 +283,14 @@ class SimulationService(BaseService):
             "input_files": input_files,
             "gui": request.gui
         }
+
+        # Phase 2: 添加 v2.0 字段 (如果适用)
+        if metadata_version == "2.0":
+            metadata["metadata_version"] = "2.0"
+            if source_scenario:
+                metadata["source_scenario"] = source_scenario
+
+        return metadata
     
     def _update_case_status(self, case_path: Path, status: CaseStatus) -> None:
         """更新案例状态"""

@@ -32,16 +32,20 @@ class CaseMetadata(BaseModel):
     """案例元数据模型"""
     case_id: str = Field(..., description="案例ID")
     case_name: Optional[str] = Field(None, description="案例名称")
-    created_at: datetime = Field(..., description="创建时间")
-    updated_at: datetime = Field(..., description="更新时间")
-    time_range: Dict[str, str] = Field(..., description="时间范围")
-    config: Dict[str, Any] = Field(..., description="配置参数")
-    status: CaseStatus = Field(..., description="案例状态")
+    created_at: Optional[datetime] = Field(None, description="创建时间")
+    updated_at: Optional[datetime] = Field(None, description="更新时间")
+    time_range: Optional[Dict[str, str]] = Field(None, description="时间范围")
+    config: Optional[Dict[str, Any]] = Field(None, description="配置参数")
+    status: Optional[CaseStatus] = Field(None, description="案例状态")
     description: Optional[str] = Field(None, description="案例描述")
     statistics: Optional[Dict[str, Any]] = Field(None, description="统计信息")
     files: Optional[Dict[str, str]] = Field(None, description="文件路径")
     simulations: Optional[List["SimulationResult"]] = Field([], description="仿真结果列表")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果摘要（accuracy/mechanism/performance 最新产物信息）")
+    source_type: Optional[str] = Field(
+        default="od_extraction",
+        description="案例来源类型: od_extraction | event_scenario"
+    )
 
 
 # 延迟导入和模型重建

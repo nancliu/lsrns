@@ -229,18 +229,34 @@ async function loadCases() {
         const select = document.getElementById('caseSelector');
         select.innerHTML = '<option value="">-- 选择案例 --</option>';
 
-        data.cases.forEach(c => {
+        // Phase 2: 过滤掉事件场景案例 - 管控仿真仅支持OD提取案例
+        const filteredCases = data.cases.filter(c => {
+            const sourceType = c.source_type || 'od_extraction';
+            return sourceType !== 'event_scenario';
+        });
+
+        if (filteredCases.length === 0 && data.cases.length > 0) {
+            const msg = '所有案例都是事件场景案例，不支持此工作流。请使用OD提取的案例。';
+            console.warn(msg);
+            const option = document.createElement('option');
+            option.disabled = true;
+            option.textContent = msg;
+            select.appendChild(option);
+            return;
+        }
+
+        filteredCases.forEach(c => {
             const option = document.createElement('option');
             option.value = c.case_id;
 
             // Revision 4: 在案例列表中显示时间范围信息 (Revision 6: 显示完整日期时间)
             let displayText = c.case_id;
-            
+
             // 当案例名称存在且与案例ID不同时，显示案例名称
             if (c.case_name && c.case_name !== c.case_id) {
                 displayText += ` - ${c.case_name}`;
             }
-            
+
             if (c.time_range && c.time_range.start && c.time_range.end) {
                 // 显示完整的日期时间范围：2025/09/01 07:00:00-2025/09/01 07:10:00
                 displayText += ` - 案例时间: ${c.time_range.start}-${c.time_range.end}`;

@@ -75,6 +75,69 @@ def save_sumocfg(config_content: str, config_file: str) -> bool:
 	return True
 
 
+def validate_sumocfg_paths(sumocfg_path: Path) -> tuple[bool, list[str]]:
+	"""
+	验证 sumocfg 文件中的所有路径是否可达 (Task 2.1 - Week 2 Phase 2)
+
+	Args:
+		sumocfg_path: sumocfg 文件路径
+
+	Returns:
+		(is_valid, error_list): 验证结果和错误列表
+
+	Design: AD-13 - 可移植配置验证
+	"""
+	import xml.etree.ElementTree as ET
+
+	errors = []
+
+	if not sumocfg_path.exists():
+		return False, [f"sumocfg file not found: {sumocfg_path}"]
+
+	try:
+		tree = ET.parse(sumocfg_path)
+		root = tree.getroot()
+
+		sumocfg_dir = sumocfg_path.parent
+
+		# 验证 net-file
+		net_elem = root.find(".//net-file")
+		if net_elem is not None:
+			net_path = sumocfg_dir / net_elem.get("value", "")
+			if not net_path.exists():
+				errors.append(f"Network file not found: {net_path}")
+
+		# 验证 route-files
+		route_elem = root.find(".//route-files")
+		if route_elem is not None:
+			route_value = route_elem.get("value", "")
+			for route_file in route_value.split(","):
+				route_file = route_file.strip()
+				if route_file:
+					route_path = sumocfg_dir / route_file
+					if not route_path.exists():
+						errors.append(f"Route file not found: {route_path}")
+
+		# 验证 additional-files
+		add_elem = root.find(".//additional-files")
+		if add_elem is not None:
+			add_value = add_elem.get("value", "")
+			for add_file in add_value.split(","):
+				add_file = add_file.strip()
+				if add_file:
+					add_path = sumocfg_dir / add_file
+					if not add_path.exists():
+						errors.append(f"Additional file not found: {add_path}")
+
+		if errors:
+			return False, errors
+
+		return True, []
+
+	except Exception as e:
+		return False, [f"Failed to parse sumocfg: {str(e)}"]
+
+
 def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simulation_folder: Path, case_root: Path, simulation_params: dict | None = None) -> str:
 	"""
 	为仿真运行生成sumocfg配置文件

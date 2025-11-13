@@ -60,6 +60,13 @@ from .batch_optimization_service import (
     delete_batch_service,
 )
 
+# Phase 2 服务 (Week 1 基础设施)
+from .simulation_orchestrator import SimulationOrchestrator, get_simulation_orchestrator
+from .analysis_orchestration_service import AnalysisOrchestrationService
+
+# Task 1.1: 创建全局 SimulationOrchestrator 单例
+simulation_orchestrator = get_simulation_orchestrator()
+
 # 导出所有服务函数，保持原有导入方式不变
 __all__ = [
     # 数据处理服务
@@ -100,4 +107,10 @@ __all__ = [
     "get_batch_results_service",
     "cancel_batch_service",
     "delete_batch_service",
+
+    # Phase 2 编排服务 (Week 1)
+    "SimulationOrchestrator",
+    "get_simulation_orchestrator",
+    "simulation_orchestrator",
+    "AnalysisOrchestrationService",
 ]

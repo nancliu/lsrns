@@ -2,10 +2,13 @@
 案例管理服务 - 负责案例的CRUD操作和管理
 """
 
+import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 from ..models import (
     CaseCreationRequest, CaseCloneRequest, CaseMetadata,
@@ -109,6 +112,11 @@ class CaseService(BaseService):
             # 转换为CaseMetadata对象
             case_metadata_list = []
             for case_data in page_cases:
+                # Phase 2: 案例来源类型映射
+                # 如果metadata中有case_type字段，将其映射为source_type
+                if 'case_type' in case_data and 'source_type' not in case_data:
+                    case_data['source_type'] = case_data['case_type']
+
                 case_metadata = CaseMetadata(**case_data)
                 case_metadata_list.append(case_metadata)
             
@@ -135,10 +143,16 @@ class CaseService(BaseService):
             case_dir = self.cases_dir / case_id
             if not case_dir.exists():
                 raise Exception(f"案例 {case_id} 不存在")
-            
+
             metadata = MetadataManager.load_case_metadata(case_dir)
+
+            # Phase 2: 案例来源类型映射
+            # 如果metadata中有case_type字段，将其映射为source_type
+            if 'case_type' in metadata and 'source_type' not in metadata:
+                metadata['source_type'] = metadata['case_type']
+
             return CaseMetadata(**metadata)
-            
+
         except Exception as e:
             raise Exception(f"获取案例详情失败: {str(e)}")
     
@@ -211,6 +225,123 @@ class CaseService(BaseService):
         except Exception as e:
             print(f"更新克隆案例元数据失败: {e}")
 
+    async def create_case_from_scenario(self, request: EventScenarioQuickCreateRequest) -> Dict[str, Any]:
+        """
+        从事件场景创建案例 (Task 1.3 - Week 1 Phase 2)
+
+        创建 v2.0 元数据案例:
+        - metadata_version: "2.0"
+        - source_scenario 字段
+        - immutable_fields 和 overridable_fields
+
+        Design Decision Q4: 独立端点 (不修改现有 create_case)
+
+        Args:
+            request: 事件场景快速创建请求
+
+        Returns:
+            包含新创建案例的信息
+
+        Note: 与 quick_create_case_from_event 不同,此方法创建 v2.0 元数据
+        """
+        try:
+            # 生成案例ID
+            case_id = request.case_id or self.generate_unique_id("case")
+
+            # 创建案例目录结构
+            case_dir = DirectoryManager.create_case_structure(case_id)
+
+            # 创建标准子目录
+            self._create_standard_directories(case_dir)
+
+            # 创建 v2.0 元数据 (事件场景案例)
+            metadata = self._create_v2_metadata_from_scenario(case_id, request)
+
+            # 保存元数据
+            MetadataManager.save_case_metadata(case_dir, metadata)
+
+            logger.info(f"创建事件场景案例: {case_id}, 场景: {request.scenario_id}")
+
+            return {
+                "case_id": case_id,
+                "case_dir": str(case_dir),
+                "metadata": metadata,
+                "metadata_version": "2.0"
+            }
+
+        except Exception as e:
+            raise Exception(f"从场景创建案例失败: {str(e)}")
+
+    def _create_v2_metadata_from_scenario(
+        self,
+        case_id: str,
+        request: EventScenarioQuickCreateRequest
+    ) -> Dict[str, Any]:
+        """
+        创建 v2.0 元数据 (事件场景案例)
+
+        Args:
+            case_id: 案例ID
+            request: 事件场景请求
+
+        Returns:
+            v2.0 元数据字典
+
+        Structure (design.md):
+            - metadata_version: "2.0"
+            - source_scenario: {...}
+            - immutable_fields: {...}
+            - overridable_fields: {...}
+        """
+        return {
+            "metadata_version": "2.0",
+            "case_id": case_id,
+            "case_name": request.case_name,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "status": CaseStatus.CREATED.value,
+
+            # 源场景信息 (AD-12: 场景溯源)
+            "source_scenario": {
+                "scenario_id": request.scenario_id,
+                "event_id": request.event_id,
+                "event_type": request.event_type,
+                "control_strategy_type": request.strategy,
+                "description": f"事件 {request.event_id}, 策略 {request.strategy}"
+            },
+
+            # 不可变字段 (AD-8: 配置覆盖策略)
+            "immutable_fields": {
+                "event_id": request.event_id,
+                "event_type": request.event_type,
+                "control_strategy_type": request.strategy,
+                # 位置和影响道路从场景元数据中提取 (TODO)
+            },
+
+            # 可覆盖字段 (AD-8)
+            "overridable_fields": {
+                "simulation_duration_hours": 2.5,  # 默认值
+                "random_seed": None,  # 运行时分配
+                "output_config": {
+                    "generate_edgedata": True,
+                    "generate_summary": True,
+                    "generate_tripinfo": True,
+                    "generate_vehroute": False
+                }
+            },
+
+            # 案例配置
+            "case_config": {
+                "network_file": request.network_file,
+                "od_file": request.od_file,
+                "taz_file": request.taz_file
+            },
+
+            "description": request.description or f"从场景 {request.scenario_id} 创建",
+            "statistics": {},
+            "files": {}
+        }
+
     async def quick_create_case_from_event(self, request: EventScenarioQuickCreateRequest) -> Dict[str, Any]:
         """
         从事件场景快速创建案例 (Phase 5.3.3)
@@ -241,8 +372,9 @@ class CaseService(BaseService):
             case_id = request.case_id or self.generate_unique_id("case_event")
 
             # 调用QuickCaseCreator创建case
+            # project_root 默认为当前工作目录，case_dir 使用相对路径
             creator = QuickCaseCreator(
-                project_root=self.project_root,
+                project_root=None,  # 使用默认 Path.cwd()
                 case_dir=self.cases_dir
             )
 
@@ -261,6 +393,19 @@ class CaseService(BaseService):
             if not result.get('success'):
                 raise Exception(result.get('error', '未知错误'))
 
+            # 为事件场景案例添加源类型标记
+            import json
+            metadata_file = self.cases_dir / case_id / "metadata.json"
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                    metadata['source_type'] = 'event_scenario'
+                    with open(metadata_file, 'w', encoding='utf-8') as f:
+                        json.dump(metadata, f, ensure_ascii=False, indent=2)
+                except Exception as e:
+                    logger.warning(f"Failed to update metadata source_type: {e}")
+
             # 返回成功结果
             return {
                 "case_id": case_id,
@@ -271,7 +416,8 @@ class CaseService(BaseService):
                     "strategy": request.strategy,
                     "scenario_id": request.scenario_id
                 },
-                "created_at": datetime.now().isoformat()
+                "created_at": datetime.now().isoformat(),
+                "source_type": "event_scenario"
             }
 
         except Exception as e:

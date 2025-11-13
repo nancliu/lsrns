@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影响分析 - 交通仿真推演系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="scenario_browser.css">
+    <style>
+        .analysis-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        .analysis-tab {
+            padding: 12px 20px;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .analysis-tab.active {
+            color: #1976d2;
+            border-bottom-color: #1976d2;
+        }
+
+        .analysis-content {
+            display: none;
+        }
+
+        .analysis-content.active {
+            display: block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #1976d2;
+        }
+
+        .metric-card.positive {
+            border-left-color: #4caf50;
+        }
+
+        .metric-card.negative {
+            border-left-color: #f44336;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .metric-change {
+            font-size: 12px;
+            margin-top: 8px;
+            color: #666;
+        }
+
+        .metric-change.positive {
+            color: #4caf50;
+        }
+
+        .metric-change.negative {
+            color: #f44336;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th {
+            background-color: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .comparison-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .chart-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            min-height: 300px;
+        }
+
+        .edge-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .edge-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edge-item:last-child {
+            border-bottom: none;
+        }
+
+        .edge-name {
+            flex: 1;
+        }
+
+        .edge-bar {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+
+        .edge-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4081, #ff6e40);
+            transition: width 0.3s ease;
+        }
+
+        .edge-value {
+            width: 60px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .export-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .export-buttons .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .export-buttons .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .improvement-arrow {
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .arrow-up {
+            color: #4caf50;
+        }
+
+        .arrow-down {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶栏 -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <h1 class="system-title">超大规模路网仿真推演系统</h1>
+        </div>
+        <div class="top-bar-center">
+            <h2 class="page-title">📈 影响分析</h2>
+        </div>
+        <div class="top-bar-buttons">
+            <button class="btn btn-secondary" onclick="refreshResults()">🔄 刷新</button>
+            <button class="btn btn-primary" onclick="window.history.back()">返回</button>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>事件场景工作流</h3>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="scenario_browser.html" class="nav-item">🎬 仿真推演场景集</a></li>
+                <li><a href="case-simulation-center.html" class="nav-item">🔄 场景案例管理</a></li>
+                <li><a href="analysis_viewer.html" class="nav-item active">📈 影响分析</a></li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="container">
+                <!-- 导出按钮 -->
+                <div class="export-buttons">
+                    <button class="btn-primary" onclick="exportPDF()">📄 导出PDF</button>
+                    <button class="btn-secondary" onclick="exportJSON()">📋 导出JSON</button>
+                </div>
+
+                <!-- 分析标签页 -->
+                <div class="analysis-tabs">
+                    <button class="analysis-tab active" onclick="switchTab('summary')">📊 概览</button>
+                    <button class="analysis-tab" onclick="switchTab('edgedata')">🗺️ 路段分析</button>
+                    <button class="analysis-tab" onclick="switchTab('comparison')">📈 对比分析</button>
+                    <button class="analysis-tab" onclick="switchTab('detail')">📋 详细指标</button>
+                </div>
+
+                <!-- 概览标签页 -->
+                <div class="analysis-content active" id="tab-summary">
+                    <h3>📊 仿真概览</h3>
+                    <div class="metrics-grid" id="summaryMetrics">
+                        <div class="metric-card">
+                            <div class="metric-label">总车辆数</div>
+                            <div class="metric-value" id="totalVehicles">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">平均行程时间 (分钟)</div>
+                            <div class="metric-value" id="avgTripTime">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">完成率 (%)</div>
+                            <div class="metric-value" id="completionRate">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">平均速度 (km/h)</div>
+                            <div class="metric-value" id="avgSpeed">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 路段分析标签页 -->
+                <div class="analysis-content" id="tab-edgedata">
+                    <h3>🗺️ 路段拥堵分析 (EdgeData)</h3>
+                    <div class="chart-container">
+                        <h4>最拥堵的前10条路段</h4>
+                        <div class="edge-list" id="edgeList">
+                            <div class="no-data">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 对比分析标签页 -->
+                <div class="analysis-content" id="tab-comparison">
+                    <h3>📈 与基准场景的对比</h3>
+                    <table class="comparison-table" id="comparisonTable">
+                        <thead>
+                            <tr>
+                                <th>指标</th>
+                                <th>基准场景</th>
+                                <th>控制方案</th>
+                                <th>差值</th>
+                                <th>改善</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparisonBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #999;">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 详细指标标签页 -->
+                <div class="analysis-content" id="tab-detail">
+                    <h3>📋 详细指标</h3>
+                    <table class="comparison-table" id="detailTable">
+                        <thead>
+                            <tr>
+                                <th>指标名称</th>
+                                <th>数值</th>
+                                <th>单位</th>
+                                <th>说明</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailBody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: #999;">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { APIClient } from '../components/api-client.js';
+
+        const api = new APIClient();
+        let batchId = new URLSearchParams(window.location.search).get('batch_id');
+        let simulationId = new URLSearchParams(window.location.search).get('simulation_id');
+        let analysisData = null;
+
+        // 切换标签页
+        window.switchTab = function(tabName) {
+            // 隐藏所有内容
+            document.querySelectorAll('.analysis-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.analysis-tab').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // 显示选中的标签页
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+        };
+
+        // 加载分析结果
+        async function loadAnalysisResults() {
+            try {
+                if (batchId) {
+                    const response = await api.request(`/analysis/results/${batchId}`);
+                    analysisData = response.data;
+                } else if (simulationId) {
+                    // 加载单个仿真的分析结果
+                    analysisData = {};
+                }
+
+                renderResults();
+            } catch (error) {
+                console.error('加载分析结果失败:', error);
+                document.getElementById('summaryMetrics').innerHTML =
+                    '<div class="no-data">加载失败，请重试</div>';
+            }
+        }
+
+        // 渲染结果
+        function renderResults() {
+            if (!analysisData) return;
+
+            // 概览数据
+            if (analysisData.summary) {
+                const summary = analysisData.summary;
+                document.getElementById('totalVehicles').textContent = summary.total_vehicles || '--';
+                document.getElementById('avgTripTime').textContent = (summary.avg_trip_time || 0).toFixed(1);
+                document.getElementById('completionRate').textContent = (summary.completion_rate || 0).toFixed(1);
+                document.getElementById('avgSpeed').textContent = (summary.avg_speed || 0).toFixed(1);
+            }
+
+            // EdgeData数据
+            if (analysisData.edgedata) {
+                const edgedata = analysisData.edgedata;
+                const edgeList = document.getElementById('edgeList');
+                edgeList.innerHTML = '';
+
+                if (edgedata.most_congested_edges && edgedata.most_congested_edges.length > 0) {
+                    edgedata.most_congested_edges.slice(0, 10).forEach((edge, idx) => {
+                        const speed = edge.avg_speed || 0;
+                        const maxSpeed = 100; // 参考速度
+                        const percentage = Math.min((speed / maxSpeed) * 100, 100);
+
+                        const item = document.createElement('div');
+                        item.className = 'edge-item';
+                        item.innerHTML = `
+                            <div class="edge-name">${idx + 1}. ${edge.edge_id}</div>
+                            <div class="edge-bar">
+                                <div class="edge-bar-fill" style="width: ${percentage}%;"></div>
+                            </div>
+                            <div class="edge-value">${speed.toFixed(1)} km/h</div>
+                        `;
+                        edgeList.appendChild(item);
+                    });
+                } else {
+                    edgeList.innerHTML = '<div class="no-data">暂无数据</div>';
+                }
+            }
+
+            // 对比数据
+            if (analysisData.comparison) {
+                const comparison = analysisData.comparison;
+                const tbody = document.getElementById('comparisonBody');
+                tbody.innerHTML = '';
+
+                if (comparison.metrics) {
+                    Object.entries(comparison.metrics).forEach(([metricName, metricData]) => {
+                        const row = document.createElement('tr');
+                        const baseline = metricData.baseline || 0;
+                        const withControl = metricData.with_control || 0;
+                        const diff = withControl - baseline;
+                        const diffPercent = baseline !== 0 ? ((diff / baseline) * 100).toFixed(1) : 0;
+                        const isImprovement = diff < 0 ? true : false;
+
+                        row.innerHTML = `
+                            <td>${metricName}</td>
+                            <td>${baseline.toFixed(1)}</td>
+                            <td>${withControl.toFixed(1)}</td>
+                            <td>${Math.abs(diff).toFixed(1)}</td>
+                            <td>
+                                <span class="${isImprovement ? 'metric-change positive' : 'metric-change negative'}">
+                                    ${isImprovement ? '↓' : '↑'} ${Math.abs(diffPercent)}%
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            }
+        }
+
+        // 刷新结果
+        window.refreshResults = loadAnalysisResults;
+
+        // 导出PDF
+        window.exportPDF = function() {
+            alert('PDF导出功能将在后续版本支持');
+            // window.print();
+        };
+
+        // 导出JSON
+        window.exportJSON = function() {
+            const dataStr = JSON.stringify(analysisData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+            const exportFileDefaultName = `analysis_${batchId || simulationId}.json`;
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        };
+
+        // 页面加载
+        loadAnalysisResults();
+    </script>
+</body>
+</html>

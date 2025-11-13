@@ -360,6 +360,7 @@ async def get_case_duration(case_id: str):
     说明:
     - 前端在case选择时调用此端点获取案例时长
     - 时长为只读，基于case元数据的time_range计算得出
+    - 仅支持OD提取案例，不支持事件场景案例
     """
     try:
         result = batch_service.get_case_duration(case_id)
@@ -369,6 +370,31 @@ async def get_case_duration(case_id: str):
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         logger.warning(f"Invalid case duration data: {e}")
+
+        # 检查是否是事件场景案例
+        try:
+            import json
+            from pathlib import Path
+            case_dir = Path("cases") / case_id
+            metadata_file = case_dir / "metadata.json"
+            if metadata_file.exists():
+                with open(metadata_file, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                    if metadata.get('source_type') == 'event_scenario':
+                        raise HTTPException(
+                            status_code=400,
+                            detail={
+                                "error": "INCOMPATIBLE_CASE_TYPE",
+                                "message": "该案例是事件场景案例，不支持此工作流（管控方案优化）",
+                                "case_type": "event_scenario",
+                                "hint": "请选择OD提取案例（通过标准OD数据处理流程创建的案例）"
+                            }
+                        )
+        except HTTPException:
+            raise
+        except Exception as inner_e:
+            logger.debug(f"Failed to check case source type: {inner_e}")
+
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting case duration: {e}", exc_info=True)

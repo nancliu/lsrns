@@ -1122,7 +1122,23 @@ function renderAnalysisHistory(payload) {
 async function loadCases() {
     try {
         const data = await apiFetch(`${API_BASE_URL}/list_cases/`);
-        currentCases = data.cases || [];
+        const allCases = data.cases || [];
+
+        // Phase 2: 过滤掉事件场景案例 - OD仿真仅支持OD提取案例
+        currentCases = allCases.filter(c => {
+            const sourceType = c.source_type || 'od_extraction';
+            return sourceType !== 'event_scenario';
+        });
+
+        // 如果有事件场景案例被过滤掉，记录日志
+        const eventScenarioCases = allCases.filter(c => {
+            const sourceType = c.source_type || 'od_extraction';
+            return sourceType === 'event_scenario';
+        });
+        if (eventScenarioCases.length > 0) {
+            console.log(`✓ Filtered out ${eventScenarioCases.length} event scenario case(s)`);
+        }
+
         displayCases(currentCases);
         updateCaseSelects();
     } catch (error) {

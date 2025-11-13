@@ -3,86 +3,209 @@
 **Total Effort**: 3-4 weeks (2-person team)
 **Current Status**: Ready for implementation
 **Last Updated**: 2025-11-12
+**Design Clarifications**: See DESIGN_CLARIFICATIONS.md for Q1-Q14 decisions
 
 ---
 
 ## Week 1: Foundation (P0 - Blocking Everything Else)
 
-### Task 1.1: Analysis Orchestration Service - Core Implementation
-**Type**: Backend | **Effort**: 2-3 days | **Priority**: P0 | **Blocks**: 2.x, 3.x
+### Task 1.0: Metadata Version Support (NEW - Q5, Q6, Q7)
+**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Blocks**: All other tasks
 
-**Description**: Create `AnalysisOrchestrationService` to queue and execute analysis tasks for multiple simulations.
+**Description**: Add metadata versioning support to enable backward compatibility.
+
+**Design Decision**: Q5, Q6, Q7 - Dual schema support (v1.0 implicit, v2.0 explicit)
 
 **Deliverables**:
-- [ ] File created: `api/services/analysis_orchestration_service.py` (300-400 LOC)
+- [x] Extend `api/services/base_service.py` or `base_metadata_service.py`:
+  - Method: `detect_metadata_version(metadata: Dict) -> str` - Returns "1.0" or "2.0"
+  - Method: `is_event_scenario_case(metadata: Dict) -> bool` - Checks for source_scenario
+  - Method: `load_metadata_safely(metadata_file: Path) -> Dict` - Null-safe loading
+  - Method: `get_simulation_source_type(metadata: Dict) -> str` - Source detection
+
+**Requirements**:
+- ✅ Detect version 1.0 (no metadata_version field) implicitly
+- ✅ Detect version 2.0 (has metadata_version field) explicitly
+- ✅ Null-safe handling of source_scenario field
+- ✅ Backward compatible with existing cases and simulations
+
+**Acceptance Criteria**:
+- Old cases (v1.0) load without errors
+- New cases (v2.0) load with source_scenario field
+- Services adapt behavior based on detected version
+- No breaking changes to existing code
+
+**Tests Required**:
+- Unit test: Detect v1.0 metadata (no metadata_version field)
+- Unit test: Detect v2.0 metadata (has metadata_version field)
+- Unit test: Null-safe read of source_scenario (v1.0 case)
+- Integration test: Load existing OD case, verify no errors
+
+**Files Modified**:
+- `api/services/base_metadata_service.py` or `api/services/base_service.py`
+
+---
+
+### Task 1.1: SimulationOrchestrator - Core Implementation (NEW - Q1, Q2, Q3)
+**Type**: Backend | **Effort**: 2 days | **Priority**: P0 | **Blocks**: 1.2, 2.x
+
+**Description**: Create orchestration layer that detects simulation source and delegates to appropriate services.
+
+**Design Decision**: Q1-C - Orchestration layer with delegation pattern; Q2 - Reuse BatchSimulationScheduler
+
+**Deliverables**:
+- [x] File created: `api/services/simulation_orchestrator.py` (290 LOC)
+  - Class: `SimulationOrchestrator`
+  - Methods:
+    - `batch_start_simulations()` - Unified batch execution interface
+    - `_detect_simulation_source()` - Source detection (Q3 backward compat, uses BaseMetadataService)
+    - `_batch_start_event_scenarios()` - Delegate to BatchSimulationScheduler
+    - `_batch_start_od_simulations()` - Delegate to SimulationService
+    - `get_batch_execution_status()` - Status monitoring
+    - `cancel_batch_simulations()` - Cancellation support
+
+**Requirements**:
+- ✅ Detect source from metadata version and source_scenario field (Q3)
+- ✅ Delegate event-scenario → BatchSimulationScheduler (Q2 reuse)
+- ✅ Delegate OD extraction → SimulationService (unchanged)
+- ✅ Delegate control-plan → BatchOptimizationService (unchanged)
+- ✅ Preserve existing workflows (PRINCIPLE-INTEGRATION-002)
+
+**Acceptance Criteria**:
+- Correctly detects "event-scenario", "od-extraction", "control-plan" sources
+- Event-scenario simulations use BatchSimulationScheduler
+- Existing OD and control-plan workflows unaffected
+- Returns unified BatchExecutionResponse
+
+**Tests Required**:
+- Unit test: Detect event-scenario source (v2.0 metadata)
+- Unit test: Detect OD extraction source (v1.0 metadata, no plan_id)
+- Unit test: Detect control-plan source (has plan_id)
+- Integration test: Batch start event-scenarios, verify delegation
+
+**Files Modified**:
+- `api/services/__init__.py` - Add SimulationOrchestrator export
+
+---
+
+### Task 1.2: Analysis Orchestration Service - Adapter Layer (UPDATED - Q8, Q9)
+**Type**: Backend | **Effort**: 2 days | **Priority**: P0 | **Blocks**: 2.x, 3.x
+
+**Description**: Create adapter layer that converts event-scenario structure to batch analysis format and reuses existing analyzers.
+
+**Design Decision**: Q8 - Do NOT use OD analysis services; Q9 - Create adapter, do NOT modify existing services
+
+**Deliverables**:
+- [x] File exists: `api/services/analysis_orchestration_service.py` (already implemented)
   - Class: `AnalysisOrchestrationService`
   - Methods:
     - `create_analysis_batch()` - Queue analysis tasks
     - `get_analysis_progress()` - Real-time monitoring
-    - `cancel_analysis_batch()` - Graceful shutdown
-  - Helper: `_queue_analysis_tasks()` - Generate task list
-  - Helper: `_execute_task_queue()` - Worker pool executor
+    - `_validate_simulations()` - Validate completed simulations
+    - Uses `BatchResultAnalyzer` from shared layer (adapter pattern)
 
 **Requirements**:
-- ✅ Support 4 analysis types: EdgeData (mandatory), TripInfo, Accuracy, Performance (optional)
-- ✅ Configurable worker pool: 2-8 workers (default 4)
-- ✅ Task state tracking: `analysis_tasks_index.json` in case directory
-- ✅ Progress updates: Every 10 seconds with ETA calculation
-- ✅ Metadata linkage: Each task stores source_simulation_id and source_scenario_id
-- ✅ Error handling: Automatic retry (max 3 attempts) for transient failures
+- ✅ Reuse SummaryAnalyzer (shared layer, unchanged) - Q9
+- ✅ Reuse EdgeDataAnalyzer (shared layer, unchanged) - Q9
+- ✅ Do NOT use OD analysis services (accuracy/mechanism/performance/edgedata_service) - Q8
+- ✅ Adapter converts event-scenario dir structure to batch format
+- ✅ Store results with scenario lineage metadata
 - ✅ Isolation: Never modify case or simulation metadata
 
 **Acceptance Criteria**:
 - All methods have docstrings and type hints
-- Service creates analysis_tasks_index.json with correct structure
-- Real-time progress API returns data within 2 seconds
-- Tasks execute serially (not parallel to analyses) to avoid resource exhaustion
-- Edge case: Handle empty simulation_ids list gracefully
+- Adapter successfully converts event-scenario structure to batch format
+- SummaryAnalyzer and EdgeDataAnalyzer called without modifications
+- Results stored with source_scenario_id metadata
+- OD analysis services NOT called
 
 **Tests Required**:
-- Unit test: Task queue creation with 10 simulations
-- Unit test: Progress calculation (completed/total)
-- Unit test: Analysis type validation
-- Unit test: Worker pool initialization
+- Unit test: Convert event-scenario dir structure to batch format
+- Unit test: Call SummaryAnalyzer with converted data
+- Unit test: Call EdgeDataAnalyzer with converted data
+- Unit test: Verify analysis results have scenario lineage
+- Integration test: Run analysis batch on 5 event-scenario simulations
 
 **Files Modified**:
 - `api/services/__init__.py` - Add AnalysisOrchestrationService export
 
 ---
 
-### Task 1.2: Analysis Orchestration API Routes
-**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 1.1
+### Task 1.3: Case Creation from Scenario Endpoint (NEW - Q4)
+**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 1.0
 
-**Description**: Create API endpoints for analysis orchestration.
+**Description**: Create separate endpoint for creating cases from event scenarios (not modifying existing case creation).
+
+**Design Decision**: Q4 - Two separate endpoints (business semantics differ)
 
 **Deliverables**:
-- [ ] File created: `api/routes/analysis_orchestration_routes.py` (150-200 LOC)
-  - Route: `POST /api/v1/analysis/run` - Create analysis batch
-  - Route: `GET /api/v1/analysis/batch-progress/{batch_id}` - Monitor progress
-  - Route: `DELETE /api/v1/analysis/batch/{batch_id}` - Cancel batch
+- [ ] Extend `api/services/case_service.py`:
+  - Method: `create_case_from_scenario()` - Create case with metadata v2.0
+  - Ensure existing `create_case()` method unchanged
+- [ ] Extend `api/routes/case_routes.py`:
+  - Route: `POST /api/v1/case/create-from-scenario` (NEW)
+  - Ensure existing `POST /api/v1/case/create` unchanged
+
+**Requirements**:
+- ✅ Create case with metadata_version: "2.0"
+- ✅ Include source_scenario field in metadata
+- ✅ Do NOT modify existing `/api/v1/case/create` endpoint
+- ✅ Do NOT modify existing `create_case()` method signature
+- ✅ Backward compatible with existing OD extraction workflow
+
+**Acceptance Criteria**:
+- New endpoint creates v2.0 cases with source_scenario
+- Existing endpoint creates v1.0 cases (unchanged behavior)
+- Both endpoints work simultaneously
+- No breaking changes to existing OD workflow
+
+**Tests Required**:
+- Unit test: Create case from scenario, verify metadata v2.0
+- Unit test: Existing create case endpoint still works (v1.0)
+- Integration test: Create both types, verify isolation
+
+**Files Modified**:
+- `api/services/case_service.py`
+- `api/routes/case_routes.py`
+- `api/models/requests/case_requests.py` (add EventScenarioCaseRequest)
+
+---
+
+### Task 1.5: Analysis Orchestration API Routes
+**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 1.2
+
+**Description**: Create API endpoints for analysis orchestration (adapter layer).
+
+**Deliverables**:
+- [ ] File created or extend: `api/routes/analysis_routes.py` (add new routes)
+  - Route: `POST /api/v1/analysis/run-batch` - Create analysis batch (NEW)
+  - Route: `GET /api/v1/analysis/batch-progress/{batch_id}` - Monitor progress (NEW)
+  - Ensure existing analysis routes unchanged
 
 **Requirements**:
 - ✅ Request validation using Pydantic models
 - ✅ Error handling with descriptive messages
-- ✅ CORS support
+- ✅ Do NOT modify existing analysis routes
 - ✅ Logging for all operations
 
 **Acceptance Criteria**:
 - Endpoints return proper HTTP status codes
 - Error responses include `error_code` and `message` fields
 - Request validation catches invalid input
+- Existing analysis endpoints (if any) still work
 
 **Tests Required**:
-- Unit test: POST /api/v1/analysis/run with valid request
+- Unit test: POST /api/v1/analysis/run-batch with valid request
 - Unit test: GET /api/v1/analysis/batch-progress/{batch_id}
 - Unit test: Invalid request returns 400
 
 **Files Modified**:
-- `api/routes/__init__.py` - Register analysis_orchestration_router
+- `api/routes/__init__.py` - Register new routes
+- `api/routes/analysis_routes.py` - Add new routes
 
 ---
 
-### Task 1.3: Data Models for Analysis Orchestration
+### Task 1.6: Data Models for Analysis Orchestration
 **Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 1.1
 
 **Description**: Create Pydantic models for request/response validation.
@@ -216,62 +339,23 @@
 
 ## Week 2: Simulation Execution & Frontend Refactoring (P1)
 
-### Task 2.1: Simulation Execution Service - Batch Methods
-**Type**: Backend | **Effort**: 1.5 days | **Priority**: P1 | **Depends on**: 1.4
-
-**Description**: Extend `SimulationExecutionService` with batch execution capabilities.
-
-**Deliverables**:
-- [ ] File update: `api/services/simulation_service.py`
-  - Add method: `batch_start_simulations()`
-    - Input: simulation_ids[], parallel_workers (2-8)
-    - Output: batch_id for tracking
-    - Process: Queue simulations, start executor
-  - Add method: `get_batch_execution_status()`
-    - Input: batch_id
-    - Output: Real-time progress with per-simulation details
-  - Add helper: `_validate_simulation_results()`
-    - Check: summary.xml exists and valid
-    - Check: tripinfo.xml (if enabled) valid
-    - Check: edgedata.xml (if enabled) valid and has data
-
-**Requirements**:
-- ✅ Reuse `BatchOptimizationService` worker pool pattern
-- ✅ Create `batch_execution_index.json` to track state
-- ✅ Per-simulation progress: vehicles completed, elapsed time, ETA
-- ✅ Result validation: Check output files exist and are valid
-- ✅ Auto-trigger analysis when all simulations complete (if enabled)
-- ✅ SUMO log capture: Store in `simulations/sim_id/sumo_logs/`
-
-**Acceptance Criteria**:
-- Batch start accepts 1-100 simulation IDs
-- Parallel workers: 2-8 (enforced)
-- Progress updates every 10 seconds
-- All output files validated before marking "completed"
-- SUMO logs captured and compressed
-
-**Tests Required**:
-- Unit test: batch_start_simulations() with 5 simulations
-- Unit test: Progress calculation (3 completed, 1 running, 1 queued)
-- Unit test: Result validation with mock output files
-- Unit test: Auto-trigger analysis on completion
-
----
-
-### Task 2.2: SUMO Configuration with Relative Paths
-**Type**: Backend | **Effort**: 1.5 days | **Priority**: P1 | **Depends on**: 1.4, 2.1
+### Task 2.1: SUMO Configuration with Relative Paths (UPDATED - Q12)
+**Type**: Backend | **Effort**: 1 day | **Priority**: P1 | **Depends on**: 1.0
 
 **Description**: Generate SUMO `.sumocfg` files with portable relative paths (AD-13).
 
+**Design Decision**: Q12 - Metadata stores paths relative to project root (source of truth), sumocfg uses paths relative to sumocfg location
+
 **Deliverables**:
-- [ ] File update: `shared/utilities/sumo_utils.py`
+- [x] File update: `shared/utilities/sumo_utils.py`
   - New function: `generate_sumocfg_with_relative_paths()`
-    - Input: case_id, simulation_id, config params
+    - Input: case_id, simulation_id, metadata paths (relative to project root)
     - Output: Path to generated sumocfg file
     - Process:
-      1. Compute relative paths from sim dir to network, OD, TAZ
-      2. Generate XML with relative paths
-      3. Validate paths at generation time
+      1. Read paths from metadata (relative to project root)
+      2. Convert to relative paths from sumocfg location
+      3. Generate XML with relative paths
+      4. Validate paths resolve correctly
   - New function: `validate_sumocfg_paths()`
     - Input: sumocfg file path
     - Output: (is_valid, error_list)
@@ -314,9 +398,10 @@ Path: ../../data/od_data.xml
 **Description**: Add API endpoints for batch simulation execution.
 
 **Deliverables**:
-- [ ] File update: `api/routes/simulation_routes.py`
+- [x] File update: `api/routes/simulation_routes.py`
   - Route: `POST /api/v1/simulation/batch-start` - Start batch
   - Route: `GET /api/v1/simulation/batch-status/{batch_id}` - Monitor progress
+  - Route: `POST /api/v1/simulation/batch-cancel` - Cancel batch
 
 **Requirements**:
 - ✅ Request validation using Pydantic models
@@ -341,7 +426,7 @@ Path: ../../data/od_data.xml
 **Description**: Extract common functions from `script.js` into reusable modules.
 
 **Deliverables**:
-- [ ] File created: `frontend/components/shared-utils.js` (100-150 LOC)
+- [x] File created: `frontend/components/shared-utils.js` (350 LOC)
   - Function: `formatDate()` - Format datetime to locale string
   - Function: `formatTime()` - Format seconds to HH:MM:SS
   - Function: `getStatusBadgeClass()` - CSS class for status badge
@@ -349,7 +434,7 @@ Path: ../../data/od_data.xml
   - Function: `parseQuery()` - Parse URL query parameters
   - Function: `getColorForStatus()` - Color mapping for status
 
-- [ ] File created: `frontend/components/api-client.js` (100-150 LOC)
+- [x] File created: `frontend/components/api-client.js` (400 LOC)
   - Class: `APIClient`
   - Method: `request()` - Generic HTTP request with error handling
   - Method: `getSimulationBatchStatus()` - Wrapper for batch status API
@@ -379,7 +464,7 @@ Path: ../../data/od_data.xml
 **Description**: Build real-time simulation execution monitor UI.
 
 **Deliverables**:
-- [ ] File created: `frontend/components/simulation-monitor.js` (200-250 LOC)
+- [x] File created: `frontend/components/simulation-monitor.js` (480 LOC)
   - Class: `SimulationMonitor`
   - Method: `startMonitoring()` - Poll API and update UI
   - Method: `render()` - Render simulation list and progress
@@ -430,13 +515,13 @@ Path: ../../data/od_data.xml
 **Description**: Create Pydantic models for batch simulation requests/responses.
 
 **Deliverables**:
-- [ ] File update: `api/models/requests/batch_simulation_request.py`
+- [x] File update: `api/models/requests/batch_simulation_requests.py`
   - Model: `BatchSimulationStartRequest`
   - Model: `BatchSimulationCancelRequest`
 
-- [ ] File update: `api/models/responses/batch_simulation_response.py`
+- [x] File update: `api/models/responses/batch_simulation_responses.py`
   - Model: `SimulationProgressInfo`
-  - Model: `BatchSimulationResponse`
+  - Model: `BatchSimulationStartResponse`
   - Model: `BatchExecutionStatusResponse`
 
 **Requirements**:
@@ -457,7 +542,7 @@ Path: ../../data/od_data.xml
 **Description**: Aggregate analysis results from multiple simulations and generate comparison metrics.
 
 **Deliverables**:
-- [ ] File created: `api/services/analysis_results_service.py` (200-250 LOC)
+- [x] File created: `api/services/analysis_results_service.py` (~966 LOC, all TODO items completed)
   - Class: `AnalysisResultsService`
   - Method: `aggregate_batch_results()` - Combine results from all simulations
   - Method: `generate_comparison_report()` - Create comparison metrics
@@ -487,7 +572,7 @@ Path: ../../data/od_data.xml
 **Description**: Add API endpoints to retrieve analysis results.
 
 **Deliverables**:
-- [ ] File update: `api/routes/analysis_orchestration_routes.py`
+- [x] File update: `api/routes/analysis_routes.py` (+140 LOC)
   - Route: `GET /api/v1/analysis/results/{batch_id}` - Get aggregated results
   - Route: `GET /api/v1/analysis/comparison/{batch_id}` - Get comparison report
 
@@ -507,7 +592,7 @@ Path: ../../data/od_data.xml
 **Description**: Build analysis results visualization dashboard.
 
 **Deliverables**:
-- [ ] File created: `frontend/components/analysis-results.js` (250-300 LOC)
+- [x] File created: `frontend/components/analysis-results.js` (~531 LOC)
   - Class: `AnalysisResultsDashboard`
   - Method: `displayEdgeDataHeatmap()` - Visualize road segment speeds
   - Method: `displayStatistics()` - Show metrics and comparisons
@@ -565,7 +650,7 @@ Path: ../../data/od_data.xml
 **Description**: Create Pydantic models for analysis results.
 
 **Deliverables**:
-- [ ] File created: `api/models/responses/analysis_results_response.py` (150-200 LOC)
+- [x] File created: `api/models/responses/analysis_results_responses.py` (~359 LOC)
   - Model: `EdgeDataMetrics`
   - Model: `TripInfoMetrics`
   - Model: `AnalysisResultsSummary`
@@ -798,4 +883,385 @@ Week 4 (Polish):
 
 ---
 
-**Task List Complete. Ready for sprint planning.**
+## Phase 2.5: Frontend Integration & Workflow Implementation (P1 - CRITICAL)
+
+### Task 2.7: Workflow Design & Page Linking (NEW)
+**Type**: Design | **Effort**: 1 day | **Priority**: P0 | **Blocks**: 2.8-2.10
+
+**Description**: Design and document the complete workflow connecting scenario browser → case management → simulation monitoring → analysis viewer.
+
+**Deliverables**:
+- [x] File created: `openspec/changes/event-scenario-simulation-integration/WORKFLOW_DESIGN.md`
+  - Complete workflow diagram and page relationships
+  - Design decisions (Q1-Q5) documented
+  - Data flow and API call sequences
+  - Implementation priority and sequence
+
+**Key Design Decisions**:
+- Q1: Create case button in scenario_browser.html (not case management page)
+- Q2: Use Tab design for case-simulation-center.html (Cases | Monitoring | Batch History)
+- Q3: Backend API for scenario-based case filtering
+- Q4: Auto-run analysis when all simulations complete
+- Q5: Reuse batch analysis tools via AnalysisOrchestrationService
+
+**Acceptance Criteria**:
+- [x] Three-page workflow documented
+- [x] All page transitions mapped
+- [x] API call sequences defined
+- [x] Design decisions justified
+
+---
+
+### Task 2.8: Scenario Browser - Create Case Integration (NEW)
+**Type**: Frontend | **Effort**: 1.5 days | **Priority**: P0 | **Depends on**: 2.7
+
+**Description**: Add "Create Case" button and modal to scenario_browser.html with proper form validation and API integration.
+
+**Deliverables**:
+- [ ] Update `frontend/scenarios/scenario_browser.html`:
+  - Add [创建案例] button to scenario table row
+  - Create modal with form:
+    - scenario_id (read-only, from selected scenario)
+    - event_type (read-only)
+    - control_strategy (read-only)
+    - simulation_duration_hours (input, optional)
+    - random_seed (input, optional)
+    - output_config (checkbox group)
+  - Form validation before submit
+  - Submit to POST /api/v1/case/create-from-scenario
+  - Success: navigate to case-simulation-center.html?case_id={case_id}
+
+**Requirements**:
+- ✅ Pre-fill scenario data in modal
+- ✅ Support batch scenario selection + create multiple cases
+- ✅ Validation: duration_hours must be 1-24 if provided
+- ✅ Handle API errors gracefully (alert + retry)
+- ✅ Update created case count in stats
+
+**Tests Required**:
+- Manual: Create case from scenario, verify API call
+- Manual: Create multiple cases from batch selection
+- Manual: Form validation (invalid duration)
+
+---
+
+### Task 2.9: Case Management - Case List & Filtering (NEW)
+**Type**: Frontend | **Effort**: 2 days | **Priority**: P0 | **Depends on**: 2.8
+
+**Description**: Implement Tab 1 of case-simulation-center.html with case list, filtering, and scenario-based selection.
+
+**Deliverables**:
+- [ ] Implement `frontend/scenarios/case-simulation-center.html` Tab 1:
+
+  **Case List Display**:
+  - Fetch from GET /api/v1/case/list with filters:
+    - status: all|running|completed|failed
+    - source_scenario_id: optional filter
+    - search: case_id or scenario_id
+
+  **Table Columns**:
+  - Case ID | Source Scenario | Status | Simulations | Created At | Actions
+
+  **Actions Column**:
+  - [查看详情] → Show simulations for this case
+  - [重新仿真] → Re-run failed simulations
+  - [批量仿真] → Batch start all pending simulations
+
+  **Statistics**:
+  - Total cases | Running | Completed | Failed
+  - Auto-update when new cases created or simulations change
+
+  **Filter Section**:
+  - Status dropdown (All|Running|Completed|Failed)
+  - Source Scenario dropdown (populated from cases)
+  - Search box (case_id or scenario_id)
+  - Apply filter button
+
+**Requirements**:
+- ✅ Real-time case list fetching
+- ✅ Support scenario-based filtering
+- ✅ Status filtering
+- ✅ Search functionality
+- ✅ Pagination (if >50 cases)
+
+**Tests Required**:
+- Manual: Load case list, verify all columns
+- Manual: Filter by status
+- Manual: Filter by scenario
+- Manual: Search by case_id
+
+---
+
+### Task 2.10: Case Management - Simulation Monitoring (NEW)
+**Type**: Frontend | **Effort**: 2 days | **Priority**: P0 | **Depends on**: 2.4, 2.8
+
+**Description**: Implement Tab 2 of case-simulation-center.html with real-time simulation monitoring using SimulationMonitor component.
+
+**Deliverables**:
+- [ ] Implement `frontend/scenarios/case-simulation-center.html` Tab 2:
+
+  **Batch Progress Section**:
+  - Display current batch info (if running):
+    - Batch ID
+    - Total simulations | Completed | Running | Failed | Queued
+    - Overall progress bar (%)
+    - ETA for completion
+
+  **Batch Actions**:
+  - [开始批量仿真] (launch modal to select cases)
+  - [取消仿真] (cancel running batch)
+  - [暂停仿真] (pause, not cancel)
+
+  **Simulation Table**:
+  - Use SimulationMonitor component
+  - Columns: SIM ID | Case | Status | Progress | Elapsed | ETA | Logs
+  - Real-time polling (5-second interval)
+  - Progress bars with smooth animation
+  - Log viewer (expandable, last 500 lines)
+  - Auto-stop polling when batch completes
+
+  **Start Batch Simulation Flow**:
+  ```javascript
+  async function startBatchSimulations() {
+      // 1. Show modal for case/simulation selection
+      const selected = await showSimulationSelectionModal();
+
+      // 2. Call API
+      const response = await api.request('/simulation/batch-start', {
+          method: 'POST',
+          body: JSON.stringify({
+              simulation_ids: selected.simulation_ids,
+              parallel_workers: 4,
+              auto_run_analysis: true
+          })
+      });
+
+      // 3. Save batch_id to sessionStorage
+      sessionStorage.setItem('current_batch_id', response.data.batch_id);
+
+      // 4. Start monitoring
+      const monitor = new SimulationMonitor('simulationContainer', api);
+      await monitor.startMonitoring(response.data.batch_id, 'event-scenario');
+  }
+  ```
+
+**Requirements**:
+- ✅ Real-time progress updates (5-second polling)
+- ✅ Accurate progress calculation
+- ✅ ETA estimation
+- ✅ Log viewer with tail -f behavior
+- ✅ Auto-stop when completed
+- ✅ Error handling (retry on API failure)
+- ✅ Auto-start analysis when all sims complete (if auto_run_analysis=true)
+
+**Tests Required**:
+- Manual: Start batch, verify progress updates
+- Manual: Verify log viewer shows last 500 lines
+- Manual: Verify auto-stop when completed
+- Manual: Verify auto-start analysis call
+
+---
+
+### Task 2.11: Case Management - Batch History (NEW)
+**Type**: Frontend | **Effort**: 1 day | **Priority**: P1 | **Depends on**: 2.10
+
+**Description**: Implement Tab 3 of case-simulation-center.html with batch history and results.
+
+**Deliverables**:
+- [ ] Implement `frontend/scenarios/case-simulation-center.html` Tab 3:
+
+  **Batch History Table**:
+  - Columns: Batch ID | Time | Cases | Simulations | Success Rate | Actions
+  - Fetch from GET /api/v1/simulation/batch-list?status=completed
+  - Sort by creation time (newest first)
+
+  **Actions**:
+  - [分析结果] → Jump to analysis_viewer.html?batch_id={batch_id}
+  - [导出] → Export batch results (CSV/JSON)
+  - [删除] → Delete batch history
+
+**Requirements**:
+- ✅ Load completed batches
+- ✅ Navigate to analysis viewer
+- ✅ Export functionality
+
+---
+
+### Task 2.12: Analysis Viewer - Progress Monitoring (NEW)
+**Type**: Frontend | **Effort**: 1.5 days | **Priority**: P0 | **Depends on**: 3.3
+
+**Description**: Implement real-time analysis progress monitoring in analysis_viewer.html.
+
+**Deliverables**:
+- [ ] Update `frontend/scenarios/analysis_viewer.html`:
+
+  **Get batch_id from URL**:
+  - Extract from query param: ?batch_id={batch_id}
+  - Or from URL param: ?case_id={case_id}
+
+  **Auto-start Analysis if needed**:
+  ```javascript
+  async function startAnalysisIfNeeded() {
+      // Check if analysis already running or completed
+      const status = await api.request(`/analysis/batch-progress/${batchId}`);
+
+      if (!status.data.batch_id) {
+          // No analysis yet, start one
+          const response = await api.request('/analysis/run-batch', {
+              method: 'POST',
+              body: JSON.stringify({
+                  simulation_ids: simIds,
+                  case_id: caseId,
+                  baseline_scenario_id: baselineScenarioId,
+                  analysis_focus: ['edgedata', 'tripinfo', 'performance'],
+                  parallel_workers: 4
+              })
+          });
+
+          batchId = response.data.batch_id;
+      }
+  }
+  ```
+
+  **Display Progress**:
+  - Progress bar: [========>     ] 65%
+  - Task count: 104/160 completed
+  - Current task: sim_123 EdgeData (progress: 72%)
+  - ETA: 2025-11-13 16:45:00
+  - Polling interval: 5 seconds
+  - Auto-load results when completed
+
+**Requirements**:
+- ✅ Auto-start analysis if not running
+- ✅ Real-time progress display
+- ✅ Accurate task counting
+- ✅ ETA calculation
+- ✅ Auto-transition to results when done
+
+---
+
+### Task 2.13: Analysis Viewer - Results Display (NEW)
+**Type**: Frontend | **Effort**: 1.5 days | **Priority**: P0 | **Depends on**: 3.3
+
+**Description**: Load and display analysis results using AnalysisResultsDashboard component.
+
+**Deliverables**:
+- [ ] Update `frontend/scenarios/analysis_viewer.html`:
+
+  **Load Results**:
+  ```javascript
+  async function loadAnalysisResults() {
+      const results = await api.request(`/analysis/results/${batchId}`);
+
+      const dashboard = new AnalysisResultsDashboard('analysisContainer', api);
+      dashboard.render({
+          edgedata: results.data.edgedata,
+          tripinfo: results.data.tripinfo,
+          performance: results.data.performance,
+          comparison: results.data.comparison
+      });
+  }
+  ```
+
+  **Tab Structure** (from component):
+  - [概览] - Summary metrics
+  - [路段分析] - EdgeData heat map
+  - [对比分析] - Baseline vs event vs control
+  - [详细指标] - All metrics table
+  - [导出] - Download PDF/JSON
+
+**Requirements**:
+- ✅ Fetch results from API
+- ✅ Render with AnalysisResultsDashboard
+- ✅ Support all analysis types
+- ✅ Export functionality
+
+---
+
+### Task 2.14: Backend - Case List API Enhancement (NEW)
+**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 2.9
+
+**Description**: Add filtering support to case list API for scenario-based queries.
+
+**Deliverables**:
+- [ ] Update `api/routes/case_routes.py`:
+  - Extend GET /api/v1/case/list to support:
+    - status filter
+    - source_scenario_id filter
+    - search by case_id or scenario_id
+    - pagination (limit, offset)
+
+- [ ] Add new endpoint: GET /api/v1/case/list-by-scenario
+  - Query: ?scenario_id=xxx
+  - Returns all cases created from a specific scenario
+
+**Requirements**:
+- ✅ Backward compatible with existing endpoint
+- ✅ Filter by status (created|running|completed|failed)
+- ✅ Filter by source_scenario_id
+- ✅ Full-text search
+- ✅ Pagination support
+
+**Tests Required**:
+- Unit test: List cases by status
+- Unit test: List cases by scenario
+- Unit test: Search by case_id
+
+---
+
+### Task 2.15: Backend - Batch Start Simulation API (NEW - Verification)
+**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 1.1
+
+**Description**: Verify and fix SimulationOrchestrator integration in batch-start route.
+
+**Deliverables**:
+- [ ] Update `api/routes/simulation_routes.py`:
+  - Verify batch-start route uses SimulationOrchestrator
+  - Ensure orchestrator.batch_start_simulations() is called
+  - Pass auto_run_analysis parameter to orchestrator
+  - Return proper BatchExecutionResponse
+
+**Current Issue**:
+- Routes exist but may not use new orchestrator
+- Need to verify orchestrator delegation works
+
+**Acceptance Criteria**:
+- ✅ Route imports SimulationOrchestrator
+- ✅ batch-start calls orchestrator.batch_start_simulations()
+- ✅ auto_run_analysis parameter passed through
+- ✅ Response includes batch_id and simulation_ids
+
+---
+
+### Task 2.16: Backend - Analysis Auto-Start Integration (NEW)
+**Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 1.2, 2.15
+
+**Description**: Implement auto-start analysis when all simulations complete.
+
+**Deliverables**:
+- [ ] Update `api/services/simulation_orchestrator.py`:
+  - When batch completes (all simulations done):
+    - Check if auto_run_analysis=true
+    - Call AnalysisOrchestrationService.create_analysis_batch()
+    - Return analysis_batch_id in response
+
+  - Update response:
+    ```python
+    class BatchExecutionResponse:
+        batch_id: str
+        simulation_ids: List[str]
+        analysis_batch_id: Optional[str] = None  # NEW
+        status: str  # pending|running|completed
+    ```
+
+**Requirements**:
+- ✅ Check auto_run_analysis flag
+- ✅ Call analysis service when all sims done
+- ✅ Pass simulation_ids to analysis service
+- ✅ Return analysis_batch_id in response
+
+---
+
+---
+
+**Updated Task List. Ready for integration phase.**

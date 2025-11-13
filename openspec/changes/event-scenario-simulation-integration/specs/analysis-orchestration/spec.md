@@ -4,9 +4,11 @@
 
 Enable automatic execution of multiple analysis types (EdgeData, TripInfo, Accuracy, Performance) across multiple simulations with real-time progress tracking and complete metadata lineage tracking.
 
+**Design Decision**: Adapter layer that reuses SummaryAnalyzer + EdgeDataAnalyzer (Q8, Q9)
+
 ---
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Analysis Batch Creation and Task Queuing
 

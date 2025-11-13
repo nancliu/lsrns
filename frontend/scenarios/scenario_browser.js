@@ -159,7 +159,7 @@ function renderScenarios() {
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-sm btn-primary" onclick="openCreateModal('${s.scenario_id}', '${s.event_type}', '${s.strategy}')" title="创建仿真案例">创建</button>
+                                <button class="btn btn-sm btn-primary" onclick="directCreateCase('${s.scenario_id}', '${s.event_type}', '${s.strategy}')" title="创建仿真案例">创建</button>
                                 <button class="btn btn-sm btn-secondary" onclick="openAnalysisModal('${s.scenario_id}', '${s.event_type}', '${s.strategy}')" title="启动仿真分析">分析</button>
                             </div>
                         </td>
@@ -201,60 +201,6 @@ function previousPage() {
 function nextPage() {
     const totalPages = Math.ceil(filteredScenarios.length / pageSize);
     if (currentPage < totalPages) goToPage(currentPage + 1);
-}
-
-// 打开创建模态框
-function openCreateModal(scenarioId, eventType, strategy) {
-    currentScenario = allScenarios.find(s => s.scenario_id === scenarioId);
-    if (!currentScenario) {
-        alert('未找到场景信息');
-        return;
-    }
-
-    document.getElementById('selectedScenarioId').value = scenarioId;
-    document.getElementById('selectedScenarioName').value = scenarioId;
-    document.getElementById('selectedEventType').value = getEventTypeDisplay(eventType);
-    document.getElementById('selectedControlStrategy').value = getStrategyDisplay(strategy);
-    showModal('quickCreateModal');
-}
-
-// 提交快速创建
-async function submitQuickCreate() {
-    if (!currentScenario) {
-        alert('请先选择场景');
-        return;
-    }
-
-    const createData = {
-        case_name: document.getElementById('selectedScenarioName').value || currentScenario.scenario_id,
-        event_type: currentScenario.event_type,
-        strategy: currentScenario.strategy,
-        scenario_id: currentScenario.scenario_id,
-        event_id: currentScenario.event_id,
-        network_file: 'templates/network_files/sichuan202508v7.net.xml',
-        od_file: 'baseline.od_data_sichuan_202507',
-        taz_file: null,
-        description: document.getElementById('caseDescription').value || `从场景 ${currentScenario.scenario_id} 创建的案例`
-    };
-
-    try {
-        const response = await fetch('/api/v1/scenario/create-case', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(createData)
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            alert(`案例已创建！\n案例ID: ${result.case_id}`);
-            closeModal('quickCreateModal');
-        } else {
-            throw new Error('API调用失败');
-        }
-    } catch (error) {
-        console.error('创建案例失败:', error);
-        alert('创建案例失败: ' + error.message);
-    }
 }
 
 // 打开分析模态框
@@ -500,4 +446,83 @@ function getStrategyClass(strategy) {
         'NO_CONTROL': 'no-control'
     };
     return map[strategy] || 'no-control';
+}
+
+// ========== 创建案例相关函数 ==========
+
+/**
+ * 直接创建案例（无模态框）
+ * @param {string} scenarioId - 场景 ID
+ * @param {string} eventType - 事件类型
+ * @param {string} strategy - 管控策略
+ */
+async function directCreateCase(scenarioId, eventType, strategy) {
+    // 1. 从allScenarios中查找完整的场景信息
+    currentScenario = allScenarios.find(s => s.scenario_id === scenarioId);
+
+    if (!currentScenario) {
+        alert('错误: 无法找到场景信息，请重新选择');
+        return;
+    }
+
+    // 2. 显示创建中提示
+    const btn = event?.target;
+    const originalText = btn?.textContent;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ 创建中...';
+    }
+
+    // 3. 准备API请求数据
+    const requestData = {
+        case_name: `case_${currentScenario.scenario_id}_${Date.now()}`,
+        scenario_id: currentScenario.scenario_id,
+        event_id: currentScenario.event_id,
+        event_type: currentScenario.event_type,
+        strategy: currentScenario.strategy || currentScenario.control_strategy,
+        network_file: 'templates/network_files/sichuan202508v7.net.xml',
+        od_file: 'baseline.od_data_sichuan_202507',
+        taz_file: null,
+        description: `从场景 ${currentScenario.scenario_id} 创建的案例`
+    };
+
+    try {
+        // 4. 调用 API
+        const response = await fetch('/api/v1/case/create-from-scenario', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        // 5. 处理响应
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({
+                message: `HTTP ${response.status}: ${response.statusText}`
+            }));
+            throw new Error(error.message || error.detail || '创建案例失败');
+        }
+
+        const result = await response.json();
+        const caseId = result.data?.case_id;
+
+        if (!caseId) {
+            throw new Error('未获得案例 ID');
+        }
+
+        // 6. 显示成功信息并导航
+        alert(`✓ 案例创建成功！\n案例 ID: ${caseId}`);
+        window.location.href = `case-simulation-center.html?case_id=${caseId}`;
+
+    } catch (error) {
+        console.error('创建案例失败:', error);
+        alert(`✗ 创建案例失败: ${error.message}`);
+
+        // 恢复按钮状态
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
 }

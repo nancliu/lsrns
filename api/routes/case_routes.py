@@ -77,6 +77,25 @@ async def clone_case(case_id: str, request: CaseCloneRequest):
     return create_success_response("案例克隆成功", result)
 
 
+@router.post("/create-from-scenario", response_model=BaseResponse)
+@handle_service_errors
+async def create_case_from_scenario(request: EventScenarioQuickCreateRequest):
+    """
+    从场景创建案例 (Phase 2)
+
+    从事件场景库中选择一个场景，创建关联的案例。
+
+    Args:
+        request: 包含场景信息和案例输入
+
+    Returns:
+        包含新创建案例信息的响应
+    """
+    case_service = CaseService()
+    result = await case_service.quick_create_case_from_event(request)
+    return create_success_response("案例创建成功", result)
+
+
 @router.post("/quick-create-from-event", response_model=BaseResponse)
 @handle_service_errors
 async def quick_create_case_from_event(request: EventScenarioQuickCreateRequest):

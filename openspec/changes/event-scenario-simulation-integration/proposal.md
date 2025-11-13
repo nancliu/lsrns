@@ -42,6 +42,50 @@ Implement the complete Phase 2 workflow enabling users to seamlessly convert eve
 
 ---
 
+## Impact on Existing Functionality (Non-Breaking Guarantee)
+
+### Workflows That Will NOT Be Affected
+
+✅ **Workflow 1: OD提取仿真 (OD Extraction Simulation)**
+- API endpoints: `/api/v1/case/create`, `/api/v1/simulation/prepare`, `/api/v1/simulation/start`
+- Services: `CaseService.create_case()`, `SimulationService.prepare/start()`
+- Metadata: Version 1.0 schema (no `source_scenario` field)
+- **Impact**: ZERO - Continues working unchanged
+
+✅ **Workflow 2: 管控方案优化 (Control Plan Optimization)**
+- API endpoints: `/api/v1/batch/*`
+- Services: `BatchOptimizationService`, `BatchSimulationScheduler`
+- Analysis: `SummaryAnalyzer`, `EdgeDataAnalyzer` (shared layer)
+- **Impact**: ZERO - Shared infrastructure reused via adapters, not modified
+
+✅ **Frontend Pages**
+- `index.html` + `script.js` (main page)
+- `frontend/control/*` (control plan UI)
+- `frontend/scenarios/scenario_browser.html` (Phase 1)
+- **Impact**: ZERO - No modifications to existing pages
+
+### New Additions (Phase 2)
+
+🆕 **New Workflow: Event Scenario Simulation & Analysis**
+- **New Endpoint**: `POST /api/v1/case/create-from-scenario`
+- **New Services**: `SimulationOrchestrator`, `AnalysisOrchestrationService`
+- **New Metadata**: Version 2.0 schema (with `source_scenario` field)
+- **New Components**: `simulation-monitor.js`, `analysis-results.js` (generic, reusable)
+
+### Backward Compatibility Strategy
+
+**Principle**: Old and new systems coexist without interference
+
+| Component | Version 1.0 (Existing) | Version 2.0 (New) | Compatibility |
+|-----------|------------------------|-------------------|---------------|
+| Case Metadata | No `metadata_version` field | Has `metadata_version: "2.0"` | Services detect version |
+| Simulation Metadata | No `source_scenario` field | Has `source_scenario` field | Optional field, null-safe |
+| API Endpoints | `/case/create` (unchanged) | `/case/create-from-scenario` (new) | Separate endpoints |
+| Services | SimulationService (unchanged) | SimulationOrchestrator (new) | Delegation pattern |
+| Analysis | OD analysis services (unchanged) | Adapter using batch tools | No interface changes |
+
+---
+
 ## Proposed Solution
 
 ### 1. Scenario → Simulation → Analysis Metadata Linkage (CRITICAL - AD-12)
@@ -118,25 +162,81 @@ Level 3: Analysis Metadata (case/analysis/{batch_id}/{type}/)
 
 ---
 
-### 3. Analysis Orchestration Service (NEW - P0 Priority)
+### 3. Simulation Orchestration Service (NEW - Design Decision Q1-C)
 
-**Current State**: 4 separate analysis services (Accuracy, Mechanism, Performance, EdgeData) but no way to run them together on N simulations.
+**Current State**: Different simulation workflows use different services (SimulationService, BatchOptimizationService)
+
+**New Service**: `api/services/simulation_orchestrator.py` (Orchestration Layer)
+
+**Purpose**: Detect simulation source and delegate to appropriate services
+
+```python
+class SimulationOrchestrator:
+    """
+    Orchestrates batch simulation execution across different sources.
+
+    Delegation Pattern:
+    - Event-scenario → BatchSimulationScheduler (reused, Q2)
+    - OD extraction → SimulationService (unchanged)
+    - Control plan → BatchOptimizationService (unchanged)
+    """
+
+    async def batch_start_simulations(simulation_ids: List[str]) -> BatchExecutionResponse:
+        # 1. Detect source from metadata (Q3: backward compatible)
+        # 2. Delegate to appropriate service
+        # 3. Return unified response
+```
+
+**Benefits**:
+- ✅ Unified batch execution interface
+- ✅ Preserves existing workflows (non-breaking)
+- ✅ Reuses BatchSimulationScheduler (Q2 decision)
+- ✅ Automatic source detection (Q3 backward compatibility)
+
+---
+
+### 4. Analysis Orchestration Service (NEW - Adapter Layer, Q8/Q9 Decisions)
+
+**Current State**: OD analysis services (accuracy/mechanism/performance/edgedata) exist but not suitable for event-scenario analysis
+
+**Design Decisions**:
+- **Q8**: Does NOT use OD analysis services (incompatible interfaces)
+- **Q9**: Does NOT modify existing services - creates adapter layer instead
+- **Reuses**: SummaryAnalyzer + EdgeDataAnalyzer from batch_result_analyzer.py (shared layer, unchanged)
 
 **New Service**: `api/services/analysis_orchestration_service.py`
 
 ```python
 class AnalysisOrchestrationService:
+    """
+    Adapter layer: converts event-scenario structure to batch analysis format.
+
+    Reuses (unchanged):
+    - SummaryAnalyzer (shared/analysis_tools/batch_result_analyzer.py)
+    - EdgeDataAnalyzer (shared/analysis_tools/batch_result_analyzer.py)
+
+    Does NOT use (Q8):
+    - accuracy_service (OD-specific)
+    - mechanism_service (OD-specific)
+    - performance_service (OD-specific)
+    - edgedata_service (OD-specific)
+    """
 
     async def create_analysis_batch(
         self,
         simulation_ids: List[str],
         baseline_scenario_id: str,
         comparison_scenario_id: Optional[str] = None,
-        analysis_focus: List[str] = ["edgedata", "tripinfo"],  # Mandatory vs Optional
+        analysis_focus: List[str] = ["summary", "edgedata"],
         parallel_workers: int = 4
     ) -> AnalysisBatchResponse:
         """
-        Execute all required analyses for a set of simulations.
+        Execute batch analysis for event-scenario simulations.
+
+        Adapter Pattern:
+        1. Convert event-scenario structure to batch format
+        2. Call SummaryAnalyzer.analyze() and EdgeDataAnalyzer.analyze()
+        3. Store results with scenario lineage metadata
 
         Returns:
             - batch_id: For progress tracking
@@ -164,26 +264,65 @@ class AnalysisOrchestrationService:
         """
 ```
 
-**Integration Pattern** (borrowed from proven `BatchOptimizationService`):
+**Integration Pattern**:
 
-- Use task queue: `analysis_tasks_index.json` tracks state
-- Each task: `{simulation_id, analysis_type, status, start_time, end_time}`
-- Parallel executor with configurable workers (default 4, max 8)
-- Automatic retry on transient failures (network, temp file locks)
+- Reuses `batch_result_analyzer.py` infrastructure (Q9: no modifications)
+- Adapter converts event-scenario directory structure to batch format
+- Calls existing SummaryAnalyzer and EdgeDataAnalyzer directly
+- Stores results with scenario lineage metadata
 
-**Reuses Existing Code**:
+**Key Architecture**:
 
-- Analysis service methods unchanged: `accuracy_service.run()`, `mechanism_service.run()`, etc.
-- Metadata isolation principle maintained
-- Uses `batch_result_analyzer.py` pattern for aggregation
+- **Shared Layer Tools** (unchanged): SummaryAnalyzer, EdgeDataAnalyzer
+- **Adapter Layer** (new): AnalysisOrchestrationService
+- **OD Services** (unchanged, not used): accuracy/mechanism/performance/edgedata services
 
 ---
 
-### 4. Batch Simulation Execution Enhanced (P1)
+### 5. Relative Path Generation (AD-13 - Q12 Decision)
+
+**Problem**: Absolute paths in sumocfg won't work when cases are moved
+
+**Solution (Q12)**: Unified relative path strategy
+- **Metadata**: Store paths relative to project root (source of truth)
+- **sumocfg**: Store paths relative to sumocfg location (generated from metadata)
+- **Authority**: Metadata is canonical, sumocfg regenerated as needed
+
+**Example**:
+```
+Metadata: "network_file": "templates/network_files/sichuan.net.xml"
+sumocfg:  <net-file value="../../../../templates/network_files/sichuan.net.xml"/>
+```
+
+---
+
+### 6. Frontend Component Refactoring (Q13, Q14 Decisions)
+
+**Q13 Decision**: Incremental refactoring - Create new components, do NOT modify existing code
+
+**Current Impact**:
+- `script.js` only used by `index.html` - NOT modified
+- Control plan UI - NOT affected
+- Phase 1 scenario browser - NOT affected
+
+**New Components (Phase 2)**:
+- `simulation-monitor.js` - **Generic** (Q14), supports all simulation types
+- `analysis-results.js` - Event-scenario specific
+- `shared-utils.js` - Extracted utilities
+- `api-client.js` - Centralized API calls
+
+**Q14 Decision**: simulation-monitor.js designed as generic component
+- Event-scenario simulations (Phase 2 implementation)
+- OD extraction simulations (future compatibility)
+- Control plan simulations (existing, consider compatibility)
+
+---
+
+### 7. Batch Simulation Execution (Delegated, Not New Service)
 
 **Current**: `simulation_service.start_simulation()` runs ONE simulation
 
-**Extend to**:
+**Phase 2 Approach** (via SimulationOrchestrator):
 
 ```python
 class SimulationExecutionService:
@@ -292,6 +431,37 @@ frontend/
 - `BatchSimulationRequest` / `BatchSimulationResponse`
 - `AnalysisBatchRequest` / `AnalysisBatchProgressResponse`
 - `AnalysisResultResponse` (with visualization data)
+
+---
+
+## Critical Issue: Scenario Directory Structure (RESOLVED)
+
+### ISSUE: Phase 1 Output Structure Mismatch
+
+**Root Cause**: Data format mismatches between `scenario_index.json` metadata and actual filesystem:
+
+| Component | JSON (`scenario_index.json`) | Filesystem | Issue |
+|-----------|-----|----------|-------|
+| Event Type | `"交通事故"` (Chinese) | `01_accident/` (Numeric+English) | Cannot construct path from parameter |
+| Strategy | `"NO_CONTROL"` (uppercase) | `scenario_10754_no_control/` (lowercase) | Case sensitivity on different OS |
+| SUMO Config | Expected in scenario dir | Not present (generated at runtime) | Validation fails |
+
+**Solution Implemented**: Plan B - Robust scenario validation that:
+1. Searches all event_type directories for scenario_id (decouples from encoding format)
+2. Validates only ACTUAL files present (event_description.json, traffic_input_config.json, control_strategy_config.json)
+3. Does NOT require simulation.sumocfg (it's generated at simulation time)
+
+**Code Updated**:
+- `scripts/initialize_scenario_library.py:validate_event_scenario()` (lines 62-139)
+- Uses directory scanning instead of path construction
+- Includes comprehensive debug logging for troubleshooting
+
+**Documentation Updated**:
+- `design.md`: New "Section 0 - Scenario Directory Structure" documents actual structure
+- Details all three encoding mismatches and why they occur
+- Explains implications for case creation, frontend, and simulation setup
+
+**Result**: ✅ Scenario validation is now ROBUST and works with Phase 1 output structure
 
 ---
 

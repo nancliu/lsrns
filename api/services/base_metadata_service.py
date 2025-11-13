@@ -13,20 +13,160 @@ logger = logging.getLogger(__name__)
 
 
 class BaseMetadataService:
-    """基础元数据服务类"""
-    
+    """
+    基础元数据服务类
+
+    Task 1.0: 支持元数据版本检测和向后兼容
+    - Version 1.0: 现有OD案例 (无 metadata_version 字段)
+    - Version 2.0: 事件场景案例 (有 metadata_version 字段)
+    """
+
     def __init__(self, cases_dir: Path):
         self.cases_dir = cases_dir
     
     def prepare_analysis_dirs(self, case_dir: Path, analysis_type: str) -> tuple[Path, Path]:
         """准备分析目录结构 - 调用shared层功能"""
         from shared.utilities.file_utils import create_analysis_batch_dir
-        
+
         # 调用shared层的目录创建功能
         batch_dir = create_analysis_batch_dir(case_dir)
-        
+
         logger.info(f"创建分析批次目录: {batch_dir}")
         return batch_dir, batch_dir
+
+    # ========================================================================
+    # Task 1.0: Metadata Version Support (Q5, Q6, Q7)
+    # ========================================================================
+
+    @staticmethod
+    def detect_metadata_version(metadata: Dict[str, Any]) -> str:
+        """
+        检测元数据版本 (Task 1.0)
+
+        Q5 决策: 双Schema支持 (v1.0隐式, v2.0显式)
+        - Version 1.0: 无 metadata_version 字段 (隐式识别)
+        - Version 2.0: 有 metadata_version 字段 (显式识别)
+
+        Args:
+            metadata: 案例或仿真元数据字典
+
+        Returns:
+            str: "1.0" 或 "2.0"
+
+        Example:
+            >>> metadata_v1 = {"case_id": "case_001", "created_at": "2025-11-10"}
+            >>> detect_metadata_version(metadata_v1)
+            '1.0'
+
+            >>> metadata_v2 = {"metadata_version": "2.0", "source_scenario": {...}}
+            >>> detect_metadata_version(metadata_v2)
+            '2.0'
+        """
+        if not metadata:
+            return "1.0"
+
+        # 显式版本字段存在 → v2.0
+        if "metadata_version" in metadata:
+            return metadata["metadata_version"]
+
+        # 无版本字段 → v1.0 (默认)
+        return "1.0"
+
+    @staticmethod
+    def is_event_scenario_case(metadata: Dict[str, Any]) -> bool:
+        """
+        判断是否为事件场景案例 (Task 1.0)
+
+        Q6 决策: 检测 source_scenario 字段
+        - 事件场景案例: 有 source_scenario 字段
+        - OD案例: 无 source_scenario 字段
+
+        Args:
+            metadata: 案例元数据字典
+
+        Returns:
+            bool: True 表示事件场景案例, False 表示OD案例
+
+        Example:
+            >>> metadata = {"source_scenario": {"scenario_id": "scenario_001"}}
+            >>> is_event_scenario_case(metadata)
+            True
+        """
+        if not metadata:
+            return False
+
+        return "source_scenario" in metadata and metadata["source_scenario"] is not None
+
+    @staticmethod
+    def load_metadata_safely(metadata_file: Path) -> Dict[str, Any]:
+        """
+        安全加载元数据文件 (Task 1.0)
+
+        Q7 决策: Null-safe处理
+        - 文件不存在 → 返回空字典
+        - JSON解析失败 → 记录错误,返回空字典
+        - 缺失字段 → 返回现有字段,不抛出异常
+
+        Args:
+            metadata_file: 元数据文件路径
+
+        Returns:
+            Dict[str, Any]: 元数据字典 (失败时返回空字典)
+        """
+        if not metadata_file.exists():
+            logger.warning(f"Metadata file not found: {metadata_file}")
+            return {}
+
+        try:
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+                return metadata if isinstance(metadata, dict) else {}
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse metadata JSON: {metadata_file}, error: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to load metadata: {metadata_file}, error: {e}")
+            return {}
+
+    def get_simulation_source_type(self, simulation_metadata: Dict[str, Any]) -> str:
+        """
+        获取仿真来源类型 (Task 1.0)
+
+        用于 SimulationOrchestrator 判断仿真来源并委派
+
+        Args:
+            simulation_metadata: 仿真元数据字典
+
+        Returns:
+            str: "event-scenario" | "control-plan" | "od-extraction"
+
+        Example:
+            >>> metadata = {"metadata_version": "2.0", "source_scenario": {...}}
+            >>> get_simulation_source_type(metadata)
+            'event-scenario'
+
+            >>> metadata = {"plan_id": "plan_001"}
+            >>> get_simulation_source_type(metadata)
+            'control-plan'
+
+            >>> metadata = {"case_id": "case_001"}
+            >>> get_simulation_source_type(metadata)
+            'od-extraction'
+        """
+        # 检测元数据版本
+        version = self.detect_metadata_version(simulation_metadata)
+
+        # v2.0 + source_scenario → event-scenario
+        if version == "2.0" and self.is_event_scenario_case(simulation_metadata):
+            return "event-scenario"
+
+        # 包含 plan_id 或 control_plan → control-plan
+        if "plan_id" in simulation_metadata or "control_plan" in simulation_metadata:
+            return "control-plan"
+
+        # 默认 → od-extraction
+        return "od-extraction"
     
     def update_metadata_for_analysis(self, case_dir: Path, simulation_ids: List[str], 
                                     analysis_type: str, analysis_results: dict, base_dir: Path = None):

@@ -14,7 +14,7 @@
             <h1 class="system-title">超大规模路网仿真推演系统</h1>
         </div>
         <div class="top-bar-center">
-            <h2 class="page-title">🎬 仿真场景库浏览器</h2>
+            <h2 class="page-title">🎬 仿真推演场景集</h2>
         </div>
         <div class="top-bar-buttons">
             <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
@@ -35,9 +35,9 @@
                 <li><a href="#" class="nav-item">路况评价</a></li>
 
                 <li class="nav-section-title">事件触发仿真</li>
-                <li><a href="#" class="nav-item">事件注入</a></li>
-                <li><a href="#" class="nav-item active">仿真场景库</a></li>
-                <li><a href="#" class="nav-item">影响分析</a></li>
+                <li><a href="scenario_browser.html" class="nav-item active">🎬 仿真推演场景集</a></li>
+                <li><a href="case-simulation-center.html" class="nav-item">🔄 场景案例管理</a></li>
+                <li><a href="analysis_viewer.html" class="nav-item">📈 影响分析</a></li>
 
                 <li class="nav-section-title">交通管控仿真</li>
                 <li><a href="../control/templates.html" class="nav-item">策略管理</a></li>
@@ -121,41 +121,6 @@
         </div>
     </div>
 
-    <!-- 快速创建案例模态框 -->
-    <div class="modal" id="quickCreateModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>📋 快速创建案例</h2>
-                <button class="modal-close" onclick="closeModal('quickCreateModal')">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>场景ID</label>
-                    <input type="text" id="selectedScenarioId" readonly>
-                </div>
-                <div class="form-group">
-                    <label>案例名称</label>
-                    <input type="text" id="selectedScenarioName">
-                </div>
-                <div class="form-group">
-                    <label>事件类型</label>
-                    <input type="text" id="selectedEventType" readonly>
-                </div>
-                <div class="form-group">
-                    <label>管控策略</label>
-                    <input type="text" id="selectedControlStrategy" readonly>
-                </div>
-                <div class="form-group">
-                    <label>案例描述</label>
-                    <textarea id="caseDescription" rows="3" placeholder="可选描述"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('quickCreateModal')">取消</button>
-                <button class="btn btn-primary" onclick="submitQuickCreate()">创建案例</button>
-            </div>
-        </div>
-    </div>
 
     <!-- 仿真分析模态框 -->
     <div class="modal" id="analysisModal">

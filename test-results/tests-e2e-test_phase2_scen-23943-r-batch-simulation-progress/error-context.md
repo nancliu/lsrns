@@ -1,0 +1,71 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - heading "OD数据处理与仿真系统" [level=1] [ref=e4]
+    - paragraph [ref=e5]: 基于案例管理的交通仿真分析平台
+  - navigation [ref=e6]:
+    - list [ref=e7]:
+      - listitem [ref=e8]:
+        - link "OD数据处理" [ref=e9] [cursor=pointer]:
+          - /url: "#od-processing"
+      - listitem [ref=e10]:
+        - link "仿真运行" [ref=e11] [cursor=pointer]:
+          - /url: "#simulation"
+      - listitem [ref=e12]:
+        - link "结果分析" [ref=e13] [cursor=pointer]:
+          - /url: "#accuracy-analysis"
+      - listitem [ref=e14]:
+        - link "案例管理" [ref=e15] [cursor=pointer]:
+          - /url: "#case-management"
+      - listitem [ref=e16]:
+        - link "模板查看" [ref=e17] [cursor=pointer]:
+          - /url: "#templates"
+      - listitem [ref=e18]:
+        - link "管控策略模板" [ref=e19] [cursor=pointer]:
+          - /url: control/index.html
+  - main [ref=e20]:
+    - generic [ref=e21]:
+      - heading "OD数据处理" [level=2] [ref=e22]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: "开始时间:"
+            - textbox "开始时间:" [ref=e28]: 2025-11-12T00:00
+            - generic [ref=e29]: 格式：2025-08-04T08:00
+          - generic [ref=e30]:
+            - generic [ref=e31]: "结束时间:"
+            - textbox "结束时间:" [ref=e32]: 2025-11-12T00:15
+            - generic [ref=e33]: 格式：2025-08-04T08:15
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: "TAZ文件:"
+            - combobox "TAZ文件:" [ref=e37]:
+              - option "请选择TAZ文件"
+              - option "TAZ_6.add.xml" [selected]
+              - option "TAZ_5_validated.add.xml"
+              - option "TAZ_4.add.xml"
+          - generic [ref=e38]:
+            - generic [ref=e39]: "网络文件:"
+            - combobox "网络文件:" [ref=e40]:
+              - option "请选择网络文件"
+              - option "sichuan202510v8.net.xml" [selected]
+              - option "sichuan202508v7.net.xml"
+              - option "sichuan202503v6.net.xml"
+              - option "sichuan202503v5.net.xml"
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - generic [ref=e43]: "时间间隔(分钟):"
+            - spinbutton "时间间隔(分钟):" [ref=e44]: "5"
+          - generic [ref=e45]:
+            - generic [ref=e46]: "案例名称:"
+            - textbox "案例名称:" [ref=e47]
+        - generic [ref=e48]:
+          - generic [ref=e49]: "案例描述:"
+          - textbox "案例描述:" [ref=e50]
+        - generic [ref=e51]:
+          - button "处理OD数据" [ref=e52] [cursor=pointer]
+          - button "刷新模板" [ref=e53] [cursor=pointer]
+      - generic [ref=e55]: 等待处理...
+```

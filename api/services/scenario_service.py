@@ -217,7 +217,9 @@ class ScenarioService(BaseService):
                     traffic_config = json.load(f)
 
             # 构建案例元数据 - 按照AD-7和AD-8强制策略
+            # Phase 2: 添加 metadata_version 字段以支持向后兼容
             metadata = {
+                "metadata_version": "2.0",  # Phase 2: v2.0 元数据 (显式版本)
                 "case_id": case_id,
                 "case_name": request.case_name,
                 "case_type": "event_scenario",  # 标记为事件场景案例

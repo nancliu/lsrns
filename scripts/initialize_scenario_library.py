@@ -34,7 +34,7 @@ import logging
 import shutil
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 import argparse
 
@@ -63,34 +63,79 @@ class QuickCaseCreator:
         """
         Validate that event scenario exists and is complete.
 
+        Actual directory structure (output/scenarios):
+        ├── 01_accident/
+        │   ├── scenario_10754_no_control/
+        │   │   ├── event_description.json
+        │   │   ├── traffic_input_config.json
+        │   │   ├── control_strategy_config.json
+        │   │   └── scenario_accident_event_10754.add.xml  (not sumocfg)
+        │   └── scenario_10754_vss/
+        │       └── ...
+        ├── 02_congestion/
+        │   └── ...
+        └── scenario_index.json (metadata)
+
         Args:
-            event_type: Event type (e.g., '01_交通事故')
-            strategy: Strategy type (vss, dhs, tec)
-            scenario_id: Scenario ID (e.g., 'scenario_12547_vss')
+            event_type: Event type (display name, e.g., '交通事故')
+                        Note: Directories are named with numeric codes (01_accident, 02_congestion, etc.)
+            strategy: Strategy type (e.g., 'NO_CONTROL', 'TEC', 'VSS')
+                      Note: Stored in scenario_id suffix (scenario_10754_no_control)
+            scenario_id: Scenario ID (e.g., 'scenario_10754_no_control')
+                         Contains both event_id and strategy in filename
 
         Returns:
             True if scenario is valid and complete
         """
-        scenario_dir = self.scenarios_root / event_type / strategy / scenario_id
+        # 实现方案 B: 直接搜索所有event_type目录中的scenario_id
+        # 理由: scenario_id已包含完整的路径信息，不需要依赖编码格式
+        # 这样可以处理：
+        # - 中文名称 vs 英文名称 (事件类型)
+        # - 大小写差异 (NO_CONTROL vs no_control)
+        # - 编码格式变化 (01_accident vs 0x01_accident)
 
-        if not scenario_dir.exists():
-            logger.error(f"Scenario directory not found: {scenario_dir}")
+        scenario_dir = None
+
+        # 搜索所有event_type子目录
+        if self.scenarios_root.exists():
+            for event_type_dir in self.scenarios_root.iterdir():
+                if event_type_dir.is_dir():
+                    potential_scenario_dir = event_type_dir / scenario_id
+                    if potential_scenario_dir.exists():
+                        scenario_dir = potential_scenario_dir
+                        break
+
+        if not scenario_dir:
+            logger.error(f"Scenario directory not found for scenario_id: {scenario_id}")
+            logger.debug(f"  Searched in: {self.scenarios_root}")
+            logger.debug(f"  Event type param: {event_type}, Strategy param: {strategy}")
+            logger.debug(f"  Available event_type directories:")
+            if self.scenarios_root.exists():
+                for d in self.scenarios_root.iterdir():
+                    if d.is_dir() and not d.name.endswith('.json'):
+                        logger.debug(f"    - {d.name}")
             return False
 
-        # Check required files
+        # 检查必需文件 (实际存在的文件，不假设SUMO配置)
         required_files = [
             "event_description.json",
             "traffic_input_config.json",
-            "control_strategy_config.json",
-            "simulation.sumocfg"
+            "control_strategy_config.json"
         ]
 
+        missing_files = []
         for required_file in required_files:
             if not (scenario_dir / required_file).exists():
-                logger.error(f"Missing required file in scenario: {required_file}")
-                return False
+                missing_files.append(required_file)
 
-        logger.info(f"Event scenario validated: {scenario_dir.name}")
+        if missing_files:
+            logger.error(f"Missing required files in scenario: {', '.join(missing_files)}")
+            logger.debug(f"  Scenario dir: {scenario_dir}")
+            logger.debug(f"  Actual files present: {list(scenario_dir.glob('*'))}")
+            return False
+
+        logger.info(f"✓ Event scenario validated: {scenario_dir.name}")
+        logger.debug(f"  Location: {scenario_dir}")
         return True
 
     def validate_case_inputs(self, network_file: str, od_file: str, taz_file: Optional[str] = None) -> bool:
@@ -98,14 +143,15 @@ class QuickCaseCreator:
         Validate case input files.
 
         Args:
-            network_file: Path to network XML file
-            od_file: Path to OD/routes file
+            network_file: Path to network XML file (required)
+            od_file: Path to OD file OR database table name (e.g., "baseline.od_data_sichuan_202507")
+                     Can be file path or database reference - both acceptable
             taz_file: Optional path to TAZ file
 
         Returns:
-            True if all inputs are accessible
+            True if required inputs are accessible
         """
-        # Check network file
+        # Check network file (REQUIRED)
         net_path = Path(network_file)
         if not net_path.exists():
             # Try relative to project root
@@ -114,24 +160,45 @@ class QuickCaseCreator:
                 logger.error(f"Network file not found: {network_file}")
                 return False
 
-        # Check OD file
-        od_path = Path(od_file)
-        if not od_path.exists():
-            od_path = self.project_root / od_file
-            if not od_path.exists():
-                logger.error(f"OD file not found: {od_file}")
-                return False
+        logger.info(f"Network file validated: {net_path}")
 
-        # Check TAZ file if provided
+        # Check OD file (FLEXIBLE - can be file path or database table reference)
+        # Format 1: File path (e.g., "cases/case_id/config/od_data.xml")
+        # Format 2: Database table (e.g., "baseline.od_data_sichuan_202507")
+        od_path = Path(od_file)
+        is_database_ref = "." in od_file and "/" not in od_file  # Simple heuristic: "schema.table"
+
+        if is_database_ref:
+            # Database table reference - assume it's valid (database will validate at runtime)
+            logger.info(f"OD input recognized as database table reference: {od_file}")
+        else:
+            # File path - check if it exists
+            if not od_path.exists():
+                od_path = self.project_root / od_file
+                if not od_path.exists():
+                    logger.warning(f"OD file not found: {od_file} (will be generated or loaded from database)")
+                    # Don't fail - OD data can be generated from database at simulation time
+                else:
+                    logger.info(f"OD file validated: {od_path}")
+            else:
+                logger.info(f"OD file validated: {od_path}")
+
+        # Check TAZ file if provided (OPTIONAL)
         if taz_file:
             taz_path = Path(taz_file)
             if not taz_path.exists():
                 taz_path = self.project_root / taz_file
                 if not taz_path.exists():
-                    logger.warning(f"TAZ file not found: {taz_file}")
+                    logger.warning(f"TAZ file not found: {taz_file} (will use default)")
                     # Don't fail, TAZ is optional
+                else:
+                    logger.info(f"TAZ file validated: {taz_path}")
+            else:
+                logger.info(f"TAZ file validated: {taz_path}")
+        else:
+            logger.info("TAZ file: using default")
 
-        logger.info("Case input files validated")
+        logger.info("✓ Case input files validation passed")
         return True
 
     def create_case_from_event(

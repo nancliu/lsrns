@@ -65,11 +65,74 @@ class BaseService:
     def get_db_connection(self):
         """获取数据库连接（使用shared统一实现）"""
         return open_db_connection()
-    
+
     def ensure_directory(self, directory: Path) -> None:
         """确保目录存在 - 调用shared层功能"""
         from shared.utilities.file_utils import ensure_directory
         ensure_directory(directory)
+
+    # ===== Metadata Version Support (Task 1.0 - Week 1 Phase 2) =====
+
+    def detect_metadata_version(self, metadata: Dict[str, Any]) -> str:
+        """
+        检测元数据版本以支持向后兼容性
+
+        Args:
+            metadata: 案例或仿真元数据字典
+
+        Returns:
+            "1.0" (现有OD案例，隐式) 或 "2.0" (事件场景案例，显式)
+
+        Design Decision Q5, Q6, Q7:
+            - Version 1.0: 无 metadata_version 字段 (隐式)
+            - Version 2.0: 有 metadata_version 字段 (显式)
+            - 向后兼容: v1.0 案例继续正常工作
+        """
+        if "metadata_version" in metadata:
+            return metadata["metadata_version"]
+        return "1.0"  # 默认为现有案例
+
+    def is_event_scenario_case(self, metadata: Dict[str, Any]) -> bool:
+        """
+        检查是否为事件场景案例
+
+        Args:
+            metadata: 案例元数据字典
+
+        Returns:
+            True 如果是事件场景案例 (v2.0, 有 source_scenario 字段)
+            False 如果是传统OD案例 (v1.0)
+
+        Implementation:
+            - 空安全处理 source_scenario 字段
+            - 不破坏现有工作流
+        """
+        version = self.detect_metadata_version(metadata)
+        if version == "2.0":
+            return "source_scenario" in metadata and metadata["source_scenario"] is not None
+        return False
+
+    def get_source_scenario_id(self, metadata: Dict[str, Any]) -> str | None:
+        """
+        获取源场景ID（如果存在）
+
+        Args:
+            metadata: 案例或仿真元数据
+
+        Returns:
+            scenario_id 字符串，如果不是事件场景案例则返回 None
+
+        Safety:
+            - 空安全，不会抛出异常
+            - 兼容 v1.0 元数据
+        """
+        if not self.is_event_scenario_case(metadata):
+            return None
+
+        source_scenario = metadata.get("source_scenario", {})
+        if isinstance(source_scenario, dict):
+            return source_scenario.get("scenario_id")
+        return None
 
 
 # 使用shared中的MetadataManager

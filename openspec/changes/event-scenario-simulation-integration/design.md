@@ -1,88 +1,254 @@
 # Phase 2: Event Scenario Simulation Integration - Design Document
 
+## Design Principles (Non-Breaking Integration)
+
+### PRINCIPLE-INTEGRATION-001: Non-Breaking Extension Principle
+- **新服务不修改现有服务接口** - New services MUST NOT modify existing service interfaces
+- **新元数据字段可选** - New metadata fields MUST be optional for backward compatibility
+- **新API使用独立端点** - New APIs MUST use separate endpoints (not override existing)
+
+### PRINCIPLE-INTEGRATION-002: Workflow Isolation Principle
+- **事件场景工作流代码隔离** - Event-scenario workflow code isolated in dedicated services
+- **共享基础设施通过适配器访问** - Shared infrastructure (BatchSimulationScheduler) accessed via adapters
+- **现有OD/控制方案工作流继续正常工作** - Existing OD/Control Plan workflows continue working unchanged
+
+### PRINCIPLE-INTEGRATION-003: Gradual Migration Principle
+- **新旧元数据Schema并存** - Old and new metadata schemas coexist
+- **服务检测Schema版本并适配** - Services detect schema version and adapt behavior
+- **提供迁移工具但非强制** - Migration tools provided but not mandatory
+
+---
+
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Phase 2 Architecture                           │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   Phase 2 Architecture (Non-Breaking Extension)              │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-USER WORKFLOW:
+EXISTING WORKFLOWS (UNCHANGED):
+┌─────────────────────────────────────────────────────────────────┐
+│ Workflow 1: OD提取仿真 (OD Extraction Simulation)                │
+│   CaseService.create_case() → SimulationService.prepare/start() │
+│   ✅ 不受影响 - API和元数据结构保持不变                         │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ Workflow 2: 管控方案优化 (Control Plan Optimization)             │
+│   BatchOptimizationService → BatchSimulationScheduler           │
+│   ✅ 不受影响 - 共享基础设施通过适配器复用                       │
+└─────────────────────────────────────────────────────────────────┘
+
+NEW WORKFLOW (PHASE 2):
+┌─────────────────────────────────────────────────────────────────┐
+│ Workflow 3: 事件场景仿真分析 (Event Scenario Sim + Analysis)     │
+│   ScenarioService → SimulationOrchestrator → AnalysisAdapter    │
+│   ✅ 新增 - 不影响现有工作流                                     │
+└─────────────────────────────────────────────────────────────────┘
+
+USER WORKFLOW (Event Scenario):
 1. Click "Create Case from Scenario" (Phase 1 UI)
    ↓
-2. Case created with source_scenario_id tracked (AD-7)
+2. POST /api/v1/case/create-from-scenario (NEW endpoint)
+   ├─ CaseService.create_case_from_scenario() (NEW method)
+   ├─ Case created with source_scenario (metadata_version: "2.0")
+   └─ Backward compatible: v1.0 cases continue working
    ↓
-3. Click "Create Simulation" → SimulationService.create_from_case()
-   ├─ Copy case config (network, OD, TAZ)
-   ├─ Generate scenario.add.xml with relative paths
-   ├─ Create simulation_metadata.json with scenario lineage
-   └─ Return simulation_id
+3. Click "Batch Start Simulations"
+   ├─ SimulationOrchestrator.batch_start() (NEW - orchestration layer)
+   ├─ Detects simulation source (event-scenario vs OD vs control-plan)
+   ├─ Delegates to appropriate service:
+   │  • Event-scenario → Uses BatchSimulationScheduler (reused)
+   │  • OD extraction → Existing SimulationService (unchanged)
+   │  • Control plan → Existing BatchOptimizationService (unchanged)
+   └─ Real-time progress monitoring
    ↓
-4. Click "Start Simulation" or batch "Run Analysis"
-   ├─ SimulationExecutionService.batch_start_simulations()
-   ├─ Real-time progress monitoring
-   └─ Auto-run analyses when complete
-   ↓
-5. Analysis automatically runs (AnalysisOrchestrationService)
-   ├─ Load simulation results
-   ├─ Run 4 analyses in parallel (with AD-10 EdgeData mandatory)
-   ├─ Save results with complete scenario lineage
+4. Analysis automatically runs (AnalysisOrchestrationService)
+   ├─ Adapter layer converts event-scenario structure to batch format
+   ├─ Reuses: SummaryAnalyzer + EdgeDataAnalyzer (shared layer, unchanged)
+   ├─ Does NOT use: OD analysis services (accuracy/mechanism/performance/edgedata)
+   ├─ Save results with scenario lineage
    └─ Update analysis_index.json
    ↓
-6. View Results Dashboard
-   ├─ Show analysis progress in real-time
+5. View Results Dashboard (NEW UI, does not modify existing pages)
+   ├─ simulation-monitor.js (generic, supports all sim types)
    ├─ Display heat maps, statistics, comparisons
    └─ Download reports
 
-BACKEND SERVICES:
-┌─────────────────────────────────────────────────────────────────┐
-│ API Layer (api/routes/, api/services/)                          │
-├─────────────────────────────────────────────────────────────────┤
-│ • scenario_routes.py          ← Phase 1 (case creation)         │
-│ • simulation_routes.py        ← NEW (batch execution)           │
-│ • analysis_routes.py          ← EXTENDED (orchestration)        │
-│ • SimulationExecutionService  ← NEW (batch executor)            │
-│ • AnalysisOrchestrationService ← NEW (analysis scheduler)      │
-└─────────────────────────────────────────────────────────────────┘
+BACKEND SERVICES (Clarified Roles):
+┌──────────────────────────────────────────────────────────────────────┐
+│ API Layer (api/routes/, api/services/)                               │
+├──────────────────────────────────────────────────────────────────────┤
+│ EXISTING (UNCHANGED):                                                 │
+│ • CaseService                  ← Extended with new method            │
+│ • SimulationService            ← Unchanged (OD extraction flow)      │
+│ • BatchOptimizationService     ← Unchanged (control plan flow)       │
+│                                                                       │
+│ NEW (PHASE 2):                                                        │
+│ • SimulationOrchestrator       ← NEW orchestration layer (Q1-C)      │
+│ • AnalysisOrchestrationService ← NEW adapter for batch analysis      │
+└──────────────────────────────────────────────────────────────────────┘
          ↓
-┌─────────────────────────────────────────────────────────────────┐
-│ Shared Layer (shared/)                                           │
-├─────────────────────────────────────────────────────────────────┤
-│ • sumo_utils.py               ← EXTENDED (relative paths)      │
-│ • simulation_processor.py     ← EXTENDED (batch integration)    │
-│ • analysis_tools/            ← USES (4 existing services)       │
-│ • batch_result_analyzer.py    ← REUSES (aggregation)           │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ Shared Layer (shared/)                                                │
+├──────────────────────────────────────────────────────────────────────┤
+│ REUSED (UNCHANGED):                                                   │
+│ • BatchSimulationScheduler     ← Reused via adapter (Q2)             │
+│ • SummaryAnalyzer              ← Reused for event-scenario analysis  │
+│ • EdgeDataAnalyzer             ← Reused for event-scenario analysis  │
+│                                                                       │
+│ NOT USED:                                                             │
+│ • accuracy_service (OD-specific) ← Not reused (Q8)                   │
+│ • mechanism_service (OD-specific) ← Not reused (Q8)                  │
+│ • performance_service (OD-specific) ← Not reused (Q8)                │
+│ • edgedata_service (OD-specific) ← Not reused (Q8)                   │
+│                                                                       │
+│ EXTENDED:                                                             │
+│ • sumo_utils.py                ← Add relative path generation        │
+└──────────────────────────────────────────────────────────────────────┘
 
-FRONTEND LAYER (frontend/)
-┌─────────────────────────────────────────────────────────────────┐
-│ Components (NEW)                                                  │
-├─────────────────────────────────────────────────────────────────┤
-│ • simulation-monitor.js       ← NEW (batch progress)            │
-│ • analysis-results.js         ← NEW (visualization)             │
-│ • shared-utils.js             ← REFACTORED                      │
-│ • api-client.js               ← REFACTORED                      │
-└─────────────────────────────────────────────────────────────────┘
+FRONTEND LAYER (frontend/) - Incremental Refactoring (Q13):
+┌──────────────────────────────────────────────────────────────────────┐
+│ EXISTING (UNCHANGED):                                                 │
+│ • script.js (only used by index.html) ← Not modified                 │
+│ • frontend/control/* ← Control plan UI, unchanged                    │
+│ • frontend/scenarios/scenario_browser.html ← Phase 1, unchanged      │
+│                                                                       │
+│ NEW (PHASE 2):                                                        │
+│ • components/simulation-monitor.js ← Generic, all sim types (Q14)   │
+│ • components/analysis-results.js   ← Event-scenario results          │
+│ • components/shared-utils.js       ← Extracted utilities             │
+│ • components/api-client.js         ← Centralized API calls           │
+└──────────────────────────────────────────────────────────────────────┘
 
-DATABASE / FILE SYSTEM:
-┌─────────────────────────────────────────────────────────────────┐
-│ cases/case_id/                                                   │
-│ ├─ metadata.json              ← source_scenario_id              │
-│ ├─ config/                    ← network, OD, TAZ refs          │
-│ └─ simulations/sim_id/        ← AD-7 1:1 binding               │
-│    ├─ simulation.sumocfg      ← RELATIVE PATHS (AD-13)        │
-│    ├─ scenario.add.xml        ← event + control XML            │
-│    ├─ simulation_metadata.json ← event/control config copy     │
-│    └─ sumo_logs/              ← NEW (real-time logging)        │
-│                                                                  │
-│ cases/case_id/analysis/batch_id/
-│ ├─ analysis_metadata.json     ← source_simulation_id          │
-│ ├─ edgedata/                  ← EdgeData analysis (MANDATORY) │
-│ ├─ tripinfo/                  ← TripInfo analysis (OPTIONAL)  │
-│ ├─ accuracy/                  ← Accuracy analysis (OPTIONAL)  │
-│ └─ performance/               ← Performance analysis          │
-└─────────────────────────────────────────────────────────────────┘
+METADATA COMPATIBILITY (Q3, Q6, Q7):
+┌──────────────────────────────────────────────────────────────────────┐
+│ cases/case_id/metadata.json                                           │
+├──────────────────────────────────────────────────────────────────────┤
+│ VERSION 1.0 (Existing OD cases):                                      │
+│ {                                                                     │
+│   "case_id": "...",                                                   │
+│   "created_at": "...",                                                │
+│   // NO source_scenario field                                        │
+│ }                                                                     │
+│                                                                       │
+│ VERSION 2.0 (Event-scenario cases):                                  │
+│ {                                                                     │
+│   "metadata_version": "2.0",  ← NEW version field (Q5)               │
+│   "case_id": "...",                                                   │
+│   "source_scenario": {...},   ← NEW optional field                   │
+│   "immutable_fields": {...},                                          │
+│   "overridable_fields": {...}                                         │
+│ }                                                                     │
+│                                                                       │
+│ ✅ Backward Compatible: Services check metadata_version              │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+---
+
+## 0. Scenario Directory Structure (CRITICAL - Actual Implementation)
+
+### IMPORTANT: Phase 1 Output Structure (output/scenarios)
+
+This section documents the ACTUAL directory structure created by Phase 1 scenario generation. This is critical for understanding how scenario validation works.
+
+**Actual Directory Tree**:
+
 ```
+output/scenarios/
+├── 01_accident/                              ← Event type directory (numeric code)
+│   ├── scenario_10754_no_control/           ← Scenario directory (lowercase strategy)
+│   │   ├── event_description.json            ✅ PRESENT
+│   │   ├── traffic_input_config.json         ✅ PRESENT
+│   │   ├── control_strategy_config.json      ✅ PRESENT
+│   │   └── scenario_accident_event_10754.add.xml  ✅ PRESENT (not sumocfg!)
+│   ├── scenario_10754_vss/
+│   │   └── (same 4 files)
+│   ├── scenario_10754_tec/
+│   │   └── (same 4 files)
+│   ├── scenario_10762_no_control/
+│   │   └── (same 4 files)
+│   └── ... (40+ more scenarios)
+│
+├── 02_congestion/                            ← Another event type
+│   ├── scenario_20001_no_control/
+│   └── ... (30+ scenarios)
+│
+├── 03_road_control/
+├── 05_breakdown/
+├── 06_weather/
+│
+└── scenario_index.json                       ← Master index file
+```
+
+### CRITICAL FINDINGS: Data Format Mismatches
+
+**Issue 1: Event Type Encoding Mismatch**
+- JSON (`scenario_index.json`): `"event_type": "交通事故"` (Chinese name)
+- Filesystem: `01_accident/` (Numeric code + English name)
+- **Impact**: Cannot construct path from `event_type` + `strategy` parameters
+
+**Issue 2: Strategy Case Mismatch**
+- JSON: `"strategy": "NO_CONTROL"` (Uppercase)
+- Filesystem: `scenario_10754_no_control/` (Lowercase)
+- **Impact**: Case-sensitive path lookups will fail on Windows/Linux
+
+**Issue 3: SUMO Config Missing**
+- Expected by original validation: `simulation.sumocfg`
+- Actually present: `scenario_accident_event_10754.add.xml` (SUMO additional file, not config)
+- **Impact**: Validation logic must NOT require sumocfg (it's generated at simulation time, not stored)
+
+### Solution: Plan B - Robust Scenario Lookup
+
+**Validation Strategy** (`scripts/initialize_scenario_library.py:validate_event_scenario()`):
+
+1. **Ignore encoding differences**: Don't construct path from parameters
+2. **Search directly for scenario_id**: scenario_id already contains all info
+3. **Flexible directory scan**: Search all event_type subdirectories
+4. **Only validate actual files**: event_description.json, traffic_input_config.json, control_strategy_config.json
+
+```python
+# ✅ CORRECT: Search for scenario_id across all event_type directories
+def validate_event_scenario(self, event_type: str, strategy: str, scenario_id: str) -> bool:
+    scenario_dir = None
+
+    # Search all event_type directories
+    if self.scenarios_root.exists():
+        for event_type_dir in self.scenarios_root.iterdir():
+            if event_type_dir.is_dir():
+                potential = event_type_dir / scenario_id
+                if potential.exists():
+                    scenario_dir = potential
+                    break
+
+    # Validate ACTUAL files, not assumed files
+    required_files = [
+        "event_description.json",
+        "traffic_input_config.json",
+        "control_strategy_config.json"
+        # NOTE: NOT including simulation.sumocfg
+    ]
+
+    return all((scenario_dir / f).exists() for f in required_files)
+```
+
+### Implications for Other Components
+
+**Case Creation** (`api/services/case_service.py`):
+- Receives `scenario_id` from frontend/API
+- Passes to validation (which now works correctly)
+- Creates case metadata with source_scenario tracking
+
+**Frontend** (`frontend/scenarios/scenario_browser.js`):
+- Uses `scenario_id` from scenario_index.json for all operations
+- Event type and strategy are informational only (not for path construction)
+- Direct case creation now works because validation is robust
+
+**Simulation Setup**:
+- SUMO config is generated dynamically at simulation time
+- Scenario `.add.xml` is MERGED into SUMO config (not used as primary config)
+- Never stored in scenario directory (generated in simulation output)
 
 ---
 
@@ -96,9 +262,15 @@ DATABASE / FILE SYSTEM:
 
 **Location**: `cases/case_id/metadata.json`
 
-**Structure**:
+**Backward Compatibility Strategy** (Q3, Q5, Q7):
+- Version 1.0 (existing OD cases): No `metadata_version` field, no `source_scenario` field
+- Version 2.0 (event-scenario cases): Has `metadata_version: "2.0"`, has `source_scenario` field
+- Services MUST check version and handle both schemas
+
+**Structure (Version 2.0 - Event Scenario Cases)**:
 ```json
 {
+  "metadata_version": "2.0",
   "case_id": "case_20251112_120000",
   "case_name": "Morning Peak VSS Control Case",
   "created_at": "2025-11-12T12:00:00",
@@ -138,9 +310,35 @@ DATABASE / FILE SYSTEM:
 }
 ```
 
+**Structure (Version 1.0 - OD Extraction Cases - Unchanged)**:
+```json
+{
+  "case_id": "case_20251110_100000",
+  "case_name": "OD Extraction Case",
+  "created_at": "2025-11-10T10:00:00",
+  "status": "created",
+  "case_config": {
+    "network_file": "templates/network_files/sichuan202508v7.net.xml",
+    "od_file": "data/od_data_sichuan_202507.xml",
+    "taz_file": "templates/taz_files/TAZ_6.add.xml"
+  }
+  // NO metadata_version field
+  // NO source_scenario field
+}
+```
+
 **Responsibility**: Stores case-level configuration and scenario origin. **Never modified after creation** (except status field).
 
 **Status Tracking**: Case status = `created` | `simulating` | `completed` | `failed`
+
+**Version Detection**:
+```python
+def detect_case_version(metadata: Dict[str, Any]) -> str:
+    """Detect case metadata version for backward compatibility."""
+    if "metadata_version" in metadata:
+        return metadata["metadata_version"]
+    return "1.0"  # Default for existing cases
+```
 
 ---
 
@@ -148,15 +346,21 @@ DATABASE / FILE SYSTEM:
 
 **Location**: `cases/case_id/simulations/sim_id/simulation_metadata.json`
 
-**Structure**:
+**Backward Compatibility Strategy** (Q6):
+- Version 1.0 (existing simulations): No `source_scenario` field
+- Version 2.0 (event-scenario simulations): Has `source_scenario` field
+- All new fields are OPTIONAL - old simulations will NOT fail
+
+**Structure (Version 2.0 - Event Scenario Simulations)**:
 ```json
 {
+  "metadata_version": "2.0",
   "simulation_id": "sim_20251112_120530",
   "case_id": "case_20251112_120000",
   "created_at": "2025-11-12T12:05:30",
 
   "source_scenario": {
-    "scenario_id": "scenario_12547_vss",  ← BACKTRACK to scenario
+    "scenario_id": "scenario_12547_vss",  ← BACKTRACK to scenario (OPTIONAL)
     "event_id": "12547",
     "event_type": "01_accident"
   },
@@ -182,8 +386,8 @@ DATABASE / FILE SYSTEM:
 
   "input_files": {
     "sumocfg": "simulation.sumocfg",
-    "network": "templates/network_files/sichuan202508v7.net.xml",
-    "routes": "data/od_data_sichuan_202507.xml",
+    "network": "../../templates/network_files/sichuan202508v7.net.xml",
+    "routes": "../../data/od_data_sichuan_202507.xml",
     "scenario_add": "scenario.add.xml"
   },
 
@@ -204,12 +408,27 @@ DATABASE / FILE SYSTEM:
 }
 ```
 
+**Structure (Version 1.0 - OD Extraction Simulations - Unchanged)**:
+```json
+{
+  "simulation_id": "sim_20251110_100530",
+  "case_id": "case_20251110_100000",
+  "config_file": "simulation.sumocfg",
+  "status": "pending",
+  "simulation_type": "microscopic"
+  // NO metadata_version field
+  // NO source_scenario field
+  // NO scenario_config field
+}
+```
+
 **Responsibility**: Tracks simulation-specific configuration and execution state. Scenario config is **copied** (not referenced) to preserve immutability.
 
 **Key Design**:
-- `source_scenario` field enables backtracking to scenario
+- `source_scenario` field enables backtracking to scenario (OPTIONAL for backward compatibility)
 - Config files are **copies**, not references (snapshots for reproducibility)
 - Never modified by analysis services
+- Services check `metadata_version` to handle both schemas
 
 ---
 
@@ -290,13 +509,16 @@ DATABASE / FILE SYSTEM:
 
 ---
 
-## 2. SUMO Configuration Relative Paths (AD-13)
+## 2. SUMO Configuration Relative Paths (AD-13 - Q12 Decision)
 
 ### Problem & Solution
 
 **Problem**: Absolute paths in `.sumocfg` won't work when cases move to different machines or paths change.
 
-**Solution**: Use relative paths computed from simulation directory.
+**Solution (Q12)**: Unified relative path strategy
+- **Metadata**: Store paths as relative to project root
+- **sumocfg**: Store paths as relative to sumocfg location
+- **Authority**: Metadata is source of truth, sumocfg generated from metadata
 
 ### Implementation Strategy
 
@@ -409,27 +631,154 @@ def validate_sumocfg_paths(sumocfg_path: Path) -> Tuple[bool, List[str]]:
 
 ---
 
-## 3. Analysis Orchestration Service
+## 3. Simulation Orchestration Service (NEW - Q1 Decision: Option C)
+
+### Class Design
+
+**Location**: `api/services/simulation_orchestrator.py`
+
+**Purpose**: Orchestration layer that detects simulation source and delegates to appropriate services
+
+**Key Methods**:
+
+```python
+class SimulationOrchestrator:
+    """
+    Orchestrates batch simulation execution across different simulation sources.
+
+    Decision Q1-C: Creates orchestration layer, detects simulation source, and delegates.
+
+    Delegates to:
+    - Event-scenario simulations → BatchSimulationScheduler (reused)
+    - OD extraction simulations → SimulationService (existing, unchanged)
+    - Control plan simulations → BatchOptimizationService (existing, unchanged)
+    """
+
+    def __init__(self):
+        self.simulation_service = SimulationService()
+        self.batch_optimization_service = BatchOptimizationService()
+        # Reuse existing scheduler (Q2)
+        self.batch_scheduler = BatchSimulationScheduler(
+            base_dir="cases",
+            completion_callback=self._on_batch_completed
+        )
+
+    async def batch_start_simulations(
+        self,
+        simulation_ids: List[str],
+        parallel_workers: int = 4,
+        auto_run_analysis: bool = True
+    ) -> BatchExecutionResponse:
+        """
+        Start multiple simulations with automatic source detection.
+
+        Process:
+        1. Load metadata for first simulation
+        2. Detect source: check metadata_version and source_scenario field
+        3. Delegate to appropriate service
+        4. Return unified response
+        """
+        # Detect simulation source
+        sim_source = self._detect_simulation_source(simulation_ids[0])
+
+        if sim_source == "event-scenario":
+            # NEW: Event-scenario batch execution
+            return await self._batch_start_event_scenarios(
+                simulation_ids, parallel_workers, auto_run_analysis
+            )
+        elif sim_source == "control-plan":
+            # EXISTING: Delegate to BatchOptimizationService (unchanged)
+            return await self.batch_optimization_service.start_batch_service(...)
+        else:
+            # EXISTING: OD extraction - sequential execution
+            return await self._batch_start_od_simulations(simulation_ids)
+
+    def _detect_simulation_source(self, simulation_id: str) -> str:
+        """
+        Detect simulation source from metadata (Q3: Backward compatibility).
+
+        Returns:
+            "event-scenario" | "control-plan" | "od-extraction"
+        """
+        metadata = self._load_simulation_metadata(simulation_id)
+
+        # Check metadata version
+        version = metadata.get("metadata_version", "1.0")
+
+        if version == "2.0" and "source_scenario" in metadata:
+            return "event-scenario"
+        elif "plan_id" in metadata or "control_plan" in metadata:
+            return "control-plan"
+        else:
+            return "od-extraction"
+
+    async def _batch_start_event_scenarios(
+        self,
+        simulation_ids: List[str],
+        parallel_workers: int,
+        auto_run_analysis: bool
+    ) -> BatchExecutionResponse:
+        """
+        Start event-scenario simulations using BatchSimulationScheduler (Q2: Reuse).
+        """
+        # Convert event-scenario structure to batch format
+        batch_config = self._convert_to_batch_format(simulation_ids)
+
+        # Reuse existing BatchSimulationScheduler
+        batch_id = await self.batch_scheduler.start_batch(
+            batch_config,
+            max_workers=parallel_workers
+        )
+
+        return BatchExecutionResponse(
+            batch_id=batch_id,
+            simulation_ids=simulation_ids,
+            total=len(simulation_ids)
+        )
+```
+
+---
+
+## 4. Analysis Orchestration Service (Adapter Layer - Q8, Q9 Decisions)
 
 ### Class Design
 
 **Location**: `api/services/analysis_orchestration_service.py`
+
+**Purpose**: Adapter layer that converts event-scenario structure to batch analysis format
+
+**Key Decisions**:
+- **Q8**: Does NOT use OD analysis services (accuracy/mechanism/performance/edgedata_service)
+- **Q9**: Does NOT modify existing analysis services - creates adapter layer instead
+- **Reuses**: SummaryAnalyzer + EdgeDataAnalyzer from shared layer (unchanged)
 
 **Key Methods**:
 
 ```python
 class AnalysisOrchestrationService:
     """
-    Orchestrates running multiple analysis types across multiple simulations.
+    Orchestrates batch analysis for event-scenario simulations.
 
-    Pattern:
-    1. User completes simulation(s)
-    2. Call create_analysis_batch() with simulation IDs
-    3. Service queues analysis tasks (N sims × M analysis types)
-    4. Executor runs tasks in parallel (configurable workers)
-    5. Results stored with complete metadata lineage
-    6. get_analysis_progress() provides real-time monitoring
+    Decision Q9-A: Does NOT modify existing analysis services.
+    Instead, creates adapter layer to reuse batch analysis tools.
+
+    Reuses (unchanged):
+    - SummaryAnalyzer (shared/analysis_tools/batch_result_analyzer.py)
+    - EdgeDataAnalyzer (shared/analysis_tools/batch_result_analyzer.py)
+
+    Does NOT use (Q8):
+    - accuracy_service (OD-specific)
+    - mechanism_service (OD-specific)
+    - performance_service (OD-specific)
+    - edgedata_service (OD-specific)
     """
+
+    def __init__(self):
+        from shared.analysis_tools.batch_result_analyzer import (
+            SummaryAnalyzer, EdgeDataAnalyzer
+        )
+        self.summary_analyzer = SummaryAnalyzer()
+        self.edgedata_analyzer = EdgeDataAnalyzer()
 
     async def create_analysis_batch(
         self,
@@ -437,11 +786,16 @@ class AnalysisOrchestrationService:
         case_id: str,
         baseline_scenario_id: str,
         comparison_scenario_id: Optional[str] = None,
-        analysis_focus: List[str] = ["edgedata", "tripinfo"],
+        analysis_focus: List[str] = ["summary", "edgedata"],
         parallel_workers: int = 4
     ) -> AnalysisBatchResponse:
         """
         Create and queue analysis batch for multiple simulations.
+
+        Adapter Pattern (Q8, Q9):
+        1. Convert event-scenario simulation structure to batch format
+        2. Call SummaryAnalyzer.analyze() and EdgeDataAnalyzer.analyze()
+        3. Store results with scenario lineage metadata
 
         Args:
             simulation_ids: ["sim_123", "sim_456", ...]
@@ -716,44 +1070,63 @@ async def validate_simulation_results(simulation_id: str) -> Tuple[bool, List[st
 
 ---
 
-## 5. Frontend Component Refactoring
+## 5. Frontend Component Refactoring (Q13, Q14 Decisions)
 
 ### Current State
-- 74 KB `script.js` with multiple responsibilities
+- 74 KB `script.js` with multiple responsibilities (only used by index.html)
 - Mixed concerns: DOM manipulation, API calls, data processing
 
-### Target State
-- Component-based architecture
-- Reusable modules
-- Clear separation of concerns
+### Target State (Q13: Incremental Refactoring)
+- **Phase 2 Strategy**: Create NEW components, do NOT modify existing code
+- **Minimal Impact**: Existing pages (control plan UI, scenario browser) unchanged
+- **Gradual Migration**: Extract utilities first, then create new components
 
 ### File Structure
 
 ```
 frontend/
-├─ components/
-│  ├─ shared-utils.js
+├─ components/ (NEW - Phase 2)
+│  ├─ shared-utils.js (NEW)
 │  │  ├─ export { formatDate, formatTime, parseQuery, ... }
 │  │  └─ Common utilities reused across pages
-│  ├─ api-client.js
+│  ├─ api-client.js (NEW)
 │  │  ├─ export class APIClient { ... }
 │  │  └─ Centralized API calls with error handling
-│  ├─ simulation-monitor.js
+│  ├─ simulation-monitor.js (NEW - Q14: Generic for all sim types)
 │  │  ├─ SimulationMonitor class (real-time progress)
+│  │  ├─ Supports: event-scenario, OD extraction, control-plan
 │  │  └─ Render simulation list with status indicators
-│  └─ analysis-results.js
+│  └─ analysis-results.js (NEW - event-scenario specific)
 │     ├─ AnalysisResults class (visualization)
 │     └─ Display heat maps, statistics, comparisons
+│
 ├─ css/
 │  └─ styles.css              (Centralized styles)
+│
 ├─ pages/
-│  ├─ scenario-browser.html   (Existing from Phase 1)
-│  ├─ case-details.html       (New)
-│  ├─ simulations.html        (New)
-│  └─ analysis.html           (New)
+│  ├─ index.html              (UNCHANGED - still uses script.js)
+│  ├─ scenario-browser.html   (UNCHANGED - Phase 1, independent)
+│  ├─ case-details.html       (NEW - Phase 2)
+│  ├─ simulations.html        (NEW - Phase 2, uses simulation-monitor.js)
+│  └─ analysis.html           (NEW - Phase 2, uses analysis-results.js)
+│
+├─ control/ (UNCHANGED)
+│  └─ *.html                  (Control plan UI - not affected)
+│
+├─ scenarios/ (UNCHANGED)
+│  └─ scenario_browser.html   (Phase 1 - not affected)
+│
 └─ lib/
    └─ bootstrap-icons/        (Icon library)
 ```
+
+### Q13: Impact on Existing Pages
+✅ **Minimal Impact**:
+- `script.js` only used by `index.html` - NOT modified in Phase 2
+- Phase 1 scenario browser independent - NOT affected
+- Control plan optimization UI independent - NOT affected
+
+**Conclusion**: Phase 2 creates new components, existing code untouched.
 
 ### Key Components Design
 
@@ -834,11 +1207,18 @@ export class APIClient {
 }
 ```
 
-#### simulation-monitor.js
+#### simulation-monitor.js (Q14: Generic Component)
 
 ```javascript
 /**
  * Real-time simulation execution monitor.
+ *
+ * Decision Q14: Designed as GENERIC component supporting all simulation types:
+ * - Event-scenario simulations (Phase 2 implementation)
+ * - OD extraction simulations (future)
+ * - Control plan batch simulations (already exists, consider compatibility)
+ *
+ * Adapts behavior based on simulation metadata.
  */
 
 export class SimulationMonitor {
@@ -848,8 +1228,9 @@ export class SimulationMonitor {
     this.updateInterval = 5000;  // Poll every 5 seconds
   }
 
-  async startMonitoring(batchId) {
+  async startMonitoring(batchId, simType = 'event-scenario') {
     this.batchId = batchId;
+    this.simType = simType;  // Adapt UI based on simulation type
 
     while (true) {
       try {
