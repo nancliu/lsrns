@@ -2,7 +2,7 @@
 案例相关实体模型
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from datetime import datetime
 from ..enums import CaseStatus
@@ -39,13 +39,36 @@ class CaseMetadata(BaseModel):
     status: Optional[CaseStatus] = Field(None, description="案例状态")
     description: Optional[str] = Field(None, description="案例描述")
     statistics: Optional[Dict[str, Any]] = Field(None, description="统计信息")
-    files: Optional[Dict[str, str]] = Field(None, description="文件路径")
+    files: Optional[Dict[str, Optional[str]]] = Field(None, description="文件路径")
     simulations: Optional[List["SimulationResult"]] = Field([], description="仿真结果列表")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果摘要（accuracy/mechanism/performance 最新产物信息）")
     source_type: Optional[str] = Field(
         default="od_extraction",
         description="案例来源类型: od_extraction | event_scenario"
     )
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def validate_status(cls, v):
+        """验证并转换status字段，处理旧版本的status值"""
+        if v is None:
+            return None
+        # 映射旧的status值到新的枚举值
+        status_mapping = {
+            'active': CaseStatus.PROCESSING,
+            'ready': CaseStatus.COMPLETED,
+            'running': CaseStatus.SIMULATING,
+        }
+        # 如果是字符串，先尝试映射
+        if isinstance(v, str):
+            v = status_mapping.get(v, v)
+            # 尝试转换为枚举
+            try:
+                return CaseStatus(v)
+            except ValueError:
+                # 如果转换失败，返回默认值
+                return CaseStatus.PROCESSING
+        return v
 
 
 # 延迟导入和模型重建

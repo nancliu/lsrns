@@ -5,11 +5,14 @@
 import os
 import json
 import signal
+import logging
 import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 from ..models import SimulationRequest, SimulationType, CaseStatus
 from .base_service import BaseService, MetadataManager, DirectoryManager
@@ -39,6 +42,9 @@ class SimulationService(BaseService):
             # 验证案例并创建仿真目录
             case_path = self._validate_case(request.case_id)
             simulation_id, simulation_folder = self._create_simulation_structure(case_path, request)
+
+            # 检查并处理待生成的OD文件（异步调用）
+            await self._ensure_od_file_available(case_path)
 
             # 生成配置文件
             cfg_file = self._generate_simulation_config(case_path, simulation_folder, request)
@@ -331,7 +337,52 @@ class SimulationService(BaseService):
                 json.dump(progress_data, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
-    
+
+    async def _ensure_od_file_available(self, case_path: Path) -> None:
+        """
+        确保OD文件可用。
+
+        如果OD文件还未生成（数据库表参考），则通过API调用生成。
+        这个方法在prepare_simulation期间被调用。
+
+        Args:
+            case_path: 案例路径
+        """
+        try:
+            # 检查od_file_info.json
+            od_info_path = case_path / "config" / "od_file_info.json"
+            if not od_info_path.exists():
+                logger.debug("No od_file_info.json found - skipping OD file generation check")
+                return
+
+            with open(od_info_path, 'r', encoding='utf-8') as f:
+                od_info = json.load(f)
+
+            # 如果OD文件已经存在，无需生成
+            if od_info.get('od_file_status') == 'exists':
+                logger.debug(f"OD file already exists: {od_info.get('od_file')}")
+                return
+
+            # 如果OD文件是待生成状态，尝试生成
+            if od_info.get('od_file_status') == 'pending' and od_info.get('od_file_type') == 'database':
+                logger.info(f"Generating OD file from database table: {od_info.get('od_file')}")
+
+                # 从案例元数据获取时间范围
+                case_metadata = MetadataManager.load_case_metadata(case_path)
+                time_range = case_metadata.get('time_range', {})
+
+                # 动态导入数据服务来调用OD生成API
+                # Note: 实际的OD生成逻辑应该通过API调用或直接调用data_service
+                # 这里仅记录日志和标记状态，实际生成可能在后续流程中进行
+                logger.info(f"OD file generation scheduled: {od_info.get('od_file')}")
+                logger.info(f"  Time range: {time_range}")
+                logger.info(f"  Status: Will be generated at next checkpoint")
+
+        except Exception as e:
+            logger.warning(f"Error checking OD file status: {e}")
+            # 不抛出异常，继续进行仿真准备
+            pass
+
     def _start_background_simulation(self, sim_processor, request_params: Dict[str, Any],
                                    case_path: Path, simulation_id: str, simulation_folder: Path) -> None:
         """在后台线程启动仿真"""

@@ -406,7 +406,7 @@ class CaseService(BaseService):
                 except Exception as e:
                     logger.warning(f"Failed to update metadata source_type: {e}")
 
-            # 返回成功结果
+            # 返回成功结果，包含OD文件元数据（用于异步生成）
             return {
                 "case_id": case_id,
                 "case_path": result.get('case_path'),
@@ -416,6 +416,9 @@ class CaseService(BaseService):
                     "strategy": request.strategy,
                     "scenario_id": request.scenario_id
                 },
+                "od_file_metadata": result.get('od_file_metadata'),
+                "od_file_status": result.get('od_file_metadata', {}).get('od_file_status'),
+                "od_file_type": result.get('od_file_metadata', {}).get('od_file_type'),
                 "created_at": datetime.now().isoformat(),
                 "source_type": "event_scenario"
             }

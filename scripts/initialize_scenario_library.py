@@ -138,19 +138,38 @@ class QuickCaseCreator:
         logger.debug(f"  Location: {scenario_dir}")
         return True
 
-    def validate_case_inputs(self, network_file: str, od_file: str, taz_file: Optional[str] = None) -> bool:
+    def validate_case_inputs(self, network_file: str, od_file: str, taz_file: Optional[str] = None) -> Dict[str, Any]:
         """
         Validate case input files.
 
         Args:
             network_file: Path to network XML file (required)
             od_file: Path to OD file OR database table name (e.g., "baseline.od_data_sichuan_202507")
-                     Can be file path or database reference - both acceptable
+                     - File path: existing OD XML file (e.g., "cases/case_id/config/od_data.xml")
+                     - Database ref: database table name (e.g., "baseline.od_data_sichuan_202507")
+                       Will be generated via API when needed
             taz_file: Optional path to TAZ file
 
         Returns:
-            True if required inputs are accessible
+            Dict with validation result and OD file metadata:
+            {
+                "success": True,
+                "network_file": validated path,
+                "od_file": od_file (path or database ref),
+                "od_file_type": "file" | "database",  # Type of OD input
+                "od_file_status": "exists" | "pending",  # Whether file exists or needs generation
+                "taz_file": validated path or None
+            }
         """
+        validation_result = {
+            "success": True,
+            "network_file": None,
+            "od_file": od_file,
+            "od_file_type": None,
+            "od_file_status": None,
+            "taz_file": None
+        }
+
         # Check network file (REQUIRED)
         net_path = Path(network_file)
         if not net_path.exists():
@@ -158,30 +177,43 @@ class QuickCaseCreator:
             net_path = self.project_root / network_file
             if not net_path.exists():
                 logger.error(f"Network file not found: {network_file}")
-                return False
+                validation_result["success"] = False
+                return validation_result
 
+        validation_result["network_file"] = str(net_path)
         logger.info(f"Network file validated: {net_path}")
 
         # Check OD file (FLEXIBLE - can be file path or database table reference)
-        # Format 1: File path (e.g., "cases/case_id/config/od_data.xml")
-        # Format 2: Database table (e.g., "baseline.od_data_sichuan_202507")
-        od_path = Path(od_file)
-        is_database_ref = "." in od_file and "/" not in od_file  # Simple heuristic: "schema.table"
+        # Heuristic: "schema.table" format (has dot, no slash) = database reference
+        is_database_ref = "." in od_file and "/" not in od_file and not od_file.endswith(".xml")
 
         if is_database_ref:
-            # Database table reference - assume it's valid (database will validate at runtime)
-            logger.info(f"OD input recognized as database table reference: {od_file}")
+            # Database table reference
+            # Format: "schema.table_name" (e.g., "baseline.od_data_sichuan_202507")
+            # Will be generated via API when simulation starts
+            validation_result["od_file_type"] = "database"
+            validation_result["od_file_status"] = "pending"  # Needs generation via API
+            logger.info(f"✓ OD input recognized as database table reference: {od_file}")
+            logger.info(f"  Status: pending generation via API (will create during simulation preparation)")
         else:
             # File path - check if it exists
+            od_path = Path(od_file)
             if not od_path.exists():
                 od_path = self.project_root / od_file
                 if not od_path.exists():
-                    logger.warning(f"OD file not found: {od_file} (will be generated or loaded from database)")
-                    # Don't fail - OD data can be generated from database at simulation time
+                    logger.warning(f"OD file not found: {od_file}")
+                    logger.info(f"  Note: Will attempt to generate from database table or use default")
+                    validation_result["od_file_status"] = "pending"
                 else:
+                    validation_result["od_file"] = str(od_path)
+                    validation_result["od_file_status"] = "exists"
                     logger.info(f"OD file validated: {od_path}")
             else:
+                validation_result["od_file"] = str(od_path)
+                validation_result["od_file_status"] = "exists"
                 logger.info(f"OD file validated: {od_path}")
+
+            validation_result["od_file_type"] = "file"
 
         # Check TAZ file if provided (OPTIONAL)
         if taz_file:
@@ -190,16 +222,18 @@ class QuickCaseCreator:
                 taz_path = self.project_root / taz_file
                 if not taz_path.exists():
                     logger.warning(f"TAZ file not found: {taz_file} (will use default)")
-                    # Don't fail, TAZ is optional
+                    validation_result["taz_file"] = None
                 else:
+                    validation_result["taz_file"] = str(taz_path)
                     logger.info(f"TAZ file validated: {taz_path}")
             else:
+                validation_result["taz_file"] = str(taz_path)
                 logger.info(f"TAZ file validated: {taz_path}")
         else:
             logger.info("TAZ file: using default")
 
         logger.info("✓ Case input files validation passed")
-        return True
+        return validation_result
 
     def create_case_from_event(
         self,
@@ -252,9 +286,19 @@ class QuickCaseCreator:
                 return result
 
             # Step 2: Validate case inputs
-            if not self.validate_case_inputs(network_file, od_file, taz_file):
+            validation_result = self.validate_case_inputs(network_file, od_file, taz_file)
+            if not validation_result['success']:
                 result['error'] = "Case input files validation failed"
                 return result
+
+            # Store validation metadata (will need this for OD generation)
+            od_file_metadata = {
+                'od_file_type': validation_result.get('od_file_type'),
+                'od_file_status': validation_result.get('od_file_status'),
+                'od_file': validation_result.get('od_file', od_file)
+            }
+
+            logger.info(f"OD file metadata: {od_file_metadata}")
 
             # Step 3: Create case directory
             case_path = self.case_dir / case_id
@@ -267,21 +311,41 @@ class QuickCaseCreator:
             (case_path / "simulations").mkdir(exist_ok=True)
             (case_path / "analysis").mkdir(exist_ok=True)
 
-            # Step 4: Copy input files to case config
+            # Step 4: Copy input files to case config (if they exist)
             self._copy_case_inputs(case_path, network_file, od_file, taz_file)
 
-            # Step 5: Create case metadata with event scenario linkage
-            scenario_path = self.scenarios_root / event_type / strategy / scenario_id
+            # Step 5: Find and load event scenario metadata
+            # Note: Actual directory structure is scenarios_root / event_type_code / scenario_id
+            # We search for scenario_id across all event_type directories (same as validate_event_scenario)
+            scenario_path = None
+            if self.scenarios_root.exists():
+                for event_type_dir in self.scenarios_root.iterdir():
+                    if event_type_dir.is_dir():
+                        potential_scenario_dir = event_type_dir / scenario_id
+                        if potential_scenario_dir.exists():
+                            scenario_path = potential_scenario_dir
+                            break
+
+            if not scenario_path:
+                logger.error(f"Could not find scenario directory for: {scenario_id}")
+                result['error'] = f"Scenario directory not found: {scenario_id}"
+                return result
+
+            # Step 6: Create case metadata with event scenario linkage
             self._create_case_metadata(
                 case_path, case_name, case_id, description,
                 network_file, od_file, taz_file,
                 event_type, strategy, scenario_id, scenario_path
             )
 
+            # Step 7: Store OD file metadata in case config for later use during simulation
+            self._store_od_metadata(case_path, od_file_metadata, scenario_path)
+
             result['success'] = True
             result['case_path'] = str(case_path)
+            result['od_file_metadata'] = od_file_metadata
 
-            # Load event scenario metadata
+            # Step 8: Load and return event scenario metadata
             result['event_scenario'] = self._load_event_scenario_info(scenario_path)
 
             logger.info(f"✓ Created case from event: {case_id}")
@@ -299,33 +363,51 @@ class QuickCaseCreator:
         od_file: str,
         taz_file: Optional[str] = None
     ) -> None:
-        """Copy case input files to case config directory."""
+        """
+        Copy case input files to case config directory.
+
+        Note: OD files may not exist yet if they're database references.
+        They will be generated via API when simulation starts.
+        """
         config_dir = case_path / "config"
 
-        # Copy network file
+        # Copy network file (REQUIRED - must exist)
         net_src = Path(network_file)
         if not net_src.exists():
             net_src = self.project_root / network_file
         if net_src.exists():
             shutil.copy2(net_src, config_dir / net_src.name)
-            logger.info(f"Copied network file: {net_src.name}")
+            logger.info(f"✓ Copied network file: {net_src.name}")
+        else:
+            logger.warning(f"Network file not found: {network_file} (will be handled at simulation time)")
 
-        # Copy OD file
+        # Copy OD file (OPTIONAL - may be database reference)
         od_src = Path(od_file)
-        if not od_src.exists():
-            od_src = self.project_root / od_file
-        if od_src.exists():
-            shutil.copy2(od_src, config_dir / od_src.name)
-            logger.info(f"Copied OD file: {od_src.name}")
+        is_database_ref = "." in od_file and "/" not in od_file and not od_file.endswith(".xml")
 
-        # Copy TAZ file if provided
+        if not is_database_ref:
+            # File path - try to copy if exists
+            if not od_src.exists():
+                od_src = self.project_root / od_file
+            if od_src.exists():
+                shutil.copy2(od_src, config_dir / od_src.name)
+                logger.info(f"✓ Copied OD file: {od_src.name}")
+            else:
+                logger.warning(f"OD file not found: {od_file} (will be generated via API during simulation)")
+        else:
+            # Database reference - will be generated via API
+            logger.info(f"OD file is database reference: {od_file} (will be generated via API during simulation)")
+
+        # Copy TAZ file if provided (OPTIONAL)
         if taz_file:
             taz_src = Path(taz_file)
             if not taz_src.exists():
                 taz_src = self.project_root / taz_file
             if taz_src.exists():
                 shutil.copy2(taz_src, config_dir / taz_src.name)
-                logger.info(f"Copied TAZ file: {taz_src.name}")
+                logger.info(f"✓ Copied TAZ file: {taz_src.name}")
+            else:
+                logger.warning(f"TAZ file not found: {taz_file} (will use default)")
 
     def _create_case_metadata(
         self,
@@ -409,6 +491,71 @@ class QuickCaseCreator:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Created case metadata: {metadata_path}")
+
+    def _store_od_metadata(self, case_path: Path, od_file_metadata: Dict[str, Any], scenario_path: Optional[Path] = None) -> None:
+        """
+        Store OD file metadata in case config for later use during simulation.
+
+        This metadata is used by simulation preparation to:
+        1. Check if OD file needs to be generated via API
+        2. Know which database table to use for generation
+        3. Track OD file generation progress
+
+        Args:
+            case_path: Path to case directory
+            od_file_metadata: Dict with od_file_type, od_file_status, od_file
+            scenario_path: Optional path to event scenario for extracting time range
+        """
+        try:
+            # Create or update od_file_info.json in case config
+            od_info_path = case_path / "config" / "od_file_info.json"
+
+            od_info = {
+                "od_file_type": od_file_metadata.get("od_file_type"),
+                "od_file_status": od_file_metadata.get("od_file_status"),
+                "od_file": od_file_metadata.get("od_file"),
+                "stored_at": datetime.now().isoformat(),
+                "notes": "",
+                "time_range": None
+            }
+
+            # Extract time range from event scenario if available
+            if scenario_path and od_file_metadata.get("od_file_status") == "pending":
+                try:
+                    event_desc_path = scenario_path / "event_description.json"
+                    if event_desc_path.exists():
+                        with open(event_desc_path, 'r', encoding='utf-8') as f:
+                            event_desc = json.load(f)
+                        time_info = event_desc.get("time", {})
+                        od_info["time_range"] = {
+                            "start_time": time_info.get("start_time"),
+                            "end_time": time_info.get("end_time"),
+                            "duration_minutes": time_info.get("duration_minutes")
+                        }
+                        logger.debug(f"Extracted time range from scenario: {od_info['time_range']}")
+                except Exception as e:
+                    logger.warning(f"Could not extract time range from scenario: {e}")
+
+            # Add helpful notes
+            if od_file_metadata.get("od_file_status") == "pending":
+                if od_file_metadata.get("od_file_type") == "database":
+                    od_info["notes"] = "OD file will be generated from database table via API during simulation preparation"
+                else:
+                    od_info["notes"] = "OD file will be generated or downloaded during simulation preparation"
+
+            with open(od_info_path, 'w', encoding='utf-8') as f:
+                json.dump(od_info, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"Stored OD file metadata: {od_info_path}")
+            logger.debug(f"  Type: {od_info['od_file_type']}")
+            logger.debug(f"  Status: {od_info['od_file_status']}")
+            logger.debug(f"  File/Table: {od_info['od_file']}")
+            if od_info.get("time_range"):
+                logger.debug(f"  Time range: {od_info['time_range']}")
+
+        except Exception as e:
+            logger.error(f"Failed to store OD file metadata: {e}")
+            # Don't raise - this is optional metadata
 
     def _load_event_scenario_info(self, scenario_path: Path) -> Dict[str, Any]:
         """Load event scenario information."""

@@ -220,6 +220,7 @@ async function processODData(e) {
         end_time: toBackendTime(document.getElementById('end-time').value),
         taz_file: document.getElementById('taz-file').value,
         net_file: document.getElementById('network-file').value,
+        vehicle_template: document.getElementById('vehicle-template').value || 'vehicle_types.json',
         interval_minutes: parseInt(document.getElementById('interval-minutes').value || '5', 10),
         case_name: document.getElementById('case-name').value,
         description: document.getElementById('case-description').value,
@@ -1222,12 +1223,18 @@ function filterCases() {
 // =============== 模板加载与选择器 ===============
 async function loadTemplates() {
     try {
-        const [tazTemplates, networkTemplates, simulationTemplates] = await Promise.all([
+        const [tazTemplates, networkTemplates, simulationTemplates, vehicleTemplates] = await Promise.all([
             apiFetch(`${API_BASE_URL}/templates/taz`),
             apiFetch(`${API_BASE_URL}/templates/network`),
-            apiFetch(`${API_BASE_URL}/templates/simulation`)
+            apiFetch(`${API_BASE_URL}/templates/simulation`),
+            apiFetch(`${API_BASE_URL}/templates/vehicle`)
         ]);
-        currentTemplates = { taz: tazTemplates, network: networkTemplates, simulation: simulationTemplates };
+        currentTemplates = {
+            taz: tazTemplates,
+            network: networkTemplates,
+            simulation: simulationTemplates,
+            vehicle: vehicleTemplates
+        };
         displayTemplates();
         updateTemplateSelects();
     } catch (error) {
@@ -1262,6 +1269,19 @@ function updateTemplateSelects() {
         // 默认选择 sichuan202510v8.net.xml
         const v8 = Array.from(netSelect.options).find(o => /sichuan202510v8\.net\.xml/i.test(o.textContent) || /sichuan202510v8\.net\.xml/i.test(o.value));
         if (v8) netSelect.value = v8.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
+    }
+    const vehicleSelect = document.getElementById('vehicle-template');
+    if (vehicleSelect && currentTemplates.vehicle) {
+        vehicleSelect.innerHTML = '';
+        currentTemplates.vehicle.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.name;
+            opt.textContent = t.name;
+            vehicleSelect.appendChild(opt);
+        });
+        // 默认选择 vehicle_types.json
+        const defaultVehicle = Array.from(vehicleSelect.options).find(o => o.value === 'vehicle_types.json');
+        if (defaultVehicle) vehicleSelect.value = defaultVehicle.value; else if (vehicleSelect.options[0]) vehicleSelect.selectedIndex = 0;
     }
 }
 

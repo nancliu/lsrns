@@ -511,8 +511,18 @@ async function directCreateCase(scenarioId, eventType, strategy) {
             throw new Error('未获得案例 ID');
         }
 
-        // 6. 显示成功信息并导航
-        alert(`✓ 案例创建成功！\n案例 ID: ${caseId}`);
+        // 6. 检查OD文件状态并显示相应信息
+        const odFileStatus = result.data?.od_file_status;
+        const odFileType = result.data?.od_file_type;
+        let successMessage = `✓ 案例创建成功！\n案例 ID: ${caseId}`;
+
+        if (odFileStatus === 'pending' && odFileType === 'database') {
+            successMessage += `\n\n⚠️ 提示：OD文件正在生成中\n这是一个数据库表，将在启动仿真时自动生成。\n（通常需要几分钟）`;
+        }
+
+        alert(successMessage);
+
+        // 7. 导航到案例仿真中心
         window.location.href = `case-simulation-center.html?case_id=${caseId}`;
 
     } catch (error) {

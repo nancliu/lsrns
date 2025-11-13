@@ -45,6 +45,7 @@ from .template_service import (
     get_taz_templates_service,
     get_network_templates_service,
     get_simulation_templates_service,
+    get_vehicle_templates_service,
 )
 
 from .file_service import (
@@ -96,6 +97,7 @@ __all__ = [
     "get_taz_templates_service",
     "get_network_templates_service",
     "get_simulation_templates_service",
+    "get_vehicle_templates_service",
 
     # 文件服务
     "get_folders_service",

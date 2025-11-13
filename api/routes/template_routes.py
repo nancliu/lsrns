@@ -7,7 +7,7 @@ from typing import List
 from ..models import TemplateInfo
 from ..services import (
     get_taz_templates_service, get_network_templates_service,
-    get_simulation_templates_service
+    get_simulation_templates_service, get_vehicle_templates_service
 )
 from .middleware import handle_service_errors
 
@@ -40,3 +40,12 @@ async def get_simulation_templates():
     获取仿真配置模板列表
     """
     return await get_simulation_templates_service()
+
+
+@router.get("/templates/vehicle", response_model=List[TemplateInfo])
+@handle_service_errors
+async def get_vehicle_templates():
+    """
+    获取车型配置模板列表
+    """
+    return await get_vehicle_templates_service()

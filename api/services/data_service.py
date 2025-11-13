@@ -26,9 +26,12 @@ class DataService(BaseService):
             from shared.utilities.time_utils import parse_datetime
             from shared.data_access.db_config import get_db_config  # 预留：若需要表名推断可另行实现
             from datetime import datetime as _dt
-            
-            # 创建OD处理器
-            od_processor = ODProcessor()
+
+            # 验证并构建车型模板路径
+            vehicle_template_path = self._validate_vehicle_template(request.vehicle_template)
+
+            # 创建OD处理器，传入车型模板路径
+            od_processor = ODProcessor(vehicle_config_path=vehicle_template_path)
             
             # 推断表名逻辑
             inferred_table_name = self._infer_table_name(request)
@@ -62,6 +65,21 @@ class DataService(BaseService):
         except Exception as e:
             raise Exception(f"OD数据处理失败: {str(e)}")
     
+    def _validate_vehicle_template(self, vehicle_template: str) -> str:
+        """验证车型模板文件是否存在并返回完整路径"""
+        if not vehicle_template:
+            vehicle_template = "vehicle_types.json"
+
+        # 构建完整路径
+        vehicle_dir = self.templates_dir / "config_templates" / "vehicle_templates"
+        vehicle_template_path = vehicle_dir / vehicle_template
+
+        # 验证文件是否存在
+        if not vehicle_template_path.exists():
+            raise Exception(f"选择的车型配置文件不存在: {vehicle_template}")
+
+        return str(vehicle_template_path)
+
     def _infer_table_name(self, request: TimeRangeRequest) -> str:
         """推断数据库表名"""
         from datetime import datetime as _dt
@@ -137,7 +155,8 @@ class DataService(BaseService):
                 "taz_version": self._detect_version(taz_file_name),
                 "network_version": self._detect_version(network_file_name),
                 "taz_file_name": taz_file_name,
-                "network_file_name": network_file_name
+                "network_file_name": network_file_name,
+                "vehicle_template": request.vehicle_template or "vehicle_types.json"
             },
             "status": CaseStatus.PROCESSING.value,
             "description": request.description,

@@ -71,12 +71,12 @@ class TemplateService(BaseService):
         try:
             templates = []
             sim_dir = self.templates_dir / "config_templates" / "simulation_templates"
-            
+
             template_files = {
                 "microscopic.sumocfg": "微观仿真配置（默认）",
                 "mesoscopic.sumocfg": "中观仿真配置"
             }
-            
+
             for filename, description in template_files.items():
                 file_path = sim_dir / filename
                 if file_path.exists():
@@ -89,11 +89,34 @@ class TemplateService(BaseService):
                         status="available"
                     )
                     templates.append(template)
-            
+
             return templates
-            
+
         except Exception as e:
             raise Exception(f"获取仿真模板失败: {str(e)}")
+
+    async def get_vehicle_templates(self) -> List[TemplateInfo]:
+        """获取车型配置模板列表"""
+        try:
+            templates = []
+            vehicle_dir = self.templates_dir / "config_templates" / "vehicle_templates"
+
+            if vehicle_dir.exists():
+                for file_path in vehicle_dir.glob("*.json"):
+                    template = TemplateInfo(
+                        name=file_path.name,
+                        description=f"车型配置模板: {file_path.stem}",
+                        file_path=str(file_path),
+                        version="1.0",
+                        created_date="2025-01-13",
+                        status="available"
+                    )
+                    templates.append(template)
+
+            return templates
+
+        except Exception as e:
+            raise Exception(f"获取车型模板失败: {str(e)}")
 
 
 # 创建服务实例
@@ -114,3 +137,8 @@ async def get_network_templates_service() -> List[TemplateInfo]:
 async def get_simulation_templates_service() -> List[TemplateInfo]:
     """获取仿真模板服务函数"""
     return await template_service.get_simulation_templates()
+
+
+async def get_vehicle_templates_service() -> List[TemplateInfo]:
+    """获取车型模板服务函数"""
+    return await template_service.get_vehicle_templates()
