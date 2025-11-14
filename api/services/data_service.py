@@ -84,19 +84,28 @@ class DataService(BaseService):
         """推断数据库表名"""
         from datetime import datetime as _dt
         from shared.data_access.od_table_resolver import get_table_names_from_date
-        
+
         inferred_table_name = request.table_name
         if not inferred_table_name:
             try:
-                start_dt = _dt.strptime(request.start_time, "%Y/%m/%d %H:%M:%S")
-                table_names = get_table_names_from_date(start_dt)
-                inferred_table_name = table_names.get("od_table")
+                # Try multiple time formats (support both / and - separators)
+                start_dt = None
+                for fmt in ["%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"]:
+                    try:
+                        start_dt = _dt.strptime(request.start_time, fmt)
+                        break
+                    except ValueError:
+                        continue
+
+                if start_dt:
+                    table_names = get_table_names_from_date(start_dt)
+                    inferred_table_name = table_names.get("od_table")
             except Exception:
                 inferred_table_name = None
-        
+
         if not inferred_table_name:
             raise Exception("未提供有效的表名，且自动推断失败。请在请求中设置 table_name 或检查时间格式以便自动推断。")
-        
+
         return inferred_table_name
     
     def _build_od_request_params(self, request: TimeRangeRequest, table_name: str, case_dir: Path) -> Dict[str, Any]:

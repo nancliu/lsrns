@@ -628,7 +628,7 @@ def get_demonstration_info() -> List[Dict]:
                 "demonstration_id": row[0],
                 "route_code": row[1],
                 "edge_count": row[2],
-                "stake_range": f"{row[3]:.2f}-{row[4]:.2f}km"
+                "stake_range": f"{row[3]:.2f}-{row[4]:.2f}km" if row[3] is not None and row[4] is not None else "N/A"
             }
             for row in cur.fetchall()
         ]

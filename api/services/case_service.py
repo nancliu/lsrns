@@ -15,6 +15,7 @@ from ..models import (
     CaseListResponse, CaseStatus, EventScenarioQuickCreateRequest
 )
 from .base_service import BaseService, MetadataManager, DirectoryManager
+from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
 
 
 class CaseService(BaseService):
@@ -344,19 +345,19 @@ class CaseService(BaseService):
 
     async def quick_create_case_from_event(self, request: EventScenarioQuickCreateRequest) -> Dict[str, Any]:
         """
-        从事件场景快速创建案例 (Phase 5.3.3)
+        从事件场景快速创建案例并生成OD文件 (Phase 5.3.3)
 
-        调用scripts中的QuickCaseCreator来创建case，包括：
-        - 验证event scenario存在
-        - 验证输入文件
-        - 复制文件到case目录
-        - 创建case metadata（记录event关联）
+        工作流：
+        1. 调用QuickCaseCreator创建case结构和元数据
+        2. 如果OD文件是数据库表参考，立即启动OD生成（非阻塞）
+        3. 更新case状态为"od_generating"
+        4. 返回case信息和OD生成状态
 
         Args:
             request: 包含event scenario和case输入文件信息
 
         Returns:
-            包含新创建case的信息
+            包含新创建case的信息和OD生成状态
         """
         try:
             # 动态导入QuickCaseCreator
@@ -393,38 +394,447 @@ class CaseService(BaseService):
             if not result.get('success'):
                 raise Exception(result.get('error', '未知错误'))
 
-            # 为事件场景案例添加源类型标记
+            # 为事件场景案例添加源类型标记和初始状态
             import json
-            metadata_file = self.cases_dir / case_id / "metadata.json"
+            case_path = Path(result.get('case_path'))
+            metadata_file = case_path / "metadata.json"
+            od_generation_started = False
+
             if metadata_file.exists():
                 try:
                     with open(metadata_file, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
                     metadata['source_type'] = 'event_scenario'
+
+                    # 如果OD文件是待生成状态，标记为od_generating
+                    od_file_metadata = result.get('od_file_metadata', {})
+                    if od_file_metadata.get('od_file_status') == 'pending' and \
+                       od_file_metadata.get('od_file_type') == 'database':
+                        metadata['status'] = 'od_generating'
+                        logger.info(f"Case {case_id} marked as od_generating")
+
                     with open(metadata_file, 'w', encoding='utf-8') as f:
                         json.dump(metadata, f, ensure_ascii=False, indent=2)
                 except Exception as e:
                     logger.warning(f"Failed to update metadata source_type: {e}")
 
-            # 返回成功结果，包含OD文件元数据（用于异步生成）
+            # 如果OD文件是数据库表参考，立即启动OD生成（后台，非阻塞）
+            od_file_metadata = result.get('od_file_metadata', {})
+            if od_file_metadata.get('od_file_status') == 'pending' and \
+               od_file_metadata.get('od_file_type') == 'database':
+                # 启动OD生成任务（后台处理）
+                od_generation_started = await self._start_od_generation_async(
+                    case_id=case_id,
+                    case_path=case_path,
+                    od_file_info=od_file_metadata,
+                    od_file_info_json=case_path / "config" / "od_file_info.json"
+                )
+                logger.info(f"OD generation task started for case {case_id}: {od_generation_started}")
+
+            # 注册案例创建到场景元数据 (AD-12: 三层元数据追踪)
+            # 在scenario_index.json中添加案例记录，建立scenario->case链接
+            case_status_for_mapping = metadata.get('status', 'created') if 'metadata' in locals() else 'created'
+            try:
+                mapper = ScenarioCaseMapper()
+                mapper.register_case_creation(
+                    scenario_id=request.scenario_id,  # e.g., "scenario_10754_no_control"
+                    case_id=case_id,
+                    case_name=request.case_name,
+                    case_status=case_status_for_mapping
+                )
+                logger.info(f"Registered case {case_id} in scenario {request.scenario_id}")
+            except Exception as e:
+                logger.warning(f"Failed to register case in scenario index: {e}")
+                # 继续执行，不中断case创建流程
+
+            # 返回成功结果，包含OD文件生成状态
             return {
                 "case_id": case_id,
-                "case_path": result.get('case_path'),
+                "case_path": str(case_path),
                 "case_name": request.case_name,
                 "event_scenario": {
                     "event_type": request.event_type,
                     "strategy": request.strategy,
                     "scenario_id": request.scenario_id
                 },
-                "od_file_metadata": result.get('od_file_metadata'),
-                "od_file_status": result.get('od_file_metadata', {}).get('od_file_status'),
-                "od_file_type": result.get('od_file_metadata', {}).get('od_file_type'),
+                "od_file_metadata": od_file_metadata,
+                "od_file_status": od_file_metadata.get('od_file_status'),
+                "od_file_type": od_file_metadata.get('od_file_type'),
+                "od_generation_started": od_generation_started,
                 "created_at": datetime.now().isoformat(),
-                "source_type": "event_scenario"
+                "source_type": "event_scenario",
+                "case_status": case_status_for_mapping
             }
 
         except Exception as e:
             raise Exception(f"从事件场景创建案例失败: {str(e)}")
+
+    async def _start_od_generation_async(
+        self,
+        case_id: str,
+        case_path: Path,
+        od_file_info: Dict[str, Any],
+        od_file_info_json: Path
+    ) -> bool:
+        """
+        启动异步OD文件生成任务（后台执行，不阻塞）
+
+        Args:
+            case_id: 案例ID
+            case_path: 案例路径
+            od_file_info: OD文件元数据
+            od_file_info_json: OD文件信息JSON路径
+
+        Returns:
+            是否成功启动生成任务
+        """
+        try:
+            # 从od_file_info.json读取时间范围
+            import json
+            if od_file_info_json.exists():
+                with open(od_file_info_json, 'r', encoding='utf-8') as f:
+                    od_info = json.load(f)
+                    time_range = od_info.get('time_range', {})
+            else:
+                logger.warning(f"od_file_info.json not found: {od_file_info_json}")
+                return False
+
+            # 准备OD生成请求参数
+            from ..models.requests.data_requests import TimeRangeRequest
+
+            start_time = time_range.get('start_time')
+            end_time = time_range.get('end_time')
+            od_file_ref = od_file_info.get('od_file')
+
+            if not (start_time and end_time and od_file_ref):
+                logger.warning(f"Missing time range info for OD generation: {time_range}")
+                return False
+
+            # 解析schema.table格式（前端发送格式: dwd.dwd_od_weekly）
+            if '.' in od_file_ref:
+                schema_name, table_name = od_file_ref.split('.', 1)
+            else:
+                # 如果没有点，假设是dwd schema
+                schema_name = "dwd"
+                table_name = od_file_ref
+
+            # 创建OD处理请求（为事件场景提供默认TAZ文件）
+            od_request = TimeRangeRequest(
+                start_time=start_time,
+                end_time=end_time,
+                table_name=table_name,
+                schemas_name=schema_name,
+                net_file=None,
+                taz_file="templates/taz_files/TAZ_6.add.xml",  # 使用默认TAZ文件
+                interval_minutes=5  # 使用默认5分钟间隔（而不是30分钟）
+            )
+
+            # 在后台线程启动OD生成（不阻塞）
+            import threading
+            od_generation_thread = threading.Thread(
+                target=self._run_od_generation_in_background,
+                args=(case_id, case_path, od_request, od_file_info_json),
+                daemon=True
+            )
+            od_generation_thread.start()
+
+            logger.info(f"OD generation thread started for case {case_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to start OD generation: {e}")
+            return False
+
+    def _run_od_generation_in_background(
+        self,
+        case_id: str,
+        case_path: Path,
+        od_request,
+        od_file_info_json: Path
+    ) -> None:
+        """
+        在后台线程中运行OD生成（非阻塞）
+
+        直接调用ODProcessor而不是data_service，以确保文件生成在正确的case文件夹中
+
+        Args:
+            case_id: 案例ID
+            case_path: 案例路径
+            od_request: OD处理请求
+            od_file_info_json: OD文件信息JSON路径
+        """
+        try:
+            import json
+            from pathlib import Path
+            from shared.data_processors.od_processor import ODProcessor
+            from shared.data_access.connection import open_db_connection
+
+            logger.info(f"Starting OD generation for case {case_id}...")
+
+            # 复制TAZ文件到case配置目录
+            if od_request.taz_file:
+                try:
+                    taz_source = Path(od_request.taz_file)
+                    if taz_source.exists():
+                        taz_dest = case_path / "config" / taz_source.name
+                        # 确保目标目录存在
+                        taz_dest.parent.mkdir(parents=True, exist_ok=True)
+                        # 复制文件
+                        import shutil
+                        shutil.copy2(str(taz_source), str(taz_dest))
+                        logger.info(f"✓ TAZ file copied: {taz_source.name} → {taz_dest}")
+                    else:
+                        logger.warning(f"TAZ file not found: {taz_source}")
+                except Exception as e:
+                    logger.error(f"Failed to copy TAZ file: {e}")
+
+            # 验证车型模板
+            vehicle_template_path = "templates/config_templates/vehicle_templates/vehicle_types.json"
+
+            # 创建OD处理器
+            od_processor = ODProcessor(vehicle_config_path=vehicle_template_path)
+
+            # 构建处理参数（关键：指定output_dir为case的config目录）
+            output_dir = str(case_path / "config")
+            request_params = {
+                "start_time": od_request.start_time,
+                "end_time": od_request.end_time,
+                "interval_minutes": od_request.interval_minutes,
+                "taz_file": od_request.taz_file,
+                "net_file": od_request.net_file,
+                "schemas_name": od_request.schemas_name,
+                "table_name": od_request.table_name,
+                "output_dir": output_dir  # 🔑 确保文件输出到正确的case文件夹
+            }
+
+            # 获取数据库连接
+            db_connection = open_db_connection()
+            try:
+                # 调用OD处理器处理数据
+                result = od_processor.process_od_data(db_connection, request_params)
+
+                if result.get('success'):
+                    # 更新od_file_info.json状态为已生成
+                    if od_file_info_json.exists():
+                        with open(od_file_info_json, 'r', encoding='utf-8') as f:
+                            od_info = json.load(f)
+
+                        od_info['od_file_status'] = 'exists'
+                        od_info['generated_at'] = datetime.now().isoformat()
+                        od_info['od_file'] = result.get('od_file', od_info.get('od_file'))
+
+                        with open(od_file_info_json, 'w', encoding='utf-8') as f:
+                            json.dump(od_info, f, indent=2, ensure_ascii=False)
+
+                        logger.info(f"✓ OD file generated for case {case_id}: {od_info['od_file']}")
+
+                    # 更新case元数据状态为created（完成OD生成）
+                    metadata_file = case_path / "metadata.json"
+                    if metadata_file.exists():
+                        with open(metadata_file, 'r', encoding='utf-8') as f:
+                            metadata = json.load(f)
+
+                        if metadata.get('status') == 'od_generating':
+                            metadata['status'] = 'created'
+                            metadata['od_generated_at'] = datetime.now().isoformat()
+
+                        with open(metadata_file, 'w', encoding='utf-8') as f:
+                            json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+                        logger.info(f"✓ Case {case_id} status updated to created after OD generation")
+                else:
+                    raise Exception(result.get("error", "OD data processing failed"))
+
+            finally:
+                if db_connection:
+                    db_connection.close()
+
+        except Exception as e:
+            logger.error(f"Error in OD generation thread for case {case_id}: {e}", exc_info=True)
+
+            # 更新失败状态到metadata.json
+            try:
+                metadata_file = case_path / "metadata.json"
+                if metadata_file.exists():
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+
+                    if metadata.get('status') == 'od_generating':
+                        metadata['status'] = 'od_generation_failed'
+                        metadata['od_generation_error'] = str(e)
+                        metadata['failed_at'] = datetime.now().isoformat()
+
+                    with open(metadata_file, 'w', encoding='utf-8') as f:
+                        json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+                    logger.info(f"✓ Case {case_id} status updated to od_generation_failed after exception")
+            except Exception as meta_error:
+                logger.error(f"Failed to update metadata after OD generation error: {meta_error}")
+
+    async def create_case_with_simulation(self, request: "CreateCaseWithSimulationRequest") -> Dict[str, Any]:
+        """
+        统一案例+仿真创建 (Unified case+simulation creation)
+
+        在一次原子操作中创建案例并立即准备仿真：
+        1. 创建案例目录和元数据
+        2. 处理OD数据（异步，非阻塞）
+        3. 复制TAZ文件
+        4. 生成sumocfg配置
+        5. 创建仿真元数据（带source_scenario）
+        6. 注册到场景索引
+        7. 更新案例状态为ready_to_simulate
+
+        这确保了案例-场景-仿真的完整元数据链接在创建时就建立，
+        而不是在用户点击"仿真"按钮时才创建。
+
+        Args:
+            request: CreateCaseWithSimulationRequest - 包含场景信息、案例参数和仿真配置
+
+        Returns:
+            dict with keys: case_id, simulation_id, case_status, simulation_status, files_created
+        """
+        try:
+            # Step 1: 生成ID
+            case_id = self.generate_unique_id("case")
+            simulation_id = self.generate_unique_id("simulation")
+            case_name = request.case_name or f"case_{request.scenario_id}_{case_id.split('_')[-1]}"
+
+            # Step 2: 调用existing方法快速创建案例（复用现有流程）
+            from ..models.requests.case_requests import EventScenarioQuickCreateRequest
+            quick_create_request = EventScenarioQuickCreateRequest(
+                case_name=case_name,
+                case_id=case_id,
+                event_type=request.event_type,
+                strategy=request.strategy,
+                scenario_id=request.scenario_id,
+                event_id=request.event_id,
+                network_file=request.network_file,
+                od_file=request.od_file,
+                taz_file=request.taz_file,
+                description=request.description
+            )
+
+            result = await self.quick_create_case_from_event(quick_create_request)
+            if not result.get('success'):
+                raise Exception(result.get('error', '案例创建失败'))
+
+            case_path = Path(result.get('case_path'))
+
+            # Step 3: 准备仿真（生成仿真元数据和sumocfg）
+            await self._prepare_simulation_for_case(
+                case_id=case_id,
+                simulation_id=simulation_id,
+                case_path=case_path,
+                request=request
+            )
+
+            # Step 4: 更新案例元数据状态为ready_to_simulate
+            metadata_file = case_path / "metadata.json"
+            if metadata_file.exists():
+                try:
+                    import json
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                    metadata['status'] = 'ready_to_simulate'
+                    with open(metadata_file, 'w', encoding='utf-8') as f:
+                        json.dump(metadata, f, ensure_ascii=False, indent=2)
+                    logger.info(f"Case {case_id} status updated to ready_to_simulate")
+                except Exception as e:
+                    logger.warning(f"Failed to update case metadata status: {e}")
+
+            return {
+                "success": True,
+                "case_id": case_id,
+                "simulation_id": simulation_id,
+                "case_status": "ready_to_simulate",
+                "simulation_status": "pending",
+                "message": "统一案例+仿真创建成功，仿真已准备就绪",
+                "files_created": {
+                    "case_metadata": str(metadata_file),
+                    "simulation_metadata": str(case_path / "simulations" / simulation_id / "simulation_metadata.json"),
+                    "sumocfg": str(case_path / "simulations" / simulation_id / "simulation.sumocfg")
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to create case with simulation: {str(e)}")
+            raise Exception(f"统一创建失败: {str(e)}")
+
+    async def _prepare_simulation_for_case(self, case_id: str, simulation_id: str, case_path: Path, request: "CreateCaseWithSimulationRequest") -> None:
+        """
+        准备仿真：生成sumocfg和仿真元数据
+
+        Args:
+            case_id: 案例ID
+            simulation_id: 仿真ID
+            case_path: 案例目录路径
+            request: CreateCaseWithSimulationRequest - 包含仿真配置
+        """
+        try:
+            from shared.utilities.sumo_utils import generate_sumocfg_for_simulation
+            import json
+
+            # 创建仿真目录
+            sim_dir = case_path / "simulations" / simulation_id
+            sim_dir.mkdir(parents=True, exist_ok=True)
+
+            # 生成sumocfg
+            config_dir = case_path / "config"
+            sumocfg_file = sim_dir / "simulation.sumocfg"
+
+            # 构建仿真参数
+            sim_params = {
+                "duration_hours": request.simulation_duration_hours,
+                "random_seed": request.random_seed,
+                "simulation_type": request.simulation_type,
+                "output_config": request.output_config
+            }
+
+            # 调用sumo工具生成sumocfg
+            generate_sumocfg_for_simulation(
+                case_dir=str(case_path),
+                sim_id=simulation_id,
+                duration_hours=request.simulation_duration_hours,
+                random_seed=request.random_seed,
+                simulation_type=request.simulation_type,
+                output_config=request.output_config
+            )
+
+            # 创建仿真元数据
+            case_metadata_file = case_path / "metadata.json"
+            case_metadata = {}
+            if case_metadata_file.exists():
+                with open(case_metadata_file, 'r', encoding='utf-8') as f:
+                    case_metadata = json.load(f)
+
+            sim_metadata = {
+                "metadata_version": "2.0",
+                "simulation_id": simulation_id,
+                "case_id": case_id,
+                "status": "pending",
+                "created_at": datetime.now().isoformat(),
+
+                # AD-12: 三层元数据追踪 - 保持source_scenario
+                "source_scenario": {
+                    "scenario_id": request.scenario_id,
+                    "event_id": request.event_id,
+                    "event_type": request.event_type,
+                    "control_strategy_type": request.strategy
+                },
+
+                "simulation_params": sim_params
+            }
+
+            # 保存仿真元数据
+            sim_metadata_file = sim_dir / "simulation_metadata.json"
+            with open(sim_metadata_file, 'w', encoding='utf-8') as f:
+                json.dump(sim_metadata, f, ensure_ascii=False, indent=2)
+
+            logger.info(f"✓ Simulation metadata created: {sim_metadata_file}")
+
+        except Exception as e:
+            logger.error(f"Failed to prepare simulation: {str(e)}")
+            raise
 
 
 # 创建服务实例

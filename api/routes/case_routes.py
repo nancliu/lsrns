@@ -7,7 +7,8 @@ from typing import Optional
 from ..models.requests.case_requests import (
     CaseCreationRequest,
     CaseCloneRequest,
-    EventScenarioQuickCreateRequest
+    EventScenarioQuickCreateRequest,
+    CreateCaseWithSimulationRequest
 )
 from ..models.responses.base_response import BaseResponse
 from ..models.entities.case import CaseMetadata, CaseStatus
@@ -113,3 +114,31 @@ async def quick_create_case_from_event(request: EventScenarioQuickCreateRequest)
     case_service = CaseService()
     result = await case_service.quick_create_case_from_event(request)
     return create_success_response("案例创建成功", result)
+
+
+@router.post("/create-case-with-simulation", response_model=BaseResponse)
+@handle_service_errors
+async def create_case_with_simulation(request: CreateCaseWithSimulationRequest):
+    """
+    统一案例+仿真创建 (Unified case+simulation creation)
+
+    在一次原子操作中创建案例并立即准备仿真：
+    1. 创建案例目录和元数据
+    2. 处理OD数据（异步，非阻塞）
+    3. 复制TAZ文件
+    4. 生成sumocfg配置
+    5. 创建仿真元数据
+    6. 注册到场景索引
+
+    这确保了案例-场景-仿真的完整元数据链接在创建时就建立，
+    而不是在用户点击"仿真"按钮时才创建。
+
+    Args:
+        request: 包含场景信息、案例参数和仿真配置
+
+    Returns:
+        包含case_id、simulation_id和完整状态信息的响应
+    """
+    case_service = CaseService()
+    result = await case_service.create_case_with_simulation(request)
+    return create_success_response("统一案例+仿真创建成功", result)

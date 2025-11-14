@@ -725,21 +725,34 @@
                 const endpoint = `/case/list_cases/?page=${caseListState.currentPage}&page_size=${caseListState.pageSize}${statusParam}${searchParam}`;
 
                 const response = await api.request(endpoint, { method: 'GET' });
-                const listData = response.data;
+                // 支持两种响应格式：API 可能返回带 data 字段或直接返回
+                const listData = response.data || response;
 
-                caseListState.totalPages = Math.ceil(listData.total / caseListState.pageSize);
+                // 支持两种字段名：total_count 或 total, cases 或 items
+                const totalCount = listData.total_count || listData.total || 0;
+                const allCasesList = listData.cases || listData.items || [];
+
+                // 筛选：只显示事件场景生成的案例 (source_type === 'event_scenario')
+                const casesList = allCasesList.filter(caseItem =>
+                    caseItem.source_type === 'event_scenario' ||
+                    caseItem.case_type === 'event_scenario_case'
+                );
+
+                // 更新分页信息（基于筛选后的数量）
+                const filteredCount = casesList.length;
+                caseListState.totalPages = Math.ceil(filteredCount / caseListState.pageSize);
                 document.getElementById('currentPage').textContent = caseListState.currentPage;
                 document.getElementById('totalPages').textContent = caseListState.totalPages;
 
-                if (!listData.items || listData.items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无案例，请创建新案例</td></tr>';
+                if (!casesList || casesList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">暂无事件场景案例，请创建新案例</td></tr>';
                     updateCaseStats();
                     return;
                 }
 
                 // 渲染案例表格
                 tbody.innerHTML = '';
-                listData.items.forEach(caseItem => {
+                casesList.forEach(caseItem => {
                     const row = document.createElement('tr');
                     const statusBadge = getStatusBadge(caseItem.status);
                     const createdTime = formatDate(caseItem.created_at || caseItem.create_time);
@@ -797,15 +810,18 @@
             try {
                 // 获取所有状态的案例数量
                 const allResponse = await api.request(`/case/list_cases/?page_size=1`, { method: 'GET' });
-                const created = await api.request(`/case/list_cases/?page_size=1&status=created`, { method: 'GET' }).catch(() => ({ data: { total: 0 } }));
-                const simulating = await api.request(`/case/list_cases/?page_size=1&status=simulating`, { method: 'GET' }).catch(() => ({ data: { total: 0 } }));
-                const completed = await api.request(`/case/list_cases/?page_size=1&status=completed`, { method: 'GET' }).catch(() => ({ data: { total: 0 } }));
-                const failed = await api.request(`/case/list_cases/?page_size=1&status=failed`, { method: 'GET' }).catch(() => ({ data: { total: 0 } }));
+                const created = await api.request(`/case/list_cases/?page_size=1&status=created`, { method: 'GET' }).catch(() => ({ total_count: 0 }));
+                const simulating = await api.request(`/case/list_cases/?page_size=1&status=simulating`, { method: 'GET' }).catch(() => ({ total_count: 0 }));
+                const completed = await api.request(`/case/list_cases/?page_size=1&status=completed`, { method: 'GET' }).catch(() => ({ total_count: 0 }));
+                const failed = await api.request(`/case/list_cases/?page_size=1&status=failed`, { method: 'GET' }).catch(() => ({ total_count: 0 }));
 
-                document.getElementById('totalCases').textContent = allResponse.data.total || 0;
-                document.getElementById('simulatingCases').textContent = simulating.data.total || 0;
-                document.getElementById('completedCases').textContent = completed.data.total || 0;
-                document.getElementById('failedCases').textContent = failed.data.total || 0;
+                // 支持两种响应格式
+                const getTotal = (resp) => resp.data?.total_count || resp.data?.total || resp.total_count || resp.total || 0;
+
+                document.getElementById('totalCases').textContent = getTotal(allResponse);
+                document.getElementById('simulatingCases').textContent = getTotal(simulating);
+                document.getElementById('completedCases').textContent = getTotal(completed);
+                document.getElementById('failedCases').textContent = getTotal(failed);
             } catch (error) {
                 console.error('更新统计信息失败:', error);
             }
@@ -937,7 +953,15 @@
             try {
                 // 获取案例列表
                 const caseResponse = await api.request(`/case/list_cases/?page_size=100`, { method: 'GET' });
-                const allCases = caseResponse.data?.cases || caseResponse.data?.items || [];
+                // 支持两种响应格式：API 可能返回带 data 字段或直接返回
+                const responseData = caseResponse.data || caseResponse;
+                const allCasesUnfiltered = responseData?.cases || responseData?.items || [];
+
+                // 筛选：只显示事件场景生成的案例
+                const allCases = allCasesUnfiltered.filter(caseItem =>
+                    caseItem.source_type === 'event_scenario' ||
+                    caseItem.case_type === 'event_scenario_case'
+                );
 
                 // 收集所有活跃仿真
                 const allSimulations = [];

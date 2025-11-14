@@ -130,16 +130,32 @@ class ODProcessor:
     def calculate_duration(self, start_time: str, end_time: str) -> int:
         """
         计算两个时间点之间的时长（秒）
-        
+
         Args:
-            start_time: 开始时间字符串 "YYYY/MM/DD HH:MM:SS"
-            end_time: 结束时间字符串 "YYYY/MM/DD HH:MM:SS"
-            
+            start_time: 开始时间字符串 "YYYY/MM/DD HH:MM:SS" 或 "YYYY-MM-DD HH:MM:SS"
+            end_time: 结束时间字符串 "YYYY/MM/DD HH:MM:SS" 或 "YYYY-MM-DD HH:MM:SS"
+
         Returns:
             时长（秒）
         """
-        start_dt = datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S")
-        end_dt = datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S")
+        # Support both formats: YYYY/MM/DD and YYYY-MM-DD
+        start_dt = None
+        end_dt = None
+
+        for fmt in ["%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"]:
+            try:
+                if not start_dt:
+                    start_dt = datetime.strptime(start_time, fmt)
+                if not end_dt:
+                    end_dt = datetime.strptime(end_time, fmt)
+                if start_dt and end_dt:
+                    break
+            except ValueError:
+                continue
+
+        if not start_dt or not end_dt:
+            raise ValueError(f"Unable to parse time format: start_time={start_time}, end_time={end_time}")
+
         return int((end_dt - start_dt).total_seconds())
     
     def load_taz_ids(self, taz_file: str) -> List[str]:
@@ -353,9 +369,12 @@ class ODProcessor:
                 run_folder = f"run_{current_time}"
             os.makedirs(run_folder, exist_ok=True)
             
-            # 生成文件名
+            # 生成文件名（支持多种时间格式）
             def gen_file(ext):
-                filename = f"{table_name}_{start_time.replace('/', '').replace(' ', '').replace(':', '')}_{end_time.replace('/', '').replace(' ', '').replace(':', '')}{ext}"
+                # Normalize time strings by removing separators (/, -, space, :)
+                start_normalized = start_time.replace('/', '').replace('-', '').replace(' ', '').replace(':', '')
+                end_normalized = end_time.replace('/', '').replace('-', '').replace(' ', '').replace(':', '')
+                filename = f"{table_name}_{start_normalized}_{end_normalized}{ext}"
                 return os.path.join(run_folder, filename)
             
             od_file = gen_file(".od.xml")

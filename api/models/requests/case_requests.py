@@ -82,3 +82,68 @@ class BatchScenarioSimulationRequest(BaseModel):
     taz_file: Optional[str] = Field(None, description="TAZ文件路径（可选）")
     parallel_workers: int = Field(4, description="并发仿真数", ge=2, le=8)
     description: Optional[str] = Field(None, description="批量案例描述")
+
+
+class CreateCaseWithSimulationRequest(BaseModel):
+    """统一案例+仿真创建请求模型 (Unified case+simulation creation)"""
+    # 场景信息
+    scenario_id: str = Field(..., description="事件场景ID (e.g., 'scenario_12547_vss')")
+    event_id: str = Field(..., description="事件ID (e.g., '12547')")
+    event_type: str = Field(..., description="事件类型 (e.g., '01_accident')")
+    strategy: str = Field(..., description="控制策略 (vss|dhs|tec|no_control)")
+
+    # 案例信息
+    case_name: Optional[str] = Field(None, description="案例名称（留空则自动生成）")
+    description: Optional[str] = Field(None, description="案例描述")
+
+    # 仿真参数
+    simulation_duration_hours: float = Field(
+        2.5,
+        description="仿真时长（小时）",
+        ge=1.0,
+        le=24.0
+    )
+    random_seed: Optional[int] = Field(None, description="随机种子（留空则自动生成）")
+    simulation_type: str = Field(
+        "microscopic",
+        description="仿真模式：microscopic（微观）或 mesoscopic（中观）",
+        pattern="^(microscopic|mesoscopic)$"
+    )
+
+    # 输出配置
+    output_config: Dict[str, bool] = Field(
+        default_factory=lambda: {
+            "generate_edgedata": True,
+            "generate_summary": True,
+            "generate_tripinfo": True,
+            "generate_vehroute": False
+        },
+        description="输出文件配置"
+    )
+
+    # 文件引用
+    network_file: str = Field(..., description="网络文件路径")
+    od_file: str = Field(..., description="OD/路由文件路径")
+    taz_file: Optional[str] = Field(None, description="TAZ文件路径（可选）")
+
+    class Config:
+        example = {
+            "scenario_id": "scenario_12547_vss",
+            "event_id": "12547",
+            "event_type": "01_accident",
+            "strategy": "vss",
+            "case_name": "case_scenario_12547_vss",
+            "description": "从场景12547创建的案例",
+            "simulation_duration_hours": 2.5,
+            "random_seed": None,
+            "simulation_type": "microscopic",
+            "output_config": {
+                "generate_edgedata": True,
+                "generate_summary": True,
+                "generate_tripinfo": True,
+                "generate_vehroute": False
+            },
+            "network_file": "templates/network_files/sichuan202508v7.net.xml",
+            "od_file": "dwd.dwd_od_weekly",
+            "taz_file": None
+        }

@@ -243,6 +243,176 @@
         </div>
     </div>
 
+    <!-- 创建仿真案例模态框（简化版：只需选择输出配置） -->
+    <div class="modal" id="caseCreationModal">
+        <div class="modal-content" style="width: 480px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>📋 创建仿真案例</h2>
+                <button class="modal-close" onclick="closeCaseCreationModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 场景信息（只读） -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 10px;">场景信息</h3>
+                <div class="form-group">
+                    <label>场景ID</label>
+                    <input type="text" id="caseCreation_scenarioId" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>事件类型</label>
+                    <input type="text" id="caseCreation_eventType" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>管控策略</label>
+                    <input type="text" id="caseCreation_strategy" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>事件时间范围</label>
+                    <input type="text" id="caseCreation_timeRange" readonly style="background-color: #f5f5f5;">
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+
+                <!-- 输出配置（可编辑） -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 10px;">输出配置</h3>
+                <div class="form-group">
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" id="caseCreation_edgedata" checked>
+                            <span><strong>EdgeData</strong>（路段数据）</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" id="caseCreation_tripinfo" checked>
+                            <span><strong>TripInfo</strong>（行程信息）</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="background-color: #e3f2fd; border-radius: 6px; padding: 12px; margin-top: 15px; border-left: 4px solid #1976d2;">
+                    <div style="font-size: 0.875rem; color: #0d47a1;">
+                        <strong>ℹ️ 说明</strong><br>
+                        <span style="display: block; margin-top: 5px;">✓ 案例名称将自动生成</span>
+                        <span style="display: block; margin-top: 3px;">✓ 点击"创建"后系统将原子性地创建案例和仿真配置</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCaseCreationModal()">取消</button>
+                <button class="btn btn-primary" id="caseCreation_submitBtn" onclick="submitCreateCaseWithSimulation()" style="display: flex; align-items: center; gap: 5px;">
+                    ✓ 创建
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 场景详情模态框 -->
+    <div class="modal" id="scenarioDetailsModal">
+        <div class="modal-content" style="width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>📍 场景详情</h2>
+                <button class="modal-close" onclick="closeScenarioDetailsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 基本信息 -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #1976d2; padding-bottom: 10px; color: #1976d2;">📋 基本信息</h3>
+                <div class="form-group">
+                    <label>场景ID</label>
+                    <input type="text" id="scenarioDetails_scenarioId" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>事件ID</label>
+                    <input type="text" id="scenarioDetails_eventId" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>事件类型</label>
+                    <input type="text" id="scenarioDetails_eventType" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>管控策略</label>
+                    <input type="text" id="scenarioDetails_strategy" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>事件描述</label>
+                    <textarea id="scenarioDetails_description" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 80px;"></textarea>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+
+                <!-- 事件详情 -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #388e3c; padding-bottom: 10px; color: #388e3c;">🌍 事件发生地点与时间</h3>
+                <div class="form-group">
+                    <label>道路</label>
+                    <input type="text" id="scenarioDetails_road" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>方向</label>
+                    <input type="text" id="scenarioDetails_direction" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>里程（KM）</label>
+                    <input type="text" id="scenarioDetails_mileage" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>路网Edge ID</label>
+                    <input type="text" id="scenarioDetails_edgeId" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>交叉口ID</label>
+                    <input type="text" id="scenarioDetails_junctionId" readonly style="background-color: #f5f5f5;">
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+
+                <!-- 时间信息 -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #f57c00; padding-bottom: 10px; color: #f57c00;">⏰ 时间信息</h3>
+                <div class="form-group">
+                    <label>开始时间</label>
+                    <input type="text" id="scenarioDetails_startTime" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>结束时间</label>
+                    <input type="text" id="scenarioDetails_endTime" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>持续时长</label>
+                    <input type="text" id="scenarioDetails_duration" readonly style="background-color: #f5f5f5;">
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+
+                <!-- 事件影响 -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #c62828; padding-bottom: 10px; color: #c62828;">⚠️ 事件影响</h3>
+                <div class="form-group">
+                    <label>影响描述</label>
+                    <textarea id="scenarioDetails_impact" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 60px;"></textarea>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+
+                <!-- 管控策略详情 -->
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #7b1fa2; padding-bottom: 10px; color: #7b1fa2;">🎛️ 管控策略详情</h3>
+                <div class="form-group">
+                    <label>策略类型</label>
+                    <input type="text" id="scenarioDetails_strategyType" readonly style="background-color: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label>策略参数</label>
+                    <textarea id="scenarioDetails_strategyParams" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 80px; font-family: monospace;"></textarea>
+                </div>
+
+                <div style="background-color: #f3e5f5; border-radius: 6px; padding: 12px; margin-top: 15px; border-left: 4px solid #7b1fa2;">
+                    <div style="font-size: 0.875rem; color: #4a148c;">
+                        <strong>ℹ️ 场景信息</strong><br>
+                        <span style="display: block; margin-top: 5px;">✓ 所有信息来自场景JSON数据</span>
+                        <span style="display: block; margin-top: 3px;">✓ 返回场景列表可创建仿真案例</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeScenarioDetailsModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script src="scenario_browser.js"></script>
 </body>
 </html>

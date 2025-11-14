@@ -46,6 +46,14 @@ class CaseMetadata(BaseModel):
         default="od_extraction",
         description="案例来源类型: od_extraction | event_scenario"
     )
+    source_scenario_id: Optional[str] = Field(
+        None,
+        description="源场景ID（仅event_scenario类型案例）"
+    )
+    source_event_id: Optional[str] = Field(
+        None,
+        description="源事件ID（仅event_scenario类型案例）"
+    )
 
     @field_validator('status', mode='before')
     @classmethod
