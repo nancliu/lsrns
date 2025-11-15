@@ -372,15 +372,24 @@ async def delete_event_cases(event_id: str):
     try:
         from pathlib import Path
         import shutil
-        from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+        import json
 
         cases_dir = Path("cases")
         case_folder_name = f"case_event_{event_id}"
         case_folder = cases_dir / case_folder_name
+        scenario_index_path = Path("output") / "scenarios" / "scenario_index.json"
 
         # Load scenario_index.json
-        mapper = ScenarioCaseMapper()
-        scenario_index = mapper.load_scenario_index()
+        if not scenario_index_path.exists():
+            return {
+                "success": True,
+                "event_id": event_id,
+                "scenarios_affected": 0,
+                "message": f"✓ 事件{event_id}没有创建的案例"
+            }
+
+        with open(scenario_index_path, 'r', encoding='utf-8') as f:
+            scenario_index = json.load(f)
 
         # Find all scenarios for this event
         scenarios_for_event = [
@@ -412,7 +421,8 @@ async def delete_event_cases(event_id: str):
                 scenarios_affected += 1
 
         # Save updated scenario_index.json
-        mapper.save_scenario_index(scenario_index)
+        with open(scenario_index_path, 'w', encoding='utf-8') as f:
+            json.dump(scenario_index, f, ensure_ascii=False, indent=2)
         logger.info(f"✓ Updated scenario_index.json for event {event_id}")
 
         return {
