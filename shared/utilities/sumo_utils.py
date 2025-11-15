@@ -5,7 +5,10 @@ from pathlib import Path
 from typing import Dict, Any
 import re
 import os
+import logging
 from shared.utilities.time_utils import parse_datetime
+
+logger = logging.getLogger(__name__)
 
 
 def _duration_seconds(start_time: str, end_time: str) -> int:
@@ -209,11 +212,12 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 				# 使用找到的第一个 .rou.xml 文件
 				actual_rou_file = rou_files[0].name
 				route_file = str(rel_to_config / actual_rou_file).replace('\\', '/')
-				print(f"✓ 使用生成的 routes 文件: {actual_rou_file}")
+				logger.info(f"✓ Route file generated: {actual_rou_file}")
 			else:
 				# 没有找到 .rou.xml 文件，保持原有引用（向后兼容）
+				# This is expected during initial creation before OD generation completes
 				route_file = str(rel_to_config / Path(routes_file_ref).name).replace('\\', '/')
-				print(f"⚠️ 未找到 .rou.xml 文件，使用原始引用: {routes_file_ref}")
+				logger.debug(f"Route file not yet available, using table reference: {routes_file_ref}")
 		else:
 			# 已经是 .rou.xml 文件，直接使用
 			route_file = str(rel_to_config / Path(routes_file_ref).name).replace('\\', '/')
@@ -323,8 +327,7 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 					'    withInternal="false"/>\n'
 					'</additional>'
 				)
-				print(f"⚠️ EdgeData 配置: 收集全路网数据（未检测到事件边信息）")
-				print(f"  - 注意: 全路网模式会影响仿真性能（速度降低 15-30%）")
+				logger.debug("EdgeData configuration: collecting full network data (event edge info not detected)")
 
 			# 保存到 case 的 config 目录（与其他 .add.xml 文件一致）
 			config_edgedata_path = case_root / "config" / "edgeData.add.xml"
@@ -374,15 +377,16 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 		print(f"✓ Adding scenario-specific additional file: {scenario_add_file}")
 	else:
 		# ✓ 向后兼容：自动发现模式（用于不支持 scenario_additional_file 的旧代码）
-		print("⚠️ No scenario_additional_file in simulation_params, auto-discovering .add.xml files in simulation directory...")
+		# Auto-discovery used when scenario_additional_file not explicitly provided
+		logger.debug("Scenario additional files not specified, auto-discovering .add.xml files...")
 		discovered_add_files = list(simulation_folder.glob("scenario_*.add.xml"))
 		if discovered_add_files:
 			for discovered_file in discovered_add_files:
 				# 仅使用文件名作为相对路径（文件在仿真目录中）
 				case_additional_files.append(discovered_file.name)
-				print(f"✓ Auto-discovered: {discovered_file.name}")
+				logger.debug(f"Auto-discovered scenario file: {discovered_file.name}")
 		else:
-			print("ℹ️ No scenario .add.xml files found in simulation directory")
+			logger.debug("No scenario .add.xml files found in simulation directory")
 
 	# 构建 additional 文件列表（TAZ + edgeData + 管控策略 + 事件场景）
 	additional_files_raw = taz_files + edgedata_files + control_files + case_additional_files
