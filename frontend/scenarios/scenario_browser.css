@@ -143,6 +143,23 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
+/* Danger button styling */
+.main-content .btn-danger,
+.table-wrapper .btn-danger,
+.modal .btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+}
+
+.main-content .btn-danger:hover:not(.disabled),
+.table-wrapper .btn-danger:hover:not(.disabled),
+.modal .btn-danger:hover:not(.disabled) {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.25);
+}
+
 /* Disabled button styling */
 .main-content button:disabled,
 .table-wrapper button:disabled,

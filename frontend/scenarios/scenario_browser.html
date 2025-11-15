@@ -62,8 +62,8 @@
                     <div class="stats-label">管控策略</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stats-number" id="createdCases">0</div>
-                    <div class="stats-label">已创建案例</div>
+                    <div class="stats-number" id="typicalScenarios">0</div>
+                    <div class="stats-label">典型场景种类</div>
                 </div>
             </div>
             <div style="display: flex; gap: 10px; margin-left: 20px;">
@@ -233,176 +233,6 @@
                 <button class="btn btn-secondary" onclick="closeModal('uploadCsvModal')">取消</button>
                 <button class="btn btn-primary" id="uploadCsvBtn" onclick="submitCsvUpload()" disabled>
                     🔄 生成场景
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 创建仿真案例模态框（简化版：只需选择输出配置） -->
-    <div class="modal" id="caseCreationModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>📋 创建仿真案例</h2>
-                <button class="modal-close" onclick="closeCaseCreationModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <!-- 场景信息（只读） -->
-                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #1976d2; padding-bottom: 10px; color: #1976d2;">📋 场景信息</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>场景ID</label>
-                        <input type="text" id="caseCreation_scenarioId" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>事件ID</label>
-                        <input type="text" id="caseCreation_eventId" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>事件类型</label>
-                        <input type="text" id="caseCreation_eventType" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>管控策略</label>
-                        <input type="text" id="caseCreation_strategy" readonly style="background-color: #f5f5f5;">
-                    </div>
-                </div>
-
-                <h3 style="margin-bottom: 15px; margin-top: 20px; font-size: 1rem; border-bottom: 2px solid #388e3c; padding-bottom: 10px; color: #388e3c;">🌍 事件位置</h3>
-                <div class="form-grid-3col">
-                    <div class="form-group">
-                        <label>道路</label>
-                        <input type="text" id="caseCreation_road" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>方向</label>
-                        <input type="text" id="caseCreation_direction" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>里程（KM）</label>
-                        <input type="text" id="caseCreation_mileage" readonly style="background-color: #f5f5f5;">
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>路网Edge ID</label>
-                        <input type="text" id="caseCreation_edgeId" readonly style="background-color: #e8f5e9;">
-                    </div>
-                    <div class="form-group">
-                        <label>交叉口Junction ID</label>
-                        <input type="text" id="caseCreation_junctionId" readonly style="background-color: #e8f5e9;">
-                    </div>
-                </div>
-
-                <h3 style="margin-bottom: 15px; margin-top: 20px; font-size: 1rem; border-bottom: 2px solid #f57c00; padding-bottom: 10px; color: #f57c00;">⏰ 时间信息</h3>
-                <div class="form-grid-3col">
-                    <div class="form-group">
-                        <label>事件开始时间</label>
-                        <input type="text" id="caseCreation_eventStartTime" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>事件结束时间</label>
-                        <input type="text" id="caseCreation_eventEndTime" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>事件持续时长</label>
-                        <input type="text" id="caseCreation_eventDuration" readonly style="background-color: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>仿真开始时间</label>
-                        <input type="text" id="caseCreation_simStartTime" readonly style="background-color: #e3f2fd;">
-                    </div>
-                    <div class="form-group">
-                        <label>仿真结束时间</label>
-                        <input type="text" id="caseCreation_simEndTime" readonly style="background-color: #e3f2fd;">
-                    </div>
-                    <div class="form-group">
-                        <label>仿真时长</label>
-                        <input type="text" id="caseCreation_simDuration" readonly style="background-color: #e3f2fd;">
-                    </div>
-                </div>
-
-                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
-
-                <!-- 管控策略信息 (NO_CONTROL时隐藏) -->
-                <div id="caseCreation_controlStrategySection" style="display: none;">
-                    <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #ff6f00; padding-bottom: 10px; color: #ff6f00;">🚦 管控策略</h3>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>策略类型</label>
-                            <input type="text" id="caseCreation_strategyType" readonly style="background-color: #f5f5f5;">
-                        </div>
-                        <div class="form-group">
-                            <label>策略名称</label>
-                            <input type="text" id="caseCreation_strategyName" readonly style="background-color: #f5f5f5;">
-                        </div>
-                    </div>
-                    <div class="form-grid-3col">
-                        <div class="form-group">
-                            <label>启动时间</label>
-                            <input type="text" id="caseCreation_activationTime" readonly style="background-color: #f5f5f5;">
-                        </div>
-                        <div class="form-group">
-                            <label>结束时间</label>
-                            <input type="text" id="caseCreation_deactivationTime" readonly style="background-color: #f5f5f5;">
-                        </div>
-                        <div class="form-group">
-                            <label>响应延迟</label>
-                            <input type="text" id="caseCreation_responseDelay" readonly style="background-color: #f5f5f5;">
-                        </div>
-                    </div>
-
-                    <!-- VSS 特定参数 -->
-                    <div id="caseCreation_vssParams" style="display: none; margin-top: 15px;">
-                        <div class="form-group">
-                            <label>限速值 (VSS)</label>
-                            <input type="text" id="caseCreation_speedLimit" readonly style="background-color: #e3f2fd; font-weight: 600;">
-                        </div>
-                    </div>
-
-                    <!-- TEC 特定参数 -->
-                    <div id="caseCreation_tecParams" style="display: none; margin-top: 15px;">
-                        <div class="form-group">
-                            <label>流量削减率 (TEC)</label>
-                            <input type="text" id="caseCreation_flowReduction" readonly style="background-color: #fff3e0; font-weight: 600;">
-                        </div>
-                    </div>
-
-                    <!-- DHS 特定参数 -->
-                    <div id="caseCreation_dhsParams" style="display: none; margin-top: 15px;">
-                        <div class="form-group">
-                            <label>硬路肩车道 (DHS)</label>
-                            <input type="text" id="caseCreation_shoulderLanes" readonly style="background-color: #e8f5e9; font-weight: 600;">
-                        </div>
-                    </div>
-                </div>
-
-                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
-
-                <!-- 输出配置（可编辑） -->
-                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #1976d2; padding-bottom: 10px; color: #1976d2;">📊 输出配置</h3>
-                <div style="display: flex; gap: 30px; margin-top: 8px;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-                        <input type="checkbox" id="caseCreation_edgedata" checked>
-                        <span><strong>EdgeData</strong>（路段数据）</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
-                        <input type="checkbox" id="caseCreation_tripinfo" checked>
-                        <span><strong>TripInfo</strong>（行程信息）</span>
-                    </label>
-                </div>
-
-                <div style="background-color: #e3f2fd; border-radius: 6px; padding: 12px; margin-top: 15px; border-left: 4px solid #1976d2;">
-                    <div style="font-size: 0.875rem; color: #0d47a1;">
-                        <strong>ℹ️ 说明</strong><br>
-                        <span style="display: block; margin-top: 5px;">✓ 案例名称将自动生成</span>
-                        <span style="display: block; margin-top: 3px;">✓ 点击"创建"后系统将原子性地创建案例和仿真配置</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeCaseCreationModal()">取消</button>
-                <button class="btn btn-primary" id="caseCreation_submitBtn" onclick="submitCreateCaseWithSimulation()" style="display: flex; align-items: center; gap: 5px;">
-                    ✓ 创建
                 </button>
             </div>
         </div>
@@ -603,6 +433,97 @@
             </div>
         </div>
     </div>
+
+    <!-- 批量创建案例模态框 -->
+    <div class="modal" id="batchCreationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ 批量创建事件案例</h2>
+                <button class="modal-close" onclick="closeBatchCreationModal()">×</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <!-- 确认阶段 -->
+                <div id="batchCreation_confirmPhase">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; color: #1976d2;">📋 创建确认信息</h3>
+                    <div style="background-color: #e3f2fd; border-radius: 6px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #1976d2;">
+                        <div style="margin-bottom: 10px;"><strong>事件ID:</strong> <span id="batchCreation_eventId"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>事件类型:</strong> <span id="batchCreation_eventType"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>道路位置:</strong> <span id="batchCreation_location"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>场景数量:</strong> <span id="batchCreation_scenarioCount"></span> 个</div>
+                        <div><strong>管控策略:</strong> <span id="batchCreation_strategies"></span></div>
+                    </div>
+
+                    <div style="background-color: #fff3cd; border-radius: 6px; padding: 12px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                        <div style="font-size: 0.875rem; color: #856404;">
+                            <strong>⚠️ 说明</strong><br>
+                            <span style="display: block; margin-top: 5px;">✓ 将为每个场景创建独立的仿真案例</span>
+                            <span style="display: block; margin-top: 3px;">✓ 所有场景共享同一个OD case</span>
+                            <span style="display: block; margin-top: 3px;">✓ 创建过程在后台运行，不会阻塞界面</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 进行中阶段 -->
+                <div id="batchCreation_processingPhase" style="display: none; text-align: center;">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; color: #f57c00;">⏳ 创建进行中...</h3>
+                    <div style="margin: 30px 0;">
+                        <div style="width: 60px; height: 60px; border: 4px solid #f5f5f5; border-top: 4px solid #f57c00; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
+                    </div>
+                    <p id="batchCreation_processingMsg">正在创建案例...</p>
+                </div>
+
+                <!-- 完成阶段 -->
+                <div id="batchCreation_completePhase" style="display: none;">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; color: #388e3c;">✓ 创建完成</h3>
+                    <div style="background-color: #e8f5e9; border-radius: 6px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #388e3c;">
+                        <div style="margin-bottom: 10px;"><strong>案例ID:</strong> <span id="batchCreation_caseId" style="font-family: monospace;"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>事件ID:</strong> <span id="batchCreation_completeEventId"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>成功创建:</strong> <span id="batchCreation_successCount"></span>/<span id="batchCreation_totalCount"></span> 个场景</div>
+                        <div style="margin-bottom: 10px;"><strong>失败数:</strong> <span id="batchCreation_failCount"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>耗时:</strong> <span id="batchCreation_duration"></span> 秒</div>
+                    </div>
+
+                    <div style="background-color: #f3e5f5; border-radius: 6px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #7b1fa2;">
+                        <h4 style="margin-top: 0; margin-bottom: 10px; color: #7b1fa2;">📊 EdgeData 监测信息</h4>
+                        <div style="margin-bottom: 10px;"><strong>总边缘数:</strong> <span id="batchCreation_edgeCount"></span></div>
+                        <div style="margin-bottom: 10px;"><strong>验证率:</strong> <span id="batchCreation_validationRate"></span></div>
+                        <div><strong>输出状态:</strong> <span id="batchCreation_edgeDataStatus"></span></div>
+                    </div>
+
+                    <div style="background-color: #e3f2fd; border-radius: 6px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #1976d2;">
+                        <h4 style="margin-top: 0; margin-bottom: 10px; color: #1976d2;">⚙️ OD生成状态</h4>
+                        <div id="batchCreation_odStatus" style="font-size: 0.9rem;">
+                            <span style="color: #ff6b6b;">⏳ 正在检查OD生成进度...</span>
+                        </div>
+                    </div>
+
+                    <div id="batchCreation_failedDetails" style="display: none; background-color: #ffebee; border-radius: 6px; padding: 15px; border-left: 4px solid #d32f2f;">
+                        <h4 style="margin-top: 0; margin-bottom: 10px; color: #d32f2f;">❌ 失败场景详情</h4>
+                        <div id="batchCreation_failedList" style="max-height: 150px; overflow-y: auto; font-size: 0.875rem;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <!-- 确认阶段按钮 -->
+                <div id="batchCreation_confirmButtons" style="display: flex; gap: 10px; width: 100%;">
+                    <button class="btn btn-secondary" onclick="closeBatchCreationModal()">取消</button>
+                    <button class="btn btn-primary" onclick="confirmBatchCreation()" style="flex: 1;">✓ 确认创建</button>
+                </div>
+                <!-- 完成阶段按钮 -->
+                <div id="batchCreation_completeButtons" style="display: none; gap: 10px; width: 100%;">
+                    <button class="btn btn-secondary" onclick="closeBatchCreationModal()">关闭</button>
+                    <button class="btn btn-primary" onclick="refreshData()">🔄 刷新数据</button>
+                    <button class="btn btn-danger" onclick="deleteBatchCreatedCase()" style="margin-left: auto;">🗑️ 删除此案例</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 
     <script src="scenario_browser.js"></script>
 </body>

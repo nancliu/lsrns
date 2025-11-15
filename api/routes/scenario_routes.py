@@ -81,58 +81,6 @@ async def get_event_scenarios(event_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to get event scenarios: {str(e)}")
 
 
-@router.post("/create-case", response_model=CaseFromScenarioResponse)
-async def create_case_from_scenario(request: EventScenarioQuickCreateRequest):
-    """
-    从事件场景快速创建案例 (Phase 5.3.3核心API)
-
-    按照以下架构决策实施:
-    - AD-7: 1:1 Case-Scenario Binding
-      每个场景变量对应一个案例
-      case.metadata.source_scenario_id追踪场景来源
-
-    - AD-8: Configuration Override Policy
-      不可变字段: event_id, event_type, location, affected_edges, control_strategy_type
-      可覆盖字段: simulation_duration, random_seed, output_config (edgedata强制启用)
-
-    - 自动设置案例元数据
-    - 复制场景的.add.xml和配置文件到案例目录
-    - 为后续仿真做好准备
-
-    Args:
-        request: 案例创建请求，包含:
-          - case_name: 案例名称
-          - event_type: 事件类型
-          - scenario_id: 场景ID (e.g., 'scenario_12547_vss')
-          - event_id: 事件ID (e.g., '12547')
-          - strategy: 控制策略 (vss|dhs|tec|no_control)
-          - network_file: 网络文件路径
-          - od_file: OD/路由文件路径
-          - taz_file: TAZ文件路径 (可选)
-
-    Returns:
-        CaseFromScenarioResponse: 创建的案例信息
-    """
-    try:
-        # 验证场景是否存在
-        scenario_exists = await scenario_service.validate_scenario_exists(request.scenario_id)
-        if not scenario_exists:
-            raise HTTPException(status_code=404, detail=f"Scenario not found: {request.scenario_id}")
-
-        # 创建案例
-        result = await scenario_service.create_case_from_scenario(request)
-
-        logger.info(f"Created case {result.case_id} from scenario {request.scenario_id}")
-
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating case from scenario: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to create case: {str(e)}")
-
-
 @router.get("/health")
 async def health_check():
     """
@@ -317,51 +265,6 @@ async def get_scenario_details(scenario_id: str):
     except Exception as e:
         logger.error(f"Error getting scenario details: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get scenario details: {str(e)}")
-
-
-@router.post("/batch-create-cases")
-async def batch_create_cases_from_scenarios(requests: list[EventScenarioQuickCreateRequest]):
-    """
-    批量从场景创建案例 (Phase 5.3.3扩展)
-
-    支持并发创建多个案例，每个对应一个场景
-
-    Args:
-        requests: 案例创建请求列表
-
-    Returns:
-        批量创建结果
-    """
-    try:
-        created_cases = []
-        errors = []
-        batch_id = scenario_service.generate_unique_id("batch")
-
-        for idx, request in enumerate(requests):
-            try:
-                case = await scenario_service.create_case_from_scenario(request)
-                created_cases.append(case)
-            except Exception as e:
-                error_msg = f"Request {idx + 1}: {str(e)}"
-                logger.error(error_msg)
-                errors.append({
-                    "scenario_id": request.scenario_id,
-                    "error": error_msg
-                })
-
-        return BatchCaseCreationResponse(
-            batch_id=batch_id,
-            total_scenarios=len(requests),
-            created_cases=len(created_cases),
-            failed_count=len(errors),
-            cases=created_cases,
-            errors=errors,
-            created_at=scenario_service.generate_unique_id("batch").split("_")[0]  # timestamp
-        )
-
-    except Exception as e:
-        logger.error(f"Error in batch case creation: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Batch creation failed: {str(e)}")
 
 
 @router.post("/run-analysis", response_model=AnalysisResult)

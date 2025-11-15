@@ -287,16 +287,48 @@ export class APIClient {
     // ========================================================================
 
     /**
-     * 从事件场景创建案例
+     * 创建OD案例
+     * 调用 POST /api/v1/case/ 端点创建OD数据处理案例
      *
-     * @param {Object} requestData - 案例创建请求
+     * @param {Object} requestData - OD案例创建请求
+     * @param {string} requestData.name - 案例名称
+     * @param {string} requestData.description - 案例描述
+     * @param {string} requestData.network_id - 网络ID (可选)
      * @returns {Promise<Object>} 创建的案例数据
      */
-    async createCaseFromScenario(requestData) {
-        return this.request('/case/create-from-scenario', {
+    async createCase(requestData) {
+        return this.request('/case/', {
             method: 'POST',
             body: requestData
         });
+    }
+
+
+    /**
+     * 从事件场景创建案例（统一端点）
+     * 调用统一的事件场景创建端点，包含案例和仿真的自动创建
+     *
+     * @param {Object} requestData - 案例创建请求
+     * @param {string} requestData.scenario_id - 场景ID
+     * @param {string} requestData.event_id - 事件ID
+     * @returns {Promise<Object>} 创建的案例和仿真数据
+     */
+    async createCaseFromEventScenario(requestData) {
+        return this.request('/case/from-event-scenario', {
+            method: 'POST',
+            body: requestData
+        });
+    }
+
+
+    /**
+     * 从事件场景创建案例 - 已弃用
+     * 使用 createCaseFromEventScenario() 替代
+     *
+     * @deprecated 使用 createCaseFromEventScenario() 替代
+     */
+    async createCaseFromScenario(requestData) {
+        return this.createCaseFromEventScenario(requestData);
     }
 
 

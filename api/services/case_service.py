@@ -878,26 +878,153 @@ class CaseService(BaseService):
 
         except Exception as e:
             raise Exception(f"获取案例详情失败: {str(e)}")
-    
+
+    async def get_od_status(self, case_id: str) -> Dict[str, Any]:
+        """
+        获取OD数据生成状态 - 简化版
+
+        只关注两个关键信息：
+        1. OD生成是否完成
+        2. 所有SUMOCFG文件是否都存在（就绪判断）
+
+        忽略中间过程，当OD完成 + 所有SUMOCFG存在 时，直接显示就绪
+        """
+        try:
+            case_dir = self.cases_dir / case_id
+            if not case_dir.exists():
+                raise Exception(f"案例 {case_id} 不存在")
+
+            # 读取案例元数据
+            metadata = MetadataManager.load_case_metadata(case_dir)
+
+            # 获取OD生成状态
+            case_status = metadata.get("status", "unknown")
+
+            # 映射OD状态
+            if case_status == "created":
+                od_status = "completed"
+            elif case_status == "od_generating":
+                od_status = "generating"
+            elif case_status == "od_failed":
+                od_status = "failed"
+            else:
+                od_status = "unknown"
+
+            # 检查所有SUMOCFG文件是否都存在（简化逻辑：全或无）
+            # 注意：SUMOCFG文件的实际名称是 "simulation.sumocfg"，不是 "sumocfg.sumo.cfg"
+            all_sumocfg_exist = False
+            simulations_dir = case_dir / "simulations"
+
+            if simulations_dir.exists():
+                # 获取所有仿真目录
+                sim_dirs = [d for d in simulations_dir.iterdir() if d.is_dir()]
+
+                if len(sim_dirs) > 0:
+                    # 检查所有仿真的SUMOCFG文件是否都存在
+                    # 实际文件名为 simulation.sumocfg
+                    all_sumocfg_exist = all(
+                        (sim_dir / "simulation.sumocfg").exists()
+                        for sim_dir in sim_dirs
+                    )
+
+            # 判断整体状态 - 简化版本，只有两种实际状态
+            if od_status == "failed":
+                overall_status = "failed"
+            elif od_status == "completed" and all_sumocfg_exist:
+                overall_status = "ready"  # 完全就绪：OD完成 + 所有SUMOCFG都存在
+            else:
+                overall_status = "processing"  # 处理中：其他所有情况
+
+            # 获取错误信息（如果有）
+            error_message = metadata.get("error_message", None)
+
+            # 获取生成完成时间
+            generated_at = metadata.get("created_at", None)
+
+            return {
+                "case_id": case_id,
+                "od_status": od_status,
+                "sumocfg_ready": all_sumocfg_exist,  # 简化：直接使用文件存在检查
+                "overall_status": overall_status,  # 最终状态：processing | ready | failed
+                "generated_at": generated_at,
+                "error": error_message
+            }
+
+        except Exception as e:
+            raise Exception(f"获取OD状态失败: {str(e)}")
+
     async def delete_case(self, case_id: str) -> Dict[str, Any]:
         """删除案例"""
         try:
             case_dir = self.cases_dir / case_id
-            
+
             if not case_dir.exists():
                 raise Exception(f"案例 {case_id} 不存在")
-            
+
             # 删除案例目录
             shutil.rmtree(case_dir)
-            
+
             return {
                 "case_id": case_id,
                 "deleted_at": datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             raise Exception(f"删除案例失败: {str(e)}")
-    
+
+    async def delete_case_with_reset(self, case_id: str) -> Dict[str, Any]:
+        """
+        删除案例并重置scenario_index.json中的关联
+
+        此方法用于批量创建页面的删除操作，同时处理：
+        1. 删除案例的所有文件夹
+        2. 从scenario_index.json中清除该case的所有created_cases关联
+
+        Args:
+            case_id: 案例ID
+
+        Returns:
+            {
+                "success": true,
+                "case_id": "case_event_10754",
+                "scenarios_affected": 3,
+                "message": "删除成功"
+            }
+        """
+        try:
+            # 1. 删除案例文件夹
+            case_dir = self.cases_dir / case_id
+
+            if not case_dir.exists():
+                raise Exception(f"案例 {case_id} 不存在")
+
+            # 删除案例目录
+            shutil.rmtree(case_dir)
+            logger.info(f"✓ 案例文件夹已删除: {case_id}")
+
+            # 2. 从scenario_index.json中清除关联
+            scenarios_affected = 0
+            try:
+                from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+                mapper = ScenarioCaseMapper()
+
+                # 从所有scenario中删除该case
+                scenarios_affected = mapper.unregister_case_from_all_scenarios(case_id)
+                logger.info(f"✓ scenario_index.json已更新: 从{scenarios_affected}个scenario中删除了{case_id}")
+            except Exception as mapping_error:
+                logger.warning(f"⚠️ 更新scenario_index.json失败（非致命错误）: {mapping_error}")
+
+            return {
+                "success": True,
+                "case_id": case_id,
+                "scenarios_affected": scenarios_affected,
+                "message": f"✓ 案例已删除，已清除{scenarios_affected}个scenario关联"
+            }
+
+        except Exception as e:
+            logger.error(f"删除案例失败: {str(e)}")
+            raise Exception(f"删除案例失败: {str(e)}")
+
     async def clone_case(self, case_id: str, request: CaseCloneRequest) -> Dict[str, Any]:
         """克隆案例"""
         try:
@@ -1256,6 +1383,18 @@ class CaseService(BaseService):
 
                         logger.info(f"✓ Case {case_id} status updated to created after OD generation")
 
+                        # 更新scenario_index.json中该case的状态（从od_generating到created）
+                        try:
+                            from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+                            mapper = ScenarioCaseMapper()
+
+                            # 为所有关联的scenario更新状态
+                            for scenario_id in metadata.get('scenarios', []):
+                                mapper.update_case_status(scenario_id, case_id, 'created')
+                                logger.info(f"✓ scenario_index.json已更新: {scenario_id} - {case_id} 状态 → created")
+                        except Exception as mapping_error:
+                            logger.warning(f"⚠️ 更新scenario_index.json失败（非致命错误）: {mapping_error}")
+
                         # 生成sumocfg配置文件（OD文件已准备好）
                         # 重新生成所有 simulation 的 sumocfg（确保使用实际的 .rou.xml 文件）
                         try:
@@ -1401,269 +1540,6 @@ class CaseService(BaseService):
             logger.error(f"Error generating sumocfg: {e}", exc_info=True)
             raise
 
-    async def create_case_from_event_scenario(self, request: "CreateCaseWithSimulationRequest") -> Dict[str, Any]:
-        """
-        从事件场景创建案例并自动创建仿真 (Phase 1 Unified Event Workflow)
-
-        Event-based architecture for efficient case reuse:
-        - First scenario from an event creates case_event_{event_id} with full config
-        - Subsequent scenarios reuse existing case (70% faster, 65% less disk)
-        - Each scenario gets its own simulation directory
-
-        Workflow:
-        1. Try to extract event_id from scenario_id (event-based architecture)
-        2. Get or create event case (reuse if exists)
-        3. If new case: Setup config + trigger OD generation
-        4. Create scenario-specific simulation
-        5. Update case metadata and scenario index
-        6. Return response with is_new_case flag
-
-        Args:
-            request: CreateCaseWithSimulationRequest - 包含场景信息、案例参数和仿真配置
-
-        Returns:
-            dict with keys: case_id, simulation_id, case_type, is_new_case, od_generation_status
-        """
-        try:
-            # Try event-based architecture first
-            try:
-                event_id = self._extract_event_id_from_scenario(request.scenario_id)
-                logger.info(f"✓ Event-based architecture: event {event_id}, scenario {request.scenario_id}")
-
-                # Get time range from scenario index
-                time_range = self._get_scenario_time_range(request.scenario_id)
-
-                # Get or create event case (with file locking for thread safety)
-                case_path, is_new_case, case_metadata = self._get_or_create_event_case_with_lock(
-                    event_id=event_id,
-                    event_type=request.event_type,
-                    network_file=request.network_file,
-                    od_file=request.od_file,
-                    taz_file=request.taz_file,
-                    time_range=time_range,
-                    description=request.description
-                )
-
-                case_id = case_metadata["case_id"]
-
-                # If new case, set up config and trigger OD generation
-                if is_new_case:
-                    # Copy network and TAZ files to config directory
-                    await self._setup_case_config_files(
-                        case_path=case_path,
-                        network_file=request.network_file,
-                        taz_file=request.taz_file
-                    )
-
-                    # Mark case as generating OD
-                    case_metadata["status"] = "od_generating"
-                    self._save_case_metadata(case_path, case_metadata)
-
-                    # Trigger async OD generation
-                    # Parse schema and table name from od_file (e.g., "dwd.dwd_od_weekly")
-                    schema_name, table_name = self._parse_od_file(request.od_file)
-
-                    import threading
-                    thread = threading.Thread(
-                        target=self._run_od_generation_in_background,
-                        args=(case_id, case_path),
-                        kwargs={
-                            "od_request": type('obj', (object,), {
-                                'start_time': time_range.get("start_time"),
-                                'end_time': time_range.get("end_time"),
-                                'interval_minutes': 5,  # Default interval: 5 minutes
-                                'taz_file': request.taz_file,
-                                'net_file': request.network_file,
-                                'schemas_name': schema_name,
-                                'table_name': table_name,
-                                'output_dir': str(case_path / "config")
-                            })(),
-                            "od_file_info_json": case_path / "od_file_info.json"
-                        },
-                        daemon=True
-                    )
-                    thread.start()
-                    logger.info(f"✓ OD generation started for new event case {case_id}")
-                else:
-                    logger.info(f"✓ Reusing existing event case {case_id} (OD data already generated)")
-
-                # Create scenario-specific simulation
-                # Map output_config from request to format expected by sumo_utils
-                output_config = request.output_config or {}
-                simulation_params = {
-                    "duration_hours": request.simulation_duration_hours,
-                    "random_seed": request.random_seed,
-                    "simulation_type": request.simulation_type,
-                    "output_config": request.output_config,
-                    # Map generate_* keys to output_* keys for sumo_utils
-                    "output_edgedata": output_config.get("generate_edgedata", False),
-                    # 事件场景强制不输出 tripinfo.xml（仅输出 edgedata）
-                    "output_tripinfo": False,
-                    "output_vehroute": output_config.get("generate_vehroute", False),
-                    "output_netstate": output_config.get("generate_netstate", False),
-                    "output_fcd": output_config.get("generate_fcd", False),
-                    "output_emission": output_config.get("generate_emission", False),
-                }
-
-                simulation_id, sim_dir = self._create_scenario_simulation(
-                    case_path=case_path,
-                    case_metadata=case_metadata,
-                    scenario_id=request.scenario_id,
-                    event_id=event_id,
-                    event_type=request.event_type,
-                    strategy=request.strategy,
-                    simulation_params=simulation_params
-                )
-
-                # Update case metadata with new simulation
-                self._update_case_metadata_with_simulation(
-                    case_path=case_path,
-                    scenario_id=request.scenario_id,
-                    simulation_id=simulation_id
-                )
-
-                # Update scenario index
-                self._update_scenario_index(
-                    scenario_id=request.scenario_id,
-                    case_id=case_id,
-                    simulation_id=simulation_id
-                )
-
-                # Return response
-                return {
-                    "success": True,
-                    "case_id": case_id,
-                    "case_type": "event_based",
-                    "simulation_id": simulation_id,
-                    "simulation_path": str(sim_dir),
-                    "is_new_case": is_new_case,
-                    "od_generation_status": "in_progress" if is_new_case else "completed",
-                    "case_status": "od_generating" if is_new_case else "ready",
-                    "simulation_status": "ready",
-                    "message": "Case created successfully" if is_new_case else "Simulation added to existing case",
-                    "files_created": {
-                        "case_metadata": str(case_path / "metadata.json"),
-                        "simulation_metadata": str(sim_dir / "simulation_metadata.json")
-                    }
-                }
-
-            except ValueError as e:
-                # Not an event-based scenario, fall back to time-based architecture
-                logger.info(f"✓ Time-based architecture (non-event scenario): {e}")
-
-                # Use existing implementation for backward compatibility
-                case_id = self.generate_unique_id("case")
-                simulation_id = self.generate_unique_id("simulation")
-                case_name = request.case_name or f"case_{request.scenario_id}_{case_id.split('_')[-1]}"
-
-                from ..models.requests.case_requests import EventScenarioQuickCreateRequest
-                quick_create_request = EventScenarioQuickCreateRequest(
-                    case_name=case_name,
-                    case_id=case_id,
-                    event_type=request.event_type,
-                    strategy=request.strategy,
-                    scenario_id=request.scenario_id,
-                    event_id=request.event_id,
-                    network_file=request.network_file,
-                    od_file=request.od_file,
-                    taz_file=request.taz_file,
-                    description=request.description
-                )
-
-                result = await self.quick_create_case_from_event(quick_create_request)
-                case_path = Path(result.get('case_path'))
-
-                await self._prepare_simulation_for_case(
-                    case_id=case_id,
-                    simulation_id=simulation_id,
-                    case_path=case_path,
-                    request=request
-                )
-
-                return {
-                    "success": True,
-                    "case_id": case_id,
-                    "case_type": "time_based",
-                    "simulation_id": simulation_id,
-                    "is_new_case": True,
-                    "od_generation_status": "in_progress",
-                    "case_status": "od_generating",
-                    "simulation_status": "pending",
-                    "message": "案例创建成功，OD数据生成中，完成后可开始仿真",
-                    "files_created": {
-                        "case_metadata": str(case_path / "metadata.json"),
-                        "simulation_metadata": str(case_path / "simulations" / simulation_id / "simulation_metadata.json")
-                    }
-                }
-
-        except Exception as e:
-            logger.error(f"Failed to create case with simulation: {str(e)}", exc_info=True)
-            raise Exception(f"Failed to create case: {str(e)}")
-
-    async def _prepare_simulation_for_case(self, case_id: str, simulation_id: str, case_path: Path, request: "CreateCaseWithSimulationRequest") -> None:
-        """
-        准备仿真：生成sumocfg和仿真元数据
-
-        注意：此方法不生成sumocfg，因为需要等待OD文件生成完成。
-        sumocfg会在start_simulation时生成。
-
-        Args:
-            case_id: 案例ID
-            simulation_id: 仿真ID
-            case_path: 案例目录路径
-            request: CreateCaseWithSimulationRequest - 包含仿真配置
-        """
-        try:
-            import json
-
-            # 创建仿真目录
-            sim_dir = case_path / "simulations" / simulation_id
-            sim_dir.mkdir(parents=True, exist_ok=True)
-
-            # 构建仿真参数（用于元数据，不立即生成sumocfg）
-            sim_params = {
-                "duration_hours": request.simulation_duration_hours,
-                "random_seed": request.random_seed,
-                "simulation_type": request.simulation_type,
-                "output_config": request.output_config
-            }
-
-            # 创建仿真元数据
-            case_metadata_file = case_path / "metadata.json"
-            case_metadata = {}
-            if case_metadata_file.exists():
-                with open(case_metadata_file, 'r', encoding='utf-8') as f:
-                    case_metadata = json.load(f)
-
-            sim_metadata = {
-                "metadata_version": "2.0",
-                "simulation_id": simulation_id,
-                "case_id": case_id,
-                "status": "pending",
-                "created_at": datetime.now().isoformat(),
-
-                # AD-12: 三层元数据追踪 - 保持source_scenario
-                "source_scenario": {
-                    "scenario_id": request.scenario_id,
-                    "event_id": request.event_id,
-                    "event_type": request.event_type,
-                    "control_strategy_type": request.strategy
-                },
-
-                "simulation_params": sim_params
-            }
-
-            # 保存仿真元数据
-            sim_metadata_file = sim_dir / "simulation_metadata.json"
-            with open(sim_metadata_file, 'w', encoding='utf-8') as f:
-                json.dump(sim_metadata, f, ensure_ascii=False, indent=2)
-
-            logger.info(f"✓ Simulation metadata created: {sim_metadata_file}")
-
-        except Exception as e:
-            logger.error(f"Failed to prepare simulation: {str(e)}")
-            raise
-
     async def create_event_case_batch(self, request) -> Dict[str, Any]:
         """
         批量创建事件案例（完整版）
@@ -1691,8 +1567,8 @@ class CaseService(BaseService):
         start_time = time.time()
 
         try:
-            # 1. 生成案例ID
-            case_id = self.generate_unique_id("case_event")
+            # 1. 生成案例ID (使用event_id而非时间戳，符合event-based架构规范)
+            case_id = f"case_event_{request.event_id}"
             case_name = f"case_{request.event_id}_batch"
 
             logger.info(f"开始批量创建事件案例: event_id={request.event_id}, scenarios={len(request.scenarios)}")
@@ -1751,16 +1627,27 @@ class CaseService(BaseService):
                     event_method="radius_2_hops"
                 )
 
+                # 获取智能决策信息
+                edgedata_decision = edgedata_result.get('edgedata_decision', {})
+                should_enable_edgedata = edgedata_decision.get('should_enable', True)
+
                 edgedata_info = {
                     "file_path": edgedata_result['file_path'],
                     "edge_count": edgedata_result['edge_count'],
                     "event_edges": edgedata_result.get('event_count', 0),
                     "strategy_edges": edgedata_result.get('strategy_count', 0),
                     "source_breakdown": edgedata_result.get('source_breakdown', {}),
-                    "validation_rate": edgedata_result.get('validation', {}).get('validation_rate', 1.0)
+                    "validation_rate": edgedata_result.get('validation', {}).get('validation_rate', 1.0),
+                    "should_enable": should_enable_edgedata,  # 智能决策结果
+                    "decision_reason": edgedata_decision.get('reason', ''),
+                    "decision_action": edgedata_decision.get('action', '')
                 }
 
-                logger.info(f"✓ 统一edgeData生成成功: {edgedata_result['edge_count']} edges")
+                logger.info(f"✓ EdgeData配置生成: {edgedata_result['edge_count']} edges")
+                logger.info(f"  {edgedata_decision.get('action', '处理中...')}")
+                if edgedata_decision.get('details', {}).get('recommendations'):
+                    for rec in edgedata_decision['details']['recommendations']:
+                        logger.info(f"  💡 {rec}")
 
             # 6. 获取时间范围（从request或第一个scenario）
             time_range = request.time_range
@@ -1881,11 +1768,25 @@ class CaseService(BaseService):
                             logger.info(f"✓ 复制TAZ文件到仿真目录: {taz_filename}")
 
                     # 准备仿真参数
+                    # 对于事件仿真，强制禁用tripinfo输出（Phase 2仅需summary.xml + edgedata.xml）
+                    event_output_config = scenario.output_config.copy() if scenario.output_config else {}
+                    event_output_config["generate_tripinfo"] = False  # 禁用tripinfo，节省存储和计算资源
+
+                    # 根据EdgeData验证结果智能决定是否启用edgedata输出
+                    if edgedata_info and isinstance(edgedata_info, dict):
+                        should_enable = edgedata_info.get("should_enable", True)
+                        event_output_config["generate_edgedata"] = should_enable
+                        logger.info(f"  → EdgeData输出: {'启用' if should_enable else '禁用'} (验证率: {edgedata_info.get('validation_rate', 'N/A'):.1%})")
+                    else:
+                        # 默认禁用edgedata
+                        event_output_config["generate_edgedata"] = False
+                        logger.info(f"  → EdgeData输出: 禁用 (未提供验证信息)")
+
                     simulation_params = {
                         "duration_hours": scenario.time.get('sim_duration_hours', 2.5),
                         "random_seed": None,
                         "simulation_type": request.simulation_type,
-                        "output_config": scenario.output_config
+                        "output_config": event_output_config
                     }
 
                     # 生成 simulation.sumocfg 配置文件（与表格视图创建逻辑一致）
@@ -1984,10 +1885,29 @@ class CaseService(BaseService):
 
             MetadataManager.save_case_metadata(case_dir, case_metadata)
 
+            # 11. 自动注册案例到scenario_index.json（集成scenario_index.json更新）
+            try:
+                from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+                mapper = ScenarioCaseMapper()
+
+                # 为每个场景注册该case（批量创建时case处于od_generating状态）
+                for scenario in request.scenarios:
+                    mapper.register_case_creation(
+                        scenario_id=scenario.scenario_id,
+                        case_id=case_id,
+                        case_name=case_name,
+                        case_status="od_generating"  # 初始状态：OD生成中
+                    )
+                    logger.info(f"✓ 已注册到scenario_index.json: {scenario.scenario_id} <- {case_id}")
+
+                logger.info(f"✓ scenario_index.json 已更新（{len(request.scenarios)}个场景已注册）")
+            except Exception as e:
+                logger.warning(f"⚠️ 注册scenario_index.json失败（非致命错误）: {str(e)}")
+
             duration = time.time() - start_time
             logger.info(f"✓ 批量创建完成: {successful_count}/{len(request.scenarios)} 成功, 耗时 {duration:.2f}秒")
 
-            # 11. 返回结果
+            # 11. 返回结果（包含完整的edgedata_config信息）
             return {
                 "event_id": request.event_id,
                 "event_type": request.event_type,
@@ -1998,7 +1918,8 @@ class CaseService(BaseService):
                 "successful_scenarios": successful_count,
                 "failed_scenarios": failed_count,
                 "scenario_results": scenario_results,
-                "edgedata_info": edgedata_info,
+                # 返回完整的edgedata_config（与metadata中保存的一致）
+                "edgedata_info": case_metadata.get("edgedata_config") or edgedata_info,
                 "created_at": datetime.now().isoformat(),
                 "duration_seconds": duration,
                 "od_generation_status": "in_progress",

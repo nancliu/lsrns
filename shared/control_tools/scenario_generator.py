@@ -471,6 +471,27 @@ class ScenarioGenerator:
         logger.info(f"Generated .add.xml with event + control: {xml_path}")
         return xml_path
 
+    def _remove_xml_declaration(self, xml_str: str) -> str:
+        """
+        Remove XML declaration from XML string if present.
+
+        This ensures that when combining event and control XML fragments,
+        we don't end up with duplicate XML declarations.
+
+        Args:
+            xml_str: XML string that may contain an XML declaration
+
+        Returns:
+            XML string without the declaration
+        """
+        if not xml_str:
+            return xml_str
+
+        # Remove XML declaration (<?xml ... ?>)
+        import re
+        cleaned = re.sub(r'<\?xml[^?]*\?>', '', xml_str, count=1)
+        return cleaned.lstrip()
+
     def _combine_event_and_control_xml(self, event_xml: str, control_xml: str = "") -> str:
         """
         Combine event and control XML into single SUMO additional file.
@@ -482,6 +503,10 @@ class ScenarioGenerator:
         Returns:
             Combined XML string with <additional> root element
         """
+        # Remove any XML declarations from fragments to prevent duplication
+        event_xml_clean = self._remove_xml_declaration(event_xml)
+        control_xml_clean = self._remove_xml_declaration(control_xml)
+
         # XML header and root element
         xml_parts = []
         xml_parts.append('<?xml version="1.0" encoding="UTF-8"?>')
@@ -493,18 +518,18 @@ class ScenarioGenerator:
         xml_parts.append('')
 
         # Add event injection XML
-        if event_xml:
+        if event_xml_clean:
             xml_parts.append('    <!-- Event Injection -->')
             # Indent event XML
-            for line in event_xml.strip().split('\n'):
+            for line in event_xml_clean.strip().split('\n'):
                 xml_parts.append('    ' + line)
             xml_parts.append('')
 
         # Add control strategy XML
-        if control_xml:
+        if control_xml_clean:
             xml_parts.append('    <!-- Control Strategy -->')
             # Indent control XML (already may have some indentation)
-            for line in control_xml.strip().split('\n'):
+            for line in control_xml_clean.strip().split('\n'):
                 if line.strip():  # Skip empty lines
                     xml_parts.append('    ' + line)
             xml_parts.append('')

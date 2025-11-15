@@ -106,6 +106,10 @@ class EdgeDataInfo(BaseModel):
     strategy_edges: int = Field(..., description="策略边缘数")
     source_breakdown: Dict[str, Any] = Field(..., description="来源分解")
     validation_rate: float = Field(..., description="验证通过率")
+    # 智能决策字段 (P2 v2)
+    should_enable: bool = Field(default=True, description="是否启用edgedata输出")
+    decision_reason: Optional[str] = Field(None, description="决策原因")
+    decision_action: Optional[str] = Field(None, description="决策动作文本（含emoji）")
 
 
 class EventCaseBatchCreationResponse(BaseModel):

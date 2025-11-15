@@ -52,13 +52,6 @@ async function loadCreatedCases() {
                 }
 
                 console.log(`✓ 从scenario_index.json加载了 ${totalCases} 个案例，涉及 ${Object.keys(scenarioCaseMap).length} 个场景`);
-
-                // 更新已创建案例数统计卡片
-                const createdCasesElement = document.getElementById('createdCases');
-                if (createdCasesElement) {
-                    createdCasesElement.textContent = totalCases;
-                }
-
                 return; // 成功加载，直接返回
             }
         } catch (e) {
@@ -120,85 +113,10 @@ async function loadCreatedCases() {
         }
 
         console.log(`✓ 从API加载了 ${eventScenarioCases.length} 个事件场景案例，涉及 ${Object.keys(scenarioCaseMap).length} 个场景`);
-
-        // 更新已创建案例数统计卡片
-        const createdCasesElement = document.getElementById('createdCases');
-        if (createdCasesElement) {
-            createdCasesElement.textContent = eventScenarioCases.length;
-        }
     } catch (error) {
         console.warn('加载已创建案例失败:', error);
         scenarioCaseMap = {};
     }
-}
-
-// 获取场景的创建状态显示（三状态：未创建/生成中/已创建）
-function getScenarioStatusDisplay(scenario_id) {
-    const cases = scenarioCaseMap[scenario_id] || [];
-
-    if (cases.length === 0) {
-        return '<span class="status-badge status-none">— 未创建</span>';
-    }
-
-    // 检查最新案例的状态
-    const latestCase = cases[cases.length - 1];
-    const status = latestCase.status || 'unknown';
-
-    // 如果正在生成OD，显示"生成中"
-    if (status === 'od_generating' || status === 'processing') {
-        return '<span class="status-badge status-progress">⏳ 生成中</span>';
-    }
-
-    // 其他状态都显示"已创建"
-    return '<span class="status-badge status-success">✓ 已创建</span>';
-}
-
-// 检查场景是否已创建或生成中（用于按钮禁用逻辑）
-function isScenarioCreated(scenario_id) {
-    const cases = scenarioCaseMap[scenario_id] || [];
-    // 只要有案例（不管什么状态），都应该禁用创建按钮
-    return cases.length > 0;
-}
-
-// 获取禁用按钮的文本和提示
-function getDisabledButtonInfo(scenario_id) {
-    const cases = scenarioCaseMap[scenario_id] || [];
-    if (cases.length === 0) {
-        return null;
-    }
-
-    const latestCase = cases[cases.length - 1];
-    const status = latestCase.status || 'unknown';
-
-    // 如果正在生成，显示"生成中"
-    if (status === 'od_generating' || status === 'processing') {
-        return {
-            text: '生成中',
-            title: 'OD数据生成中，请稍候...'
-        };
-    }
-
-    // 其他状态显示"已创建"
-    return {
-        text: '已创建',
-        title: '该场景已创建案例'
-    };
-}
-
-// 获取状态的显示名称（文本）
-function getStatusDisplayName(status) {
-    const statusNames = {
-        'od_generating': '生成中（OD文件正在生成）',
-        'processing': '处理中（案例数据正在处理）',
-        'od_generation_failed': '生成失败（OD文件生成失败）',
-        'created': '已创建（就绪）',
-        'simulating': '仿真中（正在运行仿真）',
-        'analyzing': '分析中（正在运行分析）',
-        'completed': '已完成（仿真/分析已完成）',
-        'failed': '失败（处理失败）',
-        'unknown': '状态未知'
-    };
-    return statusNames[status] || `${status}`;
 }
 
 // 加载场景数据
@@ -252,10 +170,20 @@ function initializeFilters() {
     strategyChips.innerHTML = '<button class="chip active" onclick="filterByStrategy(\'all\')">全部</button>' +
         strategies.map(s => `<button class="chip" onclick="filterByStrategy('${s}')">${getStrategyDisplay(s)}</button>`).join('');
 
+    // 计算典型场景种类数量
+    // 定义：不同的(事件类型 + 管控策略)组合种类
+    // 包括：无管控、VSS、TEC、DHS等所有管控策略
+    // 注：只统计存在场景的组合（场景数 > 0）
+    const typicalScenarioCombinations = new Set(
+        allScenarios.map(s => `${s.event_type}|||${s.strategy}`)
+    );
+    const typicalScenariosCount = typicalScenarioCombinations.size;
+
     // 更新统计信息
     document.getElementById('totalScenarios').textContent = allScenarios.length;
     document.getElementById('eventTypeCount').textContent = eventTypes.length;
     document.getElementById('strategyCount').textContent = strategies.length;
+    document.getElementById('typicalScenarios').textContent = typicalScenariosCount;
 }
 
 // 筛选函数
@@ -365,7 +293,6 @@ function renderScenarios() {
                     <th>管控策略</th>
                     <th>道路位置</th>
                     <th>事件时间</th>
-                    <th>创建状态</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -384,19 +311,8 @@ function renderScenarios() {
                             <small style="color: #666;">${s.duration_hours}h</small>
                         </td>
                         <td>
-                            ${getScenarioStatusDisplay(s.scenario_id)}
-                        </td>
-                        <td>
                             <div class="action-buttons">
                                 <button class="btn btn-sm btn-info" onclick="openScenarioDetailsModal('${s.scenario_id}')" title="查看场景详情">详情</button>
-                                ${(() => {
-                                    const buttonInfo = getDisabledButtonInfo(s.scenario_id);
-                                    if (buttonInfo) {
-                                        return `<button class="btn btn-sm btn-secondary" disabled title="${buttonInfo.title}">${buttonInfo.text}</button>`;
-                                    } else {
-                                        return `<button class="btn btn-sm btn-primary" onclick="openCreateCaseModal('${s.scenario_id}', '${s.event_type}', '${s.strategy}')" title="创建仿真案例">创建</button>`;
-                                    }
-                                })()}
                             </div>
                         </td>
                     </tr>
@@ -640,7 +556,12 @@ function deselectAllScenarios(eventId) {
 }
 
 /**
- * 批量创建事件案例
+ * 全局变量: 存储待创建的批量请求信息
+ */
+let pendingBatchCreationRequest = null;
+
+/**
+ * 批量创建事件案例 - 显示确认模态框
  * @param {string} eventId - 事件ID
  */
 async function batchCreateEventCase(eventId) {
@@ -674,90 +595,467 @@ async function batchCreateEventCase(eventId) {
             scenarioParams.push(params);
         }
 
-        // 构建确认消息
+        // 保存请求信息供确认时使用
         const eventInfo = selectedScenarios[0];
         const strategyList = scenarioParams.map(p => getStrategyDisplay(p.strategy)).join(', ');
 
-        const confirmMessage = `确认批量创建以下案例？\n\n` +
-            `事件: ${eventId}\n` +
-            `事件类型: ${getEventTypeDisplay(eventInfo.event_type)}\n` +
-            `道路位置: ${eventInfo.road}\n` +
-            `场景数量: ${selectedScenarios.length} 个\n` +
-            `策略: ${strategyList}\n\n` +
-            `将为每个场景创建独立的仿真案例。`;
-
-        if (!confirm(confirmMessage)) {
-            return;
-        }
-
-        // 构建批量创建请求
-        // 注意：使用第一个场景的仿真时间范围（OD时间范围，包含事件前后buffer）
-        // 这些时间来自 traffic_input_config.json 的 od_time_range.start/end
-        const requestData = {
+        pendingBatchCreationRequest = {
             event_id: eventId,
-            event_type: mapEventTypeToFolder(eventInfo.event_type),  // 映射为英文文件夹名
+            event_type: mapEventTypeToFolder(eventInfo.event_type),
             scenarios: scenarioParams,
-            // 使用系统默认配置（与表格视图创建一致）
             network_file: "templates/network_files/sichuan202508v7.net.xml",
             od_file: "dwd.dwd_od_weekly",
             taz_file: "templates/taz_files/TAZ_6.add.xml",
             time_range: {
-                start_time: scenarioParams[0].time.sim_start_time,  // OD开始时间（事件前30分钟）
-                end_time: scenarioParams[0].time.sim_end_time        // OD结束时间（事件后30分钟）
+                start_time: scenarioParams[0].time.sim_start_time,
+                end_time: scenarioParams[0].time.sim_end_time
             },
             simulation_type: "microscopic",
             random_seed: null
         };
 
+        // 显示确认模态框
+        showBatchCreationModal(eventId, eventInfo, scenarioParams, selectedScenarios.length, strategyList);
+
+    } catch (error) {
+        console.error('批量创建失败:', error);
+        alert(`✗ 准备批量创建失败: ${error.message}`);
+    }
+}
+
+/**
+ * 显示批量创建确认模态框
+ */
+function showBatchCreationModal(eventId, eventInfo, scenarioParams, scenarioCount, strategyList) {
+    // 填充确认信息
+    document.getElementById('batchCreation_eventId').textContent = eventId;
+    document.getElementById('batchCreation_eventType').textContent = getEventTypeDisplay(eventInfo.event_type);
+    document.getElementById('batchCreation_location').textContent = eventInfo.road || '未指定';
+    document.getElementById('batchCreation_scenarioCount').textContent = scenarioCount;
+    document.getElementById('batchCreation_strategies').textContent = strategyList;
+
+    // 显示确认阶段，隐藏其他阶段
+    document.getElementById('batchCreation_confirmPhase').style.display = 'block';
+    document.getElementById('batchCreation_processingPhase').style.display = 'none';
+    document.getElementById('batchCreation_completePhase').style.display = 'none';
+    document.getElementById('batchCreation_confirmButtons').style.display = 'flex';
+    document.getElementById('batchCreation_completeButtons').style.display = 'none';
+
+    // 打开模态框
+    showModal('batchCreationModal');
+}
+
+/**
+ * 确认批量创建 - 执行API调用
+ */
+async function confirmBatchCreation() {
+    if (!pendingBatchCreationRequest) {
+        alert('请求信息丢失，请重试');
+        return;
+    }
+
+    // 切换到进行中阶段
+    document.getElementById('batchCreation_confirmPhase').style.display = 'none';
+    document.getElementById('batchCreation_processingPhase').style.display = 'block';
+
+    try {
         // 调用批量创建API
         const response = await fetch('/api/v1/scenario/create-case-batch', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(pendingBatchCreationRequest)
         });
 
         if (response.ok) {
             const result = await response.json();
 
-            // 显示成功消息
-            const successMsg = `✓ 批量创建成功！\n\n` +
-                `案例ID: ${result.case_id}\n` +
-                `事件: ${result.event_id}\n` +
-                `成功创建: ${result.successful_scenarios}/${result.total_scenarios} 个场景\n` +
-                `失败: ${result.failed_scenarios} 个\n\n` +
-                `EdgeData监测:\n` +
-                `- 总边缘数: ${result.edgedata_info?.edge_count || 0}\n` +
-                `- 事件边缘: ${result.edgedata_info?.event_edges || 0}\n` +
-                `- 策略边缘: ${result.edgedata_info?.strategy_edges || 0}\n\n` +
-                `耗时: ${result.duration_seconds?.toFixed(2)}秒`;
-
-            alert(successMsg);
+            // 显示完成阶段
+            showBatchCreationComplete(result);
 
             // 刷新数据
             loadCreatedCases();
             applyFilters();
 
-            // 如果有失败的场景，显示详情
-            if (result.failed_scenarios > 0) {
-                const failedScenarios = result.scenario_results
-                    .filter(r => !r.success)
-                    .map(r => `- ${r.scenario_id}: ${r.error_message}`)
-                    .join('\n');
-
-                console.warn('部分场景创建失败:\n' + failedScenarios);
-            }
-
         } else {
             const error = await response.json();
-            alert(`✗ 批量创建失败: ${error.detail || error.message || '未知错误'}`);
+            showBatchCreationError(`${error.detail || error.message || '未知错误'}`);
         }
 
     } catch (error) {
         console.error('批量创建失败:', error);
-        alert(`✗ 批量创建失败: ${error.message}`);
+        showBatchCreationError(error.message);
     }
+}
+
+/**
+ * 显示批量创建完成信息
+ */
+function showBatchCreationComplete(result) {
+    // 隐藏进行中，显示完成
+    document.getElementById('batchCreation_processingPhase').style.display = 'none';
+    document.getElementById('batchCreation_completePhase').style.display = 'block';
+    document.getElementById('batchCreation_confirmButtons').style.display = 'none';
+    document.getElementById('batchCreation_completeButtons').style.display = 'flex';
+
+    // 填充完成信息
+    document.getElementById('batchCreation_caseId').textContent = result.case_id;
+    document.getElementById('batchCreation_completeEventId').textContent = result.event_id;
+    document.getElementById('batchCreation_successCount').textContent = result.successful_scenarios;
+    document.getElementById('batchCreation_totalCount').textContent = result.total_scenarios;
+    document.getElementById('batchCreation_failCount').textContent = result.failed_scenarios;
+    document.getElementById('batchCreation_duration').textContent = (result.duration_seconds || 0).toFixed(2);
+
+    // EdgeData信息 - 使用详细的decision_action如果可用
+    const edgeDataInfo = result.edgedata_info || {};
+    const edgeCountElement = document.getElementById('batchCreation_edgeCount');
+    const validationRateElement = document.getElementById('batchCreation_validationRate');
+    const edgeDataStatusElement = document.getElementById('batchCreation_edgeDataStatus');
+
+    // 更新边缘数
+    if (edgeCountElement) {
+        const edgeCount = edgeDataInfo.edge_count || 0;
+        edgeCountElement.textContent = edgeCount;
+        // 调试日志
+        if (edgeCount === 0) {
+            console.warn('⚠️ EdgeData边缘数为0，检查edgedata_info:', edgeDataInfo);
+        }
+    }
+
+    // 更新验证率
+    if (validationRateElement) {
+        const validationRate = edgeDataInfo.validation_rate !== undefined ? edgeDataInfo.validation_rate : 0;
+        validationRateElement.textContent = `${(validationRate * 100).toFixed(1)}%`;
+    }
+
+    // 更新输出状态
+    if (edgeDataStatusElement) {
+        let statusText = '';
+        let statusColor = '#999999';  // 默认灰色
+
+        // 优先使用decision_action（包含详细信息）
+        if (edgeDataInfo.decision_action && edgeDataInfo.decision_action.trim()) {
+            statusText = edgeDataInfo.decision_action;
+        } else if (edgeDataInfo.should_enable !== undefined) {
+            // 使用should_enable标志
+            statusText = edgeDataInfo.should_enable ? '✓ 启用输出' : '✗ 禁用输出';
+        } else if (result.edgedata_info === undefined || result.edgedata_info === null) {
+            // edgedata_info为空
+            statusText = '⚠️ 未生成EdgeData配置';
+        } else {
+            statusText = '⚠️ 未知状态';
+        }
+
+        edgeDataStatusElement.textContent = statusText;
+
+        // 设置颜色编码
+        if (edgeDataInfo.should_enable === true) {
+            statusColor = '#28a745';  // 绿色 - 启用
+        } else if (edgeDataInfo.should_enable === false) {
+            statusColor = '#dc3545';  // 红色 - 禁用
+        }
+        edgeDataStatusElement.style.color = statusColor;
+
+        // 调试日志
+        console.log('EdgeData显示信息:', {
+            statusText: statusText,
+            statusColor: statusColor,
+            edgeDataInfo: edgeDataInfo,
+            should_enable: edgeDataInfo.should_enable,
+            decision_action: edgeDataInfo.decision_action
+        });
+    }
+
+    // 显示失败详情（如果有失败）
+    if (result.failed_scenarios > 0) {
+        const failedDetails = result.scenario_results
+            .filter(r => !r.success)
+            .map(r => `<div style="margin-bottom: 5px;">• ${r.scenario_id}: ${r.error_message || '未知错误'}</div>`)
+            .join('');
+
+        document.getElementById('batchCreation_failedList').innerHTML = failedDetails;
+        document.getElementById('batchCreation_failedDetails').style.display = 'block';
+    } else {
+        document.getElementById('batchCreation_failedDetails').style.display = 'none';
+    }
+
+    // 启动OD状态轮询
+    if (result.case_id) {
+        startOdStatusPolling(result.case_id);
+    }
+}
+
+/**
+ * 显示批量创建错误
+ */
+function showBatchCreationError(errorMsg) {
+    // 隐藏进行中，显示确认（返回到确认界面）
+    document.getElementById('batchCreation_processingPhase').style.display = 'none';
+    document.getElementById('batchCreation_confirmPhase').style.display = 'block';
+    document.getElementById('batchCreation_confirmButtons').style.display = 'flex';
+
+    alert(`✗ 批量创建失败: ${errorMsg}`);
+}
+
+/**
+ * 关闭批量创建模态框
+ */
+function closeBatchCreationModal() {
+    closeModal('batchCreationModal');
+    pendingBatchCreationRequest = null;
+    // 停止OD状态轮询（如果正在进行）
+    if (odStatusPollingInterval) {
+        clearInterval(odStatusPollingInterval);
+        odStatusPollingInterval = null;
+    }
+}
+
+/**
+ * 删除批量创建的案例（及其在scenario_index.json中的关联）
+ */
+async function deleteBatchCreatedCase() {
+    const caseId = document.getElementById('batchCreation_caseId').textContent;
+
+    if (!caseId) {
+        alert('❌ 无法获取案例ID');
+        return;
+    }
+
+    // 确认删除
+    const confirmed = confirm(
+        `⚠️ 确认要删除案例 "${caseId}" 及其所有相关文件吗？\n` +
+        `此操作将：\n` +
+        `1. 删除案例的所有文件夹\n` +
+        `2. 从scenario_index.json中清除关联\n\n` +
+        `此操作不可撤销！`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        // 显示删除进度
+        const deleteBtn = event.target;
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = '⏳ 删除中...';
+        deleteBtn.style.opacity = '0.6';
+
+        // 调用API删除case和重置scenario_index.json
+        const response = await fetch(`/api/v1/case/${caseId}/delete-with-reset`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            alert(`✓ 案例已删除\n\n已删除：\n- 案例文件夹\n- scenario_index.json中的${result.scenarios_affected || 0}个scenario关联`);
+            closeBatchCreationModal();
+            refreshData();  // 刷新页面数据
+        } else {
+            alert(`❌ 删除失败: ${result.message || '未知错误'}`);
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = '🗑️ 删除此案例';
+            deleteBtn.style.opacity = '1';
+        }
+    } catch (error) {
+        console.error('删除案例出错:', error);
+        alert(`❌ 删除失败: ${error.message}`);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = '🗑️ 删除此案例';
+        deleteBtn.style.opacity = '1';
+    }
+}
+
+// 全局变量：OD状态轮询相关
+let odStatusPollingInterval = null;
+let currentPollingCaseId = null;
+
+/**
+ * 启动OD状态轮询
+ * 在批量创建API返回后启动，每5秒检查一次OD生成状态
+ */
+async function startOdStatusPolling(caseId) {
+    currentPollingCaseId = caseId;
+
+    // 清除旧的轮询（如果有）
+    if (odStatusPollingInterval) {
+        clearInterval(odStatusPollingInterval);
+    }
+
+    // 立即执行一次检查
+    await pollOdStatus();
+
+    // 每5秒轮询一次
+    odStatusPollingInterval = setInterval(pollOdStatus, 5000);
+}
+
+/**
+ * 轮询检查OD生成状态和EdgeData信息
+ */
+async function pollOdStatus() {
+    if (!currentPollingCaseId) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/case/${currentPollingCaseId}/od-status`);
+
+        if (response.ok) {
+            const data = await response.json();
+            const status = data.data; // 从BaseResponse中获取data字段
+
+            // 更新模态框显示的OD状态
+            updateOdStatusDisplay(status);
+
+            // 同时刷新EdgeData信息（确保显示最新的metadata状态）
+            await pollEdgeDataInfo();
+
+            // 如果overall_status为ready，停止轮询（表示OD和SUMOCFG都完成）
+            if (status.overall_status === 'ready') {
+                if (odStatusPollingInterval) {
+                    clearInterval(odStatusPollingInterval);
+                    odStatusPollingInterval = null;
+                }
+
+                // 通知用户OD已准备就绪
+                const odStatusElement = document.getElementById('batchCreation_odStatus');
+                if (odStatusElement) {
+                    odStatusElement.innerHTML = `<span style="color: #28a745;">✓ OD数据和SUMOCFG已就绪，可以启动仿真</span>`;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('检查OD状态失败:', error);
+    }
+}
+
+/**
+ * 轮询检查EdgeData信息
+ * 从case metadata中获取最新的EdgeData配置
+ */
+async function pollEdgeDataInfo() {
+    if (!currentPollingCaseId) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/case/${currentPollingCaseId}`);
+
+        if (response.ok) {
+            const data = await response.json();
+            const caseMetadata = data.data || data;
+
+            // 从metadata中提取edgedata_config
+            const edgeDataConfig = caseMetadata.edgedata_config;
+
+            if (edgeDataConfig) {
+                updateEdgeDataDisplay(edgeDataConfig);
+            }
+        }
+    } catch (error) {
+        // 静默处理（EdgeData必然存在，不需要特殊错误处理）
+        console.debug('刷新EdgeData信息失败 (这是正常的):', error);
+    }
+}
+
+/**
+ * 更新EdgeData显示信息
+ * 从metadata中获取最新的EdgeData配置并更新UI
+ */
+function updateEdgeDataDisplay(edgeDataConfig) {
+    if (!edgeDataConfig) return;
+
+    // 更新边缘数
+    const edgeCountElement = document.getElementById('batchCreation_edgeCount');
+    if (edgeCountElement) {
+        edgeCountElement.textContent = edgeDataConfig.edge_count || 0;
+    }
+
+    // 更新验证率
+    const validationRateElement = document.getElementById('batchCreation_validationRate');
+    if (validationRateElement) {
+        const rate = edgeDataConfig.validation_rate || 0;
+        validationRateElement.textContent = `${(rate * 100).toFixed(1)}%`;
+    }
+
+    // 更新输出状态
+    const edgeDataStatusElement = document.getElementById('batchCreation_edgeDataStatus');
+    if (edgeDataStatusElement) {
+        // 使用decision_action如果可用（包含更详细的信息），否则使用简单的启用/禁用
+        if (edgeDataConfig.decision_action) {
+            edgeDataStatusElement.textContent = edgeDataConfig.decision_action;
+            // 根据should_enable设置样式
+            if (edgeDataConfig.should_enable) {
+                edgeDataStatusElement.style.color = '#28a745';
+            } else {
+                edgeDataStatusElement.style.color = '#dc3545';
+            }
+        } else {
+            edgeDataStatusElement.textContent = edgeDataConfig.should_enable ? '✓ 启用输出' : '✗ 禁用输出';
+            edgeDataStatusElement.style.color = edgeDataConfig.should_enable ? '#28a745' : '#dc3545';
+        }
+    }
+}
+
+/**
+ * 更新模态框中的OD状态显示 - 简化版
+ *
+ * 只显示两种状态：
+ * 1. processing - 处理中（OD生成 + SUMOCFG生成）
+ * 2. ready - 就绪（OD完成 + 所有SUMOCFG都存在）
+ * 3. failed - 失败
+ */
+function updateOdStatusDisplay(status) {
+    const odStatusElement = document.getElementById('batchCreation_odStatus');
+
+    if (!odStatusElement) {
+        return;
+    }
+
+    let statusHtml = '';
+    const overall = status.overall_status || 'processing';
+
+    if (overall === 'failed') {
+        // 生成失败
+        statusHtml = `
+            <div>
+                <span style="color: #dc3545;">✗ OD数据生成失败</span>
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    ${status.error ? `<div>• 错误: ${status.error}</div>` : ''}
+                </div>
+            </div>
+        `;
+    } else if (overall === 'processing') {
+        // 处理中（OD生成 + SUMOCFG生成）
+        statusHtml = `
+            <div>
+                <span style="color: #ff6b6b;">⏳ OD数据和SUMOCFG文件生成进行中...</span>
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    <div>• 状态: 处理中，请稍候...</div>
+                </div>
+            </div>
+        `;
+    } else if (overall === 'ready') {
+        // 完全就绪
+        statusHtml = `
+            <div>
+                <span style="color: #28a745;">✓ OD数据和SUMOCFG已就绪</span>
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    <div>• OD生成: ✓ 完成</div>
+                    <div>• SUMOCFG文件: ✓ 全部就绪</div>
+                    <div style="color: #28a745; margin-top: 8px; font-weight: bold;">✓ 可以启动仿真</div>
+                    ${status.generated_at ? `<div style="margin-top: 5px; color: #999; font-size: 11px;">完成时间: ${new Date(status.generated_at).toLocaleString()}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    odStatusElement.innerHTML = statusHtml;
 }
 
 // 渲染分页
@@ -1186,155 +1484,6 @@ function showNotification(message, type = 'info', duration = 5000) {
     }, duration);
 }
 
-// ========== 创建案例相关函数 ==========
-
-/**
- * 直接创建案例（无模态框）
- * @param {string} scenarioId - 场景 ID
- * @param {string} eventType - 事件类型
- * @param {string} strategy - 管控策略
- */
-async function directCreateCase(scenarioId, eventType, strategy) {
-    // 1. 从allScenarios中查找完整的场景信息
-    currentScenario = allScenarios.find(s => s.scenario_id === scenarioId);
-
-    if (!currentScenario) {
-        alert('错误: 无法找到场景信息，请重新选择');
-        return;
-    }
-
-    // 2. 检查该场景是否已有案例
-    const existingCases = scenarioCaseMap[scenarioId] || [];
-    if (existingCases.length > 0) {
-        const existingCase = existingCases[0];
-        const caseStatusDisplay = getStatusDisplayName(existingCase.status);
-
-        const action = confirm(
-            `该场景已有案例\n\n` +
-            `案例 ID: ${existingCase.case_id}\n` +
-            `状态: ${caseStatusDisplay}\n\n` +
-            `点击"确定"查看案例详情\n` +
-            `点击"取消"创建新案例`
-        );
-
-        if (action) {
-            // 用户选择查看案例详情
-            window.location.href = `case-simulation-center.html?case_id=${existingCase.case_id}`;
-            return;
-        }
-        // 否则继续创建新案例
-    }
-
-    // 3. 显示创建中提示
-    const btn = event?.target;
-    const originalText = btn?.textContent;
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = '⏳ 创建中...';
-    }
-
-    // 3. 准备API请求数据
-    // 映射中文事件类型到英文文件夹名称
-    const mappedEventTypeForCreate = mapEventTypeToFolder(currentScenario.event_type);
-
-    const requestData = {
-        case_name: `case_${currentScenario.scenario_id}_${Date.now()}`,
-        scenario_id: currentScenario.scenario_id,
-        event_id: currentScenario.event_id,
-        event_type: mappedEventTypeForCreate,
-        strategy: currentScenario.strategy || currentScenario.control_strategy,
-        network_file: 'templates/network_files/sichuan202508v7.net.xml',
-        od_file: 'dwd.dwd_od_weekly',  // 完整的schema.table格式用于数据库引用
-        taz_file: null,
-        description: `从场景 ${currentScenario.scenario_id} 创建的案例`
-    };
-
-    try {
-        // 4. 调用 API
-        const response = await fetch('/api/v1/case/create-from-scenario', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        // 5. 处理响应
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({
-                message: `HTTP ${response.status}: ${response.statusText}`
-            }));
-            throw new Error(error.message || error.detail || '创建案例失败');
-        }
-
-        const result = await response.json();
-        const caseId = result.data?.case_id;
-
-        if (!caseId) {
-            throw new Error('未获得案例 ID');
-        }
-
-        // 6. 检查OD文件状态并显示相应信息
-        const odFileStatus = result.data?.od_file_status;
-        const odFileType = result.data?.od_file_type;
-        const odGenerationStarted = result.data?.od_generation_started;
-        const caseStatus = result.data?.case_status;
-        let successMessage = `✓ 案例创建成功！\n案例 ID: ${caseId}`;
-
-        if (odFileStatus === 'pending' && odFileType === 'database') {
-            if (odGenerationStarted) {
-                successMessage += `\n\n⏳ OD文件正在生成中...\n系统已启动后台OD生成任务。\n（通常需要3-5分钟）\n\n当前状态: ${caseStatus === 'od_generating' ? '生成中' : '等待中'}`;
-            } else {
-                successMessage += `\n\n⚠️ OD文件处于待生成状态\n系统将在启动仿真时自动生成。`;
-            }
-        } else if (odFileStatus === 'exists') {
-            successMessage += `\n✓ OD文件已就绪，可立即启动仿真`;
-        }
-
-        alert(successMessage);
-
-        // 7. 更新 scenarioCaseMap 以反映新创建的案例
-        if (!scenarioCaseMap[scenarioId]) {
-            scenarioCaseMap[scenarioId] = [];
-        }
-        scenarioCaseMap[scenarioId].push({
-            case_id: caseId,
-            status: caseStatus || 'created',
-            created_at: new Date().toISOString()
-        });
-
-        // 8. 刷新表格以显示更新的状态
-        renderScenarios();
-
-        // 9. 如果OD正在生成或处理中，启动状态轮询以实时更新
-        if (caseStatus === 'od_generating' || caseStatus === 'processing') {
-            console.log(`启动案例状态轮询: ${caseId} (当前状态: ${caseStatus})`);
-            startStatusPolling(caseId, scenarioId);
-
-            if (caseStatus === 'od_generating') {
-                showNotification('⏳ OD文件正在后台生成中，进度会实时更新...', 'info');
-            } else if (caseStatus === 'processing') {
-                showNotification('⏳ 案例数据正在处理中，请稍候...', 'info');
-            }
-        } else if (caseStatus === 'created' && odFileStatus === 'exists') {
-            showNotification('✓ 案例已就绪，可以立即创建仿真！', 'success');
-        }
-
-        // 10. 不再立即导航 - 用户留在场景浏览器页面
-        // window.location.href = `case-simulation-center.html?case_id=${caseId}`;
-
-    } catch (error) {
-        console.error('创建案例失败:', error);
-        alert(`✗ 创建案例失败: ${error.message}`);
-
-        // 恢复按钮状态
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
-    }
-}
-
 // ========== 统一参数提取函数 ==========
 
 /**
@@ -1525,401 +1674,6 @@ function validateParameters(params) {
     };
 }
 
-// ========== 统一案例+仿真创建模态框函数 ==========
-
-/**
- * 打开创建仿真案例的模态框
- * @param {string} scenarioId - 场景ID
- * @param {string} eventType - 事件类型
- * @param {string} strategy - 管控策略
- */
-async function openCreateCaseModal(scenarioId, eventType, strategy) {
-    // 查找完整的场景信息
-    currentScenario = allScenarios.find(s => s.scenario_id === scenarioId);
-
-    if (!currentScenario) {
-        alert('错误: 无法找到场景信息，请重新选择');
-        return;
-    }
-
-    // 检查该场景是否已有案例
-    const existingCases = scenarioCaseMap[scenarioId] || [];
-    if (existingCases.length > 0) {
-        const existingCase = existingCases[0];
-        const caseStatusDisplay = getStatusDisplayName(existingCase.status);
-
-        const action = confirm(
-            `该场景已有案例\n\n` +
-            `案例 ID: ${existingCase.case_id}\n` +
-            `状态: ${caseStatusDisplay}\n\n` +
-            `点击"确定"查看案例详情\n` +
-            `点击"取消"创建新案例`
-        );
-
-        if (action) {
-            // 用户选择查看案例详情
-            window.location.href = `case-simulation-center.html?case_id=${existingCase.case_id}`;
-            return;
-        }
-        // 否则继续创建新案例
-    }
-
-    // 填充基本场景信息
-    document.getElementById('caseCreation_scenarioId').value = scenarioId;
-    document.getElementById('caseCreation_eventId').value = currentScenario.event_id || '未知';
-    document.getElementById('caseCreation_eventType').value = getEventTypeDisplay(eventType) || eventType;
-    document.getElementById('caseCreation_strategy').value = getStrategyDisplay(strategy) || strategy;
-
-    // 获取事件文件夹和场景目录
-    // 使用 mapEventTypeToFolder 将中文事件类型映射到英文文件夹名称
-    const eventTypeChina = currentScenario.event_type || '交通事故';
-    const eventFolder = mapEventTypeToFolder(eventTypeChina);
-    const scenarioDir = currentScenario.scenario_id;
-
-    // 加载事件描述信息（位置信息）
-    try {
-        const eventDescUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/event_description.json`;
-        const eventDescResponse = await fetch(eventDescUrl);
-
-        if (eventDescResponse.ok) {
-            const eventDesc = await eventDescResponse.json();
-
-            // 填充位置信息
-            document.getElementById('caseCreation_road').value = eventDesc.location?.road || '未知';
-            document.getElementById('caseCreation_direction').value = eventDesc.location?.direction || '未知';
-            document.getElementById('caseCreation_mileage').value = eventDesc.location?.mileage || '未知';
-            document.getElementById('caseCreation_edgeId').value = eventDesc.location?.edge_id || '未知';
-            document.getElementById('caseCreation_junctionId').value = eventDesc.location?.junction_id || '未知';
-        } else {
-            document.getElementById('caseCreation_road').value = '加载失败';
-            document.getElementById('caseCreation_direction').value = '加载失败';
-            document.getElementById('caseCreation_mileage').value = '加载失败';
-            document.getElementById('caseCreation_edgeId').value = '加载失败';
-            document.getElementById('caseCreation_junctionId').value = '加载失败';
-        }
-    } catch (error) {
-        console.warn('加载事件描述失败:', error);
-        document.getElementById('caseCreation_road').value = '加载失败';
-        document.getElementById('caseCreation_direction').value = '加载失败';
-        document.getElementById('caseCreation_mileage').value = '加载失败';
-        document.getElementById('caseCreation_edgeId').value = '加载失败';
-        document.getElementById('caseCreation_junctionId').value = '加载失败';
-    }
-
-    // 格式化事件时间
-    let startTime = '未知';
-    let endTime = '未知';
-    let duration = '未知';
-
-    if (currentScenario.time && typeof currentScenario.time === 'object') {
-        startTime = currentScenario.time.start_time || startTime;
-        endTime = currentScenario.time.end_time || endTime;
-        duration = currentScenario.time.duration_hours || duration;
-    } else {
-        startTime = currentScenario.event_start || startTime;
-        endTime = currentScenario.event_end || endTime;
-        duration = currentScenario.duration_hours || duration;
-    }
-
-    document.getElementById('caseCreation_eventStartTime').value = startTime;
-    document.getElementById('caseCreation_eventEndTime').value = endTime;
-    document.getElementById('caseCreation_eventDuration').value = duration ? `${duration}小时` : '未知';
-
-    // 加载仿真配置信息（从traffic_input_config.json）
-    try {
-        const trafficConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/traffic_input_config.json`;
-        const trafficResponse = await fetch(trafficConfigUrl);
-
-        if (trafficResponse.ok) {
-            const trafficConfig = await trafficResponse.json();
-
-            // 填充仿真时间信息
-            if (trafficConfig.od_time_range) {
-                document.getElementById('caseCreation_simStartTime').value =
-                    trafficConfig.od_time_range.start || '未知';
-                document.getElementById('caseCreation_simEndTime').value =
-                    trafficConfig.od_time_range.end || '未知';
-            } else {
-                document.getElementById('caseCreation_simStartTime').value = '未知';
-                document.getElementById('caseCreation_simEndTime').value = '未知';
-            }
-
-            // 填充仿真时长
-            if (trafficConfig.simulation_duration_hours !== undefined) {
-                document.getElementById('caseCreation_simDuration').value =
-                    `${trafficConfig.simulation_duration_hours}小时`;
-            } else {
-                document.getElementById('caseCreation_simDuration').value = '未知';
-            }
-
-        } else {
-            // 配置文件不存在，使用默认值
-            document.getElementById('caseCreation_simStartTime').value = '配置文件不存在';
-            document.getElementById('caseCreation_simEndTime').value = '配置文件不存在';
-            document.getElementById('caseCreation_simDuration').value = '配置文件不存在';
-        }
-    } catch (error) {
-        console.warn('加载traffic_input_config.json失败:', error);
-        document.getElementById('caseCreation_simStartTime').value = '加载失败';
-        document.getElementById('caseCreation_simEndTime').value = '加载失败';
-        document.getElementById('caseCreation_simDuration').value = '加载失败';
-    }
-
-    // 加载管控策略配置（从 control_strategy_config.json）
-    // 先隐藏所有策略特定参数区域
-    document.getElementById('caseCreation_vssParams').style.display = 'none';
-    document.getElementById('caseCreation_tecParams').style.display = 'none';
-    document.getElementById('caseCreation_dhsParams').style.display = 'none';
-
-    // 如果是NO_CONTROL策略，隐藏整个管控策略部分
-    if (strategy === 'NO_CONTROL' || strategy === '无管控') {
-        document.getElementById('caseCreation_controlStrategySection').style.display = 'none';
-    } else {
-        // 有管控策略，显示并加载配置
-        document.getElementById('caseCreation_controlStrategySection').style.display = 'block';
-
-        try {
-            const strategyConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/control_strategy_config.json`;
-            const strategyResponse = await fetch(strategyConfigUrl);
-
-            if (strategyResponse.ok) {
-                const strategyConfig = await strategyResponse.json();
-
-                // 填充基本策略信息
-                const strategyType = strategyConfig.strategy_type || strategyConfig.strategy_name || '未知';
-                const strategyName = strategyConfig.strategy_name || strategyConfig.strategy_type || '未知';
-
-                document.getElementById('caseCreation_strategyType').value = strategyType;
-                document.getElementById('caseCreation_strategyName').value = strategyName;
-
-                // 填充时间信息
-                if (strategyConfig.timing) {
-                    document.getElementById('caseCreation_activationTime').value =
-                        strategyConfig.timing.activation_time || '未知';
-                    document.getElementById('caseCreation_deactivationTime').value =
-                        strategyConfig.timing.deactivation_time || '未知';
-                    document.getElementById('caseCreation_responseDelay').value =
-                        strategyConfig.timing.response_delay_minutes !== undefined ?
-                        `${strategyConfig.timing.response_delay_minutes}分钟` : '未知';
-                } else {
-                    document.getElementById('caseCreation_activationTime').value = '未知';
-                    document.getElementById('caseCreation_deactivationTime').value = '未知';
-                    document.getElementById('caseCreation_responseDelay').value = '未知';
-                }
-
-                // 根据策略类型显示和填充相应的参数
-                const params = strategyConfig.parameters || {};
-
-                if (strategyType === 'VSS' || strategyType === '可变限速标志') {
-                    document.getElementById('caseCreation_vssParams').style.display = 'block';
-                    const speedLimit = params.speed_limit_kmh || params.speed_limit || '未知';
-                    document.getElementById('caseCreation_speedLimit').value =
-                        speedLimit !== '未知' ? `${speedLimit} km/h` : speedLimit;
-
-                } else if (strategyType === 'TEC' || strategyType === '收费站管控') {
-                    document.getElementById('caseCreation_tecParams').style.display = 'block';
-
-                    if (params.flow_reduction !== undefined) {
-                        const reductionPercent = (params.flow_reduction * 100).toFixed(0);
-                        document.getElementById('caseCreation_flowReduction').value =
-                            `${reductionPercent}% (削减比例: ${params.flow_reduction})`;
-                    } else {
-                        document.getElementById('caseCreation_flowReduction').value = '未知';
-                    }
-
-                } else if (strategyType === 'DHS' || strategyType === '动态硬路肩') {
-                    document.getElementById('caseCreation_dhsParams').style.display = 'block';
-
-                    if (params.shoulder_lanes && Array.isArray(params.shoulder_lanes)) {
-                        document.getElementById('caseCreation_shoulderLanes').value =
-                            params.shoulder_lanes.join(', ');
-                    } else {
-                        document.getElementById('caseCreation_shoulderLanes').value = '未知';
-                    }
-                }
-            } else {
-                // 配置文件不存在，隐藏管控策略部分
-                document.getElementById('caseCreation_controlStrategySection').style.display = 'none';
-            }
-        } catch (error) {
-            console.warn('加载control_strategy_config.json失败:', error);
-            // 加载失败，隐藏管控策略部分
-            document.getElementById('caseCreation_controlStrategySection').style.display = 'none';
-        }
-    }
-
-    // 重置输出配置为默认值
-    document.getElementById('caseCreation_edgedata').checked = true;
-    document.getElementById('caseCreation_tripinfo').checked = true;
-
-    // 打开模态框
-    const modal = document.getElementById('caseCreationModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.getElementById('caseCreation_submitBtn').disabled = false;
-        document.getElementById('caseCreation_submitBtn').textContent = '✓ 创建';
-    }
-}
-
-/**
- * 提交统一案例+仿真创建请求（简化版）
- */
-async function submitCreateCaseWithSimulation() {
-    if (!currentScenario) {
-        alert('错误: 场景信息丢失，请重新打开模态框');
-        return;
-    }
-
-    // 输出配置（简化：只有EdgeData和TripInfo）
-    const outputConfig = {
-        generate_edgedata: document.getElementById('caseCreation_edgedata').checked,
-        generate_summary: true,  // 始终启用
-        generate_tripinfo: document.getElementById('caseCreation_tripinfo').checked,
-        generate_vehroute: false  // 始终禁用
-    };
-
-    // 准备请求数据
-    // 映射中文事件类型到英文文件夹名称 (e.g., '流量激增工况' → '07_flowsurge')
-    const mappedEventType = mapEventTypeToFolder(currentScenario.event_type);
-
-    const requestData = {
-        scenario_id: currentScenario.scenario_id,
-        event_id: currentScenario.event_id,
-        event_type: mappedEventType,
-        strategy: currentScenario.strategy || currentScenario.control_strategy,
-
-        // 自动生成案例名称
-        case_name: null,  // 后端会自动生成
-
-        // 使用默认仿真参数（系统自动从traffic_input_config.json获取）
-        simulation_duration_hours: 2.5,  // 默认值，后端会从配置文件覆盖
-        random_seed: null,  // 自动生成
-        simulation_type: 'microscopic',  // 使用微观仿真
-        output_config: outputConfig,
-
-        // 系统固定配置
-        network_file: 'templates/network_files/sichuan202508v7.net.xml',
-        od_file: 'dwd.dwd_od_weekly',
-        taz_file: 'templates/taz_files/TAZ_6.add.xml',  // ✅ Task 3.6: 使用默认 TAZ + E1 检测器文件
-        description: `从场景 ${currentScenario.scenario_id} 创建的案例`
-    };
-
-    // 禁用提交按钮并显示加载状态
-    const submitBtn = document.getElementById('caseCreation_submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = '⏳ 创建中...';
-
-    try {
-        // 发送请求到统一创建端点
-        const response = await fetch('/api/v1/case/create-case-with-simulation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({
-                message: `HTTP ${response.status}: ${response.statusText}`
-            }));
-            throw new Error(error.message || error.detail || '创建案例失败');
-        }
-
-        const result = await response.json();
-        const caseId = result.data?.case_id;
-        const simulationId = result.data?.simulation_id;
-        const caseStatus = result.data?.case_status;
-        const isNewCase = result.data?.is_new_case;
-        const odGenerationStatus = result.data?.od_generation_status;
-        const caseType = result.data?.case_type;
-
-        if (!caseId) {
-            throw new Error('未获得案例 ID');
-        }
-
-        // 关闭模态框
-        closeCaseCreationModal();
-
-        // 更新 scenarioCaseMap 以反映新创建的案例
-        const scenarioId = currentScenario.scenario_id;
-        if (!scenarioCaseMap[scenarioId]) {
-            scenarioCaseMap[scenarioId] = [];
-        }
-        scenarioCaseMap[scenarioId].push({
-            case_id: caseId,
-            case_name: caseId,  // 使用自动生成的ID
-            status: caseStatus || 'od_generating',  // 默认状态应该是od_generating而不是ready_to_simulate
-            created_at: new Date().toISOString(),
-            source_scenario: scenarioId
-        });
-
-        // 刷新表格以显示更新的状态
-        renderScenarios();
-
-        // 根据is_new_case显示不同的消息
-        let successMessage = '';
-
-        if (caseType === 'event_based') {
-            // Event-based案例：区分新建和复用
-            if (isNewCase) {
-                // 新建案例
-                successMessage = `✅ 创建新案例: ${caseId}\n\n`;
-
-                if (odGenerationStatus === 'in_progress') {
-                    successMessage += `⏳ OD数据生成中，预计需要3-5分钟...\n`;
-                    successMessage += `📊 生成完成后可启动仿真\n\n`;
-                } else {
-                    successMessage += `✅ OD数据已就绪\n\n`;
-                }
-
-                successMessage += `✅ 仿真已创建: ${simulationId || 'N/A'}\n\n`;
-                successMessage += `💡 提示: 同一事件的其他策略场景将复用此案例配置`;
-            } else {
-                // 复用已有案例
-                successMessage = `✅ 复用已有案例: ${caseId}\n\n`;
-                successMessage += `💡 配置文件已存在，跳过OD生成\n`;
-                successMessage += `✅ 仿真已创建: ${simulationId || 'N/A'}\n`;
-                successMessage += `🚀 仿真已就绪，可以立即启动\n\n`;
-                successMessage += `⚡ 提示: 案例复用节省了3-5分钟的OD生成时间`;
-            }
-        } else {
-            // Time-based案例：传统消息
-            let statusMessage = '';
-            if (caseStatus === 'od_generating') {
-                statusMessage = '⏳ OD数据生成中，完成后可启动仿真';
-            } else {
-                statusMessage = '✅ 案例已准备就绪';
-            }
-
-            successMessage = `✅ 仿真案例创建成功！\n\n` +
-                           `案例 ID: ${caseId}\n` +
-                           `仿真 ID: ${simulationId || 'N/A'}\n` +
-                           `状态: ${statusMessage}`;
-        }
-
-        successMessage += `\n\n请前往案例管理页面查看和启动仿真`;
-        alert(successMessage);
-
-    } catch (error) {
-        console.error('创建案例失败:', error);
-        alert(`✗ 创建案例失败: ${error.message}`);
-
-        // 恢复按钮状态
-        submitBtn.disabled = false;
-        submitBtn.textContent = '✓ 创建';
-    }
-}
-
-/**
- * 关闭案例创建模态框
- */
-function closeCaseCreationModal() {
-    const modal = document.getElementById('caseCreationModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
 
 /**
  * 将中文事件类型映射到英文文件夹名称

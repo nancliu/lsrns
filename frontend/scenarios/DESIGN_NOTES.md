@@ -139,7 +139,7 @@
 3. 快速创建模态框弹出，预填充场景信息
 4. 用户可调整仿真参数（可选）
 5. 点击"创建案例"按钮
-6. 向后端API发送POST请求（`/api/v1/scenario/create-case`）
+6. 向后端API发送POST请求（`/api/v1/scenario/create-case-batch`）
 7. 成功后显示案例ID并可跳转到案例管理页面
 
 ### 仿真分析流程
@@ -185,16 +185,22 @@
 
 ### 创建案例
 ```javascript
-POST /api/v1/scenario/create-case
+POST /api/v1/scenario/create-case-batch
 {
-    scenario_id: string,
-    simulation_duration_hours: number,
-    random_seed: number | null,
-    output_config: {
-        generate_edgedata: boolean,
-        generate_tripinfo: boolean,
-        generate_vehroute: boolean
-    }
+    event_id: string,
+    event_type: string,
+    scenarios: Array<{
+        scenario_id: string,
+        event_location: object,
+        control_strategy: object,
+        output_config: object,
+        time: object
+    }>,
+    network_file: string,
+    od_file: string,
+    taz_file: string,
+    time_range: {start_time: string, end_time: string},
+    simulation_type: string
 }
 ```
 

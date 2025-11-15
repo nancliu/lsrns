@@ -245,25 +245,48 @@ POST /api/v1/case/create
   Response: { case_id, metadata, status }
   用途: OD提取工作流，通用创建
 
-# 2. 从场景创建（整合 Phase 2 和 Phase 5.3.3）
-POST /api/v1/case/create-from-event-scenario
-  Request:
-    - scenario_id: 场景ID（例: scenario_10814_vss）
-    - simulation_duration_hours: 仿真时长（小时）
-    - output_config: 输出配置（可选）
-  Response: {
-    case_id: "case_event_{event_id}",
-    case_type: "event_based",
-    simulation_id: "event_simulation_scenario_{scenario_id}",
-    metadata,
-    status: "case_created_with_scenario"
-  }
-  用途: 事件场景工作流，从场景快速创建案例和仿真
+# 2. 批量创建事件案例（**推荐用于事件场景工作流**）
+POST /api/v1/scenario/create-case-batch
+  Request: CreateEventCaseBatchRequest
+    - event_id: 事件ID（例: "10754"）
+    - event_type: 事件类型（例: "01_accident"）
+    - scenarios: 场景数组，包含：
+        - scenario_id: 场景ID
+        - event_location: 事件位置
+        - control_strategy: 控制策略（可选）
+        - output_config: 输出配置
+        - time: {sim_duration_hours, sim_start_time, sim_end_time}
+    - network_file: 网络文件路径
+    - od_file: OD数据源（例: "dwd.dwd_od_weekly"）
+    - taz_file: TAZ文件路径
+    - time_range: {start_time, end_time}
+    - simulation_type: "microscopic"
+  Response: EventCaseBatchCreationResponse
+    - case_id: "case_event_{event_id}"
+    - event_id: 事件ID
+    - successful_scenarios: 成功创建的场景数
+    - failed_scenarios: 失败场景数
+    - total_scenarios: 总场景数
+    - simulations: {sim_id: {...}, ...}
+    - edgedata_info: {edge_count, validation_rate, should_enable, ...}
+    - scenario_results: [{scenario_id, simulation_id, success, ...}, ...]
+    - duration_seconds: 耗时
+  用途: **事件场景主工作流，为一个事件的所有场景一次性创建OD case+仿真配置**
   说明:
-    - 总是自动创建并返回 simulation_id（不需要参数控制）
-    - case_id 格式: case_event_{event_id}
-    - simulation_id 格式: event_simulation_scenario_{scenario_id}
-    - case_type 固定为: event_based
+    - case_id 格式: case_event_{event_id}（基于event_id，不是时间戳）
+    - 所有scenario共享同一个OD case
+    - OD数据仅生成一次（后台异步）
+    - 每个scenario创建独立的simulation（sim_scenario_xxx）
+    - EdgeData由所有策略聚合生成（智能决策）
+    - **为什么这是推荐接口**: 一次API调用vs N次，性能提升5-10倍；无并发问题；EdgeData聚合更完整
+    - **当前阶段**: 这是主要使用的接口（暂不需要单个场景创建）
+
+# 2.1 单个场景创建（**未来保留，目前不需要**）
+POST /api/v1/case/create-from-event-scenario  ⚠️ **RESERVED FOR FUTURE USE**
+  说明:
+    - 保留此接口以支持未来"逐个添加scenario到已有case"的需求
+    - 目前阶段不需要使用此接口
+    - 如果需要后续添加新场景到现有事件，将启用此接口（需要case重用和文件锁机制）
 ```
 
 **删除的接口**:
@@ -280,32 +303,38 @@ POST /api/v1/case/create-from-event-scenario
    ← 功能由 create-from-event-scenario 的自动模拟创建实现
 ```
 
-**服务层整合**:
+**服务层实现**:
 
 ```python
-# CaseService 中的变化
-# 保留
-✓ create_case()                      # 基础创建
+# CaseService 中的方法
+# 保留（OD提取工作流）
+✓ create_case()                      # 基础创建（OD工作流）
 ✓ list_cases()
 ✓ get_case()
 ✓ delete_case()
 ✓ clone_case()
 
-# 整合为一个
-✓ create_case_from_event_scenario()  # 替代：
-                                      # - create_case_from_scenario()
-                                      # - quick_create_case_from_event()
-                                      # 参数:
-                                      #   scenario_id
-                                      #   simulation_duration_hours
-                                      #   output_config (可选)
+# 主要使用（事件场景工作流）- 推荐
+✓ create_event_case_batch()          # 批量创建事件案例+仿真
+                                      # 为一个事件的所有scenarios一次性创建：
+                                      # - 1个OD case (case_event_{event_id})
+                                      # - N个simulations (sim_scenario_xxx)
+                                      # - 1个聚合的edgeData.add.xml
+                                      # 参数: CreateEventCaseBatchRequest
+                                      # 返回: EventCaseBatchCreationResponse
 
-# 删除/内部化
-- _get_or_create_event_case()        # 内部用，调用方改为 create_case_from_event_scenario()
-- _get_or_create_event_case_with_lock()  # 锁定逻辑移到 create_case_from_event_scenario()
-- create_case_from_scenario()        # 合并到 create_case_from_event_scenario()
-- quick_create_case_from_event()     # 合并到 create_case_from_event_scenario()
+# 保留（未来可能需要）
+⚠️ create_case_from_event_scenario()  # 单个场景创建（RESERVED FOR FUTURE）
+                                      # 用于后续添加新场景到已有case
+                                      # 目前阶段不需要使用
+                                      # 需要: case重用 + 文件锁 + is_new_case判断
 ```
+
+**为什么推荐 create_event_case_batch**:
+1. **性能**: 1次API调用，vs 单个场景创建需要N次调用
+2. **简单**: 原子操作，无需处理并发重复创建问题
+3. **完整**: 聚合所有策略生成EdgeData，而不是单个处理
+4. **可靠**: 一次性为所有scenario创建，无遗漏和重试问题
 
 **代码示例**:
 
@@ -624,16 +653,38 @@ class BatchResultsResponse(BaseModel):
 **新的分析架构**:
 
 ```
-事件工作流架构:
-1. create_case_from_event_scenario (创建case+仿真)
+事件工作流架构（推荐）:
+1. create-case-batch (创建event的所有scenario的case+仿真配置)  ← 主接口
+   ├─ 输入: 1个event_id + N个scenarios
+   ├─ 输出: 1个case_event_{event_id} + N个simulations + 聚合EdgeData
+   └─ OD数据: 后台异步生成（共用）
    ↓
-2. event-simulation/batch-start (启动批次)
+2. event-simulation/batch-start (启动所有仿真批次)
+   ├─ 输入: case_ids 或 sim_ids
+   └─ 输出: batch_id, 启动状态
    ↓
 3. event-simulation/batch-results (获取仿真结果)
+   ├─ 查询仿真执行状态
+   └─ 获取仿真完成后的结果
    ↓
-4. event-simulation-analysis/run-comparison (对比分析) ← 新增
+4. event-simulation-analysis/run-comparison (对比分析) ← 未来Phase 2
+   ├─ 对比不同策略的仿真结果
+   └─ 基于summary.xml + edgedata.xml
    ↓
-5. event-simulation-analysis/results (分析报告) ← 新增
+5. event-simulation-analysis/results (分析报告) ← 未来Phase 2
+   └─ 获取完整的对比分析报告
+
+---
+
+备选工作流架构（未来支持）:
+1. create-from-event-scenario (逐个创建scenario)  ← 保留接口（RESERVED）
+   ├─ 首个scenario: 创建case + 启动OD生成
+   ├─ 后续scenario: 复用case + 不重复生成OD
+   └─ 需要: case重用 + 文件锁机制
+   ↓
+2-5. 同上（batch-start, batch-results, analysis等）
+
+注意：目前阶段推荐使用第一种工作流（create-case-batch）
 ```
 
 **新增的接口**:

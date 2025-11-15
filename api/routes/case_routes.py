@@ -7,8 +7,7 @@ from typing import Optional
 from ..models.requests.case_requests import (
     CaseCreationRequest,
     CaseCloneRequest,
-    EventScenarioQuickCreateRequest,
-    CreateCaseWithSimulationRequest
+    EventScenarioQuickCreateRequest
 )
 from ..models.responses.base_response import BaseResponse
 from ..models.entities.case import CaseMetadata, CaseStatus
@@ -27,7 +26,6 @@ async def create_case(request: CaseCreationRequest):
     创建OD案例 (OD Workflow)
 
     这是基础的案例创建端点，用于OD提取工作流。
-    对于事件场景，请使用 POST /from-event-scenario
     """
     case_service = CaseService()
     result = await case_service.create_case(request)
@@ -59,6 +57,28 @@ async def get_case(case_id: str):
     return await case_service.get_case(case_id)
 
 
+@router.get("/case/{case_id}/od-status", response_model=BaseResponse)
+@handle_service_errors
+async def get_od_status(case_id: str):
+    """
+    获取OD数据生成状态
+
+    用于检查OD数据是否生成完成，以及SUMOCFG文件是否已重新修正。
+    这个端点用于前端轮询，确保用户在OD数据和SUMOCFG都就绪后才能启动仿真。
+
+    返回数据结构：
+    {
+        "od_status": "generating" | "completed" | "failed",
+        "sumocfg_ready": boolean,
+        "generated_at": timestamp or null,
+        "error": error message or null
+    }
+    """
+    case_service = CaseService()
+    result = await case_service.get_od_status(case_id)
+    return create_success_response("获取OD状态成功", result)
+
+
 @router.delete("/case/{case_id}", response_model=BaseResponse)
 @handle_service_errors
 async def delete_case(case_id: str):
@@ -67,6 +87,33 @@ async def delete_case(case_id: str):
     """
     case_service = CaseService()
     result = await case_service.delete_case(case_id)
+    return create_success_response("案例删除成功", result)
+
+
+@router.delete("/case/{case_id}/delete-with-reset", response_model=BaseResponse)
+@handle_service_errors
+async def delete_case_with_reset(case_id: str):
+    """
+    删除案例并重置scenario_index.json中的关联
+
+    此端点用于批量创建页面中的删除操作。
+    删除操作包括：
+    1. 删除案例的所有文件夹
+    2. 从scenario_index.json中清除该case的所有created_cases关联
+
+    参数：
+    - case_id: 案例ID
+
+    返回：
+    {
+        "success": true,
+        "case_id": "case_event_10754",
+        "scenarios_affected": 3,
+        "message": "删除成功"
+    }
+    """
+    case_service = CaseService()
+    result = await case_service.delete_case_with_reset(case_id)
     return create_success_response("案例删除成功", result)
 
 
@@ -79,31 +126,3 @@ async def clone_case(case_id: str, request: CaseCloneRequest):
     case_service = CaseService()
     result = await case_service.clone_case(case_id, request)
     return create_success_response("案例克隆成功", result)
-
-
-@router.post("/from-event-scenario", response_model=BaseResponse)
-@handle_service_errors
-async def create_case_from_event_scenario(request: CreateCaseWithSimulationRequest):
-    """
-    从事件场景创建案例并自动创建仿真 (Event Scenario Workflow)
-
-    这是事件场景的统一端点。在一次原子操作中创建案例并立即准备仿真：
-    1. 创建案例目录和元数据
-    2. 处理OD数据（异步，非阻塞）
-    3. 复制TAZ文件
-    4. 生成sumocfg配置
-    5. 创建仿真元数据
-    6. 注册到场景索引
-
-    这确保了案例-场景-仿真的完整元数据链接在创建时就建立，
-    而不是在用户点击"仿真"按钮时才创建。
-
-    Args:
-        request: 包含场景信息、案例参数和仿真配置
-
-    Returns:
-        包含case_id、simulation_id和完整状态信息的响应
-    """
-    case_service = CaseService()
-    result = await case_service.create_case_from_event_scenario(request)
-    return create_success_response("从事件场景创建案例成功", result)

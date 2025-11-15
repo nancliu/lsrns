@@ -23,38 +23,10 @@ function setupEventListeners() {
     const filterEvent = document.getElementById('filter-event');
     const filterStrategy = document.getElementById('filter-strategy');
     const filterSearch = document.getElementById('filter-search');
-    const createBtn = document.getElementById('create-case-btn');
-    const modalClose = document.getElementById('modal-close');
-    const modalCancel = document.getElementById('modal-cancel');
-    const createCaseForm = document.getElementById('create-case-form');
 
     filterEvent.addEventListener('change', applyFilters);
     filterStrategy.addEventListener('change', applyFilters);
     filterSearch.addEventListener('input', applyFilters);
-
-    // Modal controls
-    if (createBtn) {
-        createBtn.addEventListener('click', () => {
-            if (!selectedScenario) {
-                alert('请先选择一个事件场景');
-                return;
-            }
-            openCreateCaseModal();
-        });
-    }
-
-    modalClose.addEventListener('click', closeCreateCaseModal);
-    modalCancel.addEventListener('click', closeCreateCaseModal);
-
-    createCaseForm.addEventListener('submit', handleCreateCase);
-
-    // Close modal when clicking outside
-    const modal = document.getElementById('create-case-modal');
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeCreateCaseModal();
-        }
-    });
 }
 
 /**
@@ -180,134 +152,6 @@ function getStrategyBadge(strategy) {
               : 'DHS (动态硬路肩)';
 
     return `<span class="${badgeClass}">${displayName}</span>`;
-}
-
-/**
- * Select scenario and open create case modal
- */
-function selectScenarioAndCreateCase(eventId, eventType, strategy) {
-    selectedScenario = {
-        event_id: eventId,
-        event_type: eventType,
-        strategy: strategy,
-        scenario_id: `scenario_${eventId}_${strategy.toLowerCase()}`,
-    };
-
-    openCreateCaseModal();
-}
-
-/**
- * Open create case modal
- */
-function openCreateCaseModal() {
-    const modal = document.getElementById('create-case-modal');
-    const form = document.getElementById('create-case-form');
-
-    if (selectedScenario) {
-        // Reset form
-        form.reset();
-
-        // Set default case name
-        const caseName = document.getElementById('case-name');
-        caseName.value = `事件${selectedScenario.event_id}_${selectedScenario.strategy}`;
-    }
-
-    modal.classList.add('active');
-}
-
-/**
- * Close create case modal
- */
-function closeCreateCaseModal() {
-    const modal = document.getElementById('create-case-modal');
-    modal.classList.remove('active');
-    selectedScenario = null;
-}
-
-/**
- * Handle create case form submission
- */
-async function handleCreateCase(event) {
-    event.preventDefault();
-
-    if (!selectedScenario) {
-        alert('未选择事件场景');
-        return;
-    }
-
-    const caseName = document.getElementById('case-name').value.trim();
-    const networkFile = document.getElementById('network-file').value;
-    const odFile = document.getElementById('od-file').value.trim();
-    const tazFile = document.getElementById('taz-file').value.trim();
-    const description = document.getElementById('case-description').value.trim();
-
-    // Validation
-    if (!caseName) {
-        alert('请输入案例名称');
-        return;
-    }
-    if (!networkFile) {
-        alert('请选择网络文件');
-        return;
-    }
-    if (!odFile) {
-        alert('请输入OD文件路径');
-        return;
-    }
-
-    await createCase({
-        case_name: caseName,
-        event_type: selectedScenario.event_type,
-        strategy: selectedScenario.strategy,
-        scenario_id: selectedScenario.scenario_id,
-        network_file: networkFile,
-        od_file: odFile,
-        taz_file: tazFile || null,
-        description:
-            description ||
-            `从事件场景 ${selectedScenario.scenario_id} 创建`,
-    });
-}
-
-/**
- * Create case via API
- */
-async function createCase(requestData) {
-    const submitBtn = document.querySelector('#create-case-form button[type="submit"]');
-    const originalText = submitBtn.textContent;
-
-    try {
-        submitBtn.disabled = true;
-        submitBtn.textContent = '创建中...';
-
-        const response = await fetch('/api/v1/quick-create-from-event', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.detail || '创建案例失败');
-        }
-
-        // Success
-        alert(`案例创建成功！案例ID: ${data.data.case_id}`);
-        closeCreateCaseModal();
-
-        // Navigate to case or refresh list
-        // Optional: navigate to case detail page
-        // window.location.href = `/control/case_detail.html?case_id=${data.data.case_id}`;
-    } catch (error) {
-        console.error('Error creating case:', error);
-        alert(`创建案例失败: ${error.message}`);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    }
 }
 
 // Initialize page when DOM is loaded

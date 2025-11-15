@@ -1016,7 +1016,7 @@
             };
 
             try {
-                const response = await api.request('/case/create-from-scenario', {
+                const response = await api.request('/case/from-event-scenario', {
                     method: 'POST',
                     body: JSON.stringify(data)
                 });

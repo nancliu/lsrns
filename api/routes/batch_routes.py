@@ -220,3 +220,123 @@ async def get_event_batch_results(batch_id: str):
             status_code=500,
             detail=f"Failed to get batch results: {str(e)}"
         )
+
+
+@router.delete("/reset-scenario-mapping/{case_id}", status_code=200)
+async def reset_case_scenario_mapping(case_id: str):
+    """
+    重置/删除某个case在scenario_index.json中的所有关联
+
+    从所有scenario的created_cases中删除该case（反向操作）
+
+    **Path Parameters:**
+    - case_id: 案例ID (e.g., "case_event_10754")
+
+    **Returns:**
+    - 删除结果统计
+
+    **Example:**
+    DELETE /api/v1/batch/reset-scenario-mapping/case_event_10754
+    """
+    try:
+        logger.info(f"Resetting scenario mapping for case: {case_id}")
+
+        from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+        mapper = ScenarioCaseMapper()
+
+        removed_count = mapper.unregister_case_from_all_scenarios(case_id)
+
+        return {
+            "success": True,
+            "case_id": case_id,
+            "scenarios_affected": removed_count,
+            "message": f"✓ 已从 {removed_count} 个scenario中删除该case"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to reset scenario mapping: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reset scenario mapping: {str(e)}"
+        )
+
+
+@router.delete("/clear-scenario-cases/{scenario_id}", status_code=200)
+async def clear_scenario_created_cases(scenario_id: str):
+    """
+    清空某个scenario的所有created_cases（重置操作）
+
+    删除该scenario中的所有已创建案例的关联信息
+
+    **Path Parameters:**
+    - scenario_id: 场景ID (e.g., "scenario_10754_no_control")
+
+    **Returns:**
+    - 清空结果统计
+
+    **Example:**
+    DELETE /api/v1/batch/clear-scenario-cases/scenario_10754_no_control
+    """
+    try:
+        logger.info(f"Clearing created cases for scenario: {scenario_id}")
+
+        from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+        mapper = ScenarioCaseMapper()
+
+        removed_count = mapper.clear_scenario_cases(scenario_id)
+
+        return {
+            "success": True,
+            "scenario_id": scenario_id,
+            "cases_removed": removed_count,
+            "message": f"✓ 已清空该scenario的 {removed_count} 个created_cases"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to clear scenario cases: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear scenario cases: {str(e)}"
+        )
+
+
+@router.post("/reset-all-scenario-mappings", status_code=200)
+async def reset_all_scenario_mappings():
+    """
+    重置整个scenario_index.json - 清空所有created_cases（管理员操作）
+
+    **⚠️ 警告**: 这是一个破坏性操作，将清空所有scenario的created_cases关联
+    仅在确实需要重置整个系统时使用
+
+    **Returns:**
+    - 重置结果统计
+
+    **Example:**
+    POST /api/v1/batch/reset-all-scenario-mappings
+    """
+    try:
+        logger.warning("⚠️ ADMIN ACTION: Resetting all scenario mappings!")
+
+        from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+        mapper = ScenarioCaseMapper()
+
+        result = mapper.reset_all_cases()
+
+        logger.warning(
+            f"✓ Reset completed: {result['total_cases_removed']} cases removed "
+            f"from {result['total_scenarios_affected']} scenarios"
+        )
+
+        return {
+            "success": True,
+            "total_cases_removed": result['total_cases_removed'],
+            "total_scenarios_affected": result['total_scenarios_affected'],
+            "message": f"✓ 已清空所有 {result['total_cases_removed']} 个case，影响 {result['total_scenarios_affected']} 个scenarios"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to reset all scenario mappings: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reset all scenario mappings: {str(e)}"
+        )

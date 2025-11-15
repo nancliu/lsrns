@@ -384,3 +384,143 @@ class ScenarioCaseMapper:
             case_name=f"Case for {scenario_id}",
             case_status="created"
         )
+
+    def unregister_case_from_all_scenarios(self, case_id: str) -> int:
+        """
+        从所有scenario中删除某个case（重置操作）
+
+        Args:
+            case_id: 案例ID
+
+        Returns:
+            删除的scenario数量
+
+        Example:
+            mapper.unregister_case_from_all_scenarios("case_event_10754")
+        """
+        try:
+            if not self.scenario_index_path.exists():
+                return 0
+
+            with open(self.scenario_index_path, 'r', encoding='utf-8') as f:
+                index_data = json.load(f)
+
+            scenarios = index_data.get('scenarios', [])
+            removed_count = 0
+
+            # 从所有scenario中删除该case
+            for scenario in scenarios:
+                created_cases = scenario.get('created_cases', [])
+                original_count = len(created_cases)
+
+                # 过滤掉该case
+                scenario['created_cases'] = [
+                    c for c in created_cases if c['case_id'] != case_id
+                ]
+
+                if len(scenario['created_cases']) < original_count:
+                    removed_count += 1
+                    logger.info(f"Removed {case_id} from scenario {scenario.get('files', {}).get('scenario_dir')}")
+
+            # 如果有删除操作，保存更新
+            if removed_count > 0:
+                with open(self.scenario_index_path, 'w', encoding='utf-8') as f:
+                    json.dump(index_data, f, ensure_ascii=False, indent=2)
+                logger.info(f"Unregistered case {case_id} from {removed_count} scenarios")
+
+            return removed_count
+
+        except Exception as e:
+            logger.error(f"Failed to unregister case from all scenarios: {e}")
+            return 0
+
+    def clear_scenario_cases(self, scenario_id: str) -> int:
+        """
+        清空某个scenario的所有created_cases（重置操作）
+
+        Args:
+            scenario_id: 场景ID
+
+        Returns:
+            被清空的case数量
+
+        Example:
+            mapper.clear_scenario_cases("scenario_10754_no_control")
+        """
+        try:
+            if not self.scenario_index_path.exists():
+                return 0
+
+            with open(self.scenario_index_path, 'r', encoding='utf-8') as f:
+                index_data = json.load(f)
+
+            scenarios = index_data.get('scenarios', [])
+
+            # 查找对应的场景
+            for scenario in scenarios:
+                if scenario.get('files', {}).get('scenario_dir') == scenario_id:
+                    created_cases = scenario.get('created_cases', [])
+                    removed_count = len(created_cases)
+
+                    # 清空created_cases
+                    scenario['created_cases'] = []
+
+                    # 保存更新
+                    if removed_count > 0:
+                        with open(self.scenario_index_path, 'w', encoding='utf-8') as f:
+                            json.dump(index_data, f, ensure_ascii=False, indent=2)
+                        logger.info(f"Cleared {removed_count} cases from scenario {scenario_id}")
+
+                    return removed_count
+
+            logger.warning(f"Scenario not found: {scenario_id}")
+            return 0
+
+        except Exception as e:
+            logger.error(f"Failed to clear scenario cases: {e}")
+            return 0
+
+    def reset_all_cases(self) -> Dict[str, int]:
+        """
+        重置整个scenario_index.json - 清空所有created_cases（仅供管理用途）
+
+        Returns:
+            {'total_cases_removed': int, 'total_scenarios_affected': int}
+
+        Example:
+            result = mapper.reset_all_cases()
+            # {'total_cases_removed': 45, 'total_scenarios_affected': 477}
+        """
+        try:
+            if not self.scenario_index_path.exists():
+                return {'total_cases_removed': 0, 'total_scenarios_affected': 0}
+
+            with open(self.scenario_index_path, 'r', encoding='utf-8') as f:
+                index_data = json.load(f)
+
+            scenarios = index_data.get('scenarios', [])
+            total_cases_removed = 0
+            scenarios_affected = 0
+
+            # 清空所有scenario的created_cases
+            for scenario in scenarios:
+                created_cases = scenario.get('created_cases', [])
+                if created_cases:
+                    total_cases_removed += len(created_cases)
+                    scenario['created_cases'] = []
+                    scenarios_affected += 1
+
+            # 保存更新
+            if total_cases_removed > 0:
+                with open(self.scenario_index_path, 'w', encoding='utf-8') as f:
+                    json.dump(index_data, f, ensure_ascii=False, indent=2)
+                logger.info(f"Reset all cases: {total_cases_removed} cases removed from {scenarios_affected} scenarios")
+
+            return {
+                'total_cases_removed': total_cases_removed,
+                'total_scenarios_affected': scenarios_affected
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to reset all cases: {e}")
+            return {'total_cases_removed': 0, 'total_scenarios_affected': 0}

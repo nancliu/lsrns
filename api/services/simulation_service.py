@@ -485,6 +485,23 @@ class SimulationService(BaseService):
             metadata["simulation_ended_at"] = ended_at
             metadata["last_step"] = "simulation" if status == "completed" else "simulation_failed"
             MetadataManager.save_case_metadata(case_path, metadata)
+
+            # 更新scenario_index.json中该case的状态（仿真完成或失败）
+            try:
+                from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+                mapper = ScenarioCaseMapper()
+
+                case_id = metadata.get('case_id')
+                # 确定新状态：'completed' 或 'failed'
+                new_status = 'completed' if status == 'completed' else 'failed'
+
+                # 为所有关联的scenario更新状态
+                for scenario_id in metadata.get('scenarios', []):
+                    mapper.update_case_status(scenario_id, case_id, new_status)
+                    print(f"✓ scenario_index.json已更新: {scenario_id} - {case_id} 状态 → {new_status}")
+            except Exception as mapping_error:
+                print(f"⚠️ 更新scenario_index.json失败（非致命错误）: {mapping_error}")
+
         except Exception as e:
             print(f"更新案例完成状态失败: {e}")
     
