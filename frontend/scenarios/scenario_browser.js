@@ -791,19 +791,19 @@ function closeBatchCreationModal() {
 }
 
 /**
- * 删除该事件下的所有场景（删除case文件夹并清除scenario_index.json中的created_cases）
+ * 删除该事件的所有case文件夹（并清除scenario_index.json中的关联）
  * @param {string} eventId - 事件ID
  * @param {HTMLElement} deleteBtn - 删除按钮元素
  */
 async function deleteEventCreatedCases(eventId, deleteBtn) {
     try {
-        // 加载scenario_index.json
+        // 加载scenario_index.json获取确认信息
         const response = await fetch('/output/scenarios/scenario_index.json');
         const data = await response.json();
 
-        // 找出该事件对应的所有scenarios及其case_ids
-        const casesToDelete = [];
+        // 找出该事件对应的所有scenarios信息
         const scenariosInfo = [];
+        let totalCasesCount = 0;
 
         for (const scenario of data.scenarios || []) {
             if (scenario.event_id == eventId && scenario.created_cases && scenario.created_cases.length > 0) {
@@ -811,16 +811,11 @@ async function deleteEventCreatedCases(eventId, deleteBtn) {
                     scenario_id: scenario.scenario_id,
                     case_count: scenario.created_cases.length
                 });
-                // 收集所有case_ids（去重）
-                for (const createdCase of scenario.created_cases) {
-                    if (!casesToDelete.includes(createdCase.case_id)) {
-                        casesToDelete.push(createdCase.case_id);
-                    }
-                }
+                totalCasesCount += scenario.created_cases.length;
             }
         }
 
-        if (casesToDelete.length === 0) {
+        if (scenariosInfo.length === 0) {
             alert('⚠️ 该事件没有已创建的案例');
             return;
         }
@@ -831,9 +826,9 @@ async function deleteEventCreatedCases(eventId, deleteBtn) {
             .join('\n');
 
         const confirmed = confirm(
-            `⚠️ 确认要删除事件 "${eventId}" 下的所有场景吗？\n\n` +
-            `将删除以下场景的案例文件夹及关联：\n${scenarioSummary}\n\n` +
-            `总共 ${casesToDelete.length} 个案例文件夹将被删除\n\n` +
+            `⚠️ 确认要删除事件 "${eventId}" 的所有案例文件夹吗？\n\n` +
+            `将删除以下场景的案例：\n${scenarioSummary}\n\n` +
+            `总共 ${totalCasesCount} 个案例文件夹将被删除\n\n` +
             `此操作不可撤销！`
         );
 
@@ -847,52 +842,33 @@ async function deleteEventCreatedCases(eventId, deleteBtn) {
         deleteBtn.textContent = '⏳ 删除中...';
         deleteBtn.style.opacity = '0.6';
 
-        // 逐个删除case文件夹
-        let successCount = 0;
-        let failureCount = 0;
-        const failedCases = [];
-
-        for (const caseId of casesToDelete) {
-            try {
-                const deleteResponse = await fetch(`/api/v1/case/${caseId}/delete-with-reset`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (deleteResponse.ok) {
-                    successCount++;
-                } else {
-                    failureCount++;
-                    failedCases.push(caseId);
+        // 调用API删除该事件的所有case文件夹
+        try {
+            const deleteResponse = await fetch(`/api/v1/batch/delete-event-cases/${eventId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            } catch (error) {
-                failureCount++;
-                failedCases.push(caseId);
-            }
-        }
+            });
 
-        // 显示结果
-        if (successCount > 0) {
-            let message = `✓ 已删除 ${successCount} 个案例文件夹`;
-            if (failureCount > 0) {
-                message += `\n⚠️ 失败 ${failureCount} 个案例: ${failedCases.join(', ')}`;
+            const deleteResult = await deleteResponse.json();
+
+            if (deleteResponse.ok && deleteResult.success) {
+                alert(deleteResult.message);
+                refreshData();  // 刷新页面数据
+            } else {
+                throw new Error(deleteResult.message || '删除失败');
             }
-            alert(message);
-            refreshData();  // 刷新页面数据
-        } else {
-            alert(`❌ 删除全部失败: ${failedCases.join(', ')}`);
+        } catch (error) {
+            console.error('删除出错:', error);
+            alert(`❌ 删除失败: ${error.message}`);
             deleteBtn.disabled = false;
             deleteBtn.textContent = originalText;
             deleteBtn.style.opacity = '1';
         }
     } catch (error) {
-        console.error('删除出错:', error);
-        alert(`❌ 删除失败: ${error.message}`);
-        deleteBtn.disabled = false;
-        deleteBtn.textContent = originalText;
-        deleteBtn.style.opacity = '1';
+        console.error('获取信息出错:', error);
+        alert(`❌ 操作失败: ${error.message}`);
     }
 }
 

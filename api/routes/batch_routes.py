@@ -340,3 +340,104 @@ async def reset_all_scenario_mappings():
             status_code=500,
             detail=f"Failed to reset all scenario mappings: {str(e)}"
         )
+
+
+@router.delete("/delete-event-cases/{event_id}", status_code=200)
+async def delete_event_cases(event_id: str):
+    """
+    Delete all case folders for an event
+
+    Deletes all case folders created for a specific event and removes their
+    associations from scenario_index.json.
+
+    **Process:**
+    1. Load scenario_index.json
+    2. Find all scenarios for this event
+    3. Delete all case folders under cases/{event_id}/*
+    4. Remove event associations from scenario_index.json
+
+    **Args:**
+        event_id: The event ID (e.g., "10754")
+
+    **Response:**
+        {
+            "success": true,
+            "event_id": "10754",
+            "cases_deleted": 3,
+            "scenarios_affected": 3,
+            "message": "✓ 已删除事件10754的3个案例文件夹，清除3个scenarios的关联"
+        }
+
+    **Example:**
+        DELETE /api/v1/batch/delete-event-cases/10754
+    """
+    try:
+        from pathlib import Path
+        import shutil
+        from shared.utilities.scenario_case_mapping import ScenarioCaseMapper
+
+        cases_dir = Path("cases")
+
+        # Load scenario_index.json
+        mapper = ScenarioCaseMapper()
+        scenario_index = mapper.load_scenario_index()
+
+        # Find all scenarios for this event
+        scenarios_for_event = [
+            s for s in scenario_index.get('scenarios', [])
+            if s.get('event_id') == event_id
+        ]
+
+        if not scenarios_for_event:
+            return {
+                "success": True,
+                "event_id": event_id,
+                "cases_deleted": 0,
+                "scenarios_affected": 0,
+                "message": f"✓ 事件{event_id}没有创建的案例"
+            }
+
+        # Collect all case_ids for this event
+        case_ids_to_delete = set()
+        for scenario in scenarios_for_event:
+            for created_case in scenario.get('created_cases', []):
+                case_ids_to_delete.add(created_case.get('case_id'))
+
+        cases_deleted = 0
+
+        # Delete case folders
+        for case_id in case_ids_to_delete:
+            case_dir = cases_dir / case_id
+            if case_dir.exists():
+                try:
+                    shutil.rmtree(case_dir)
+                    cases_deleted += 1
+                    logger.info(f"✓ Deleted case folder: {case_id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to delete case folder {case_id}: {e}")
+
+        # Clear created_cases for all scenarios of this event
+        scenarios_affected = 0
+        for scenario in scenarios_for_event:
+            if scenario.get('created_cases'):
+                scenario['created_cases'] = []
+                scenarios_affected += 1
+
+        # Save updated scenario_index.json
+        mapper.save_scenario_index(scenario_index)
+        logger.info(f"✓ Updated scenario_index.json for event {event_id}")
+
+        return {
+            "success": True,
+            "event_id": event_id,
+            "cases_deleted": cases_deleted,
+            "scenarios_affected": scenarios_affected,
+            "message": f"✓ 已删除事件{event_id}的{cases_deleted}个案例文件夹，清除{scenarios_affected}个scenarios的关联"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to delete event cases: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete event cases: {str(e)}"
+        )
