@@ -477,7 +477,7 @@ function renderEventCards(eventGroups) {
                     </button>
                     ${hasCreatedCases ? `
                     <button class="btn btn-sm btn-danger"
-                            onclick="deleteEventCreatedCases('${event.event_id}')"
+                            onclick="deleteEventCreatedCases('${event.event_id}', this)"
                             title="删除该事件创建的所有案例"
                             style="margin-left: auto;">
                         🗑️ 删除案例
@@ -792,8 +792,10 @@ function closeBatchCreationModal() {
 
 /**
  * 删除该事件下的所有场景（清除scenario_index.json中的created_cases）
+ * @param {string} eventId - 事件ID
+ * @param {HTMLElement} deleteBtn - 删除按钮元素
  */
-async function deleteEventCreatedCases(eventId) {
+async function deleteEventCreatedCases(eventId, deleteBtn) {
     try {
         // 加载scenario_index.json
         const response = await fetch('/output/scenarios/scenario_index.json');
@@ -828,7 +830,6 @@ async function deleteEventCreatedCases(eventId) {
         }
 
         // 显示删除进度
-        const deleteBtn = event.target;
         const originalText = deleteBtn.textContent;
         deleteBtn.disabled = true;
         deleteBtn.textContent = '⏳ 删除中...';
@@ -877,6 +878,9 @@ async function deleteEventCreatedCases(eventId) {
     } catch (error) {
         console.error('删除出错:', error);
         alert(`❌ 删除失败: ${error.message}`);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = originalText;
+        deleteBtn.style.opacity = '1';
     }
 }
 
