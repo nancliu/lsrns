@@ -387,12 +387,10 @@ function renderEventCards(eventGroups) {
             <div class="event-card" data-event-id="${event.event_id}">
                 <div class="event-card-header">
                     <div class="event-card-header-left">
-                        <input type="checkbox" class="event-checkbox" id="event_${event.event_id}"
-                               data-event-id="${event.event_id}" onchange="toggleEventSelection('${event.event_id}')">
-                        <label for="event_${event.event_id}" class="event-title">
+                        <div class="event-title">
                             <strong>事件 ${event.event_id}</strong>
                             <span class="badge badge-${getEventTypeClass(event.event_type)}">${getEventTypeDisplay(event.event_type)}</span>
-                        </label>
+                        </div>
                     </div>
                     <div class="event-card-header-right">
                         ${hasCreatedCases ? `<span class="badge badge-success">${createdCount}个案例已创建</span>` : ''}
@@ -494,21 +492,6 @@ function renderEventCards(eventGroups) {
 }
 
 /**
- * 切换事件选择状态
- * @param {string} eventId - 事件ID
- */
-function toggleEventSelection(eventId) {
-    const eventCheckbox = document.getElementById(`event_${eventId}`);
-    const scenarioCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]`);
-
-    scenarioCheckboxes.forEach(checkbox => {
-        checkbox.checked = eventCheckbox.checked;
-    });
-
-    validateScenarioSelection(eventId);
-}
-
-/**
  * 验证场景选择完整性
  * @param {string} eventId - 事件ID
  */
@@ -524,18 +507,6 @@ function validateScenarioSelection(eventId) {
     } else {
         // 全选或全不选 - 隐藏警告
         warningBox.style.display = 'none';
-    }
-
-    // 更新事件checkbox状态
-    const eventCheckbox = document.getElementById(`event_${eventId}`);
-    if (checkedCheckboxes.length === allCheckboxes.length) {
-        eventCheckbox.checked = true;
-        eventCheckbox.indeterminate = false;
-    } else if (checkedCheckboxes.length === 0) {
-        eventCheckbox.checked = false;
-        eventCheckbox.indeterminate = false;
-    } else {
-        eventCheckbox.indeterminate = true;
     }
 }
 
@@ -820,52 +791,42 @@ function closeBatchCreationModal() {
 }
 
 /**
- * 删除该事件创建的所有案例（及其在scenario_index.json中的关联）
+ * 删除该事件下的所有场景（清除scenario_index.json中的created_cases）
  */
 async function deleteEventCreatedCases(eventId) {
-    // 从scenario_index.json中找到该事件的所有已创建案例
-    const casesToDelete = [];
-
     try {
+        // 加载scenario_index.json
         const response = await fetch('/output/scenarios/scenario_index.json');
         const data = await response.json();
 
-        // 收集该事件的所有已创建案例（从所有scenario的created_cases中）
+        // 找出该事件对应的所有scenarios
+        const scenariosToDelete = [];
+        let totalCasesCount = 0;
+
         for (const scenario of data.scenarios || []) {
-            if (scenario.event_id == eventId && scenario.created_cases) {
-                for (const createdCase of scenario.created_cases) {
-                    if (!casesToDelete.includes(createdCase.case_id)) {
-                        casesToDelete.push(createdCase.case_id);
-                    }
-                }
+            if (scenario.event_id == eventId && scenario.created_cases && scenario.created_cases.length > 0) {
+                scenariosToDelete.push(scenario.scenario_id);
+                totalCasesCount += scenario.created_cases.length;
             }
         }
-    } catch (error) {
-        console.error('获取案例列表失败:', error);
-        alert('❌ 获取案例列表失败');
-        return;
-    }
 
-    if (casesToDelete.length === 0) {
-        alert('⚠️ 该事件没有已创建的案例');
-        return;
-    }
+        if (scenariosToDelete.length === 0) {
+            alert('⚠️ 该事件没有已创建的案例');
+            return;
+        }
 
-    // 确认删除
-    const confirmed = confirm(
-        `⚠️ 确认要删除事件 "${eventId}" 创建的 ${casesToDelete.length} 个案例吗？\n` +
-        `案例ID：${casesToDelete.join(', ')}\n\n` +
-        `此操作将：\n` +
-        `1. 删除所有案例的文件夹\n` +
-        `2. 从scenario_index.json中清除关联\n\n` +
-        `此操作不可撤销！`
-    );
+        // 确认删除
+        const confirmed = confirm(
+            `⚠️ 确认要删除事件 "${eventId}" 下的所有场景吗？\n\n` +
+            `将清除 ${scenariosToDelete.length} 个场景的案例关联\n` +
+            `总共 ${totalCasesCount} 个案例将从scenario_index.json中删除\n\n` +
+            `此操作不可撤销！`
+        );
 
-    if (!confirmed) {
-        return;
-    }
+        if (!confirmed) {
+            return;
+        }
 
-    try {
         // 显示删除进度
         const deleteBtn = event.target;
         const originalText = deleteBtn.textContent;
@@ -873,54 +834,49 @@ async function deleteEventCreatedCases(eventId) {
         deleteBtn.textContent = '⏳ 删除中...';
         deleteBtn.style.opacity = '0.6';
 
-        // 逐个删除案例
+        // 逐个清除每个scenario的created_cases
         let successCount = 0;
         let failureCount = 0;
-        const failedCases = [];
+        const failedScenarios = [];
 
-        for (const caseId of casesToDelete) {
+        for (const scenarioId of scenariosToDelete) {
             try {
-                const deleteResponse = await fetch(`/api/v1/case/${caseId}/delete-with-reset`, {
+                const clearResponse = await fetch(`/api/v1/batch/clear-scenario-cases/${scenarioId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 });
 
-                const deleteResult = await deleteResponse.json();
-
-                if (deleteResponse.ok && deleteResult.success) {
+                if (clearResponse.ok) {
                     successCount++;
                 } else {
                     failureCount++;
-                    failedCases.push(caseId);
+                    failedScenarios.push(scenarioId);
                 }
             } catch (error) {
                 failureCount++;
-                failedCases.push(caseId);
+                failedScenarios.push(scenarioId);
             }
         }
 
         // 显示结果
         if (successCount > 0) {
-            let message = `✓ 已删除 ${successCount} 个案例`;
+            let message = `✓ 已清除 ${successCount} 个场景的案例关联`;
             if (failureCount > 0) {
-                message += `\n⚠️ 失败 ${failureCount} 个案例: ${failedCases.join(', ')}`;
+                message += `\n⚠️ 失败 ${failureCount} 个场景: ${failedScenarios.join(', ')}`;
             }
             alert(message);
             refreshData();  // 刷新页面数据
         } else {
-            alert(`❌ 删除全部失败: ${failedCases.join(', ')}`);
+            alert(`❌ 删除全部失败: ${failedScenarios.join(', ')}`);
             deleteBtn.disabled = false;
             deleteBtn.textContent = originalText;
             deleteBtn.style.opacity = '1';
         }
     } catch (error) {
-        console.error('删除案例出错:', error);
+        console.error('删除出错:', error);
         alert(`❌ 删除失败: ${error.message}`);
-        deleteBtn.disabled = false;
-        deleteBtn.textContent = originalText;
-        deleteBtn.style.opacity = '1';
     }
 }
 

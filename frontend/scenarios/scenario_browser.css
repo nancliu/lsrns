@@ -1013,13 +1013,6 @@ tbody tr:hover {
     gap: 12px;
 }
 
-.event-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    margin: 0;
-}
-
 .event-title {
     display: flex;
     align-items: center;
