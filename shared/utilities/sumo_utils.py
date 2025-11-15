@@ -2,13 +2,156 @@
 SUMO配置工具函数（shared）
 """
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 import re
 import os
 import logging
+import xml.etree.ElementTree as ET
 from shared.utilities.time_utils import parse_datetime
 
 logger = logging.getLogger(__name__)
+
+
+def verify_edgedata_generation(simulation_folder: Path) -> bool:
+	"""
+	验证edgedata.xml是否成功生成
+
+	Verifies that edgedata.xml was actually created after simulation completes.
+	Used to detect silent collection failures.
+
+	Args:
+		simulation_folder: Path to simulation directory
+
+	Returns:
+		True if edgedata.xml exists and is valid
+
+	Example:
+		>>> verify_edgedata_generation(Path("cases/case_xxx/simulations/sim_xxx"))
+		True
+	"""
+	edgedata_path = simulation_folder / "edgedata" / "edgedata.xml"
+
+	if not edgedata_path.exists():
+		logger.warning(f"EdgeData file not generated: {edgedata_path}")
+		return False
+
+	try:
+		file_size = edgedata_path.stat().st_size
+		if file_size == 0:
+			logger.warning(f"EdgeData file is empty: {edgedata_path}")
+			return False
+
+		# Validate XML structure
+		tree = ET.parse(edgedata_path)
+		root = tree.getroot()
+
+		# Check if root has edgeData elements
+		edgedata_elements = root.findall('.//edgeData')
+		if edgedata_elements:
+			logger.info(f"✓ EdgeData file verified: {edgedata_path} ({file_size} bytes, {len(edgedata_elements)} edges)")
+			return True
+		else:
+			logger.warning(f"EdgeData file has no edgeData elements: {edgedata_path}")
+			return False
+
+	except Exception as e:
+		logger.warning(f"EdgeData file validation failed: {e}")
+		return False
+
+
+def aggregate_relevant_edges(case_metadata: Dict[str, Any], control_strategy_config: Dict[str, Any] = None) -> List[str]:
+	"""
+	从多个来源聚合相关边ID
+
+	Aggregates edge IDs from multiple sources:
+	1. Event location edge
+	2. Control strategy affected edges
+
+	Args:
+		case_metadata: Case metadata (contains event_scenario)
+		control_strategy_config: Control strategy configuration (optional)
+
+	Returns:
+		List of aggregated and deduplicated edge IDs
+
+	Example:
+		>>> edges = aggregate_relevant_edges(case_metadata, control_config)
+		>>> # Returns: ["3026", "-3026", "3027", "-3027"]
+	"""
+	edges = set()
+
+	# Source 1: Event location edge
+	if 'event_scenario' in case_metadata:
+		event_location = case_metadata['event_scenario'].get('event_location', {})
+		event_edge = event_location.get('edge_id')
+		if event_edge:
+			edges.add(event_edge)
+			# Add reverse direction
+			if event_edge.startswith('-'):
+				edges.add(event_edge[1:])
+			else:
+				edges.add(f"-{event_edge}")
+
+	# Source 2: Control strategy affected edges (if provided)
+	if control_strategy_config:
+		try:
+			strategy_edges = control_strategy_config.get('affected_edges', [])
+			if strategy_edges:
+				for edge in strategy_edges:
+					if edge and isinstance(edge, str):
+						edges.add(edge)
+		except (AttributeError, TypeError) as e:
+			logger.debug(f"Failed to extract edges from control strategy: {e}")
+
+	return list(edges)
+
+
+def validate_edge_ids_in_network(edge_ids: List[str], network_file: Path) -> Tuple[List[str], List[str]]:
+	"""
+	验证边ID是否存在于路网文件中
+
+	Validates that edge IDs exist in the network file before configuration.
+	Critical for preventing silent EdgeData collection failures.
+
+	Args:
+		edge_ids: List of edge IDs to validate (e.g., ["3026", "-3027"])
+		network_file: Path to network.net.xml file
+
+	Returns:
+		Tuple of (valid_edge_ids, invalid_edge_ids)
+
+	Example:
+		>>> valid, invalid = validate_edge_ids_in_network(["3026", "-3026"], Path("network.net.xml"))
+		>>> # valid = ["3026", "-3026"], invalid = []
+	"""
+	if not edge_ids or not network_file.exists():
+		return edge_ids, []
+
+	try:
+		tree = ET.parse(network_file)
+		root = tree.getroot()
+
+		# Extract all edge IDs from network
+		valid_edges = set()
+		for edge in root.findall('.//edge'):
+			valid_edges.add(edge.get('id'))
+
+		# Filter input edge_ids to only valid ones
+		validated_ids = [eid for eid in edge_ids if eid in valid_edges]
+		invalid_ids = [eid for eid in edge_ids if eid not in valid_edges]
+
+		# Log warnings for invalid edges
+		if invalid_ids:
+			logger.warning(f"Edge IDs not found in network (will be excluded from EdgeData): {invalid_ids}")
+
+		if validated_ids:
+			logger.info(f"✓ Validated {len(validated_ids)} edge IDs against network topology")
+
+		return validated_ids, invalid_ids
+
+	except Exception as e:
+		logger.error(f"Failed to validate edge IDs against network: {e}")
+		return edge_ids, []  # Fallback: assume valid if can't parse
 
 
 def _duration_seconds(start_time: str, end_time: str) -> int:
@@ -288,16 +431,35 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 				edge_id = case_metadata['event_scenario']['event_location'].get('edge_id')
 				if edge_id:
 					# 添加事件边
-					relevant_edges.append(edge_id)
+					candidate_edges = [edge_id]
 					# 添加反向边（如 -3026 → 3026 或 3026 → -3026）
 					if edge_id.startswith('-'):
-						relevant_edges.append(edge_id[1:])
+						candidate_edges.append(edge_id[1:])
 					else:
-						relevant_edges.append(f"-{edge_id}")
+						candidate_edges.append(f"-{edge_id}")
 
-					collection_mode = "event_edges"
-					print(f"✓ EdgeData 智能优化: 仅收集事件相关边 {relevant_edges}")
-					print(f"  - 性能提升: 数据量减少 99.98%, 仿真速度提升 15-30%")
+					# ✅ PHASE 1.1: 验证边ID是否存在于路网中
+					network_file = case_root / "config" / case_metadata['files'].get('network_file', '')
+					if not network_file.exists():
+						# Try alternative network path
+						network_file = Path(case_metadata['files'].get('network_file', ''))
+						if not network_file.is_absolute():
+							network_file = case_root.parent.parent / network_file
+
+					validated_edges, invalid_edges = validate_edge_ids_in_network(candidate_edges, network_file)
+
+					if invalid_edges:
+						logger.warning(f"Edge(s) {invalid_edges} not found in network - excluding from EdgeData collection")
+
+					if validated_edges:
+						relevant_edges = validated_edges
+						collection_mode = "event_edges"
+						print(f"✓ EdgeData 智能优化: 仅收集事件相关边 {relevant_edges}")
+						print(f"  - 性能提升: 数据量减少 99.98%, 仿真速度提升 15-30%")
+					else:
+						# All edges were invalid - fall back to full network
+						logger.warning("No valid event edges found - falling back to full network collection")
+						collection_mode = "full_network"
 
 			# 生成 edgeData.add.xml 内容
 			if relevant_edges:
@@ -445,6 +607,10 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 	
 	if simulation_params.get('output_emission', False):
 		output_lines.append('        <emission-output value="emission.xml"/>')
+
+	# ✅ PHASE 1.2: 显式配置edgeData输出（当启用edgeData集合时）
+	if simulation_params.get('output_edgedata', False):
+		output_lines.append('        <edgedata-output value="edgedata/edgedata.xml"/>')
 	
 	output_section = f'''    <output>
 {chr(10).join(output_lines)}
