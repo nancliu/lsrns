@@ -1259,7 +1259,8 @@ function setupEventListeners() {
 
 // 刷新数据
 async function refreshData() {
-    await loadScenarios();
+    await loadCreatedCases();  // 重新加载案例状态
+    await loadScenarios();      // 重新加载场景数据
 }
 
 // 健康检查
