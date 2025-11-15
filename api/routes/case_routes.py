@@ -20,11 +20,14 @@ from .middleware import handle_service_errors, create_success_response
 router = APIRouter()
 
 
-@router.post("/create_case/", response_model=BaseResponse)
+@router.post("/", response_model=BaseResponse)
 @handle_service_errors
 async def create_case(request: CaseCreationRequest):
     """
-    创建案例
+    创建OD案例 (OD Workflow)
+
+    这是基础的案例创建端点，用于OD提取工作流。
+    对于事件场景，请使用 POST /from-event-scenario
     """
     case_service = CaseService()
     result = await case_service.create_case(request)
@@ -78,51 +81,13 @@ async def clone_case(case_id: str, request: CaseCloneRequest):
     return create_success_response("案例克隆成功", result)
 
 
-@router.post("/create-from-scenario", response_model=BaseResponse)
+@router.post("/from-event-scenario", response_model=BaseResponse)
 @handle_service_errors
-async def create_case_from_scenario(request: EventScenarioQuickCreateRequest):
+async def create_case_from_event_scenario(request: CreateCaseWithSimulationRequest):
     """
-    从场景创建案例 (Phase 2)
+    从事件场景创建案例并自动创建仿真 (Event Scenario Workflow)
 
-    从事件场景库中选择一个场景，创建关联的案例。
-
-    Args:
-        request: 包含场景信息和案例输入
-
-    Returns:
-        包含新创建案例信息的响应
-    """
-    case_service = CaseService()
-    result = await case_service.quick_create_case_from_event(request)
-    return create_success_response("案例创建成功", result)
-
-
-@router.post("/quick-create-from-event", response_model=BaseResponse)
-@handle_service_errors
-async def quick_create_case_from_event(request: EventScenarioQuickCreateRequest):
-    """
-    从事件场景快速创建案例 (Phase 5.3.3)
-
-    从event scenario库中选择一个场景，快速创建关联的case。
-
-    Args:
-        request: 包含event scenario信息和case输入文件
-
-    Returns:
-        包含新创建的case信息的响应
-    """
-    case_service = CaseService()
-    result = await case_service.quick_create_case_from_event(request)
-    return create_success_response("案例创建成功", result)
-
-
-@router.post("/create-case-with-simulation", response_model=BaseResponse)
-@handle_service_errors
-async def create_case_with_simulation(request: CreateCaseWithSimulationRequest):
-    """
-    统一案例+仿真创建 (Unified case+simulation creation)
-
-    在一次原子操作中创建案例并立即准备仿真：
+    这是事件场景的统一端点。在一次原子操作中创建案例并立即准备仿真：
     1. 创建案例目录和元数据
     2. 处理OD数据（异步，非阻塞）
     3. 复制TAZ文件
@@ -141,4 +106,4 @@ async def create_case_with_simulation(request: CreateCaseWithSimulationRequest):
     """
     case_service = CaseService()
     result = await case_service.create_case_with_simulation(request)
-    return create_success_response("统一案例+仿真创建成功", result)
+    return create_success_response("从事件场景创建案例成功", result)

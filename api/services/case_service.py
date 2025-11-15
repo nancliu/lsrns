@@ -1518,11 +1518,11 @@ class CaseService(BaseService):
             logger.error(f"Error generating sumocfg: {e}", exc_info=True)
             raise
 
-    async def create_case_with_simulation(self, request: "CreateCaseWithSimulationRequest") -> Dict[str, Any]:
+    async def create_case_from_event_scenario(self, request: "CreateCaseWithSimulationRequest") -> Dict[str, Any]:
         """
-        Create event-based case with scenario simulation.
+        从事件场景创建案例并自动创建仿真 (Phase 1 Unified Event Workflow)
 
-        NEW: Event-based architecture for efficient case reuse:
+        Event-based architecture for efficient case reuse:
         - First scenario from an event creates case_event_{event_id} with full config
         - Subsequent scenarios reuse existing case (70% faster, 65% less disk)
         - Each scenario gets its own simulation directory
@@ -1716,6 +1716,15 @@ class CaseService(BaseService):
         except Exception as e:
             logger.error(f"Failed to create case with simulation: {str(e)}", exc_info=True)
             raise Exception(f"Failed to create case: {str(e)}")
+
+    # Backward compatibility alias (Phase 1 consolidation)
+    async def create_case_with_simulation(self, request: "CreateCaseWithSimulationRequest") -> Dict[str, Any]:
+        """
+        Backward compatibility wrapper for create_case_from_event_scenario()
+
+        This method is deprecated. Use create_case_from_event_scenario() instead.
+        """
+        return await self.create_case_from_event_scenario(request)
 
     async def _prepare_simulation_for_case(self, case_id: str, simulation_id: str, case_path: Path, request: "CreateCaseWithSimulationRequest") -> None:
         """
