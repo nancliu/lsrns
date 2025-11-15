@@ -105,5 +105,5 @@ async def create_case_from_event_scenario(request: CreateCaseWithSimulationReque
         包含case_id、simulation_id和完整状态信息的响应
     """
     case_service = CaseService()
-    result = await case_service.create_case_with_simulation(request)
+    result = await case_service.create_case_from_event_scenario(request)
     return create_success_response("从事件场景创建案例成功", result)
