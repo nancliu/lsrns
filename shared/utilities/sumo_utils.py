@@ -787,16 +787,21 @@ def generate_edgedata_xml_for_case(
 	validation = aggregation_result.get('validation', {})
 
 	# 2. 生成 edgeData.add.xml 内容
-	if merged_edges:
-		# 使用聚合后的边缘列表
-		edges_str = " ".join(merged_edges)
+	# ✅ 使用验证通过的边（仅包含路网中实际存在的边）
+	valid_edges = validation.get('valid_edges', merged_edges)
+	invalid_edges = validation.get('invalid_edges', [])
+
+	if valid_edges:
+		# 使用验证后的有效边缘列表
+		edges_str = " ".join(valid_edges)
 		template_content = (
 			'<?xml version="1.0" encoding="UTF-8"?>\n'
 			'<additional>\n'
 			'  <!-- EdgeData configuration for event case -->\n'
-			f'  <!-- Total edges: {len(merged_edges)} -->\n'
+			f'  <!-- Total edges (validated): {len(valid_edges)} -->\n'
 			f'  <!-- Event edges: {aggregation_result.get("event_count", 0)} -->\n'
 			f'  <!-- Strategy edges: {aggregation_result.get("strategy_count", 0)} -->\n'
+			f'  <!-- Invalid edges excluded: {len(invalid_edges)} -->\n'
 			'  <edgeData id="ed1"\n'
 			'    freq="300"\n'
 			'    file="edgedata/edgedata.xml"\n'
@@ -805,10 +810,13 @@ def generate_edgedata_xml_for_case(
 			'    withInternal="false"/>\n'
 			'</additional>'
 		)
-		print(f"✓ EdgeData 配置生成: 聚合了 {len(merged_edges)} 条边")
+		print(f"✓ EdgeData 配置生成: 聚合了 {len(valid_edges)} 条有效边（验证通过）")
 		print(f"  - 事件边缘: {aggregation_result.get('event_count', 0)} 条")
 		print(f"  - 策略边缘: {aggregation_result.get('strategy_count', 0)} 条")
+		print(f"  - 路网验证: {len(valid_edges)} 有效 / {len(invalid_edges)} 无效")
 		print(f"  - 来源分解: {source_breakdown}")
+		if invalid_edges:
+			print(f"  ⚠️ 排除的无效边: {invalid_edges}")
 	else:
 		# 回退：收集全路网（如果无法提取任何边缘）
 		template_content = (

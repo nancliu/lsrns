@@ -68,19 +68,21 @@ class EdgeImpactAggregator:
         if method == "primary_only":
             return edges
 
-        # Method 2: Add reverse direction
+        # Method 2: Try to add reverse direction (候选边，需要后续验证）
+        # ⚠️ 注意：反向边可能不存在于路网中，后续 validate_edges 会过滤无效的边
         reverse_edge = self._get_reverse_edge(primary_edge)
         if reverse_edge:
             edges.append(reverse_edge)
+            logger.debug(f"Added reverse edge candidate: {reverse_edge} (will be validated against network)")
 
         if method == "radius_1_hop":
             # TODO: 实现邻接边缘提取（需要路网拓扑信息）
-            logger.info(f"radius_1_hop方法: 当前返回主边缘+反向，邻接边缘提取待实现")
+            logger.info(f"radius_1_hop方法: 当前返回主边缘+可能的反向边，邻接边缘提取待实现")
             return edges
 
         if method == "radius_2_hops":
             # TODO: 实现2跳溢出区域提取（需要路网拓扑信息）
-            logger.info(f"radius_2_hops方法: 当前返回主边缘+反向，2跳溢出边缘提取待实现")
+            logger.info(f"radius_2_hops方法: 当前返回主边缘+可能的反向边，2跳溢出边缘提取待实现")
             return edges
 
         if method == "full_junction":
