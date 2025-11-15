@@ -807,8 +807,13 @@ async function deleteEventCreatedCases(eventId, deleteBtn) {
 
         for (const scenario of data.scenarios || []) {
             if (scenario.event_id == eventId && scenario.created_cases && scenario.created_cases.length > 0) {
+                // 支持多种scenario_id字段名
+                const scenarioId = scenario.files?.scenario_dir ||
+                                   scenario.scenario_id ||
+                                   '未知场景';
+
                 scenariosInfo.push({
-                    scenario_id: scenario.scenario_id,
+                    scenario_id: scenarioId,
                     case_count: scenario.created_cases.length
                 });
                 totalCasesCount += scenario.created_cases.length;
@@ -821,9 +826,11 @@ async function deleteEventCreatedCases(eventId, deleteBtn) {
         }
 
         // 确认删除
-        const scenarioSummary = scenariosInfo
-            .map(s => `${s.scenario_id} (${s.case_count}个案例)`)
-            .join('\n');
+        const scenarioSummary = scenariosInfo.length > 0
+            ? scenariosInfo
+                .map(s => `  • ${s.scenario_id} (${s.case_count}个案例)`)
+                .join('\n')
+            : '未找到场景信息';
 
         const confirmed = confirm(
             `⚠️ 确认要删除事件 "${eventId}" 的所有案例文件夹吗？\n\n` +
