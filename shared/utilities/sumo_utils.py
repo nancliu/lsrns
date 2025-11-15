@@ -12,6 +12,81 @@ from shared.utilities.time_utils import parse_datetime
 logger = logging.getLogger(__name__)
 
 
+def should_enable_edgedata_output(
+	edge_count: int,
+	validation_rate: float,
+	min_edge_threshold: int = 10,
+	min_validation_rate: float = 0.5
+) -> tuple[bool, Dict[str, Any]]:
+	"""
+	智能决策：根据EdgeData聚合和验证结果，决定是否启用edgedata输出
+
+	【P2修复 v2】简化规则：只要有验证通过的edge_id，就启用输出，保证有价值的分析结果
+
+	原规则（v1）：同时满足数量 ≥ 10 且验证率 ≥ 50%
+	新规则（v2）：只要有验证通过的边（edge_count > 0），就启用输出
+
+	Args:
+		edge_count: 聚合的边缘总数（已验证的边数）
+		validation_rate: 边缘验证通过率（0-1）
+		min_edge_threshold: 最小边缘数阈值（已废弃，保留向后兼容）
+		min_validation_rate: 最小验证通过率阈值（已废弃，保留向后兼容）
+
+	Returns:
+		元组(should_enable, decision_info)，其中：
+		- should_enable: bool，是否应启用edgedata输出
+		- decision_info: dict，包含决策原因和详细信息
+
+	示例:
+		>>> should_enable, info = should_enable_edgedata_output(
+		...     edge_count=2,  # 即使只有2条边
+		...     validation_rate=0.5
+		... )
+		>>> print(info['decision_reason'])
+		'Have verified edges (2), enable output for analysis'
+	"""
+	decision_info = {
+		'edge_count': edge_count,
+		'validation_rate': validation_rate,
+		'min_edge_threshold': min_edge_threshold,
+		'min_validation_rate': min_validation_rate,
+		'checks': {},
+		'decision_reason': '',
+		'recommendations': []
+	}
+
+	# 新规则（P2 v2）：只检查是否有验证通过的边
+	# edge_count > 0 表示有已验证的边，值得生成edgedata输出
+	has_verified_edges = edge_count > 0
+	decision_info['checks']['has_verified_edges'] = {
+		'passed': has_verified_edges,
+		'message': f'Verified edges: {edge_count} edge(s) found and validated' if has_verified_edges
+			else 'No verified edges found'
+	}
+
+	# 做出决策：只要有验证通过的边就启用输出
+	should_enable = has_verified_edges
+
+	# 生成决策原因
+	if should_enable:
+		decision_info['decision_reason'] = f'Have verified edges ({edge_count}), enable output for analysis'
+		decision_info['action'] = f'✅ 启用edgedata输出 ({edge_count}条已验证的边, 验证率{validation_rate:.1%})'
+		decision_info['recommendations'].append(
+			'EdgeData分析已启用，可以用于流量模式分析和优化决策'
+		)
+	else:
+		decision_info['decision_reason'] = 'No verified edges found in network'
+		decision_info['action'] = '❌ 禁用edgedata输出 (无验证通过的边，无法生成有价值的分析)'
+		decision_info['recommendations'].append(
+			'检查OD数据与事件标签的匹配度，或验证edge_id是否与路网一致'
+		)
+
+	logger.info(f"EdgeData决策 (P2 v2): {decision_info['decision_reason']}")
+	logger.info(f"  - {decision_info['action']}")
+
+	return should_enable, decision_info
+
+
 def verify_edgedata_generation(simulation_folder: Path) -> bool:
 	"""
 	验证edgedata.xml是否成功生成
@@ -395,24 +470,51 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 			taz_rel_path = str(rel_to_config / taz_filename).replace('\\', '/')
 			taz_files.append(taz_rel_path)
 	
-	# 时间计算 (P1-3: 支持自定义simulation_duration)
-	# 优先使用自定义simulation_duration，否则从case元数据推导
-	if simulation_params.get('simulation_duration'):
-		# P1-3: 使用自定义仿真时长（以秒为单位）
-		duration = simulation_params['simulation_duration'].get('total_minutes', 240) * 60
-		print(f"使用自定义仿真时长: {simulation_params['simulation_duration']['total_minutes']} 分钟 = {duration} 秒")
-	else:
-		# 使用case元数据中的时间范围
-		time_range = case_metadata.get('time_range', {})
-		if time_range.get('start') and time_range.get('end'):
-			start_dt = parse_datetime(time_range['start'])
-			end_dt = parse_datetime(time_range['end'])
-			duration = int((end_dt - start_dt).total_seconds())
-			print(f"使用case元数据时间范围: {duration} 秒")
-		else:
-			# 默认时长: 1小时
-			duration = 3600
-			print(f"使用默认仿真时长: {duration} 秒")
+	# 时间计算 - 支持多种时间来源
+	# 优先级: duration_hours参数 > 时间范围推导 > 默认值
+	duration = None
+
+	# 方法1: 使用simulation_params中的duration_hours（小时制）
+	if simulation_params.get('duration_hours'):
+		duration = int(simulation_params['duration_hours'] * 3600)
+		logger.info(f"✓ 使用simulation_params的duration_hours: {simulation_params['duration_hours']}小时 = {duration}秒")
+		print(f"使用simulation参数时长: {simulation_params['duration_hours']}小时 = {duration}秒")
+
+	# 方法2: 使用case元数据中的时间范围 (支持多个位置)
+	if duration is None:
+		# 尝试多个位置查找time_range (支持不同的metadata结构)
+		time_range = None
+
+		# 位置1: 顶级 time_range
+		if 'time_range' in case_metadata:
+			time_range = case_metadata['time_range']
+		# 位置2: case_config 中的 time_range
+		elif 'case_config' in case_metadata and 'time_range' in case_metadata['case_config']:
+			time_range = case_metadata['case_config']['time_range']
+
+		if time_range:
+			# 支持新格式 (start_time/end_time) 和旧格式 (start/end)
+			start_key = 'start_time' if 'start_time' in time_range else 'start'
+			end_key = 'end_time' if 'end_time' in time_range else 'end'
+
+			if time_range.get(start_key) and time_range.get(end_key):
+				try:
+					start_dt = parse_datetime(time_range[start_key])
+					end_dt = parse_datetime(time_range[end_key])
+					duration = int((end_dt - start_dt).total_seconds())
+					logger.info(f"✓ 使用case元数据时间范围: {duration}秒")
+					logger.info(f"  - {start_key}: {time_range[start_key]}")
+					logger.info(f"  - {end_key}: {time_range[end_key]}")
+					print(f"使用case元数据时间范围: {duration}秒")
+				except Exception as e:
+					logger.warning(f"⚠️ 时间范围解析失败: {e}, 使用默认值")
+					duration = None
+
+	# 方法3: 默认时长 (1小时)
+	if duration is None:
+		duration = 3600
+		logger.warning(f"⚠️ 使用默认仿真时长: {duration}秒 (1小时)")
+		print(f"使用默认仿真时长: {duration}秒")
 	
 	# 处理 edgeData additional 文件
 	edgedata_files = []
@@ -422,66 +524,36 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 		edgedata_dir.mkdir(exist_ok=True)
 
 		try:
-			# ✅ Task 3.5: 智能边选择 - 从事件场景元数据提取相关边
-			relevant_edges = []
-			collection_mode = "full_network"  # 默认收集全路网
+			# ✅ IMPORTANT: 检查是否已经存在 case 级别的 edgeData.add.xml
+			# 该文件应该由 generate_edgedata_xml_for_case() 生成（事件场景情况）
+			# 或在案例初始化时创建（其他情况）
+			case_edgedata_path = case_root / "config" / "edgeData.add.xml"
 
-			# 检查是否是事件场景案例
-			if 'event_scenario' in case_metadata and 'event_location' in case_metadata['event_scenario']:
-				edge_id = case_metadata['event_scenario']['event_location'].get('edge_id')
-				if edge_id:
-					# 添加事件边
-					candidate_edges = [edge_id]
-					# 添加反向边（如 -3026 → 3026 或 3026 → -3026）
-					if edge_id.startswith('-'):
-						candidate_edges.append(edge_id[1:])
-					else:
-						candidate_edges.append(f"-{edge_id}")
+			if case_edgedata_path.exists():
+				# ✓ 使用已有的 edgeData.add.xml 配置（已聚合事件和策略的边缘）
+				logger.info(f"✓ 使用 case 级别的 edgeData.add.xml")
+				print(f"✓ 使用 case 级别的 edgeData.add.xml（已聚合的边缘配置）")
 
-					# ✅ PHASE 1.1: 验证边ID是否存在于路网中
-					network_file = case_root / "config" / case_metadata['files'].get('network_file', '')
-					if not network_file.exists():
-						# Try alternative network path
-						network_file = Path(case_metadata['files'].get('network_file', ''))
-						if not network_file.is_absolute():
-							network_file = case_root.parent.parent / network_file
+				# 复制到仿真目录
+				simulation_edgedata_path = simulation_folder / "edgeData.add.xml"
+				import shutil
+				shutil.copy2(case_edgedata_path, simulation_edgedata_path)
+				print(f"✓ EdgeData 配置已复制到仿真目录: {simulation_edgedata_path}")
 
-					validated_edges, invalid_edges = validate_edge_ids_in_network(candidate_edges, network_file)
+				edgedata_files.append("edgeData.add.xml")
+				print(f"✓ EdgeData 输出将生成在: {simulation_folder / 'edgedata' / 'edgedata.xml'}")
 
-					if invalid_edges:
-						logger.warning(f"Edge(s) {invalid_edges} not found in network - excluding from EdgeData collection")
-
-					if validated_edges:
-						relevant_edges = validated_edges
-						collection_mode = "event_edges"
-						print(f"✓ EdgeData 智能优化: 仅收集事件相关边 {relevant_edges}")
-						print(f"  - 性能提升: 数据量减少 99.98%, 仿真速度提升 15-30%")
-					else:
-						# All edges were invalid - fall back to full network
-						logger.warning("No valid event edges found - falling back to full network collection")
-						collection_mode = "full_network"
-
-			# 生成 edgeData.add.xml 内容
-			if relevant_edges:
-				# 智能模式：只收集事件相关边（性能优化）
-				edges_str = " ".join(relevant_edges)
-				template_content = (
-					'<?xml version="1.0" encoding="UTF-8"?>\n'
-					'<additional>\n'
-					'  <edgeData id="ed1"\n'
-					'    freq="300"\n'
-					'    file="edgedata/edgedata.xml"\n'
-					f'    edges="{edges_str}"\n'
-					'    excludeEmpty="true"\n'
-					'    withInternal="false"/>\n'
-					'</additional>'
-				)
-				print(f"✓ EdgeData 配置: 仅收集 {len(relevant_edges)} 条边（智能模式）")
 			else:
-				# 回退模式：收集全路网（兼容非事件场景）
+				# ⚠️  回退方案：如果 case 级别的 edgeData.add.xml 不存在，生成全路网模式的备份
+				# 这应该只发生在非事件场景或旧数据的兼容情况下
+				logger.warning("未找到 case 级别的 edgeData.add.xml，生成全路网备份配置")
+				print(f"⚠️  未找到已聚合的 edgeData 配置，使用全路网模式")
+
+				# 全路网模式：不指定 edges 属性，收集整个网络
 				template_content = (
 					'<?xml version="1.0" encoding="UTF-8"?>\n'
 					'<additional>\n'
+					'  <!-- EdgeData configuration - full network mode (fallback) -->\n'
 					'  <edgeData id="ed1"\n'
 					'    freq="300"\n'
 					'    file="edgedata/edgedata.xml"\n'
@@ -489,26 +561,26 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 					'    withInternal="false"/>\n'
 					'</additional>'
 				)
-				logger.debug("EdgeData configuration: collecting full network data (event edge info not detected)")
 
-			# 保存到 case 的 config 目录（与其他 .add.xml 文件一致）
-			config_edgedata_path = case_root / "config" / "edgeData.add.xml"
-			with open(config_edgedata_path, 'w', encoding='utf-8') as f:
-				f.write(template_content)
-			print(f"✓ EdgeData 配置文件已保存到 case config 目录: {config_edgedata_path}")
+				# 保存到 case 的 config 目录
+				config_edgedata_path = case_root / "config" / "edgeData.add.xml"
+				with open(config_edgedata_path, 'w', encoding='utf-8') as f:
+					f.write(template_content)
+				print(f"✓ 已生成备份 edgeData 配置: {config_edgedata_path}")
 
-			# 复制到仿真目录（与 TAZ 文件处理方式一致）
-			simulation_edgedata_path = simulation_folder / "edgeData.add.xml"
-			import shutil
-			shutil.copy2(config_edgedata_path, simulation_edgedata_path)
-			print(f"✓ EdgeData 配置文件已复制到仿真目录: {simulation_edgedata_path}")
+				# 复制到仿真目录
+				simulation_edgedata_path = simulation_folder / "edgeData.add.xml"
+				import shutil
+				shutil.copy2(config_edgedata_path, simulation_edgedata_path)
+				print(f"✓ EdgeData 配置已复制到仿真目录: {simulation_edgedata_path}")
 
-			edgedata_files.append("edgeData.add.xml")
-			print(f"EdgeData 输出将生成在: {simulation_folder / 'edgedata' / 'edgedata.xml'}")
-			print(f"EdgeData 收集模式: {collection_mode}")
+				edgedata_files.append("edgeData.add.xml")
+				print(f"✓ EdgeData 输出将生成在: {simulation_folder / 'edgedata' / 'edgedata.xml'}")
+				logger.warning("💡 建议：使用 generate_edgedata_xml_for_case() 生成特定场景的聚合边缘配置")
 
 		except Exception as e:
-			print(f"警告：edgeData.add.xml 生成失败: {e}")
+			logger.error(f"EdgeData.add.xml 处理失败: {e}")
+			print(f"⚠️  EdgeData 处理失败: {e}")
 	
 	# 处理管控策略additional文件（如果提供）
 	control_files = []
@@ -762,11 +834,26 @@ def generate_edgedata_xml_for_case(
 
 	print(f"✓ EdgeData 配置文件已保存: {config_edgedata_path}")
 
-	# 4. 返回结果
+	# 4. 智能决策：根据验证结果决定是否启用edgedata输出
+	validation_rate = validation.get('validation_rate', 0.0)
+	should_enable, decision_info = should_enable_edgedata_output(
+		edge_count=len(merged_edges),
+		validation_rate=validation_rate,
+		min_edge_threshold=10,  # 至少10条有效边
+		min_validation_rate=0.5   # 验证通过率至少50%
+	)
+
+	# 5. 返回结果（包含智能决策信息）
 	return {
 		'file_path': str(config_edgedata_path),
 		'edge_count': len(merged_edges),
 		'source_breakdown': source_breakdown,
 		'validation': validation,
-		'aggregation_result': aggregation_result
+		'aggregation_result': aggregation_result,
+		'edgedata_decision': {
+			'should_enable': should_enable,
+			'reason': decision_info['decision_reason'],
+			'action': decision_info['action'],
+			'details': decision_info
+		}
 	}
