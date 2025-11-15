@@ -1,0 +1,21 @@
+{
+  "event_id": "6120705",
+  "event_type": "流量激增工况",
+  "event_description": "流量激增事件，发生于G420151001000810010，持续30分钟",
+  "location": {
+    "road": "G4202成都一绕高速",
+    "direction": "内环",
+    "mileage": "",
+    "junction_id": "",
+    "edge_id": "-14078"
+  },
+  "time": {
+    "start_time": "2025-06-12 07:05:00",
+    "end_time": "2025-06-12 07:35:00",
+    "duration_hours": 0.5
+  },
+  "impact": {
+    "affected_lanes": [],
+    "lane_ids": []
+  }
+}

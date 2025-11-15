@@ -6,11 +6,11 @@ const pageSize = 20;
 let currentFilters = {
     eventType: 'all',
     strategy: 'all',
-    searchText: '',
-    hasOnlyCases: true
+    searchText: ''
 };
 let currentScenario = null;
 let scenarioCaseMap = {};  // 存储场景ID -> 案例信息的映射
+let currentView = 'table';  // 当前视图模式: 'table' 或 'event'
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -52,6 +52,13 @@ async function loadCreatedCases() {
                 }
 
                 console.log(`✓ 从scenario_index.json加载了 ${totalCases} 个案例，涉及 ${Object.keys(scenarioCaseMap).length} 个场景`);
+
+                // 更新已创建案例数统计卡片
+                const createdCasesElement = document.getElementById('createdCases');
+                if (createdCasesElement) {
+                    createdCasesElement.textContent = totalCases;
+                }
+
                 return; // 成功加载，直接返回
             }
         } catch (e) {
@@ -64,12 +71,21 @@ async function loadCreatedCases() {
         const data = await response.json();
         const allCases = (data.data?.cases || data.data?.items || data.cases || data.items || []);
 
-        // 过滤事件场景案例
-        const eventScenarioCases = allCases.filter(c =>
-            c.source_type === 'event_scenario' ||
-            c.case_type === 'event_scenario_case' ||
-            c.metadata_version === '2.0'  // v2.0元数据表示事件场景案例
-        );
+        // 过滤事件场景案例（包括所有事件场景类型）
+        const eventScenarioCases = allCases.filter(c => {
+            const sourceType = c.source_type || '';
+            const caseType = c.case_type || '';
+
+            // 检查多种事件场景案例标识：
+            // 1. source_type 包含 'event_scenario' (包括 'event_scenario' 和 'event_scenario_batch')
+            // 2. case_type 为 'event_based' (旧版本事件场景案例)
+            // 3. case_type 为 'event_scenario_case' (新版本事件场景案例)
+            // 4. metadata_version === '2.0' (v2.0元数据表示事件场景案例)
+            return sourceType.includes('event_scenario') ||
+                   caseType === 'event_based' ||
+                   caseType === 'event_scenario_case' ||
+                   c.metadata_version === '2.0';
+        });
 
         // 构建场景ID -> 案例信息的映射
         scenarioCaseMap = {};
@@ -104,13 +120,19 @@ async function loadCreatedCases() {
         }
 
         console.log(`✓ 从API加载了 ${eventScenarioCases.length} 个事件场景案例，涉及 ${Object.keys(scenarioCaseMap).length} 个场景`);
+
+        // 更新已创建案例数统计卡片
+        const createdCasesElement = document.getElementById('createdCases');
+        if (createdCasesElement) {
+            createdCasesElement.textContent = eventScenarioCases.length;
+        }
     } catch (error) {
         console.warn('加载已创建案例失败:', error);
         scenarioCaseMap = {};
     }
 }
 
-// 获取场景的创建状态显示
+// 获取场景的创建状态显示（三状态：未创建/生成中/已创建）
 function getScenarioStatusDisplay(scenario_id) {
     const cases = scenarioCaseMap[scenario_id] || [];
 
@@ -118,30 +140,49 @@ function getScenarioStatusDisplay(scenario_id) {
         return '<span class="status-badge status-none">— 未创建</span>';
     }
 
-    const caseItem = cases[0];
-    const status = caseItem.status || 'unknown';
+    // 检查最新案例的状态
+    const latestCase = cases[cases.length - 1];
+    const status = latestCase.status || 'unknown';
 
-    switch(status) {
-        case 'od_generating':
-            return '<span class="status-badge status-progress">⏳ 生成中</span>';
-        case 'processing':
-            // processing 也表示生成中（更通用的状态）
-            return '<span class="status-badge status-progress">⏳ 处理中</span>';
-        case 'od_generation_failed':
-            return '<span class="status-badge status-error">⚠️ 生成失败</span>';
-        case 'created':
-            return '<span class="status-badge status-success">✓ 已创建</span>';
-        case 'simulating':
-            return '<span class="status-badge status-running">▶️ 仿真中</span>';
-        case 'analyzing':
-            return '<span class="status-badge status-running">📊 分析中</span>';
-        case 'completed':
-            return '<span class="status-badge status-completed">✅ 已完成</span>';
-        case 'failed':
-            return '<span class="status-badge status-error">✗ 失败</span>';
-        default:
-            return `<span class="status-badge status-unknown">◯ ${status}</span>`;
+    // 如果正在生成OD，显示"生成中"
+    if (status === 'od_generating' || status === 'processing') {
+        return '<span class="status-badge status-progress">⏳ 生成中</span>';
     }
+
+    // 其他状态都显示"已创建"
+    return '<span class="status-badge status-success">✓ 已创建</span>';
+}
+
+// 检查场景是否已创建或生成中（用于按钮禁用逻辑）
+function isScenarioCreated(scenario_id) {
+    const cases = scenarioCaseMap[scenario_id] || [];
+    // 只要有案例（不管什么状态），都应该禁用创建按钮
+    return cases.length > 0;
+}
+
+// 获取禁用按钮的文本和提示
+function getDisabledButtonInfo(scenario_id) {
+    const cases = scenarioCaseMap[scenario_id] || [];
+    if (cases.length === 0) {
+        return null;
+    }
+
+    const latestCase = cases[cases.length - 1];
+    const status = latestCase.status || 'unknown';
+
+    // 如果正在生成，显示"生成中"
+    if (status === 'od_generating' || status === 'processing') {
+        return {
+            text: '生成中',
+            title: 'OD数据生成中，请稍候...'
+        };
+    }
+
+    // 其他状态显示"已创建"
+    return {
+        text: '已创建',
+        title: '该场景已创建案例'
+    };
 }
 
 // 获取状态的显示名称（文本）
@@ -255,8 +296,49 @@ function applyFilters() {
         return eventTypeMatch && strategyMatch && searchMatch;
     });
     currentPage = 1;
-    renderScenarios();
+    renderCurrentView();
     renderPagination();
+}
+
+// 根据当前视图模式渲染
+function renderCurrentView() {
+    if (currentView === 'table') {
+        renderScenarios();
+    } else {
+        renderEventView();
+    }
+}
+
+// 切换视图模式
+function switchView(viewMode) {
+    currentView = viewMode;
+
+    // 更新按钮状态
+    document.getElementById('tableViewBtn').classList.toggle('active', viewMode === 'table');
+    document.getElementById('eventViewBtn').classList.toggle('active', viewMode === 'event');
+
+    // 渲染相应视图
+    renderCurrentView();
+
+    // 事件卡片视图不需要分页
+    if (viewMode === 'event') {
+        document.getElementById('pagination').innerHTML = '';
+    } else {
+        renderPagination();
+    }
+}
+
+// 渲染事件卡片视图
+function renderEventView() {
+    // 更新匹配计数
+    document.getElementById('matchedCount').textContent = filteredScenarios.length;
+    document.getElementById('totalCount').textContent = allScenarios.length;
+
+    // 按事件分组
+    const eventGroups = groupScenariosByEvent(filteredScenarios);
+
+    // 渲染事件卡片
+    renderEventCards(eventGroups);
 }
 
 // 渲染场景表格
@@ -307,7 +389,14 @@ function renderScenarios() {
                         <td>
                             <div class="action-buttons">
                                 <button class="btn btn-sm btn-info" onclick="openScenarioDetailsModal('${s.scenario_id}')" title="查看场景详情">详情</button>
-                                <button class="btn btn-sm btn-primary" onclick="openCreateCaseModal('${s.scenario_id}', '${s.event_type}', '${s.strategy}')" title="创建仿真案例">创建</button>
+                                ${(() => {
+                                    const buttonInfo = getDisabledButtonInfo(s.scenario_id);
+                                    if (buttonInfo) {
+                                        return `<button class="btn btn-sm btn-secondary" disabled title="${buttonInfo.title}">${buttonInfo.text}</button>`;
+                                    } else {
+                                        return `<button class="btn btn-sm btn-primary" onclick="openCreateCaseModal('${s.scenario_id}', '${s.event_type}', '${s.strategy}')" title="创建仿真案例">创建</button>`;
+                                    }
+                                })()}
                             </div>
                         </td>
                     </tr>
@@ -316,6 +405,359 @@ function renderScenarios() {
         </table>
     `;
     document.getElementById('scenarioTable').innerHTML = html;
+}
+
+// ========== 事件分组功能（批量创建） ==========
+
+/**
+ * 按事件分组场景
+ * @param {Array} scenarios - 场景列表
+ * @returns {Array} - 分组后的事件数组，每个事件包含其所有场景
+ */
+function groupScenariosByEvent(scenarios) {
+    const eventGroups = {};
+
+    scenarios.forEach(scenario => {
+        const eventId = scenario.event_id;
+
+        if (!eventGroups[eventId]) {
+            eventGroups[eventId] = {
+                event_id: eventId,
+                event_type: scenario.event_type,
+                event_start: scenario.event_start,
+                event_end: scenario.event_end,
+                duration_hours: scenario.duration_hours,
+                road: scenario.road,
+                location: scenario.location,
+                scenarios: []
+            };
+        }
+
+        eventGroups[eventId].scenarios.push(scenario);
+    });
+
+    return Object.values(eventGroups);
+}
+
+/**
+ * 渲染事件卡片（用于批量创建）
+ * @param {Array} eventGroups - 事件分组数组
+ */
+function renderEventCards(eventGroups) {
+    if (eventGroups.length === 0) {
+        document.getElementById('scenarioTable').innerHTML = '<div class="empty-state">未找到匹配的事件</div>';
+        return;
+    }
+
+    const html = eventGroups.map(event => {
+        const scenarios = event.scenarios;
+        const hasNoControl = scenarios.some(s => s.strategy === 'NO_CONTROL' || s.strategy === '无管控');
+        const hasVSS = scenarios.some(s => s.strategy === 'VSS' || s.strategy === '可变限速标志');
+        const hasTEC = scenarios.some(s => s.strategy === 'TEC' || s.strategy === '收费站管控');
+        const hasDHS = scenarios.some(s => s.strategy === 'DHS' || s.strategy === '动态硬路肩');
+
+        // 检查该事件下是否已有案例创建
+        const hasCreatedCases = scenarios.some(s => {
+            const cases = scenarioCaseMap[s.scenario_id] || [];
+            return cases.length > 0;
+        });
+
+        const createdCount = scenarios.reduce((count, s) => {
+            const cases = scenarioCaseMap[s.scenario_id] || [];
+            return count + cases.length;
+        }, 0);
+
+        return `
+            <div class="event-card" data-event-id="${event.event_id}">
+                <div class="event-card-header">
+                    <div class="event-card-header-left">
+                        <input type="checkbox" class="event-checkbox" id="event_${event.event_id}"
+                               data-event-id="${event.event_id}" onchange="toggleEventSelection('${event.event_id}')">
+                        <label for="event_${event.event_id}" class="event-title">
+                            <strong>事件 ${event.event_id}</strong>
+                            <span class="badge badge-${getEventTypeClass(event.event_type)}">${getEventTypeDisplay(event.event_type)}</span>
+                        </label>
+                    </div>
+                    <div class="event-card-header-right">
+                        ${hasCreatedCases ? `<span class="badge badge-success">${createdCount}个案例已创建</span>` : ''}
+                    </div>
+                </div>
+                <div class="event-card-info">
+                    <div class="event-info-item">
+                        <strong>道路位置:</strong> ${event.road} - ${event.location}
+                    </div>
+                    <div class="event-info-item">
+                        <strong>事件时间:</strong> ${event.event_start} ~ ${event.event_end} (${event.duration_hours}h)
+                    </div>
+                    <div class="event-info-item">
+                        <strong>可用场景:</strong> ${scenarios.length} 个
+                    </div>
+                </div>
+                <div class="scenario-checkboxes">
+                    <div class="scenario-checkbox-group">
+                        ${hasNoControl ? `
+                        <label class="scenario-checkbox-label">
+                            <input type="checkbox" class="scenario-checkbox"
+                                   data-event-id="${event.event_id}"
+                                   data-scenario-id="${scenarios.find(s => s.strategy === 'NO_CONTROL' || s.strategy === '无管控').scenario_id}"
+                                   data-strategy="NO_CONTROL"
+                                   checked
+                                   onchange="validateScenarioSelection('${event.event_id}')">
+                            <span class="badge badge-secondary">无管控</span>
+                        </label>
+                        ` : ''}
+                        ${hasVSS ? `
+                        <label class="scenario-checkbox-label">
+                            <input type="checkbox" class="scenario-checkbox"
+                                   data-event-id="${event.event_id}"
+                                   data-scenario-id="${scenarios.find(s => s.strategy === 'VSS' || s.strategy === '可变限速标志').scenario_id}"
+                                   data-strategy="VSS"
+                                   checked
+                                   onchange="validateScenarioSelection('${event.event_id}')">
+                            <span class="badge badge-warning">可变限速</span>
+                        </label>
+                        ` : ''}
+                        ${hasTEC ? `
+                        <label class="scenario-checkbox-label">
+                            <input type="checkbox" class="scenario-checkbox"
+                                   data-event-id="${event.event_id}"
+                                   data-scenario-id="${scenarios.find(s => s.strategy === 'TEC' || s.strategy === '收费站管控').scenario_id}"
+                                   data-strategy="TEC"
+                                   checked
+                                   onchange="validateScenarioSelection('${event.event_id}')">
+                            <span class="badge badge-info">收费站管控</span>
+                        </label>
+                        ` : ''}
+                        ${hasDHS ? `
+                        <label class="scenario-checkbox-label">
+                            <input type="checkbox" class="scenario-checkbox"
+                                   data-event-id="${event.event_id}"
+                                   data-scenario-id="${scenarios.find(s => s.strategy === 'DHS' || s.strategy === '动态硬路肩').scenario_id}"
+                                   data-strategy="DHS"
+                                   checked
+                                   onchange="validateScenarioSelection('${event.event_id}')">
+                            <span class="badge badge-primary">动态硬路肩</span>
+                        </label>
+                        ` : ''}
+                    </div>
+                    <div id="warning_${event.event_id}" class="scenario-warning" style="display: none;">
+                        <span class="warning-icon">⚠️</span>
+                        <span>建议选择该事件下的所有场景，以生成完整的edgeData配置</span>
+                    </div>
+                </div>
+                <div class="event-card-actions">
+                    <button class="btn btn-sm btn-primary batch-create-btn"
+                            onclick="batchCreateEventCase('${event.event_id}')"
+                            title="批量创建选中的场景案例">
+                        批量创建
+                    </button>
+                    <button class="btn btn-sm btn-secondary preset-btn"
+                            onclick="selectAllScenarios('${event.event_id}')"
+                            title="选择所有场景">
+                        全选
+                    </button>
+                    <button class="btn btn-sm btn-secondary preset-btn"
+                            onclick="deselectAllScenarios('${event.event_id}')"
+                            title="取消所有选择">
+                        全不选
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('scenarioTable').innerHTML = html;
+}
+
+/**
+ * 切换事件选择状态
+ * @param {string} eventId - 事件ID
+ */
+function toggleEventSelection(eventId) {
+    const eventCheckbox = document.getElementById(`event_${eventId}`);
+    const scenarioCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]`);
+
+    scenarioCheckboxes.forEach(checkbox => {
+        checkbox.checked = eventCheckbox.checked;
+    });
+
+    validateScenarioSelection(eventId);
+}
+
+/**
+ * 验证场景选择完整性
+ * @param {string} eventId - 事件ID
+ */
+function validateScenarioSelection(eventId) {
+    const allCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]`);
+    const checkedCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]:checked`);
+
+    const warningBox = document.getElementById(`warning_${eventId}`);
+
+    if (checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length) {
+        // 部分选择 - 显示警告
+        warningBox.style.display = 'flex';
+    } else {
+        // 全选或全不选 - 隐藏警告
+        warningBox.style.display = 'none';
+    }
+
+    // 更新事件checkbox状态
+    const eventCheckbox = document.getElementById(`event_${eventId}`);
+    if (checkedCheckboxes.length === allCheckboxes.length) {
+        eventCheckbox.checked = true;
+        eventCheckbox.indeterminate = false;
+    } else if (checkedCheckboxes.length === 0) {
+        eventCheckbox.checked = false;
+        eventCheckbox.indeterminate = false;
+    } else {
+        eventCheckbox.indeterminate = true;
+    }
+}
+
+/**
+ * 选择所有场景
+ * @param {string} eventId - 事件ID
+ */
+function selectAllScenarios(eventId) {
+    const scenarioCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]`);
+    scenarioCheckboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    validateScenarioSelection(eventId);
+}
+
+/**
+ * 取消所有场景选择
+ * @param {string} eventId - 事件ID
+ */
+function deselectAllScenarios(eventId) {
+    const scenarioCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]`);
+    scenarioCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    validateScenarioSelection(eventId);
+}
+
+/**
+ * 批量创建事件案例
+ * @param {string} eventId - 事件ID
+ */
+async function batchCreateEventCase(eventId) {
+    const checkedCheckboxes = document.querySelectorAll(`.scenario-checkbox[data-event-id="${eventId}"]:checked`);
+
+    if (checkedCheckboxes.length === 0) {
+        alert('请至少选择一个场景');
+        return;
+    }
+
+    // 获取选中的场景信息
+    const selectedScenarios = [];
+    for (const checkbox of checkedCheckboxes) {
+        const scenarioId = checkbox.dataset.scenarioId;
+        const scenario = allScenarios.find(s => s.scenario_id === scenarioId);
+        if (scenario) {
+            selectedScenarios.push(scenario);
+        }
+    }
+
+    if (selectedScenarios.length === 0) {
+        alert('未找到选中的场景信息');
+        return;
+    }
+
+    // 提取所有场景的参数
+    try {
+        const scenarioParams = [];
+        for (const scenario of selectedScenarios) {
+            const params = await extractScenarioParameters(scenario);
+            scenarioParams.push(params);
+        }
+
+        // 构建确认消息
+        const eventInfo = selectedScenarios[0];
+        const strategyList = scenarioParams.map(p => getStrategyDisplay(p.strategy)).join(', ');
+
+        const confirmMessage = `确认批量创建以下案例？\n\n` +
+            `事件: ${eventId}\n` +
+            `事件类型: ${getEventTypeDisplay(eventInfo.event_type)}\n` +
+            `道路位置: ${eventInfo.road}\n` +
+            `场景数量: ${selectedScenarios.length} 个\n` +
+            `策略: ${strategyList}\n\n` +
+            `将为每个场景创建独立的仿真案例。`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // 构建批量创建请求
+        // 注意：使用第一个场景的仿真时间范围（OD时间范围，包含事件前后buffer）
+        // 这些时间来自 traffic_input_config.json 的 od_time_range.start/end
+        const requestData = {
+            event_id: eventId,
+            event_type: mapEventTypeToFolder(eventInfo.event_type),  // 映射为英文文件夹名
+            scenarios: scenarioParams,
+            // 使用系统默认配置（与表格视图创建一致）
+            network_file: "templates/network_files/sichuan202508v7.net.xml",
+            od_file: "dwd.dwd_od_weekly",
+            taz_file: "templates/taz_files/TAZ_6.add.xml",
+            time_range: {
+                start_time: scenarioParams[0].time.sim_start_time,  // OD开始时间（事件前30分钟）
+                end_time: scenarioParams[0].time.sim_end_time        // OD结束时间（事件后30分钟）
+            },
+            simulation_type: "microscopic",
+            random_seed: null
+        };
+
+        // 调用批量创建API
+        const response = await fetch('/api/v1/scenario/create-case-batch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+
+            // 显示成功消息
+            const successMsg = `✓ 批量创建成功！\n\n` +
+                `案例ID: ${result.case_id}\n` +
+                `事件: ${result.event_id}\n` +
+                `成功创建: ${result.successful_scenarios}/${result.total_scenarios} 个场景\n` +
+                `失败: ${result.failed_scenarios} 个\n\n` +
+                `EdgeData监测:\n` +
+                `- 总边缘数: ${result.edgedata_info?.edge_count || 0}\n` +
+                `- 事件边缘: ${result.edgedata_info?.event_edges || 0}\n` +
+                `- 策略边缘: ${result.edgedata_info?.strategy_edges || 0}\n\n` +
+                `耗时: ${result.duration_seconds?.toFixed(2)}秒`;
+
+            alert(successMsg);
+
+            // 刷新数据
+            loadCreatedCases();
+            applyFilters();
+
+            // 如果有失败的场景，显示详情
+            if (result.failed_scenarios > 0) {
+                const failedScenarios = result.scenario_results
+                    .filter(r => !r.success)
+                    .map(r => `- ${r.scenario_id}: ${r.error_message}`)
+                    .join('\n');
+
+                console.warn('部分场景创建失败:\n' + failedScenarios);
+            }
+
+        } else {
+            const error = await response.json();
+            alert(`✗ 批量创建失败: ${error.detail || error.message || '未知错误'}`);
+        }
+
+    } catch (error) {
+        console.error('批量创建失败:', error);
+        alert(`✗ 批量创建失败: ${error.message}`);
+    }
 }
 
 // 渲染分页
@@ -372,11 +814,14 @@ async function submitAnalysis() {
     }
 
     const caseName = document.getElementById('analysisCaseName').value;
+    // 映射中文事件类型到英文文件夹名称
+    const mappedEventTypeForAnalysis = mapEventTypeToFolder(currentScenario.event_type);
+
     const analysisConfig = {
         case_name: caseName || `analysis_${currentScenario.scenario_id}_${Date.now()}`,
         scenario_id: currentScenario.scenario_id,
         event_id: currentScenario.event_id,
-        event_type: currentScenario.event_type,
+        event_type: mappedEventTypeForAnalysis,
         control_strategy: currentScenario.strategy,
         compare_no_control: document.getElementById('compareNoControl').checked,
         analysis_focus: {
@@ -436,7 +881,6 @@ async function loadCsvFileList() {
 async function submitCsvUpload() {
     const csvFile = document.getElementById('csvFileSelect').value;
     const generateAllStrategies = document.getElementById('generateAllStrategies').checked;
-    const targetCount = document.getElementById('targetScenarioCount').value;
 
     if (!csvFile) {
         alert('请选择CSV文件');
@@ -445,13 +889,12 @@ async function submitCsvUpload() {
 
     const uploadConfig = {
         csv_file: csvFile,
-        generate_all_strategies: generateAllStrategies,
-        target_scenario_count: parseInt(targetCount)
+        generate_all_strategies: generateAllStrategies
     };
 
     try {
         // 显示进度提示
-        alert(`🔄 场景生成已提交\n\nCSV文件: ${csvFile}\n预期场景数: ${targetCount}×${generateAllStrategies ? '3' : '1'}\n\n后端处理中，请稍候...`);
+        alert(`🔄 场景生成已提交\n\nCSV文件: ${csvFile}\n策略类型: ${generateAllStrategies ? '全部策略（VSS/DHS/TEC）' : '无管控基础场景'}\n\n后端处理中，请稍候...`);
 
         const response = await fetch('/api/v1/scenario/generate-from-csv', {
             method: 'POST',
@@ -493,15 +936,6 @@ function setupEventListeners() {
         currentFilters.searchText = e.target.value.toLowerCase();
         applyFilters();
     });
-
-    // "只显示有案例的类别" 复选框
-    const hasOnlyCasesCheckbox = document.getElementById('hasOnlyCases');
-    if (hasOnlyCasesCheckbox) {
-        hasOnlyCasesCheckbox.addEventListener('change', (e) => {
-            currentFilters.hasOnlyCases = e.target.checked;
-            applyFilters();
-        });
-    }
 
     // 点击模态框背景关闭
     document.querySelectorAll('.modal').forEach(modal => {
@@ -558,7 +992,8 @@ function getEventTypeDisplay(type) {
         '交通管制': '交通管制',
         '地质灾害': '地质灾害',
         '车辆故障': '路面异常',  // 前端显示别名
-        '恶劣天气': '恶劣天气'
+        '恶劣天气': '恶劣天气',
+        '流量激增工况': '流量激增工况'
     };
     return map[type] || type;
 }
@@ -570,7 +1005,8 @@ function getEventTypeClass(type) {
         '交通管制': 'control',
         '地质灾害': 'geological',
         '车辆故障': 'breakdown',
-        '恶劣天气': 'weather'
+        '恶劣天气': 'weather',
+        '流量激增工况': 'traffic-surge'
     };
     return map[type] || 'control';
 }
@@ -798,11 +1234,14 @@ async function directCreateCase(scenarioId, eventType, strategy) {
     }
 
     // 3. 准备API请求数据
+    // 映射中文事件类型到英文文件夹名称
+    const mappedEventTypeForCreate = mapEventTypeToFolder(currentScenario.event_type);
+
     const requestData = {
         case_name: `case_${currentScenario.scenario_id}_${Date.now()}`,
         scenario_id: currentScenario.scenario_id,
         event_id: currentScenario.event_id,
-        event_type: currentScenario.event_type,
+        event_type: mappedEventTypeForCreate,
         strategy: currentScenario.strategy || currentScenario.control_strategy,
         network_file: 'templates/network_files/sichuan202508v7.net.xml',
         od_file: 'dwd.dwd_od_weekly',  // 完整的schema.table格式用于数据库引用
@@ -896,6 +1335,196 @@ async function directCreateCase(scenarioId, eventType, strategy) {
     }
 }
 
+// ========== 统一参数提取函数 ==========
+
+/**
+ * 统一参数提取函数 - 从场景JSON文件中提取所有创建案例所需的参数
+ * 用于批量创建和快速创建，确保参数提取的一致性
+ * @param {object} scenario - 场景对象（来自allScenarios）
+ * @returns {Promise<object>} - 提取的参数对象
+ */
+async function extractScenarioParameters(scenario) {
+    const scenarioId = scenario.scenario_id;
+    const eventType = scenario.event_type || '交通事故';
+    const strategy = scenario.strategy || 'NO_CONTROL';
+
+    // 映射事件类型到文件夹
+    const eventFolder = mapEventTypeToFolder(eventType);
+    const scenarioDir = scenarioId;
+
+    // 初始化参数对象（带默认值）
+    const params = {
+        scenario_id: scenarioId,
+        event_id: scenario.event_id || 'unknown',
+        event_type: eventType,
+        strategy: strategy,
+
+        // 位置信息（默认值）
+        event_location: {
+            road: '未知',
+            direction: '未知',
+            mileage: '未知',
+            edge_id: '未知',
+            junction_id: '未知'
+        },
+
+        // 时间信息（默认值）
+        time: {
+            event_start_time: '未知',
+            event_end_time: '未知',
+            event_duration_hours: 0,
+            sim_start_time: '未知',
+            sim_end_time: '未知',
+            sim_duration_hours: 0
+        },
+
+        // 输出配置（默认值）
+        output_config: {
+            generate_edgedata: true,
+            generate_summary: true,
+            generate_tripinfo: true,
+            generate_vehroute: false
+        },
+
+        // 管控策略参数（可选）
+        control_strategy: null
+    };
+
+    // 1. 加载事件描述信息（event_description.json）
+    try {
+        const eventDescUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/event_description.json`;
+        const eventDescResponse = await fetch(eventDescUrl);
+
+        if (eventDescResponse.ok) {
+            const eventDesc = await eventDescResponse.json();
+
+            // 填充位置信息
+            if (eventDesc.location) {
+                params.event_location = {
+                    road: eventDesc.location.road || '未知',
+                    direction: eventDesc.location.direction || '未知',
+                    mileage: eventDesc.location.mileage || '未知',
+                    edge_id: eventDesc.location.edge_id || '未知',
+                    junction_id: eventDesc.location.junction_id || '未知'
+                };
+            }
+        } else {
+            console.warn(`加载event_description.json失败: ${eventDescUrl}`);
+        }
+    } catch (error) {
+        console.warn('加载event_description.json异常:', error);
+    }
+
+    // 2. 提取事件时间信息（从scenario对象）
+    if (scenario.time && typeof scenario.time === 'object') {
+        params.time.event_start_time = scenario.time.start_time || '未知';
+        params.time.event_end_time = scenario.time.end_time || '未知';
+        params.time.event_duration_hours = scenario.time.duration_hours || 0;
+    } else {
+        params.time.event_start_time = scenario.event_start || '未知';
+        params.time.event_end_time = scenario.event_end || '未知';
+        params.time.event_duration_hours = scenario.duration_hours || 0;
+    }
+
+    // 3. 加载仿真配置信息（traffic_input_config.json）
+    try {
+        const trafficConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/traffic_input_config.json`;
+        const trafficResponse = await fetch(trafficConfigUrl);
+
+        if (trafficResponse.ok) {
+            const trafficConfig = await trafficResponse.json();
+
+            // 填充仿真时间信息
+            if (trafficConfig.od_time_range) {
+                params.time.sim_start_time = trafficConfig.od_time_range.start || '未知';
+                params.time.sim_end_time = trafficConfig.od_time_range.end || '未知';
+            }
+
+            // 填充仿真时长
+            if (trafficConfig.simulation_duration_hours !== undefined) {
+                params.time.sim_duration_hours = trafficConfig.simulation_duration_hours;
+            }
+        } else {
+            console.warn(`加载traffic_input_config.json失败: ${trafficConfigUrl}`);
+        }
+    } catch (error) {
+        console.warn('加载traffic_input_config.json异常:', error);
+    }
+
+    // 4. 加载管控策略配置（control_strategy_config.json）
+    if (strategy !== 'NO_CONTROL' && strategy !== '无管控') {
+        try {
+            const strategyConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/control_strategy_config.json`;
+            const strategyResponse = await fetch(strategyConfigUrl);
+
+            if (strategyResponse.ok) {
+                const strategyConfig = await strategyResponse.json();
+
+                params.control_strategy = {
+                    strategy_type: strategyConfig.strategy_type || strategyConfig.strategy_name || '未知',
+                    strategy_name: strategyConfig.strategy_name || strategyConfig.strategy_type || '未知',
+                    timing: {
+                        activation_time: strategyConfig.timing?.activation_time || '未知',
+                        deactivation_time: strategyConfig.timing?.deactivation_time || '未知',
+                        response_delay_minutes: strategyConfig.timing?.response_delay_minutes || 0
+                    },
+                    parameters: strategyConfig.parameters || {}
+                };
+            } else {
+                console.warn(`加载control_strategy_config.json失败: ${strategyConfigUrl}`);
+            }
+        } catch (error) {
+            console.warn('加载control_strategy_config.json异常:', error);
+        }
+    }
+
+    // 5. 验证参数完整性
+    const validation = validateParameters(params);
+    if (!validation.valid) {
+        console.warn('参数验证警告:', validation.warnings);
+    }
+
+    return params;
+}
+
+/**
+ * 验证参数完整性
+ * @param {object} params - 参数对象
+ * @returns {object} - 验证结果 {valid: boolean, warnings: array}
+ */
+function validateParameters(params) {
+    const warnings = [];
+
+    // 检查必需字段
+    if (!params.scenario_id || params.scenario_id === 'unknown') {
+        warnings.push('场景ID缺失');
+    }
+
+    if (!params.event_id || params.event_id === 'unknown') {
+        warnings.push('事件ID缺失');
+    }
+
+    if (params.event_location.edge_id === '未知') {
+        warnings.push('事件edge_id缺失');
+    }
+
+    if (params.time.sim_duration_hours === 0) {
+        warnings.push('仿真时长为0或未设置');
+    }
+
+    // 检查管控策略参数（如果有管控）
+    if (params.strategy !== 'NO_CONTROL' && params.strategy !== '无管控') {
+        if (!params.control_strategy) {
+            warnings.push('管控策略配置缺失');
+        }
+    }
+
+    return {
+        valid: warnings.length === 0,
+        warnings: warnings
+    };
+}
+
 // ========== 统一案例+仿真创建模态框函数 ==========
 
 /**
@@ -904,7 +1533,7 @@ async function directCreateCase(scenarioId, eventType, strategy) {
  * @param {string} eventType - 事件类型
  * @param {string} strategy - 管控策略
  */
-function openCreateCaseModal(scenarioId, eventType, strategy) {
+async function openCreateCaseModal(scenarioId, eventType, strategy) {
     // 查找完整的场景信息
     currentScenario = allScenarios.find(s => s.scenario_id === scenarioId);
 
@@ -935,12 +1564,49 @@ function openCreateCaseModal(scenarioId, eventType, strategy) {
         // 否则继续创建新案例
     }
 
-    // 填充场景信息（只读部分）
+    // 填充基本场景信息
     document.getElementById('caseCreation_scenarioId').value = scenarioId;
+    document.getElementById('caseCreation_eventId').value = currentScenario.event_id || '未知';
     document.getElementById('caseCreation_eventType').value = getEventTypeDisplay(eventType) || eventType;
     document.getElementById('caseCreation_strategy').value = getStrategyDisplay(strategy) || strategy;
 
-    // 格式化时间范围显示
+    // 获取事件文件夹和场景目录
+    // 使用 mapEventTypeToFolder 将中文事件类型映射到英文文件夹名称
+    const eventTypeChina = currentScenario.event_type || '交通事故';
+    const eventFolder = mapEventTypeToFolder(eventTypeChina);
+    const scenarioDir = currentScenario.scenario_id;
+
+    // 加载事件描述信息（位置信息）
+    try {
+        const eventDescUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/event_description.json`;
+        const eventDescResponse = await fetch(eventDescUrl);
+
+        if (eventDescResponse.ok) {
+            const eventDesc = await eventDescResponse.json();
+
+            // 填充位置信息
+            document.getElementById('caseCreation_road').value = eventDesc.location?.road || '未知';
+            document.getElementById('caseCreation_direction').value = eventDesc.location?.direction || '未知';
+            document.getElementById('caseCreation_mileage').value = eventDesc.location?.mileage || '未知';
+            document.getElementById('caseCreation_edgeId').value = eventDesc.location?.edge_id || '未知';
+            document.getElementById('caseCreation_junctionId').value = eventDesc.location?.junction_id || '未知';
+        } else {
+            document.getElementById('caseCreation_road').value = '加载失败';
+            document.getElementById('caseCreation_direction').value = '加载失败';
+            document.getElementById('caseCreation_mileage').value = '加载失败';
+            document.getElementById('caseCreation_edgeId').value = '加载失败';
+            document.getElementById('caseCreation_junctionId').value = '加载失败';
+        }
+    } catch (error) {
+        console.warn('加载事件描述失败:', error);
+        document.getElementById('caseCreation_road').value = '加载失败';
+        document.getElementById('caseCreation_direction').value = '加载失败';
+        document.getElementById('caseCreation_mileage').value = '加载失败';
+        document.getElementById('caseCreation_edgeId').value = '加载失败';
+        document.getElementById('caseCreation_junctionId').value = '加载失败';
+    }
+
+    // 格式化事件时间
     let startTime = '未知';
     let endTime = '未知';
     let duration = '未知';
@@ -955,9 +1621,132 @@ function openCreateCaseModal(scenarioId, eventType, strategy) {
         duration = currentScenario.duration_hours || duration;
     }
 
-    const displayStart = typeof startTime === 'string' ? startTime.substring(0, 19) : startTime;
-    const displayEnd = typeof endTime === 'string' ? endTime.substring(0, 19) : endTime;
-    document.getElementById('caseCreation_timeRange').value = `${displayStart} ~ ${displayEnd} (${duration}h)`;
+    document.getElementById('caseCreation_eventStartTime').value = startTime;
+    document.getElementById('caseCreation_eventEndTime').value = endTime;
+    document.getElementById('caseCreation_eventDuration').value = duration ? `${duration}小时` : '未知';
+
+    // 加载仿真配置信息（从traffic_input_config.json）
+    try {
+        const trafficConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/traffic_input_config.json`;
+        const trafficResponse = await fetch(trafficConfigUrl);
+
+        if (trafficResponse.ok) {
+            const trafficConfig = await trafficResponse.json();
+
+            // 填充仿真时间信息
+            if (trafficConfig.od_time_range) {
+                document.getElementById('caseCreation_simStartTime').value =
+                    trafficConfig.od_time_range.start || '未知';
+                document.getElementById('caseCreation_simEndTime').value =
+                    trafficConfig.od_time_range.end || '未知';
+            } else {
+                document.getElementById('caseCreation_simStartTime').value = '未知';
+                document.getElementById('caseCreation_simEndTime').value = '未知';
+            }
+
+            // 填充仿真时长
+            if (trafficConfig.simulation_duration_hours !== undefined) {
+                document.getElementById('caseCreation_simDuration').value =
+                    `${trafficConfig.simulation_duration_hours}小时`;
+            } else {
+                document.getElementById('caseCreation_simDuration').value = '未知';
+            }
+
+        } else {
+            // 配置文件不存在，使用默认值
+            document.getElementById('caseCreation_simStartTime').value = '配置文件不存在';
+            document.getElementById('caseCreation_simEndTime').value = '配置文件不存在';
+            document.getElementById('caseCreation_simDuration').value = '配置文件不存在';
+        }
+    } catch (error) {
+        console.warn('加载traffic_input_config.json失败:', error);
+        document.getElementById('caseCreation_simStartTime').value = '加载失败';
+        document.getElementById('caseCreation_simEndTime').value = '加载失败';
+        document.getElementById('caseCreation_simDuration').value = '加载失败';
+    }
+
+    // 加载管控策略配置（从 control_strategy_config.json）
+    // 先隐藏所有策略特定参数区域
+    document.getElementById('caseCreation_vssParams').style.display = 'none';
+    document.getElementById('caseCreation_tecParams').style.display = 'none';
+    document.getElementById('caseCreation_dhsParams').style.display = 'none';
+
+    // 如果是NO_CONTROL策略，隐藏整个管控策略部分
+    if (strategy === 'NO_CONTROL' || strategy === '无管控') {
+        document.getElementById('caseCreation_controlStrategySection').style.display = 'none';
+    } else {
+        // 有管控策略，显示并加载配置
+        document.getElementById('caseCreation_controlStrategySection').style.display = 'block';
+
+        try {
+            const strategyConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/control_strategy_config.json`;
+            const strategyResponse = await fetch(strategyConfigUrl);
+
+            if (strategyResponse.ok) {
+                const strategyConfig = await strategyResponse.json();
+
+                // 填充基本策略信息
+                const strategyType = strategyConfig.strategy_type || strategyConfig.strategy_name || '未知';
+                const strategyName = strategyConfig.strategy_name || strategyConfig.strategy_type || '未知';
+
+                document.getElementById('caseCreation_strategyType').value = strategyType;
+                document.getElementById('caseCreation_strategyName').value = strategyName;
+
+                // 填充时间信息
+                if (strategyConfig.timing) {
+                    document.getElementById('caseCreation_activationTime').value =
+                        strategyConfig.timing.activation_time || '未知';
+                    document.getElementById('caseCreation_deactivationTime').value =
+                        strategyConfig.timing.deactivation_time || '未知';
+                    document.getElementById('caseCreation_responseDelay').value =
+                        strategyConfig.timing.response_delay_minutes !== undefined ?
+                        `${strategyConfig.timing.response_delay_minutes}分钟` : '未知';
+                } else {
+                    document.getElementById('caseCreation_activationTime').value = '未知';
+                    document.getElementById('caseCreation_deactivationTime').value = '未知';
+                    document.getElementById('caseCreation_responseDelay').value = '未知';
+                }
+
+                // 根据策略类型显示和填充相应的参数
+                const params = strategyConfig.parameters || {};
+
+                if (strategyType === 'VSS' || strategyType === '可变限速标志') {
+                    document.getElementById('caseCreation_vssParams').style.display = 'block';
+                    const speedLimit = params.speed_limit_kmh || params.speed_limit || '未知';
+                    document.getElementById('caseCreation_speedLimit').value =
+                        speedLimit !== '未知' ? `${speedLimit} km/h` : speedLimit;
+
+                } else if (strategyType === 'TEC' || strategyType === '收费站管控') {
+                    document.getElementById('caseCreation_tecParams').style.display = 'block';
+
+                    if (params.flow_reduction !== undefined) {
+                        const reductionPercent = (params.flow_reduction * 100).toFixed(0);
+                        document.getElementById('caseCreation_flowReduction').value =
+                            `${reductionPercent}% (削减比例: ${params.flow_reduction})`;
+                    } else {
+                        document.getElementById('caseCreation_flowReduction').value = '未知';
+                    }
+
+                } else if (strategyType === 'DHS' || strategyType === '动态硬路肩') {
+                    document.getElementById('caseCreation_dhsParams').style.display = 'block';
+
+                    if (params.shoulder_lanes && Array.isArray(params.shoulder_lanes)) {
+                        document.getElementById('caseCreation_shoulderLanes').value =
+                            params.shoulder_lanes.join(', ');
+                    } else {
+                        document.getElementById('caseCreation_shoulderLanes').value = '未知';
+                    }
+                }
+            } else {
+                // 配置文件不存在，隐藏管控策略部分
+                document.getElementById('caseCreation_controlStrategySection').style.display = 'none';
+            }
+        } catch (error) {
+            console.warn('加载control_strategy_config.json失败:', error);
+            // 加载失败，隐藏管控策略部分
+            document.getElementById('caseCreation_controlStrategySection').style.display = 'none';
+        }
+    }
 
     // 重置输出配置为默认值
     document.getElementById('caseCreation_edgedata').checked = true;
@@ -989,25 +1778,29 @@ async function submitCreateCaseWithSimulation() {
         generate_vehroute: false  // 始终禁用
     };
 
-    // 准备请求数据（使用默认值）
+    // 准备请求数据
+    // 映射中文事件类型到英文文件夹名称 (e.g., '流量激增工况' → '07_flowsurge')
+    const mappedEventType = mapEventTypeToFolder(currentScenario.event_type);
+
     const requestData = {
         scenario_id: currentScenario.scenario_id,
         event_id: currentScenario.event_id,
-        event_type: currentScenario.event_type,
+        event_type: mappedEventType,
         strategy: currentScenario.strategy || currentScenario.control_strategy,
 
         // 自动生成案例名称
         case_name: null,  // 后端会自动生成
 
-        // 使用默认仿真参数
-        simulation_duration_hours: 2.5,
+        // 使用默认仿真参数（系统自动从traffic_input_config.json获取）
+        simulation_duration_hours: 2.5,  // 默认值，后端会从配置文件覆盖
         random_seed: null,  // 自动生成
         simulation_type: 'microscopic',  // 使用微观仿真
         output_config: outputConfig,
 
+        // 系统固定配置
         network_file: 'templates/network_files/sichuan202508v7.net.xml',
         od_file: 'dwd.dwd_od_weekly',
-        taz_file: null,
+        taz_file: 'templates/taz_files/TAZ_6.add.xml',  // ✅ Task 3.6: 使用默认 TAZ + E1 检测器文件
         description: `从场景 ${currentScenario.scenario_id} 创建的案例`
     };
 
@@ -1037,6 +1830,9 @@ async function submitCreateCaseWithSimulation() {
         const caseId = result.data?.case_id;
         const simulationId = result.data?.simulation_id;
         const caseStatus = result.data?.case_status;
+        const isNewCase = result.data?.is_new_case;
+        const odGenerationStatus = result.data?.od_generation_status;
+        const caseType = result.data?.case_type;
 
         if (!caseId) {
             throw new Error('未获得案例 ID');
@@ -1053,7 +1849,7 @@ async function submitCreateCaseWithSimulation() {
         scenarioCaseMap[scenarioId].push({
             case_id: caseId,
             case_name: caseId,  // 使用自动生成的ID
-            status: caseStatus || 'ready_to_simulate',
+            status: caseStatus || 'od_generating',  // 默认状态应该是od_generating而不是ready_to_simulate
             created_at: new Date().toISOString(),
             source_scenario: scenarioId
         });
@@ -1061,11 +1857,48 @@ async function submitCreateCaseWithSimulation() {
         // 刷新表格以显示更新的状态
         renderScenarios();
 
-        // 显示成功信息
-        const successMessage = `✓ 仿真案例创建成功！\n\n` +
-                               `案例 ID: ${caseId}\n` +
-                               `仿真 ID: ${simulationId || 'N/A'}\n\n` +
-                               `✓ 案例和仿真配置已准备就绪`;
+        // 根据is_new_case显示不同的消息
+        let successMessage = '';
+
+        if (caseType === 'event_based') {
+            // Event-based案例：区分新建和复用
+            if (isNewCase) {
+                // 新建案例
+                successMessage = `✅ 创建新案例: ${caseId}\n\n`;
+
+                if (odGenerationStatus === 'in_progress') {
+                    successMessage += `⏳ OD数据生成中，预计需要3-5分钟...\n`;
+                    successMessage += `📊 生成完成后可启动仿真\n\n`;
+                } else {
+                    successMessage += `✅ OD数据已就绪\n\n`;
+                }
+
+                successMessage += `✅ 仿真已创建: ${simulationId || 'N/A'}\n\n`;
+                successMessage += `💡 提示: 同一事件的其他策略场景将复用此案例配置`;
+            } else {
+                // 复用已有案例
+                successMessage = `✅ 复用已有案例: ${caseId}\n\n`;
+                successMessage += `💡 配置文件已存在，跳过OD生成\n`;
+                successMessage += `✅ 仿真已创建: ${simulationId || 'N/A'}\n`;
+                successMessage += `🚀 仿真已就绪，可以立即启动\n\n`;
+                successMessage += `⚡ 提示: 案例复用节省了3-5分钟的OD生成时间`;
+            }
+        } else {
+            // Time-based案例：传统消息
+            let statusMessage = '';
+            if (caseStatus === 'od_generating') {
+                statusMessage = '⏳ OD数据生成中，完成后可启动仿真';
+            } else {
+                statusMessage = '✅ 案例已准备就绪';
+            }
+
+            successMessage = `✅ 仿真案例创建成功！\n\n` +
+                           `案例 ID: ${caseId}\n` +
+                           `仿真 ID: ${simulationId || 'N/A'}\n` +
+                           `状态: ${statusMessage}`;
+        }
+
+        successMessage += `\n\n请前往案例管理页面查看和启动仿真`;
         alert(successMessage);
 
     } catch (error) {
@@ -1102,12 +1935,14 @@ function mapEventTypeToFolder(eventType) {
         '交通事故': '01_accident',
         '交通阻塞': '02_congestion',
         '交通管制': '03_road_control',
+        '地质灾害': '04_geological',
+        '车辆故障': '05_breakdown',
         '恶劣天气': '06_weather',
         '路面异常': '06_weather',
+        '流量激增工况': '07_flowsurge',
         // 备选/兼容名称
         '拥堵': '02_congestion',
-        '道路管制': '03_road_control',
-        '车辆故障': '05_breakdown'
+        '道路管制': '03_road_control'
     };
     return eventTypeMap[eventType] || '01_accident';
 }
@@ -1202,6 +2037,285 @@ async function openScenarioDetailsModal(scenarioId) {
         document.getElementById('scenarioDetails_startTime').value = startTime;
         document.getElementById('scenarioDetails_endTime').value = endTime;
         document.getElementById('scenarioDetails_duration').value = `${duration}h`;
+
+        // 加载仿真时间信息（从traffic_input_config.json）
+        try {
+            const trafficConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/traffic_input_config.json`;
+            const trafficResponse = await fetch(trafficConfigUrl);
+
+            if (trafficResponse.ok) {
+                const trafficConfig = await trafficResponse.json();
+
+                if (trafficConfig.od_time_range) {
+                    const simStart = trafficConfig.od_time_range.start || '未知';
+                    const simEnd = trafficConfig.od_time_range.end || '未知';
+
+                    document.getElementById('scenarioDetails_simStartTime').value = simStart;
+                    document.getElementById('scenarioDetails_simEndTime').value = simEnd;
+                } else {
+                    document.getElementById('scenarioDetails_simStartTime').value = '未知';
+                    document.getElementById('scenarioDetails_simEndTime').value = '未知';
+                }
+
+                // 显示仿真时长
+                if (trafficConfig.simulation_duration_hours !== undefined) {
+                    const durationHours = trafficConfig.simulation_duration_hours;
+                    document.getElementById('scenarioDetails_simDuration').value = `${durationHours}小时`;
+                } else {
+                    document.getElementById('scenarioDetails_simDuration').value = '未知';
+                }
+            } else {
+                document.getElementById('scenarioDetails_simStartTime').value = '配置文件不存在';
+                document.getElementById('scenarioDetails_simEndTime').value = '配置文件不存在';
+                document.getElementById('scenarioDetails_simDuration').value = '配置文件不存在';
+            }
+        } catch (trafficError) {
+            console.warn('加载traffic_input_config.json失败:', trafficError);
+            document.getElementById('scenarioDetails_simStartTime').value = '加载失败';
+            document.getElementById('scenarioDetails_simEndTime').value = '加载失败';
+            document.getElementById('scenarioDetails_simDuration').value = '加载失败';
+        }
+
+        // 加载管控策略详细信息（从control_strategy_config.json）
+        try {
+            const strategyConfigUrl = `/output/scenarios/${eventFolder}/${scenarioDir}/control_strategy_config.json`;
+            const strategyResponse = await fetch(strategyConfigUrl);
+
+            if (strategyResponse.ok) {
+                const strategyConfig = await strategyResponse.json();
+                const strategyType = strategyConfig.strategy_type || strategyConfig.strategy_name;
+
+                // 如果是NO_CONTROL，隐藏管控策略部分
+                if (strategyType === 'NO_CONTROL') {
+                    document.getElementById('scenarioDetails_controlStrategySection').style.display = 'none';
+                } else {
+                    document.getElementById('scenarioDetails_controlStrategySection').style.display = 'block';
+
+                    // 更新策略类型和名称
+                    const strategyTypeName = getStrategyDisplay(strategyType);
+                    document.getElementById('scenarioDetails_strategyType').value = strategyTypeName;
+                    document.getElementById('scenarioDetails_strategyName').value = strategyConfig.strategy_name || strategyTypeName;
+
+                    // 填充时间信息
+                    if (strategyConfig.timing) {
+                        document.getElementById('scenarioDetails_activationTime').value =
+                            strategyConfig.timing.activation_time || '未知';
+                        document.getElementById('scenarioDetails_deactivationTime').value =
+                            strategyConfig.timing.deactivation_time || '未知';
+
+                        const responseDelay = strategyConfig.timing.response_delay_minutes ||
+                                            (strategyConfig.parameters?.response_delay_seconds ?
+                                             strategyConfig.parameters.response_delay_seconds / 60 : null);
+                        document.getElementById('scenarioDetails_responseDelay').value =
+                            responseDelay ? `${responseDelay.toFixed(1)}分钟` : '未知';
+
+                        const recoveryPeriod = strategyConfig.timing.recovery_period_minutes ||
+                                             (strategyConfig.parameters?.recovery_period_seconds ?
+                                              strategyConfig.parameters.recovery_period_seconds / 60 : null);
+                        document.getElementById('scenarioDetails_recoveryPeriod').value =
+                            recoveryPeriod ? `${recoveryPeriod.toFixed(1)}分钟` : '未知';
+                    } else {
+                        document.getElementById('scenarioDetails_activationTime').value = '未知';
+                        document.getElementById('scenarioDetails_deactivationTime').value = '未知';
+                        document.getElementById('scenarioDetails_responseDelay').value = '未知';
+                        document.getElementById('scenarioDetails_recoveryPeriod').value = '未知';
+                    }
+
+                    // 填充影响路段和车道信息
+                    if (strategyConfig.parameters) {
+                        const params = strategyConfig.parameters;
+                        const affectedEdges = params.affected_edges || [];
+                        const affectedLanes = params.affected_lanes || [];
+
+                        document.getElementById('scenarioDetails_affectedEdges').value =
+                            affectedEdges.length > 0 ? affectedEdges.join(', ') : '未知';
+                        document.getElementById('scenarioDetails_affectedLanes').value =
+                            affectedLanes.length > 0 ? affectedLanes.join(', ') : '未知';
+
+                        // 隐藏所有策略特定参数区域
+                        document.getElementById('scenarioDetails_vssParams').style.display = 'none';
+                        document.getElementById('scenarioDetails_tecParams').style.display = 'none';
+                        document.getElementById('scenarioDetails_dhsParams').style.display = 'none';
+
+                        // 根据策略类型显示和填充相应的参数
+                        if (strategyType === 'VSS') {
+                            // VSS 特定参数
+                            document.getElementById('scenarioDetails_vssParams').style.display = 'grid';
+                            const speedLimit = params.speed_limit_kmh || params.speed_limit || '未知';
+                            document.getElementById('scenarioDetails_speedLimit').value =
+                                speedLimit !== '未知' ? `${speedLimit} km/h` : speedLimit;
+
+                        } else if (strategyType === 'TEC') {
+                            // TEC 特定参数
+                            document.getElementById('scenarioDetails_tecParams').style.display = 'grid';
+
+                            // 流量削减率
+                            if (params.flow_reduction !== undefined) {
+                                const reductionPercent = (params.flow_reduction * 100).toFixed(0);
+                                document.getElementById('scenarioDetails_flowReduction').value =
+                                    `${reductionPercent}% (削减比例: ${params.flow_reduction})`;
+                            } else {
+                                document.getElementById('scenarioDetails_flowReduction').value = '未知';
+                            }
+
+                            // 入口路段
+                            const entranceEdges = params.entrance_edges || [];
+                            document.getElementById('scenarioDetails_entranceEdges').value =
+                                entranceEdges.length > 0 ? entranceEdges.join(', ') : '未设置';
+
+                            // 是否执行管控
+                            if (params.csv_control !== undefined) {
+                                document.getElementById('scenarioDetails_csvControl').value =
+                                    params.csv_control ? '是' : '否';
+                            } else {
+                                document.getElementById('scenarioDetails_csvControl').value = '未设置';
+                            }
+
+                        } else if (strategyType === 'DHS') {
+                            // DHS 特定参数
+                            document.getElementById('scenarioDetails_dhsParams').style.display = 'grid';
+
+                            // 硬路肩车道
+                            const shoulderLanes = params.shoulder_lanes || [];
+                            document.getElementById('scenarioDetails_shoulderLanes').value =
+                                shoulderLanes.length > 0 ? shoulderLanes.join(', ') : '未设置';
+                        }
+                    } else {
+                        document.getElementById('scenarioDetails_affectedEdges').value = '未知';
+                        document.getElementById('scenarioDetails_affectedLanes').value = '未知';
+                        // 隐藏所有策略特定参数区域
+                        document.getElementById('scenarioDetails_vssParams').style.display = 'none';
+                        document.getElementById('scenarioDetails_tecParams').style.display = 'none';
+                        document.getElementById('scenarioDetails_dhsParams').style.display = 'none';
+                    }
+                }
+
+                // 构建策略参数详情（仅当不是NO_CONTROL时）
+                let strategyDetails = [];
+
+                if (strategyType !== 'NO_CONTROL' && strategyConfig.parameters) {
+                    const params = strategyConfig.parameters;
+
+                    // 策略特定参数 (优先显示)
+                    strategyDetails.push('╔═══════════════════════════════════════════╗');
+                    strategyDetails.push('║          策略特定参数                      ║');
+                    strategyDetails.push('╚═══════════════════════════════════════════╝');
+                    strategyDetails.push('');
+
+                    // VSS特定参数
+                    if (params.speed_limit_kmh !== undefined || params.speed_limit !== undefined) {
+                        const speedLimit = params.speed_limit_kmh || params.speed_limit;
+                        strategyDetails.push(`【可变限速标志 VSS】`);
+                        strategyDetails.push(`  ▪ 限速值: ${speedLimit} km/h`);
+                        strategyDetails.push(`  ▪ 说明: 在事件发生时自动降低车辆速度限制，提高安全性`);
+                        strategyDetails.push('');
+                    }
+
+                    // TEC特定参数
+                    if (params.flow_reduction !== undefined) {
+                        const reductionPercent = (params.flow_reduction * 100).toFixed(0);
+                        strategyDetails.push(`【收费站管控 TEC】`);
+                        strategyDetails.push(`  ▪ 流量削减率: ${reductionPercent}%`);
+                        strategyDetails.push(`  ▪ 削减方式: 通过提高收费或限制通行来减少车流`);
+
+                        if (params.entrance_edges && params.entrance_edges.length > 0) {
+                            strategyDetails.push(`  ▪ 管控入口路段: ${params.entrance_edges.join(', ')}`);
+                        }
+
+                        if (params.csv_control !== undefined) {
+                            strategyDetails.push(`  ▪ 是否执行管控: ${params.csv_control ? '是' : '否'}`);
+                        }
+                        strategyDetails.push('');
+                    }
+
+                    // DHS特定参数
+                    if (params.shoulder_lanes && params.shoulder_lanes.length > 0) {
+                        strategyDetails.push(`【动态硬路肩 DHS】`);
+                        strategyDetails.push(`  ▪ 可用硬路肩车道: ${params.shoulder_lanes.join(', ')}`);
+                        strategyDetails.push(`  ▪ 说明: 在拥堵时开放硬路肩作为临时车道`);
+                        strategyDetails.push('');
+                    }
+
+                    // 基本配置参数
+                    strategyDetails.push('╔═══════════════════════════════════════════╗');
+                    strategyDetails.push('║          基本配置参数                      ║');
+                    strategyDetails.push('╚═══════════════════════════════════════════╝');
+                    strategyDetails.push('');
+
+                    if (params.affected_edges && params.affected_edges.length > 0) {
+                        strategyDetails.push(`【影响范围】`);
+                        strategyDetails.push(`  ▪ 影响路段数量: ${params.affected_edges.length}个`);
+                        strategyDetails.push(`  ▪ 路段ID列表: ${params.affected_edges.join(', ')}`);
+                    }
+
+                    if (params.affected_lanes && params.affected_lanes.length > 0) {
+                        strategyDetails.push(`  ▪ 影响车道数量: ${params.affected_lanes.length}条`);
+                        strategyDetails.push(`  ▪ 车道ID列表: ${params.affected_lanes.join(', ')}`);
+                    }
+
+                    strategyDetails.push('');
+                    strategyDetails.push(`【时间参数】`);
+
+                    if (params.response_delay_seconds !== undefined) {
+                        const delayMinutes = (params.response_delay_seconds / 60).toFixed(1);
+                        strategyDetails.push(`  ▪ 响应延迟: ${params.response_delay_seconds}秒 (${delayMinutes}分钟)`);
+                        strategyDetails.push(`    └─ 从事件发生到策略启动的延迟时间`);
+                    }
+
+                    if (params.recovery_period_seconds !== undefined) {
+                        const recoveryMinutes = (params.recovery_period_seconds / 60).toFixed(1);
+                        strategyDetails.push(`  ▪ 恢复期: ${params.recovery_period_seconds}秒 (${recoveryMinutes}分钟)`);
+                        strategyDetails.push(`    └─ 从策略结束到完全恢复正常的时间`);
+                    }
+
+                    // 时间配置详情
+                    if (strategyConfig.timing) {
+                        strategyDetails.push('');
+                        strategyDetails.push('╔═══════════════════════════════════════════╗');
+                        strategyDetails.push('║          时间配置详情                      ║');
+                        strategyDetails.push('╚═══════════════════════════════════════════╝');
+                        strategyDetails.push('');
+
+                        if (strategyConfig.timing.activation_time) {
+                            strategyDetails.push(`  ▪ 策略启动时间: ${strategyConfig.timing.activation_time}`);
+                        }
+
+                        if (strategyConfig.timing.deactivation_time) {
+                            strategyDetails.push(`  ▪ 策略结束时间: ${strategyConfig.timing.deactivation_time}`);
+                        }
+
+                        if (strategyConfig.timing.response_delay_minutes !== undefined) {
+                            strategyDetails.push(`  ▪ 响应延迟: ${strategyConfig.timing.response_delay_minutes}分钟`);
+                        }
+
+                        if (strategyConfig.timing.recovery_period_minutes !== undefined) {
+                            strategyDetails.push(`  ▪ 恢复期: ${strategyConfig.timing.recovery_period_minutes}分钟`);
+                        }
+                    }
+
+                    // 其他参数和说明
+                    if (params.description) {
+                        strategyDetails.push('');
+                        strategyDetails.push('╔═══════════════════════════════════════════╗');
+                        strategyDetails.push('║          策略说明                          ║');
+                        strategyDetails.push('╚═══════════════════════════════════════════╝');
+                        strategyDetails.push('');
+                        strategyDetails.push(params.description);
+                    }
+                }
+
+                document.getElementById('scenarioDetails_strategyParams').value =
+                    strategyDetails.length > 0 ? strategyDetails.join('\n') : '暂无参数信息';
+            } else {
+                // 配置文件不存在，隐藏管控策略部分
+                console.warn('control_strategy_config.json 不存在');
+                document.getElementById('scenarioDetails_controlStrategySection').style.display = 'none';
+            }
+        } catch (strategyError) {
+            console.warn('加载control_strategy_config.json失败:', strategyError);
+            // 加载失败，隐藏管控策略部分
+            document.getElementById('scenarioDetails_controlStrategySection').style.display = 'none';
+        }
 
         // 填充事件影响（影响车道）
         let impactDesc = '暂无详细影响信息';

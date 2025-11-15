@@ -26,6 +26,8 @@ class CaseFiles(BaseModel):
     config_file: Optional[str] = Field(None, description="配置文件路径")
     taz_file: Optional[str] = Field(None, description="TAZ文件路径")
     network_file: Optional[str] = Field(None, description="网络文件路径")
+    additional_files: Optional[List[str]] = Field(None, description="额外文件路径列表")
+    edgedata_template: Optional[str] = Field(None, description="EdgeData模板文件路径")
 
 
 class CaseMetadata(BaseModel):
@@ -39,12 +41,13 @@ class CaseMetadata(BaseModel):
     status: Optional[CaseStatus] = Field(None, description="案例状态")
     description: Optional[str] = Field(None, description="案例描述")
     statistics: Optional[Dict[str, Any]] = Field(None, description="统计信息")
-    files: Optional[Dict[str, Optional[str]]] = Field(None, description="文件路径")
-    simulations: Optional[List["SimulationResult"]] = Field([], description="仿真结果列表")
+    files: Optional[Dict[str, Any]] = Field(None, description="文件路径")
+    simulations: Optional[Dict[str, Any]] = Field(None, description="仿真信息字典 (simulation_id -> simulation_info)")
+    scenarios: Optional[List[str]] = Field(None, description="关联的场景ID列表")
     analysis: Optional[Dict[str, Any]] = Field(None, description="分析结果摘要（accuracy/mechanism/performance 最新产物信息）")
     source_type: Optional[str] = Field(
         default="od_extraction",
-        description="案例来源类型: od_extraction | event_scenario"
+        description="案例来源类型: od_extraction | event_scenario | event_scenario_batch"
     )
     source_scenario_id: Optional[str] = Field(
         None,
@@ -53,6 +56,18 @@ class CaseMetadata(BaseModel):
     source_event_id: Optional[str] = Field(
         None,
         description="源事件ID（仅event_scenario类型案例）"
+    )
+    case_type: Optional[str] = Field(
+        None,
+        description="案例类型（向后兼容字段）"
+    )
+    event_id: Optional[str] = Field(
+        None,
+        description="事件ID（event_based案例）"
+    )
+    event_type: Optional[str] = Field(
+        None,
+        description="事件类型（event_based案例）"
     )
 
     @field_validator('status', mode='before')

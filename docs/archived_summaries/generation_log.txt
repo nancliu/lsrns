@@ -1,0 +1,590 @@
+2025-11-14 16:13:55,632 - __main__ - INFO - ================================================================================
+2025-11-14 16:13:55,632 - __main__ - INFO - REAL CONTROL SCENARIO GENERATION
+2025-11-14 16:13:55,633 - __main__ - INFO - ================================================================================
+2025-11-14 16:13:55,633 - __main__ - INFO - Input CSV: events/events_need_real_control_tec.csv
+2025-11-14 16:13:55,633 - __main__ - INFO - Full events CSV: events/all_extracted_events.csv
+2025-11-14 16:13:55,633 - __main__ - INFO - Network: templates/network_files/G4202_full_network.net.xml
+2025-11-14 16:13:55,633 - __main__ - INFO - Output: output/scenarios
+2025-11-14 16:13:55,633 - __main__ - INFO - 
+2025-11-14 16:13:55,642 - __main__ - INFO - Loaded 65 events with high-quality control data
+2025-11-14 16:13:55,663 - __main__ - INFO - Loaded 399 events from full CSV
+2025-11-14 16:13:55,670 - __main__ - INFO - Merged event data: 65 rows
+2025-11-14 16:13:55,670 - __main__ - INFO - 
+[1/65] Processing event 12817 (交通事故)
+2025-11-14 16:13:55,670 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,671 - shared.utilities.toll_mapping_utils - INFO - Loading toll station mapping from events\reference\toll_station_mapping.csv
+2025-11-14 16:13:55,697 - shared.utilities.toll_mapping_utils - INFO - Loaded 266 toll station entries, 107 unique toll IDs
+2025-11-14 16:13:55,698 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,698 - __main__ - WARNING - Event 12817: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,698 - __main__ - INFO - 
+[2/65] Processing event 13254 (交通事故)
+2025-11-14 16:13:55,698 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,698 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,699 - __main__ - WARNING - Event 13254: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,699 - __main__ - INFO - 
+[3/65] Processing event 13270 (交通管制)
+2025-11-14 16:13:55,699 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,699 - shared.utilities.toll_mapping_utils - WARNING - Toll station 236 not found in mapping
+2025-11-14 16:13:55,699 - __main__ - INFO - Resolved 2 toll stations to 1 edges
+2025-11-14 16:13:55,699 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,699 - __main__ - INFO -   Toll stations: ['225', '236']
+2025-11-14 16:13:55,700 - __main__ - INFO -   Entrance edges: 1
+2025-11-14 16:13:55,700 - __main__ - INFO -   Control measure: 因大雨天气，现绵阳南站入口广元方向、绵阳站入口成都方向封闭。
+2025-11-14 16:13:55,700 - shared.control_tools.event_injector - WARNING - Unknown lane description: nan, skipping
+2025-11-14 16:13:55,701 - shared.control_tools.event_injector - WARNING - No valid lane IDs resolved from descriptions: ['nan']
+2025-11-14 16:13:55,701 - __main__ - ERROR - ✗ Failed to generate scenario for event 13270: No valid lanes resolved for road control 13270. Edge: -16326
+2025-11-14 16:13:55,701 - __main__ - INFO - 
+[4/65] Processing event 13703 (交通事故)
+2025-11-14 16:13:55,701 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,701 - __main__ - INFO - Resolved 1 toll stations to 1 edges
+2025-11-14 16:13:55,701 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,702 - __main__ - INFO -   Toll stations: ['246']
+2025-11-14 16:13:55,702 - __main__ - INFO -   Entrance edges: 1
+2025-11-14 16:13:55,702 - __main__ - INFO -   Control measure: 因处置该事故，现江油站入口广元方向封闭。
+2025-11-14 16:13:55,704 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 13703: 1 lanes closed from 0s to 1388s
+2025-11-14 16:13:55,704 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_13703
+2025-11-14 16:13:55,704 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_13703
+2025-11-14 16:13:55,705 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_13703_tec\scenario_accident_tec_13703.add.xml
+2025-11-14 16:13:55,706 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_13703_tec\event_description.json
+2025-11-14 16:13:55,706 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_13703_tec\traffic_input_config.json
+2025-11-14 16:13:55,708 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_13703_tec\control_strategy_config.json
+2025-11-14 16:13:55,708 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_13703_tec
+2025-11-14 16:13:55,708 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 13703
+2025-11-14 16:13:55,708 - __main__ - INFO - 
+[5/65] Processing event 13707 (交通事故)
+2025-11-14 16:13:55,708 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,708 - shared.utilities.toll_mapping_utils - WARNING - Toll station 236 not found in mapping
+2025-11-14 16:13:55,708 - __main__ - WARNING - Event 13707: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,708 - __main__ - INFO - 
+[6/65] Processing event 14074 (交通事故)
+2025-11-14 16:13:55,708 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,708 - __main__ - INFO - Resolved 4 toll stations to 4 edges
+2025-11-14 16:13:55,709 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,709 - __main__ - INFO -   Toll stations: ['255', '250', '249', '247']
+2025-11-14 16:13:55,709 - __main__ - INFO -   Entrance edges: 4
+2025-11-14 16:13:55,709 - __main__ - INFO -   Control measure: 绵广向K1593一辆运输百货的两轴货车侧翻，无人员受伤，占用主车道及应急车道，因处置该事故，江油站至厚坝站入口广元方向封
+2025-11-14 16:13:55,710 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 14074: 2 lanes closed from 0s to 7059s
+2025-11-14 16:13:55,710 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_14074
+2025-11-14 16:13:55,710 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_14074
+2025-11-14 16:13:55,710 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -6364
+2025-11-14 16:13:55,711 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_14074_tec\scenario_accident_tec_14074.add.xml
+2025-11-14 16:13:55,712 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_14074_tec\event_description.json
+2025-11-14 16:13:55,713 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_14074_tec\traffic_input_config.json
+2025-11-14 16:13:55,714 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_14074_tec\control_strategy_config.json
+2025-11-14 16:13:55,714 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_14074_tec
+2025-11-14 16:13:55,714 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 14074
+2025-11-14 16:13:55,715 - __main__ - INFO - 
+[7/65] Processing event 14588 (交通事故)
+2025-11-14 16:13:55,715 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,715 - __main__ - INFO - Resolved 5 toll stations to 5 edges
+2025-11-14 16:13:55,715 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,715 - __main__ - INFO -   Toll stations: ['246', '247', '249', '250', '255']
+2025-11-14 16:13:55,715 - __main__ - INFO -   Entrance edges: 5
+2025-11-14 16:13:55,715 - __main__ - INFO -   Control measure: 江油站至厚坝站入口广元方向封闭。
+2025-11-14 16:13:55,716 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 14588: 2 lanes closed from 0s to 4320s
+2025-11-14 16:13:55,716 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_14588
+2025-11-14 16:13:55,716 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_14588
+2025-11-14 16:13:55,716 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -13370
+2025-11-14 16:13:55,717 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_14588_tec\scenario_accident_tec_14588.add.xml
+2025-11-14 16:13:55,718 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_14588_tec\event_description.json
+2025-11-14 16:13:55,719 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_14588_tec\traffic_input_config.json
+2025-11-14 16:13:55,720 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_14588_tec\control_strategy_config.json
+2025-11-14 16:13:55,720 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_14588_tec
+2025-11-14 16:13:55,720 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 14588
+2025-11-14 16:13:55,721 - __main__ - INFO - 
+[8/65] Processing event 14702 (交通管制)
+2025-11-14 16:13:55,721 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,721 - shared.utilities.toll_mapping_utils - WARNING - Toll station 244 not found in mapping
+2025-11-14 16:13:55,721 - shared.utilities.toll_mapping_utils - WARNING - Toll station 243 not found in mapping
+2025-11-14 16:13:55,721 - __main__ - WARNING - Event 14702: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,721 - __main__ - INFO - 
+[9/65] Processing event 15556 (交通事故)
+2025-11-14 16:13:55,721 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,721 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,721 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,721 - __main__ - WARNING - Event 15556: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,721 - __main__ - INFO - 
+[10/65] Processing event 15698 (交通管制)
+2025-11-14 16:13:55,722 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,722 - shared.utilities.toll_mapping_utils - WARNING - Toll station 244 not found in mapping
+2025-11-14 16:13:55,722 - __main__ - INFO - Resolved 4 toll stations to 3 edges
+2025-11-14 16:13:55,722 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,722 - __main__ - INFO -   Toll stations: ['249', '247', '246', '244']
+2025-11-14 16:13:55,722 - __main__ - INFO -   Entrance edges: 3
+2025-11-14 16:13:55,722 - __main__ - INFO -   Control measure: 因大雨天气，现科学城站入口广元方向，江油站、贯山站入口，江油北站入口成都方向封闭。
+2025-11-14 16:13:55,723 - shared.control_tools.event_injector - WARNING - Unknown lane description: nan, skipping
+2025-11-14 16:13:55,723 - shared.control_tools.event_injector - WARNING - No valid lane IDs resolved from descriptions: ['nan']
+2025-11-14 16:13:55,723 - __main__ - ERROR - ✗ Failed to generate scenario for event 15698: No valid lanes resolved for road control 15698. Edge: -12610
+2025-11-14 16:13:55,723 - __main__ - INFO - 
+[11/65] Processing event 15945 (交通管制)
+2025-11-14 16:13:55,723 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,723 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,723 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,723 - shared.utilities.toll_mapping_utils - WARNING - Toll station 208 not found in mapping
+2025-11-14 16:13:55,723 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,723 - __main__ - WARNING - Event 15945: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,724 - __main__ - INFO - 
+[12/65] Processing event 16187 (交通事故)
+2025-11-14 16:13:55,724 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,724 - shared.utilities.toll_mapping_utils - WARNING - Toll station 256 not found in mapping
+2025-11-14 16:13:55,724 - __main__ - INFO - Resolved 4 toll stations to 3 edges
+2025-11-14 16:13:55,724 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,724 - __main__ - INFO -   Toll stations: ['249', '250', '255', '256']
+2025-11-14 16:13:55,724 - __main__ - INFO -   Entrance edges: 3
+2025-11-14 16:13:55,724 - __main__ - INFO -   Control measure: 因处置绵广向K1584（官垭子隧道内）两车擦挂事故，现江油北站至二郎庙站入口广元方向封闭。
+2025-11-14 16:13:55,725 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 16187: 1 lanes closed from 0s to 1412s
+2025-11-14 16:13:55,725 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_16187
+2025-11-14 16:13:55,725 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_16187
+2025-11-14 16:13:55,725 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -3802
+2025-11-14 16:13:55,725 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_16187_tec\scenario_accident_tec_16187.add.xml
+2025-11-14 16:13:55,727 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_16187_tec\event_description.json
+2025-11-14 16:13:55,729 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_16187_tec\traffic_input_config.json
+2025-11-14 16:13:55,732 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_16187_tec\control_strategy_config.json
+2025-11-14 16:13:55,732 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_16187_tec
+2025-11-14 16:13:55,732 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 16187
+2025-11-14 16:13:55,733 - __main__ - INFO - 
+[13/65] Processing event 16429 (交通事故)
+2025-11-14 16:13:55,733 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,733 - shared.utilities.toll_mapping_utils - WARNING - Toll station 183 not found in mapping
+2025-11-14 16:13:55,733 - __main__ - INFO - Resolved 2 toll stations to 1 edges
+2025-11-14 16:13:55,733 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,734 - __main__ - INFO -   Toll stations: ['555', '183']
+2025-11-14 16:13:55,734 - __main__ - INFO -   Entrance edges: 1
+2025-11-14 16:13:55,734 - __main__ - INFO -   Control measure: 因处置瑞公山隧道交通事故，现关闭麻城站、摩尼站、赤水河站贵州至泸州方向入口、高桥服务区贵州至泸州方向出口
+2025-11-14 16:13:55,735 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 16429: 2 lanes closed from 0s to 16375s
+2025-11-14 16:13:55,735 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_16429
+2025-11-14 16:13:55,735 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_16429
+2025-11-14 16:13:55,736 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_16429_tec\scenario_accident_tec_16429.add.xml
+2025-11-14 16:13:55,738 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_16429_tec\event_description.json
+2025-11-14 16:13:55,739 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_16429_tec\traffic_input_config.json
+2025-11-14 16:13:55,740 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_16429_tec\control_strategy_config.json
+2025-11-14 16:13:55,740 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_16429_tec
+2025-11-14 16:13:55,741 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 16429
+2025-11-14 16:13:55,741 - __main__ - INFO - 
+[14/65] Processing event 16566 (交通管制)
+2025-11-14 16:13:55,741 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,741 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,741 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,741 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,741 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,741 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,741 - shared.utilities.toll_mapping_utils - WARNING - Toll station 214 not found in mapping
+2025-11-14 16:13:55,742 - shared.utilities.toll_mapping_utils - WARNING - Toll station 215 not found in mapping
+2025-11-14 16:13:55,742 - __main__ - WARNING - Event 16566: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,742 - __main__ - INFO - 
+[15/65] Processing event 16634 (交通事故)
+2025-11-14 16:13:55,742 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,742 - shared.utilities.toll_mapping_utils - WARNING - Toll station 621 not found in mapping
+2025-11-14 16:13:55,742 - __main__ - WARNING - Event 16634: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,742 - __main__ - INFO - 
+[16/65] Processing event 16886 (交通事故)
+2025-11-14 16:13:55,742 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,742 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,742 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,743 - __main__ - WARNING - Event 16886: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,743 - __main__ - INFO - 
+[17/65] Processing event 16887 (交通事故)
+2025-11-14 16:13:55,743 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,743 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,743 - __main__ - WARNING - Event 16887: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,744 - __main__ - INFO - 
+[18/65] Processing event 16888 (交通事故)
+2025-11-14 16:13:55,744 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,744 - shared.utilities.toll_mapping_utils - WARNING - Toll station 244 not found in mapping
+2025-11-14 16:13:55,744 - __main__ - INFO - Resolved 6 toll stations to 5 edges
+2025-11-14 16:13:55,744 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,744 - __main__ - INFO -   Toll stations: ['255', '250', '249', '247', '246', '244']
+2025-11-14 16:13:55,744 - __main__ - INFO -   Entrance edges: 5
+2025-11-14 16:13:55,744 - __main__ - INFO -   Control measure: 因处置该事故现科学城站至厚坝站入口成都方向封闭。
+2025-11-14 16:13:55,745 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 16888: 1 lanes closed from 0s to 17519s
+2025-11-14 16:13:55,745 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_16888
+2025-11-14 16:13:55,745 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_16888
+2025-11-14 16:13:55,745 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -6364
+2025-11-14 16:13:55,746 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_16888_tec\scenario_accident_tec_16888.add.xml
+2025-11-14 16:13:55,747 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_16888_tec\event_description.json
+2025-11-14 16:13:55,748 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_16888_tec\traffic_input_config.json
+2025-11-14 16:13:55,748 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_16888_tec\control_strategy_config.json
+2025-11-14 16:13:55,748 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_16888_tec
+2025-11-14 16:13:55,749 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 16888
+2025-11-14 16:13:55,749 - __main__ - INFO - 
+[19/65] Processing event 17371 (交通事故)
+2025-11-14 16:13:55,749 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,749 - shared.utilities.toll_mapping_utils - WARNING - Toll station 552 not found in mapping
+2025-11-14 16:13:55,749 - shared.utilities.toll_mapping_utils - WARNING - Toll station 551 not found in mapping
+2025-11-14 16:13:55,749 - shared.utilities.toll_mapping_utils - WARNING - Toll station 550 not found in mapping
+2025-11-14 16:13:55,749 - __main__ - WARNING - Event 17371: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,749 - __main__ - INFO - 
+[20/65] Processing event 17883 (交通事故)
+2025-11-14 16:13:55,749 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,749 - __main__ - INFO - Resolved 5 toll stations to 5 edges
+2025-11-14 16:13:55,750 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,750 - __main__ - INFO -   Toll stations: ['246', '247', '249', '250', '255']
+2025-11-14 16:13:55,750 - __main__ - INFO -   Entrance edges: 5
+2025-11-14 16:13:55,750 - __main__ - INFO -   Control measure: 江油站至厚坝站入口成都方向封闭。
+2025-11-14 16:13:55,750 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 17883: 1 lanes closed from 0s to 562s
+2025-11-14 16:13:55,750 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_17883
+2025-11-14 16:13:55,750 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_17883
+2025-11-14 16:13:55,750 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -13370
+2025-11-14 16:13:55,751 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_17883_tec\scenario_accident_tec_17883.add.xml
+2025-11-14 16:13:55,752 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_17883_tec\event_description.json
+2025-11-14 16:13:55,753 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_17883_tec\traffic_input_config.json
+2025-11-14 16:13:55,754 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_17883_tec\control_strategy_config.json
+2025-11-14 16:13:55,754 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_17883_tec
+2025-11-14 16:13:55,754 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 17883
+2025-11-14 16:13:55,755 - __main__ - INFO - 
+[21/65] Processing event 18071 (交通事故)
+2025-11-14 16:13:55,755 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,755 - shared.utilities.toll_mapping_utils - WARNING - Toll station 550 not found in mapping
+2025-11-14 16:13:55,755 - __main__ - WARNING - Event 18071: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,755 - __main__ - INFO - 
+[22/65] Processing event 18117 (交通事故)
+2025-11-14 16:13:55,755 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,755 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,755 - shared.utilities.toll_mapping_utils - WARNING - Toll station 256 not found in mapping
+2025-11-14 16:13:55,755 - __main__ - INFO - Resolved 7 toll stations to 5 edges
+2025-11-14 16:13:55,755 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,755 - __main__ - INFO -   Toll stations: ['258', '256', '255', '250', '249', '247', '246']
+2025-11-14 16:13:55,755 - __main__ - INFO -   Entrance edges: 5
+2025-11-14 16:13:55,755 - __main__ - INFO -   Control measure: 绵阳至广元方向1552公里处道路中断
+2025-11-14 16:13:55,756 - shared.control_tools.event_injector - INFO - Generated closedLane XML for accident 18117: 3 lanes closed from 0s to 13124s
+2025-11-14 16:13:55,756 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_18117
+2025-11-14 16:13:55,756 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_18117
+2025-11-14 16:13:55,756 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -6364
+2025-11-14 16:13:55,757 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\01_accident\scenario_18117_tec\scenario_accident_tec_18117.add.xml
+2025-11-14 16:13:55,758 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\01_accident\scenario_18117_tec\event_description.json
+2025-11-14 16:13:55,759 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\01_accident\scenario_18117_tec\traffic_input_config.json
+2025-11-14 16:13:55,760 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\01_accident\scenario_18117_tec\control_strategy_config.json
+2025-11-14 16:13:55,760 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\01_accident\scenario_18117_tec
+2025-11-14 16:13:55,760 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 18117
+2025-11-14 16:13:55,760 - __main__ - INFO - 
+[23/65] Processing event 10748 (交通事故)
+2025-11-14 16:13:55,760 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,760 - shared.utilities.toll_mapping_utils - WARNING - Toll station 537 not found in mapping
+2025-11-14 16:13:55,760 - __main__ - WARNING - Event 10748: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,760 - __main__ - INFO - 
+[24/65] Processing event 10818 (交通阻塞)
+2025-11-14 16:13:55,760 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,761 - shared.utilities.toll_mapping_utils - WARNING - Toll station 256 not found in mapping
+2025-11-14 16:13:55,761 - __main__ - INFO - Resolved 6 toll stations to 5 edges
+2025-11-14 16:13:55,761 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,761 - __main__ - INFO -   Toll stations: ['256', '255', '250', '249', '247', '246']
+2025-11-14 16:13:55,761 - __main__ - INFO -   Entrance edges: 5
+2025-11-14 16:13:55,761 - __main__ - INFO -   Control measure: 因主线车流量大，现主线绵广向K1602道路封闭，江油站至二郎庙站入口广元方向封闭。
+2025-11-14 16:13:55,761 - shared.control_tools.event_injector - INFO - Congestion event 10818 on edge nan: No lane closure injection (control strategy only)
+2025-11-14 16:13:55,761 - shared.control_tools.additional_generator - INFO - Generating XML for TEC strategy: tec_10818
+2025-11-14 16:13:55,762 - shared.control_tools.additional_generator - INFO - Generating TEC XML for strategy: tec_10818
+2025-11-14 16:13:55,762 - shared.control_tools.additional_generator - WARNING - TEC metering currently supports only one entrance. Using first: -6364
+2025-11-14 16:13:55,762 - shared.control_tools.scenario_generator - INFO - Generated .add.xml with event + control: output\scenarios\02_congestion\scenario_10818_tec\scenario_congestion_tec_10818.add.xml
+2025-11-14 16:13:55,762 - shared.control_tools.event_injector - WARNING - Unknown lane description: nan, skipping
+2025-11-14 16:13:55,762 - shared.control_tools.event_injector - WARNING - No valid lane IDs resolved from descriptions: ['nan']
+2025-11-14 16:13:55,763 - shared.control_tools.scenario_generator - INFO - Generated event_description.json: output\scenarios\02_congestion\scenario_10818_tec\event_description.json
+2025-11-14 16:13:55,764 - shared.control_tools.scenario_generator - INFO - Generated traffic_input_config.json: output\scenarios\02_congestion\scenario_10818_tec\traffic_input_config.json
+2025-11-14 16:13:55,764 - shared.control_tools.event_injector - WARNING - Unknown lane description: nan, skipping
+2025-11-14 16:13:55,764 - shared.control_tools.event_injector - WARNING - No valid lane IDs resolved from descriptions: ['nan']
+2025-11-14 16:13:55,765 - shared.control_tools.scenario_generator - INFO - Generated control_strategy_config.json: output\scenarios\02_congestion\scenario_10818_tec\control_strategy_config.json
+2025-11-14 16:13:55,765 - shared.control_tools.scenario_generator - INFO - Generated scenario bundle at: output\scenarios\02_congestion\scenario_10818_tec
+2025-11-14 16:13:55,765 - __main__ - INFO - ✓ Successfully generated TEC scenario for event 10818
+2025-11-14 16:13:55,765 - __main__ - INFO - 
+[25/65] Processing event 10850 (交通管制)
+2025-11-14 16:13:55,765 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,765 - shared.utilities.toll_mapping_utils - WARNING - Toll station 774 not found in mapping
+2025-11-14 16:13:55,765 - shared.utilities.toll_mapping_utils - WARNING - Toll station 770 not found in mapping
+2025-11-14 16:13:55,765 - shared.utilities.toll_mapping_utils - WARNING - Toll station 761 not found in mapping
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 621 not found in mapping
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 580 not found in mapping
+2025-11-14 16:13:55,766 - __main__ - WARNING - Event 10850: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,766 - __main__ - INFO - 
+[26/65] Processing event 10856 (交通管制)
+2025-11-14 16:13:55,766 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 506 not found in mapping
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 505 not found in mapping
+2025-11-14 16:13:55,766 - __main__ - WARNING - Event 10856: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,766 - __main__ - INFO - 
+[27/65] Processing event 10865 (交通管制)
+2025-11-14 16:13:55,766 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 507 not found in mapping
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 508 not found in mapping
+2025-11-14 16:13:55,766 - shared.utilities.toll_mapping_utils - WARNING - Toll station 509 not found in mapping
+2025-11-14 16:13:55,767 - __main__ - WARNING - Event 10865: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,767 - __main__ - INFO - 
+[28/65] Processing event 10894 (交通事故)
+2025-11-14 16:13:55,767 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,767 - shared.utilities.toll_mapping_utils - WARNING - Toll station 508 not found in mapping
+2025-11-14 16:13:55,767 - __main__ - WARNING - Event 10894: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,767 - __main__ - INFO - 
+[29/65] Processing event 11146 (交通管制)
+2025-11-14 16:13:55,767 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,767 - shared.utilities.toll_mapping_utils - WARNING - Toll station 507 not found in mapping
+2025-11-14 16:13:55,767 - shared.utilities.toll_mapping_utils - WARNING - Toll station 509 not found in mapping
+2025-11-14 16:13:55,767 - shared.utilities.toll_mapping_utils - WARNING - Toll station 508 not found in mapping
+2025-11-14 16:13:55,767 - __main__ - WARNING - Event 11146: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,767 - __main__ - INFO - 
+[30/65] Processing event 11322 (交通管制)
+2025-11-14 16:13:55,767 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,768 - shared.utilities.toll_mapping_utils - WARNING - Toll station 759 not found in mapping
+2025-11-14 16:13:55,768 - shared.utilities.toll_mapping_utils - WARNING - Toll station 506 not found in mapping
+2025-11-14 16:13:55,768 - __main__ - WARNING - Event 11322: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,768 - __main__ - INFO - 
+[31/65] Processing event 11458 (交通阻塞)
+2025-11-14 16:13:55,768 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,768 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,768 - __main__ - WARNING - Event 11458: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,768 - __main__ - INFO - 
+[32/65] Processing event 11868 (交通管制)
+2025-11-14 16:13:55,768 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,768 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,768 - __main__ - WARNING - Event 11868: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,768 - __main__ - INFO - 
+[33/65] Processing event 12207 (交通管制)
+2025-11-14 16:13:55,769 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,769 - shared.utilities.toll_mapping_utils - WARNING - Toll station 553 not found in mapping
+2025-11-14 16:13:55,769 - shared.utilities.toll_mapping_utils - WARNING - Toll station 183 not found in mapping
+2025-11-14 16:13:55,769 - shared.utilities.toll_mapping_utils - WARNING - Toll station 554 not found in mapping
+2025-11-14 16:13:55,769 - __main__ - INFO - Resolved 4 toll stations to 1 edges
+2025-11-14 16:13:55,769 - __main__ - INFO - Generating TEC scenario with real control data:
+2025-11-14 16:13:55,769 - __main__ - INFO -   Toll stations: ['553', '183', '555', '554']
+2025-11-14 16:13:55,769 - __main__ - INFO -   Entrance edges: 1
+2025-11-14 16:13:55,769 - __main__ - INFO -   Control measure: 现泸州至贵州方向车辆在叙永站分流出站，贵州至泸州方向车辆在麻城站分流出站。
+2025-11-14 16:13:55,770 - shared.control_tools.event_injector - WARNING - Unknown lane description: nan, skipping
+2025-11-14 16:13:55,770 - shared.control_tools.event_injector - WARNING - No valid lane IDs resolved from descriptions: ['nan']
+2025-11-14 16:13:55,770 - __main__ - ERROR - ✗ Failed to generate scenario for event 12207: No valid lanes resolved for road control 12207. Edge: -6622
+2025-11-14 16:13:55,770 - __main__ - INFO - 
+[34/65] Processing event 12375 (交通管制)
+2025-11-14 16:13:55,770 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,770 - shared.utilities.toll_mapping_utils - WARNING - Toll station 327 not found in mapping
+2025-11-14 16:13:55,770 - __main__ - WARNING - Event 12375: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,770 - __main__ - INFO - 
+[35/65] Processing event 13278 (交通管制)
+2025-11-14 16:13:55,771 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,771 - shared.utilities.toll_mapping_utils - WARNING - Toll station 243 not found in mapping
+2025-11-14 16:13:55,771 - __main__ - WARNING - Event 13278: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,771 - __main__ - INFO - 
+[36/65] Processing event 14709 (交通事故)
+2025-11-14 16:13:55,772 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,772 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,772 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,772 - __main__ - WARNING - Event 14709: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,772 - __main__ - INFO - 
+[37/65] Processing event 14718 (交通管制)
+2025-11-14 16:13:55,772 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,773 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,773 - __main__ - WARNING - Event 14718: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,774 - __main__ - INFO - 
+[38/65] Processing event 14738 (交通事故)
+2025-11-14 16:13:55,774 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,774 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,774 - __main__ - WARNING - Event 14738: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,774 - __main__ - INFO - 
+[39/65] Processing event 15732 (交通事故)
+2025-11-14 16:13:55,774 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,774 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,775 - __main__ - WARNING - Event 15732: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,775 - __main__ - INFO - 
+[40/65] Processing event 15853 (交通事故)
+2025-11-14 16:13:55,775 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,775 - __main__ - WARNING - Event 15853: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,775 - __main__ - INFO - 
+[41/65] Processing event 16093 (交通事故)
+2025-11-14 16:13:55,775 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,775 - shared.utilities.toll_mapping_utils - WARNING - Toll station 215 not found in mapping
+2025-11-14 16:13:55,775 - __main__ - WARNING - Event 16093: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,777 - __main__ - INFO - 
+[42/65] Processing event 16131 (交通事故)
+2025-11-14 16:13:55,777 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,777 - shared.utilities.toll_mapping_utils - WARNING - Toll station 553 not found in mapping
+2025-11-14 16:13:55,777 - __main__ - WARNING - Event 16131: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,777 - __main__ - INFO - 
+[43/65] Processing event 16825 (交通事故)
+2025-11-14 16:13:55,777 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,777 - shared.utilities.toll_mapping_utils - WARNING - Toll station 236 not found in mapping
+2025-11-14 16:13:55,777 - __main__ - WARNING - Event 16825: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,778 - __main__ - INFO - 
+[44/65] Processing event 17284 (交通事故)
+2025-11-14 16:13:55,778 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,778 - shared.utilities.toll_mapping_utils - WARNING - Toll station 683 not found in mapping
+2025-11-14 16:13:55,778 - shared.utilities.toll_mapping_utils - WARNING - Toll station 686 not found in mapping
+2025-11-14 16:13:55,778 - __main__ - WARNING - Event 17284: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,778 - __main__ - INFO - 
+[45/65] Processing event 17614 (交通事故)
+2025-11-14 16:13:55,778 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,778 - shared.utilities.toll_mapping_utils - WARNING - Toll station 550 not found in mapping
+2025-11-14 16:13:55,778 - shared.utilities.toll_mapping_utils - WARNING - Toll station 551 not found in mapping
+2025-11-14 16:13:55,778 - shared.utilities.toll_mapping_utils - WARNING - Toll station 552 not found in mapping
+2025-11-14 16:13:55,779 - __main__ - WARNING - Event 17614: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,779 - __main__ - INFO - 
+[46/65] Processing event 17838 (交通事故)
+2025-11-14 16:13:55,779 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,779 - shared.utilities.toll_mapping_utils - WARNING - Toll station 553 not found in mapping
+2025-11-14 16:13:55,779 - __main__ - WARNING - Event 17838: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,779 - __main__ - INFO - 
+[47/65] Processing event 17865 (交通管制)
+2025-11-14 16:13:55,779 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,779 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,779 - __main__ - WARNING - Event 17865: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,780 - __main__ - INFO - 
+[48/65] Processing event 17962 (交通事故)
+2025-11-14 16:13:55,780 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,780 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,780 - shared.utilities.toll_mapping_utils - WARNING - Toll station 208 not found in mapping
+2025-11-14 16:13:55,780 - shared.utilities.toll_mapping_utils - WARNING - Toll station 215 not found in mapping
+2025-11-14 16:13:55,780 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,780 - __main__ - WARNING - Event 17962: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,780 - __main__ - INFO - 
+[49/65] Processing event 18074 (交通事故)
+2025-11-14 16:13:55,780 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,780 - shared.utilities.toll_mapping_utils - WARNING - Toll station 215 not found in mapping
+2025-11-14 16:13:55,780 - shared.utilities.toll_mapping_utils - WARNING - Toll station 214 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 208 not found in mapping
+2025-11-14 16:13:55,781 - __main__ - WARNING - Event 18074: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,781 - __main__ - INFO - 
+[50/65] Processing event 18097 (交通事故)
+2025-11-14 16:13:55,781 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,781 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 214 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 215 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 208 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,782 - __main__ - WARNING - Event 18097: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,782 - __main__ - INFO - 
+[51/65] Processing event 10762 (交通事故)
+2025-11-14 16:13:55,782 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,782 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,782 - __main__ - WARNING - Event 10762: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,783 - __main__ - INFO - 
+[52/65] Processing event 10768 (交通管制)
+2025-11-14 16:13:55,783 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,783 - shared.utilities.toll_mapping_utils - WARNING - Toll station 258 not found in mapping
+2025-11-14 16:13:55,783 - __main__ - WARNING - Event 10768: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,783 - __main__ - INFO - 
+[53/65] Processing event 10807 (交通事故)
+2025-11-14 16:13:55,783 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,783 - shared.utilities.toll_mapping_utils - WARNING - Toll station 183 not found in mapping
+2025-11-14 16:13:55,783 - __main__ - WARNING - Event 10807: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,783 - __main__ - INFO - 
+[54/65] Processing event 10889 (交通管制)
+2025-11-14 16:13:55,783 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 774 not found in mapping
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 580 not found in mapping
+2025-11-14 16:13:55,784 - __main__ - WARNING - Event 10889: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,784 - __main__ - INFO - 
+[55/65] Processing event 11403 (交通管制)
+2025-11-14 16:13:55,784 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 774 not found in mapping
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 761 not found in mapping
+2025-11-14 16:13:55,784 - __main__ - WARNING - Event 11403: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,784 - __main__ - INFO - 
+[56/65] Processing event 11406 (交通管制)
+2025-11-14 16:13:55,784 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 683 not found in mapping
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 685 not found in mapping
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 686 not found in mapping
+2025-11-14 16:13:55,784 - shared.utilities.toll_mapping_utils - WARNING - Toll station 694 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 695 not found in mapping
+2025-11-14 16:13:55,785 - __main__ - WARNING - Event 11406: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,785 - __main__ - INFO - 
+[57/65] Processing event 11421 (交通管制)
+2025-11-14 16:13:55,785 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 215 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 214 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 208 not found in mapping
+2025-11-14 16:13:55,785 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,785 - __main__ - WARNING - Event 11421: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,786 - __main__ - INFO - 
+[58/65] Processing event 11489 (交通管制)
+2025-11-14 16:13:55,786 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,786 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,786 - shared.utilities.toll_mapping_utils - WARNING - Toll station 212 not found in mapping
+2025-11-14 16:13:55,786 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,786 - shared.utilities.toll_mapping_utils - WARNING - Toll station 214 not found in mapping
+2025-11-14 16:13:55,786 - __main__ - WARNING - Event 11489: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,786 - __main__ - INFO - 
+[59/65] Processing event 11724 (交通管制)
+2025-11-14 16:13:55,786 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,786 - shared.utilities.toll_mapping_utils - WARNING - Toll station 683 not found in mapping
+2025-11-14 16:13:55,786 - __main__ - WARNING - Event 11724: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,786 - __main__ - INFO - 
+[60/65] Processing event 11828 (交通管制)
+2025-11-14 16:13:55,786 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 208 not found in mapping
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 206 not found in mapping
+2025-11-14 16:13:55,787 - __main__ - WARNING - Event 11828: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,787 - __main__ - INFO - 
+[61/65] Processing event 11829 (交通管制)
+2025-11-14 16:13:55,787 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 211 not found in mapping
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 210 not found in mapping
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 209 not found in mapping
+2025-11-14 16:13:55,787 - __main__ - WARNING - Event 11829: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,787 - __main__ - INFO - 
+[62/65] Processing event 11831 (交通管制)
+2025-11-14 16:13:55,787 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 214 not found in mapping
+2025-11-14 16:13:55,787 - shared.utilities.toll_mapping_utils - WARNING - Toll station 213 not found in mapping
+2025-11-14 16:13:55,787 - __main__ - WARNING - Event 11831: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,788 - __main__ - INFO - 
+[63/65] Processing event 12292 (交通事故)
+2025-11-14 16:13:55,788 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,788 - shared.utilities.toll_mapping_utils - WARNING - Toll station 551 not found in mapping
+2025-11-14 16:13:55,788 - shared.utilities.toll_mapping_utils - WARNING - Toll station 550 not found in mapping
+2025-11-14 16:13:55,788 - shared.utilities.toll_mapping_utils - WARNING - Toll station 552 not found in mapping
+2025-11-14 16:13:55,788 - __main__ - WARNING - Event 12292: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,788 - __main__ - INFO - 
+[64/65] Processing event 12323 (交通事故)
+2025-11-14 16:13:55,788 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,788 - shared.utilities.toll_mapping_utils - WARNING - Toll station 601 not found in mapping
+2025-11-14 16:13:55,788 - shared.utilities.toll_mapping_utils - WARNING - Toll station 202 not found in mapping
+2025-11-14 16:13:55,788 - __main__ - WARNING - Event 12323: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,788 - __main__ - INFO - 
+[65/65] Processing event 12382 (交通管制)
+2025-11-14 16:13:55,788 - __main__ - INFO - --------------------------------------------------------------------------------
+2025-11-14 16:13:55,789 - shared.utilities.toll_mapping_utils - WARNING - Toll station 725 not found in mapping
+2025-11-14 16:13:55,789 - __main__ - WARNING - Event 12382: Could not resolve toll entrance edges, skipping
+2025-11-14 16:13:55,789 - __main__ - INFO - 
+================================================================================
+2025-11-14 16:13:55,789 - __main__ - INFO - GENERATION SUMMARY
+2025-11-14 16:13:55,789 - __main__ - INFO - ================================================================================
+2025-11-14 16:13:55,789 - __main__ - INFO - Total events: 65
+2025-11-14 16:13:55,789 - __main__ - INFO - Successfully generated: 9
+2025-11-14 16:13:55,789 - __main__ - INFO - Failed: 3
+2025-11-14 16:13:55,789 - __main__ - INFO - Skipped: 53
+2025-11-14 16:13:55,791 - __main__ - INFO - 
+Results saved to: generation_results_20251114_161355.json
+2025-11-14 16:13:55,791 - __main__ - WARNING - 
+Failed events:
+2025-11-14 16:13:55,791 - __main__ - WARNING -   13270: No valid lanes resolved for road control 13270. Edge: -16326
+2025-11-14 16:13:55,791 - __main__ - WARNING -   15698: No valid lanes resolved for road control 15698. Edge: -12610
+2025-11-14 16:13:55,791 - __main__ - WARNING -   12207: No valid lanes resolved for road control 12207. Edge: -6622
+

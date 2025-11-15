@@ -331,6 +331,9 @@ class QuickCaseCreator:
                 result['error'] = f"Scenario directory not found: {scenario_id}"
                 return result
 
+            # Step 5a: Copy scenario .add.xml files to case config
+            self._copy_scenario_additional_files(case_path, scenario_path)
+
             # Step 6: Create case metadata with event scenario linkage
             self._create_case_metadata(
                 case_path, case_name, case_id, description,
@@ -409,6 +412,38 @@ class QuickCaseCreator:
             else:
                 logger.warning(f"TAZ file not found: {taz_file} (will use default)")
 
+    def _copy_scenario_additional_files(
+        self,
+        case_path: Path,
+        scenario_path: Path
+    ) -> None:
+        """
+        Copy scenario .add.xml files to case config directory.
+
+        These files contain event injections and control strategy definitions
+        needed for SUMO simulation.
+
+        Args:
+            case_path: Case directory path
+            scenario_path: Source scenario directory path
+        """
+        config_dir = case_path / "config"
+
+        # Find all .add.xml files in scenario directory
+        add_xml_files = list(scenario_path.glob("*.add.xml"))
+
+        if not add_xml_files:
+            logger.warning(f"No .add.xml files found in scenario: {scenario_path}")
+            return
+
+        for add_xml_file in add_xml_files:
+            try:
+                dest_file = config_dir / add_xml_file.name
+                shutil.copy2(add_xml_file, dest_file)
+                logger.info(f"✓ Copied additional file: {add_xml_file.name}")
+            except Exception as e:
+                logger.error(f"Failed to copy {add_xml_file.name}: {e}")
+
     def _create_case_metadata(
         self,
         case_path: Path,
@@ -436,6 +471,18 @@ class QuickCaseCreator:
             with open(event_desc_path, 'r', encoding='utf-8') as f:
                 event_desc = json.load(f)
 
+        # Find .add.xml files in case config
+        config_dir = case_path / "config"
+        add_xml_files = list(config_dir.glob("*.add.xml"))
+
+        # Filter out TAZ files (they should be handled via taz_file field, not additional_files)
+        # TAZ files typically named: TAZ_*.add.xml
+        taz_filename = Path(taz_file).name if taz_file else None
+        additional_files = [
+            f"config/{f.name}" for f in add_xml_files
+            if not (taz_filename and f.name == taz_filename)  # Exclude TAZ file to avoid duplication
+        ]
+
         metadata = {
             "case_id": case_id,
             "case_name": case_name,
@@ -447,7 +494,8 @@ class QuickCaseCreator:
                 "network_file": f"config/{network_fname}",
                 "routes_file": f"config/{od_fname}",
                 "taz_file": f"config/{taz_fname}" if taz_fname else None,
-                "od_file": None
+                "od_file": None,
+                "additional_files": additional_files if additional_files else []
             },
             "time_range": {
                 "start": event_desc.get("time", {}).get("start_time"),
@@ -481,7 +529,7 @@ class QuickCaseCreator:
                 "scenario_id": scenario_id,
                 "scenario_path": str(scenario_path),
                 "event_id": event_desc.get("event_id"),
-                "event_location": event_desc.get("location", {}).get("edge_id")
+                "event_location": event_desc.get("location", {})
             },
             "status": "active"
         }

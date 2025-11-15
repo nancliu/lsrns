@@ -5,10 +5,10 @@
     "description": "Event-only baseline (no control strategy applied)",
     "event_only": true,
     "affected_edges": [
-      "-14746|-4000000335"
+      "-14746"
     ],
     "affected_lanes": [
-      "-14746|-4000000335_0"
+      "-14746"
     ],
     "response_delay_seconds": 300,
     "recovery_period_seconds": 600

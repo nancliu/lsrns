@@ -350,9 +350,118 @@ class ComparisonReportResponse(BaseModel):
                         "rank": 1
                     }
                 ],
-                "visualization_data": {
-                    "charts": [],
-                    "heatmaps": []
-                }
+                "visualization_data": {}
+            }
+        }
+
+
+class StrategyMetrics(BaseModel):
+    """
+    单个策略的聚合指标
+
+    用于多场景对比分析
+    """
+
+    strategy_type: str = Field(..., description="策略类型 (NO_CONTROL, VSS, TEC, DHS)")
+    scenario_count: int = Field(..., description="该策略的场景数量")
+
+    # Summary.xml 指标
+    total_vehicles: int = Field(default=0, description="总车辆数")
+    avg_speed: float = Field(default=0.0, description="平均速度 (km/h)")
+    avg_trip_duration: float = Field(default=0.0, description="平均行程时间 (秒)")
+    completion_rate: float = Field(default=0.0, description="完成率 (%)")
+    total_delay: float = Field(default=0.0, description="总延误 (秒)")
+    avg_waiting_time: float = Field(default=0.0, description="平均等待时间 (秒)")
+
+    # EdgeData 指标 (事件影响路段)
+    event_edge_avg_speed: float = Field(default=0.0, description="事件路段平均速度 (km/h)")
+    event_edge_avg_density: float = Field(default=0.0, description="事件路段平均密度 (veh/km)")
+    event_edge_avg_occupancy: float = Field(default=0.0, description="事件路段平均占用率 (%)")
+
+    # 相对于基线的改善百分比 (如果是基线则为None)
+    improvement_vs_baseline: Optional[Dict[str, float]] = Field(
+        None,
+        description="相对于基线的改善百分比"
+    )
+
+
+class MultiScenarioComparisonResponse(BaseModel):
+    """
+    多场景对比分析响应
+
+    对同一事件的多个控制策略进行对比分析
+    """
+
+    event_id: str = Field(..., description="事件ID")
+    event_type: str = Field(..., description="事件类型 (accident, congestion, etc.)")
+
+    # 场景信息
+    scenarios: List[Dict[str, Any]] = Field(..., description="所有场景信息")
+
+    # 按策略分组的指标
+    strategy_metrics: Dict[str, StrategyMetrics] = Field(
+        ...,
+        description="按策略分组的聚合指标 (key: strategy_type)"
+    )
+
+    # 基线策略
+    baseline_strategy: str = Field(default="NO_CONTROL", description="基线策略类型")
+
+    # 策略排名 (按整体改善程度)
+    strategy_ranking: List[Dict[str, Any]] = Field(
+        ...,
+        description="策略排名列表 (按改善程度排序)"
+    )
+
+    # 详细对比数据 (用于图表)
+    comparison_charts_data: Dict[str, Any] = Field(
+        default={},
+        description="对比图表数据"
+    )
+
+    # 元数据
+    analysis_timestamp: datetime = Field(..., description="分析时间戳")
+    total_scenarios_analyzed: int = Field(..., description="分析的场景总数")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "event_id": "8210655",
+                "event_type": "congestion",
+                "scenarios": [
+                    {"scenario_id": "scenario_8210655_no_control", "strategy": "NO_CONTROL"},
+                    {"scenario_id": "scenario_8210655_vss", "strategy": "VSS"},
+                    {"scenario_id": "scenario_8210655_tec", "strategy": "TEC"}
+                ],
+                "strategy_metrics": {
+                    "NO_CONTROL": {
+                        "strategy_type": "NO_CONTROL",
+                        "scenario_count": 1,
+                        "avg_speed": 45.2,
+                        "avg_trip_duration": 1200.0,
+                        "completion_rate": 96.5,
+                        "improvement_vs_baseline": None
+                    },
+                    "VSS": {
+                        "strategy_type": "VSS",
+                        "scenario_count": 1,
+                        "avg_speed": 52.8,
+                        "avg_trip_duration": 1050.0,
+                        "completion_rate": 98.2,
+                        "improvement_vs_baseline": {
+                            "avg_speed": 16.8,
+                            "avg_trip_duration": -12.5,
+                            "completion_rate": 1.76
+                        }
+                    }
+                },
+                "baseline_strategy": "NO_CONTROL",
+                "strategy_ranking": [
+                    {"strategy": "VSS", "overall_improvement": 15.5, "rank": 1},
+                    {"strategy": "TEC", "overall_improvement": 10.2, "rank": 2}
+                ],
+                "comparison_charts_data": {},
+                "analysis_timestamp": "2025-11-15T10:00:00",
+                "total_scenarios_analyzed": 3
             }
         }

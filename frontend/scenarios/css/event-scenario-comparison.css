@@ -1,0 +1,367 @@
+/**
+ * Event Scenario Comparison Table Styles
+ *
+ * 事件场景对比表格样式
+ * 参考优化仿真中的批量仿真结果页面样式
+ */
+
+/* ========== 对比表格容器 ========== */
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== 对比表格 ========== */
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.comparison-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.comparison-table th {
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.comparison-table tbody tr {
+    transition: background-color 0.3s;
+}
+
+.comparison-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.comparison-table tbody tr.baseline-row {
+    background-color: #e3f2fd;
+    font-weight: 600;
+}
+
+.comparison-table tbody tr.baseline-row:hover {
+    background-color: #bbdefb;
+}
+
+.comparison-table td {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+/* ========== 策略名称列 ========== */
+
+.comparison-table .strategy-name {
+    text-align: left;
+    font-weight: 600;
+    color: #2c3e50;
+    min-width: 150px;
+}
+
+.comparison-table .baseline-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: #4caf50;
+    color: white;
+    font-size: 11px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* ========== 指标值列 ========== */
+
+.comparison-table .metric-value {
+    font-weight: 600;
+    color: #34495e;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* ========== 改善百分比列 ========== */
+
+.comparison-table .metric-change {
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.comparison-table .metric-change .improvement {
+    color: #4caf50;
+}
+
+.comparison-table .metric-change .deterioration {
+    color: #f44336;
+}
+
+/* ========== 表格图例 ========== */
+
+.table-legend {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.table-legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-legend .legend-icon {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.table-legend .legend-icon.improvement {
+    color: #4caf50;
+}
+
+.table-legend .legend-icon.deterioration {
+    color: #f44336;
+}
+
+.table-legend .legend-text {
+    font-size: 13px;
+    color: #666;
+}
+
+/* ========== 策略排名表格 ========== */
+
+.ranking-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.ranking-table thead {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.ranking-table th {
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.ranking-table tbody tr {
+    transition: all 0.3s;
+}
+
+.ranking-table tbody tr:hover {
+    background-color: #fff3e0;
+    transform: scale(1.01);
+}
+
+.ranking-table td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+/* ========== 排名单元格 ========== */
+
+.ranking-table .rank-cell {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.ranking-table .rank-cell .medal {
+    font-size: 24px;
+    margin-right: 5px;
+}
+
+/* ========== 策略单元格 ========== */
+
+.ranking-table .strategy-cell {
+    text-align: left;
+    font-weight: 600;
+    color: #34495e;
+}
+
+/* ========== 改善率单元格 ========== */
+
+.ranking-table .improvement-cell {
+    font-size: 18px;
+}
+
+.ranking-table .improvement-value {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.ranking-table .improvement-value.positive {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.ranking-table .improvement-value.negative {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* ========== 评价单元格 ========== */
+
+.ranking-table .evaluation-cell {
+    text-align: center;
+}
+
+.ranking-table .evaluation-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ranking-table .evaluation-badge.excellent {
+    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+    color: white;
+}
+
+.ranking-table .evaluation-badge.good {
+    background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);
+    color: white;
+}
+
+.ranking-table .evaluation-badge.fair {
+    background: linear-gradient(135deg, #ff9800 0%, #ffa726 100%);
+    color: white;
+}
+
+.ranking-table .evaluation-badge.poor {
+    background: linear-gradient(135deg, #f44336 0%, #e57373 100%);
+    color: white;
+}
+
+/* ========== 空状态 ========== */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #95a5a6;
+    font-size: 16px;
+}
+
+.empty-state::before {
+    content: '📊';
+    display: block;
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* ========== 响应式设计 ========== */
+
+@media (max-width: 768px) {
+    .comparison-table {
+        font-size: 12px;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 8px 10px;
+    }
+
+    .comparison-table .strategy-name {
+        min-width: 120px;
+    }
+
+    .table-legend {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .ranking-table {
+        font-size: 12px;
+    }
+
+    .ranking-table td {
+        padding: 10px;
+    }
+
+    .ranking-table .rank-cell .medal {
+        font-size: 20px;
+    }
+
+    .ranking-table .improvement-value {
+        font-size: 14px;
+        padding: 3px 8px;
+    }
+}
+
+/* ========== 打印样式 ========== */
+
+@media print {
+    .comparison-table-wrapper,
+    .ranking-table-wrapper {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+
+    .comparison-table tbody tr:hover,
+    .ranking-table tbody tr:hover {
+        background-color: transparent !important;
+    }
+
+    .table-legend {
+        page-break-inside: avoid;
+    }
+}
+
+/* ========== 动画效果 ========== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.comparison-table-wrapper,
+.ranking-table-wrapper {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* ========== 改善指示器 ========== */
+
+.improvement,
+.deterioration {
+    display: inline-block;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.improvement:hover,
+.deterioration:hover {
+    transform: scale(1.1);
+}

@@ -6,6 +6,7 @@
     <title>影响分析 - 交通仿真推演系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="scenario_browser.css">
+    <link rel="stylesheet" href="css/event-scenario-comparison.css">
     <style>
         .analysis-tabs {
             display: flex;
@@ -289,23 +290,20 @@
 
                 <!-- 对比分析标签页 -->
                 <div class="analysis-content" id="tab-comparison">
-                    <h3>📈 与基准场景的对比</h3>
-                    <table class="comparison-table" id="comparisonTable">
-                        <thead>
-                            <tr>
-                                <th>指标</th>
-                                <th>基准场景</th>
-                                <th>控制方案</th>
-                                <th>差值</th>
-                                <th>改善</th>
-                            </tr>
-                        </thead>
-                        <tbody id="comparisonBody">
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: #999;">加载中...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <h3>📈 控制策略对比分析</h3>
+
+                    <!-- 对比表格容器 -->
+                    <div id="comparisonTableContainer">
+                        <div class="empty-state">加载中...</div>
+                    </div>
+
+                    <!-- 策略排名容器 -->
+                    <div style="margin-top: 30px;">
+                        <h3>🏆 策略效果排名</h3>
+                        <div id="strategyRankingContainer">
+                            <div class="empty-state">加载中...</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 详细指标标签页 -->
@@ -331,6 +329,7 @@
         </div>
     </div>
 
+    <script src="js/event-scenario-comparison.js"></script>
     <script type="module">
         import { APIClient } from '../components/api-client.js';
 
@@ -414,34 +413,20 @@
                 }
             }
 
-            // 对比数据
-            if (analysisData.comparison) {
-                const comparison = analysisData.comparison;
-                const tbody = document.getElementById('comparisonBody');
-                tbody.innerHTML = '';
+            // 对比数据 - 使用新的对比表格组件
+            if (analysisData.strategy_comparison || analysisData.comparison) {
+                // 如果有新格式的数据（strategy_comparison），使用新组件
+                if (analysisData.strategy_comparison) {
+                    renderEventScenarioComparisonTable(analysisData, 'comparisonTableContainer');
 
-                if (comparison.metrics) {
-                    Object.entries(comparison.metrics).forEach(([metricName, metricData]) => {
-                        const row = document.createElement('tr');
-                        const baseline = metricData.baseline || 0;
-                        const withControl = metricData.with_control || 0;
-                        const diff = withControl - baseline;
-                        const diffPercent = baseline !== 0 ? ((diff / baseline) * 100).toFixed(1) : 0;
-                        const isImprovement = diff < 0 ? true : false;
-
-                        row.innerHTML = `
-                            <td>${metricName}</td>
-                            <td>${baseline.toFixed(1)}</td>
-                            <td>${withControl.toFixed(1)}</td>
-                            <td>${Math.abs(diff).toFixed(1)}</td>
-                            <td>
-                                <span class="${isImprovement ? 'metric-change positive' : 'metric-change negative'}">
-                                    ${isImprovement ? '↓' : '↑'} ${Math.abs(diffPercent)}%
-                                </span>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
+                    if (analysisData.strategy_ranking) {
+                        renderStrategyRanking(analysisData, 'strategyRankingContainer');
+                    }
+                } else {
+                    // 向后兼容：旧格式数据
+                    console.warn('使用旧格式的对比数据，建议更新后端返回新格式');
+                    const container = document.getElementById('comparisonTableContainer');
+                    container.innerHTML = '<div class="empty-state">数据格式不兼容，请联系管理员更新</div>';
                 }
             }
         }

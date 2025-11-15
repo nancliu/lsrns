@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事件批次结果 - 影响分析</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="scenario_browser.css">
+    <link rel="stylesheet" href="css/event-scenario-comparison.css">
+    <style>
+        .top-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .top-bar h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .batch-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶栏 -->
+    <div class="top-bar">
+        <h1>事件批次结果 - 影响分析</h1>
+        <div>
+            <a href="case-simulation-center.html" class="back-btn">返回批次监控</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- 批次信息 -->
+        <div class="section">
+            <h3>批次信息</h3>
+            <div class="batch-info-grid" id="batchInfoGrid">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+
+        <!-- 方案对比表 -->
+        <div class="section">
+            <h3>控制策略对比表</h3>
+            <div id="comparisonTableContainer">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 策略排名 -->
+        <div class="section">
+            <h3>策略效果排名</h3>
+            <div id="strategyRankingContainer">
+                <div class="empty-state">加载中...</div>
+            </div>
+        </div>
+
+        <!-- EdgeData 分析（可选） -->
+        <div class="section" id="edgeDataSection" style="display: none;">
+            <h3>事件路段分析 (EdgeData)</h3>
+            <div id="edgeDataContainer">
+                <!-- 使用 AnalysisResultsViewer 组件 -->
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="window.history.back()">返回</button>
+            <button class="btn btn-primary" onclick="exportReport()">导出报告</button>
+        </div>
+    </div>
+
+    <script src="js/event-scenario-comparison.js"></script>
+    <script>
+        // ========== 页面初始化 ==========
+
+        // 从 URL 获取 batch_id
+        const urlParams = new URLSearchParams(window.location.search);
+        const batchId = urlParams.get('batch_id');
+
+        if (!batchId) {
+            alert('缺少批次ID参数');
+            window.location.href = 'case-simulation-center.html';
+        }
+
+        // 页面加载时自动加载结果
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadBatchInfo();
+            await loadEventBatchResults(batchId);
+        });
+
+        // ========== 加载批次信息 ==========
+
+        async function loadBatchInfo() {
+            try {
+                const response = await fetch(`/api/v1/batch/event-batch-status/${batchId}`);
+                if (!response.ok) throw new Error('Failed to load batch info');
+
+                const batchInfo = await response.json();
+
+                // 渲染批次信息
+                const container = document.getElementById('batchInfoGrid');
+                container.innerHTML = `
+                    <div class="info-card">
+                        <div class="info-label">批次ID</div>
+                        <div class="info-value">${batchInfo.batch_id}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">事件ID</div>
+                        <div class="info-value">${batchInfo.event_id}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">事件类型</div>
+                        <div class="info-value">${batchInfo.event_type || '未知'}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">场景数量</div>
+                        <div class="info-value">${batchInfo.scenarios?.length || 0} 个</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">创建时间</div>
+                        <div class="info-value">${new Date(batchInfo.created_at).toLocaleString('zh-CN')}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">状态</div>
+                        <div class="info-value">${batchInfo.status}</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Load batch info error:', error);
+            }
+        }
+
+        // ========== 导出报告 ==========
+
+        function exportReport() {
+            // TODO: 实现导出功能
+            alert('导出功能开发中...');
+        }
+
+        // ========== 测试数据（仅用于演示） ==========
+
+        // 如果无法从API加载数据，使用测试数据演示
+        window.testLoadResults = function() {
+            const testData = {
+                event_id: "8210655",
+                batch_id: "batch_event_8210655_20251115_100000",
+                strategy_comparison: {
+                    "NO_CONTROL": {
+                        avg_speed: 45.2,
+                        avg_trip_duration: 1200,
+                        completion_rate: 96.5,
+                        total_vehicles: 8934,
+                        total_delay: 45000,
+                        avg_waiting_time: 120
+                    },
+                    "VSS": {
+                        avg_speed: 52.8,
+                        avg_trip_duration: 1050,
+                        completion_rate: 98.2,
+                        total_vehicles: 8934,
+                        total_delay: 38000,
+                        avg_waiting_time: 95,
+                        improvement_vs_baseline: {
+                            avg_speed: 16.8,
+                            avg_trip_duration: -12.5,
+                            completion_rate: 1.76
+                        }
+                    },
+                    "TEC": {
+                        avg_speed: 49.5,
+                        avg_trip_duration: 1120,
+                        completion_rate: 97.8,
+                        total_vehicles: 8934,
+                        total_delay: 40500,
+                        avg_waiting_time: 105,
+                        improvement_vs_baseline: {
+                            avg_speed: 9.5,
+                            avg_trip_duration: -6.7,
+                            completion_rate: 1.35
+                        }
+                    },
+                    "DHS": {
+                        avg_speed: 48.3,
+                        avg_trip_duration: 1150,
+                        completion_rate: 97.2,
+                        total_vehicles: 8934,
+                        total_delay: 41800,
+                        avg_waiting_time: 110,
+                        improvement_vs_baseline: {
+                            avg_speed: 6.9,
+                            avg_trip_duration: -4.2,
+                            completion_rate: 0.73
+                        }
+                    }
+                },
+                strategy_ranking: [
+                    {
+                        strategy: "VSS",
+                        overall_improvement: 15.5,
+                        rank: 1
+                    },
+                    {
+                        strategy: "TEC",
+                        overall_improvement: 10.2,
+                        rank: 2
+                    },
+                    {
+                        strategy: "DHS",
+                        overall_improvement: 7.8,
+                        rank: 3
+                    }
+                ]
+            };
+
+            renderEventScenarioComparisonTable(testData, 'comparisonTableContainer');
+            renderStrategyRanking(testData, 'strategyRankingContainer');
+        };
+
+        // 在控制台输入 testLoadResults() 可以查看演示效果
+        console.log('提示: 在控制台输入 testLoadResults() 可以查看演示效果');
+    </script>
+</body>
+</html>

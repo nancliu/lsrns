@@ -1,0 +1,48 @@
+{
+  "strategy_type": "DHS",
+  "strategy_name": "动态硬路肩",
+  "parameters": {
+    "shoulder_segments": [
+      "-12680",
+      "-10376.203",
+      "-10376",
+      "-6906",
+      "-1438",
+      "-3324",
+      "-4360",
+      "-10188"
+    ],
+    "affected_lanes": [
+      "-12680_0",
+      "-10376.203_0",
+      "-10376_0",
+      "-6906_0",
+      "-1438_0",
+      "-3324_0",
+      "-4360_0",
+      "-10188_0"
+    ],
+    "hard_shoulder_lane_index": 0,
+    "activation_schedule": [
+      {
+        "begin": 3900,
+        "end": 5700,
+        "status": "OPEN",
+        "allowed_vehicle_types": [
+          "passenger"
+        ]
+      }
+    ],
+    "response_delay_seconds": 0,
+    "recovery_period_seconds": 0,
+    "affected_edges": [
+      "-14078"
+    ]
+  },
+  "timing": {
+    "activation_time": "2025-08-26 07:30:00",
+    "deactivation_time": "2025-08-26 08:00:00",
+    "response_delay_minutes": 0.0,
+    "recovery_period_minutes": 0.0
+  }
+}

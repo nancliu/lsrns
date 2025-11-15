@@ -1122,19 +1122,36 @@ function renderAnalysisHistory(payload) {
 // =============== 案例列表与筛选 ===============
 async function loadCases() {
     try {
-        const data = await apiFetch(`${API_BASE_URL}/list_cases/`);
+        // 加载所有案例（使用较大的page_size以确保获取所有案例）
+        const data = await apiFetch(`${API_BASE_URL}/list_cases/?page_size=1000`);
         const allCases = data.cases || [];
 
         // Phase 2: 过滤掉事件场景案例 - OD仿真仅支持OD提取案例
+        // 检查多种事件场景案例标识：
+        // 1. source_type 包含 'event_scenario' (包括 'event_scenario' 和 'event_scenario_batch')
+        // 2. case_type 为 'event_based' (旧版本事件场景案例)
+        // 3. case_type 为 'event_scenario_case' (新版本事件场景案例)
         currentCases = allCases.filter(c => {
-            const sourceType = c.source_type || 'od_extraction';
-            return sourceType !== 'event_scenario';
+            const sourceType = c.source_type || '';
+            const caseType = c.case_type || '';
+
+            const isEventScenario = sourceType.includes('event_scenario') ||
+                                   caseType === 'event_based' ||
+                                   caseType === 'event_scenario_case';
+
+            return !isEventScenario;
         });
 
         // 如果有事件场景案例被过滤掉，记录日志
         const eventScenarioCases = allCases.filter(c => {
-            const sourceType = c.source_type || 'od_extraction';
-            return sourceType === 'event_scenario';
+            const sourceType = c.source_type || '';
+            const caseType = c.case_type || '';
+
+            const isEventScenario = sourceType.includes('event_scenario') ||
+                                   caseType === 'event_based' ||
+                                   caseType === 'event_scenario_case';
+
+            return isEventScenario;
         });
         if (eventScenarioCases.length > 0) {
             console.log(`✓ Filtered out ${eventScenarioCases.length} event scenario case(s)`);

@@ -1,0 +1,40 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-13370",
+      "-9070",
+      "-3802",
+      "-11410",
+      "-6364"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "toll_station_ids": [
+      "246",
+      "247",
+      "249",
+      "250",
+      "255"
+    ],
+    "control_measure": "江油站至厚坝站入口成都方向封闭。",
+    "control_range": "",
+    "activation_time": "2025-10-11 19:54:00",
+    "deactivation_time": "2025-10-11 20:04:00",
+    "affected_edges": [
+      "nan"
+    ],
+    "affected_lanes": [
+      "nan_1"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-10-11 19:59:16",
+    "deactivation_time": "2025-10-11 20:13:38",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

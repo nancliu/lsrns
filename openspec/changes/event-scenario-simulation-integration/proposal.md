@@ -584,7 +584,131 @@ frontend/
 
 ---
 
+## Extension: CSV Batch Scenario Generation
+
+### Feature Description
+
+Enable users to generate scenario bundles in batch from event CSV files through the scenario browser UI.
+
+**User Story**:
+> As a traffic analyst, I want to upload/select an event CSV file and automatically generate scenarios for all new events, so I don't have to manually run scripts or generate scenarios one by one.
+
+### Key Capabilities
+
+1. **CSV File Selection**: Choose from available CSV files in `events/` folder
+2. **Duplicate Detection**: Automatically skip events that already have scenarios
+3. **Batch Generation**: Generate all scenarios (NO_CONTROL/VSS/TEC/DHS) in one operation
+4. **State Tracking**: Track progress and failures in JSON status files
+5. **Simple UI**: Minimal frontend changes, simple alerts for status
+
+### Technical Approach
+
+**API Endpoint**: `POST /api/v1/scenario/generate-from-csv`
+
+**Request**:
+```json
+{
+  "csv_file": "all_extracted_events.csv",
+  "generate_all_strategies": true
+}
+```
+
+**Response**:
+```json
+{
+  "task_id": "csv_gen_20251114_143000",
+  "status": "processing",
+  "message": "CSV场景生成已启动",
+  "state_file": "events/csv_extraction_status/all_extracted_events_status.json"
+}
+```
+
+**Process**:
+1. Validate CSV file exists
+2. Create state tracking file in `events/csv_extraction_status/`
+3. Load CSV and filter events
+4. Check `scenario_index.json` to detect existing scenarios
+5. Generate scenarios only for new events
+6. Update state file with success/failure details
+7. Update `scenario_index.json`
+
+**State File Structure** (`events/csv_extraction_status/{csv_name}_status.json`):
+```json
+{
+  "csv_file": "all_extracted_events.csv",
+  "task_id": "csv_gen_20251114_143000",
+  "started_at": "2025-11-14T14:30:00",
+  "completed_at": "2025-11-14T14:35:00",
+  "status": "completed",
+  "total_events_in_csv": 150,
+  "events_processed": 150,
+  "events_skipped_existing": 100,
+  "events_generated": 50,
+  "scenarios_generated": {"no_control": 50, "vss": 50, "tec": 50, "total": 150},
+  "failed_events": [...],
+  "successful_events": [...]
+}
+```
+
+### Implementation Scope
+
+**Backend** (Priority: P1):
+- ✅ New API endpoint in `api/routes/scenario_routes.py`
+- ✅ CSV processing logic in `api/services/scenario_service.py`
+- ✅ Reuse `ScenarioGenerator` from `shared/control_tools/`
+- ✅ State tracking file creation and updates
+- ✅ Duplicate detection against `scenario_index.json`
+
+**Frontend** (Priority: P1 - Already Implemented):
+- ✅ CSV file dropdown (loads from `/api/v1/scenario/list-csv-files`)
+- ✅ Generate button calls API
+- ✅ Simple alert with task_id
+- ❌ Real-time progress monitoring (Future enhancement)
+
+**Testing** (Priority: P1):
+- ✅ Unit tests for duplicate detection
+- ✅ Integration test with sample CSV
+- ✅ E2E test: CSV → scenarios → verify state file
+
+### Design Principles
+
+- **Simplicity**: No complex queue system, direct execution
+- **Reusability**: Reuse existing `generate_scenarios_from_events.py` logic
+- **State Tracking**: Simple JSON files for status (no database)
+- **Idempotency**: Safe to re-run, skips existing scenarios
+- **Error Tolerance**: Continue processing even if individual events fail
+
+### Success Criteria
+
+1. User can select CSV file from dropdown
+2. Click "Generate" creates scenarios for new events only
+3. Existing scenarios are not duplicated
+4. State file accurately tracks success/failure
+5. `scenario_index.json` is updated correctly
+6. Failed events are logged with clear error messages
+
+### Estimated Effort
+
+| Component | LOC | Time | Priority |
+|-----------|-----|------|----------|
+| Backend API endpoint | 50-80 | 2-3 hours | P1 |
+| CSV processing service | 150-200 | 4-6 hours | P1 |
+| State tracking logic | 80-100 | 2-3 hours | P1 |
+| Duplicate detection | 40-60 | 1-2 hours | P1 |
+| Unit + integration tests | 100-150 | 3-4 hours | P1 |
+| **TOTAL** | **420-590** | **12-18 hours** | - |
+
+**Timeline**: 2-3 days for complete implementation and testing
+
+---
+
 ## Version History
+
+- **v1.1** - CSV Batch Generation Extension (2025-11-14)
+  - Added CSV batch scenario generation feature
+  - State tracking file design
+  - Duplicate detection logic
+  - Simple UI integration
 
 - **v1.0** - Initial proposal (2025-11-12)
   - Complete Phase 2 workflow design

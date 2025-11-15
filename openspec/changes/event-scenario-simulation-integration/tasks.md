@@ -1178,6 +1178,99 @@ Week 4 (Polish):
 
 ---
 
+### Task 2.14: Analysis Viewer - Strategy Comparison Table Component (NEW)
+**Type**: Frontend | **Effort**: 1.5 days | **Priority**: P1 | **Status**: ✅ COMPLETED (2025-11-15)
+
+**Description**: Create and integrate strategy comparison table component referencing optimization.html batch results comparison table design.
+
+**User Requirement**: "影响分析页面使用对比的方式，参考优化仿真中批量仿真的结果页面中的表"
+
+**Deliverables**:
+- [x] Created `frontend/scenarios/js/event-scenario-comparison.js` (~400 LOC)
+  - Function: `renderEventScenarioComparisonTable(batchResults, containerId)`
+  - Function: `renderStrategyRanking(batchResults, containerId)`
+  - Function: `calculateImprovement(value, baseline, higherIsBetter)`
+  - Function: `formatDelay(seconds)`
+  - Function: `loadEventBatchResults(batchId)`
+
+- [x] Created `frontend/scenarios/css/event-scenario-comparison.css` (~350 LOC)
+  - Class: `.comparison-table` (gradient header, baseline row styling)
+  - Class: `.ranking-table` (medal icons, evaluation badges)
+  - Class: `.improvement` / `.deterioration` (color-coded indicators)
+  - Responsive design and print-friendly styles
+
+- [x] Created `frontend/scenarios/event-batch-results-example.html`
+  - Complete integration example
+  - Test data and debugging functions
+  - Batch info display section
+
+- [x] Created `openspec/changes/event-scenario-simulation-integration/EVENT_SCENARIO_COMPARISON_TABLE_GUIDE.md` (~500 LOC)
+  - Component functionality documentation
+  - Data structure requirements
+  - Integration steps (Method A and Method B)
+  - Backend API requirements
+  - Troubleshooting guide
+
+- [x] Created `openspec/changes/event-scenario-simulation-integration/COMPARISON_TABLE_INTEGRATION_SUMMARY.md`
+  - Complete implementation report
+  - File modifications summary
+  - Testing methods
+  - Next steps for backend
+
+- [x] Modified `frontend/scenarios/analysis_viewer.html`:
+  - Added CSS link: `<link rel="stylesheet" href="css/event-scenario-comparison.css">`
+  - Added JS import: `<script src="js/event-scenario-comparison.js"></script>`
+  - Replaced comparison tab with new component containers
+  - Updated renderResults() to call comparison table rendering functions
+
+**Key Features**:
+- NO_CONTROL as baseline (first row, blue background)
+- Automatic improvement percentage calculation
+- Color coding: green=improvement, red=deterioration
+- Arrow indicators: ↑=increase, ↓=decrease
+- Strategy ranking with medals (🥇🥈🥉)
+- Evaluation badges (优秀/良好/一般/较差)
+- Responsive design (desktop + mobile)
+
+**Data Format Required**:
+```json
+{
+  "event_id": "8210655",
+  "strategy_comparison": {
+    "NO_CONTROL": { "avg_speed": 45.2, ... },
+    "VSS": { "avg_speed": 52.8, "improvement_vs_baseline": { ... } },
+    "TEC": { ... },
+    "DHS": { ... }
+  },
+  "strategy_ranking": [
+    { "strategy": "VSS", "overall_improvement": 15.5, "rank": 1 },
+    ...
+  ]
+}
+```
+
+**Backend Requirements** (Pending):
+- API endpoint: `GET /api/v1/batch/event-batch-results/{batch_id}`
+- Aggregate metrics from summary.xml and edgedata.xml by strategy
+- Calculate improvement percentages vs baseline
+- Rank strategies by overall improvement
+
+**Tests**:
+- [x] Browser console test with testLoadResults()
+- [x] Example page renders correctly
+- [ ] Backend integration test (pending backend implementation)
+
+**Files Modified**:
+- `frontend/scenarios/analysis_viewer.html` (Modified)
+- `api/models/responses/analysis_results_responses.py` (Already modified - added StrategyMetrics, MultiScenarioComparisonResponse)
+- `api/models/responses/__init__.py` (Already modified - exports added)
+
+**Backward Compatibility**: ✅ Maintained
+- Old format data shows "data format incompatible" message
+- No breaking changes to existing functionality
+
+---
+
 ### Task 2.14: Backend - Case List API Enhancement (NEW)
 **Type**: Backend | **Effort**: 1 day | **Priority**: P0 | **Depends on**: 2.9
 
@@ -1264,4 +1357,467 @@ Week 4 (Polish):
 
 ---
 
-**Updated Task List. Ready for integration phase.**
+## Phase 3: CSV Batch Scenario Generation (Extension)
+
+### Task 3.1: Backend - CSV Generation API Endpoint
+**Type**: Backend | **Effort**: 3-4 hours | **Priority**: P1 | **Depends on**: None
+
+**Description**: Implement POST /api/v1/scenario/generate-from-csv endpoint.
+
+**Deliverables**:
+- [ ] Add route in `api/routes/scenario_routes.py`:
+  ```python
+  @router.post("/generate-from-csv")
+  async def generate_scenarios_from_csv(request: CsvGenerationRequest):
+      """Generate scenarios from CSV file in batch."""
+      result = await scenario_service.generate_scenarios_from_csv(
+          csv_file=request.csv_file,
+          generate_all_strategies=request.generate_all_strategies
+      )
+      return result
+  ```
+
+- [ ] Create request model in `api/models/requests/`:
+  ```python
+  class CsvGenerationRequest(BaseModel):
+      csv_file: str  # CSV filename in events/ folder
+      generate_all_strategies: bool = True
+  ```
+
+- [ ] Create response model in `api/models/responses/`:
+  ```python
+  class CsvGenerationResponse(BaseModel):
+      task_id: str
+      csv_file: str
+      status: str  # processing|completed|failed
+      message: str
+      state_file: str
+      generated_count: Optional[int] = None
+  ```
+
+**Acceptance Criteria**:
+- ✅ Endpoint accepts csv_file and generate_all_strategies
+- ✅ Returns task_id and state_file path
+- ✅ Returns 404 if CSV file not found
+- ✅ Returns 400 if CSV format invalid
+
+---
+
+### Task 3.2: Backend - CSV Processing Service Logic
+**Type**: Backend | **Effort**: 4-6 hours | **Priority**: P1 | **Depends on**: 3.1
+
+**Description**: Implement scenario generation from CSV with duplicate detection.
+
+**Deliverables**:
+- [ ] Add method in `api/services/scenario_service.py`:
+  ```python
+  async def generate_scenarios_from_csv(
+      self,
+      csv_file: str,
+      generate_all_strategies: bool = True
+  ) -> Dict[str, Any]:
+      """
+      Generate scenarios from CSV file.
+
+      Process:
+      1. Validate CSV exists
+      2. Create state tracking file
+      3. Load CSV and filter events
+      4. Check duplicates against scenario_index.json
+      5. Generate scenarios for new events
+      6. Update state file with results
+      7. Update scenario_index.json
+      """
+  ```
+
+- [ ] Implement duplicate detection:
+  ```python
+  def _is_scenario_exists(self, report_id: str, strategy: str) -> bool:
+      """Check if scenario already exists in scenario_index.json"""
+      scenario_id = f"scenario_{report_id}_{strategy}"
+      # Load and check scenario_index.json
+  ```
+
+- [ ] Reuse logic from `scripts/generate_scenarios_from_events.py`:
+  - Event filtering (quality score, duration)
+  - Strategy mapping (VSS/TEC/DHS/NO_CONTROL)
+  - ScenarioGenerator usage
+
+**Acceptance Criteria**:
+- ✅ Loads CSV from events/ folder
+- ✅ Skips events with existing scenarios
+- ✅ Generates scenarios using ScenarioGenerator
+- ✅ Updates scenario_index.json
+- ✅ Handles errors gracefully (continue on failure)
+
+---
+
+### Task 3.3: Backend - State Tracking File Implementation
+**Type**: Backend | **Effort**: 2-3 hours | **Priority**: P1 | **Depends on**: 3.2
+
+**Description**: Implement JSON state tracking for CSV generation progress.
+
+**Deliverables**:
+- [ ] Create state file directory: `events/csv_extraction_status/`
+
+- [ ] Implement state file creation:
+  ```python
+  def _create_state_file(self, csv_file: str, task_id: str) -> Path:
+      """
+      Create initial state file.
+
+      Structure:
+      {
+        "csv_file": "...",
+        "task_id": "...",
+        "started_at": "...",
+        "status": "processing",
+        "total_events_in_csv": 0,
+        "events_processed": 0,
+        "failed_events": [],
+        "successful_events": []
+      }
+      """
+  ```
+
+- [ ] Implement state file updates:
+  ```python
+  def _update_state_file(self, state_file: Path, updates: Dict):
+      """Update state file with progress/results"""
+  ```
+
+- [ ] Implement completion tracking:
+  ```python
+  def _finalize_state_file(self, state_file: Path, final_status: str):
+      """Mark state file as completed/failed with final statistics"""
+  ```
+
+**Acceptance Criteria**:
+- ✅ State file created at start with "processing" status
+- ✅ State file updated during generation
+- ✅ Final statistics accurate (success/failure counts)
+- ✅ Failed events logged with error messages
+- ✅ Successful events logged with scenario IDs
+
+---
+
+### Task 3.4: Backend - Error Handling and Validation
+**Type**: Backend | **Effort**: 1-2 hours | **Priority**: P1 | **Depends on**: 3.2
+
+**Description**: Implement comprehensive error handling for CSV generation.
+
+**Deliverables**:
+- [ ] CSV validation:
+  - File exists in events/ folder
+  - File is valid CSV format
+  - Required columns present (报告编号, 开始时间, etc.)
+
+- [ ] Error handling:
+  - Individual event failures don't stop batch
+  - Log all errors to state file
+  - Return appropriate HTTP status codes
+
+- [ ] Logging:
+  - Info logs for progress
+  - Warning logs for skipped events
+  - Error logs for failures
+
+**Acceptance Criteria**:
+- ✅ Returns 404 if CSV file not found
+- ✅ Returns 400 if CSV format invalid
+- ✅ Continues processing even if individual events fail
+- ✅ All errors logged to state file
+- ✅ Clear error messages for users
+
+---
+
+### Task 3.5: Testing - CSV Generation E2E Test
+**Type**: Testing | **Effort**: 3-4 hours | **Priority**: P1 | **Depends on**: 3.1-3.4
+
+**Description**: Create end-to-end test for CSV scenario generation.
+
+**Deliverables**:
+- [ ] Create test CSV file: `tests/fixtures/test_events.csv`
+  - 10 sample events
+  - Mix of event types
+  - Valid and invalid records
+
+- [ ] Create E2E test:
+  ```python
+  def test_csv_generation_flow():
+      # 1. Call generate-from-csv API
+      # 2. Verify response has task_id
+      # 3. Check state file created
+      # 4. Verify scenarios generated
+      # 5. Check scenario_index.json updated
+      # 6. Verify no duplicates created
+      # 7. Check state file final status
+  ```
+
+- [ ] Test duplicate detection:
+  ```python
+  def test_duplicate_scenario_skipped():
+      # Generate once, then again
+      # Verify second run skips existing
+  ```
+
+**Acceptance Criteria**:
+- ✅ Test generates scenarios from CSV
+- ✅ Duplicate detection works correctly
+- ✅ State file tracks progress accurately
+- ✅ scenario_index.json updated correctly
+- ✅ Failed events logged properly
+
+---
+
+### Task 3.6: Documentation - CSV Generation Usage Guide
+**Type**: Documentation | **Effort**: 1 hour | **Priority**: P2 | **Depends on**: 3.1-3.5
+
+**Description**: Document CSV generation feature usage.
+
+**Deliverables**:
+- [ ] Update `docs/api_docs/` with:
+  - API endpoint documentation
+  - Request/response examples
+  - State file format
+  - Error codes and messages
+
+- [ ] Create user guide:
+  - How to prepare CSV files
+  - How to use scenario browser UI
+  - How to check generation status
+  - Troubleshooting common issues
+
+**Acceptance Criteria**:
+- ✅ API documented with examples
+- ✅ State file format explained
+- ✅ User guide clear and concise
+- ✅ Common errors documented
+
+---
+
+## Task Summary
+
+| Phase | Tasks | Total Effort | Priority |
+|-------|-------|--------------|----------|
+| Phase 1: Foundation | 1.1-1.7 | 3-4 weeks | P0 |
+| Phase 2: Integration | 2.1-2.16 | 2-3 weeks | P0-P1 |
+| **Phase 3: CSV Generation** | **3.1-3.6** | **12-18 hours** | **P1** |
+| **TOTAL** | **29 tasks** | **6-8 weeks** | - |
+
+---
+
+---
+
+## Completed Implementations (Not in Original Task List)
+
+### ✅ Scenario Details Page Enhancement (COMPLETED 2025-11-14)
+**Type**: Frontend | **Effort**: 1 day | **Priority**: P0 | **Status**: COMPLETED
+
+**Description**: Complete redesign and enhancement of scenario details modal with horizontal layout optimization and comprehensive data display.
+
+**Completed Deliverables**:
+- [x] **Modal Layout Redesign**:
+  - Increased modal width from 600px to 1200px (desktop optimization)
+  - Implemented CSS Grid layouts (2-column, 3-column, full-width)
+  - Responsive design with mobile fallback (<768px)
+
+- [x] **Simulation Time Information** (NEW):
+  - Added simulation start time field
+  - Added simulation end time field
+  - Added simulation duration field
+  - Data source: `traffic_input_config.json` (od_time_range.start/end, simulation_duration_hours)
+
+- [x] **Control Strategy Enhancement**:
+  - Separated event impact and control strategy sections
+  - Conditional display: Hide strategy section for NO_CONTROL scenarios
+  - Added strategy-specific parameter sections:
+    * VSS: Speed limit (speed_limit_kmh)
+    * TEC: Flow reduction rate (flow_reduction), entrance edges, CSV control flag
+    * DHS: Shoulder lanes (shoulder_lanes)
+  - Enhanced time parameters display (activation, deactivation, response delay, recovery period)
+  - Added impact scope fields (affected edges, affected lanes)
+  - Data source: `control_strategy_config.json`
+
+- [x] **Structured Data Display**:
+  - Basic information: 2-column grid layout
+  - Event location: 3-column grid layout
+  - Time information: 3-column grid layout
+  - Event impact: Full-width textarea
+  - Control strategy: Conditional multi-section display
+  - Strategy parameters: Structured full-width textarea with hierarchy
+
+- [x] **User Experience**:
+  - Color coding for strategy types (VSS=blue, TEC=orange, DHS=green)
+  - Clear Chinese labels for all fields
+  - Descriptive field names (csv_control → "是否执行管控")
+  - Error handling for missing/malformed config files
+  - Loading state indicators
+
+**Files Modified**:
+- `frontend/scenarios/scenario_browser.html` (Lines 308-490)
+- `frontend/scenarios/scenario_browser.js` (Lines 1168-1421)
+- `frontend/scenarios/scenario_browser.css` (Lines 567-600)
+
+**Documentation**:
+- `openspec/changes/event-scenario-simulation-integration/SCENARIO_DETAILS_IMPLEMENTATION.md` (NEW)
+
+**Testing Completed**:
+- [x] Modal displays correctly on desktop (1200px+)
+- [x] Responsive layout works on tablet/mobile
+- [x] Simulation times loaded from traffic_input_config.json
+- [x] Control strategy parameters displayed correctly for VSS/TEC/DHS
+- [x] NO_CONTROL scenarios hide strategy section
+- [x] Error handling for missing config files
+- [x] All fields populated correctly from JSON sources
+
+**Technical Achievements**:
+- ✅ Horizontal layout optimization (100% width increase)
+- ✅ Multi-level data loading (3 JSON sources)
+- ✅ Conditional rendering based on strategy type
+- ✅ Responsive grid system implementation
+- ✅ Comprehensive error handling
+- ✅ Clean code structure with clear separation of concerns
+
+**Integration Points**:
+- Ready for Task 2.8 (Case Creation) - modal provides complete info for case creation decision
+- Demonstrates pattern for other detail pages in workflow
+- CSS grid classes reusable across project
+
+**Impact**:
+- Users can now view complete scenario information before creating cases
+- Desktop-optimized layout improves information density
+- Strategy-specific parameters clearly displayed
+- Foundation for seamless scenario-to-case workflow
+
+---
+
+## Phase 3: Critical Bug Fixes & Performance Optimization (P0 - URGENT)
+
+### Task 3.5: EdgeData Performance Optimization - Smart Edge Collection
+**Type**: Backend | **Effort**: 0.5 day | **Priority**: P0 | **Blocking**: Production deployment
+
+**Description**: Fix critical performance issue where edgeData collects all network edges instead of event-relevant edges only. Current implementation causes 15-30% simulation slowdown and generates 50-100 MB unnecessary data.
+
+**Problem Analysis**: See `EVENT_FILE_AND_EDGEDATA_ANALYSIS.md` for detailed analysis.
+
+**Deliverables**:
+- [x] Modified: `shared/utilities/sumo_utils.py` (Lines 234-303)
+  - Extract event edge_id from `case_metadata['event_scenario']['event_location']['edge_id']`
+  - Add bidirectional edges (e.g., -3026 and 3026)
+  - Generate edgeData with `edges` attribute containing only relevant edges
+  - Remove logic that deletes `edges` attribute from templates (Line 275-276)
+  - Add fallback to full network collection if no event edge found
+
+**Requirements**:
+- ✅ Only collect edges related to event location (bidirectional)
+- ✅ Reduce data output by 99.98% (from ~120,000 to ~24 records per simulation)
+- ✅ Improve simulation performance by 15-30%
+- ✅ Maintain backward compatibility (fallback to full network if no event info)
+- ✅ Log which collection mode is used
+
+**Acceptance Criteria**:
+- Event scenario cases generate edgeData with `edges="-3026 3026"` attribute
+- Non-event cases fallback to full network collection
+- Simulation speed improves measurably
+- EdgeData output file size reduces from ~50 MB to ~20 KB
+
+**Tests Required**:
+- Unit test: Extract event edge_id from case metadata
+- Unit test: Generate bidirectional edge list
+- Unit test: EdgeData XML contains edges attribute
+- Integration test: Create event case, verify edgeData has edges attribute
+- Performance test: Compare simulation speed before/after fix
+
+**Files Modified**:
+- `shared/utilities/sumo_utils.py`
+
+**Performance Impact**:
+- Data records: 120,000 → 24 (99.98% ↓)
+- File size: 50-100 MB → 10-20 KB (99.96% ↓)
+- Memory: +200-500 MB → <1 MB (99.8% ↓)
+- Speed impact: -15-30% → ~0% (100% ↑)
+
+---
+
+### Task 3.6: TAZ File Frontend Configuration - Add TAZ Selection to Case Creation
+**Type**: Frontend | **Effort**: 0.5 day | **Priority**: P1 | **Blocks**: Complete case configuration
+
+**Description**: Add TAZ + E1 detector file configuration to case creation modal. Currently hardcoded as `null`, preventing TAZ file from being included in sumocfg.
+
+**Problem Analysis**: See `ADD_XML_FILES_ANALYSIS.md` section "TAZ File未自动包含".
+
+**Deliverables**:
+- [x] Modified: `frontend/scenarios/scenario_browser.js`
+  - Line 1195: Changed `taz_file: null` to `'templates/taz_files/TAZ_6.add.xml'`
+  - Add TAZ file selection (dropdown or use system default)
+  - Update request data structure to include taz_file path
+  - Add tooltip explaining TAZ file purpose (E1 detectors + traffic zones)
+
+**Options for Implementation**:
+
+**Option A: Use System Default** (Recommended - minimal change):
+```javascript
+// Line 1195
+taz_file: 'templates/taz_files/TAZ_6.add.xml',  // Use default TAZ + E1 detector file
+```
+
+**Option B: Add TAZ Selection Dropdown** (Future enhancement):
+```html
+<label>TAZ + E1 检测器文件:</label>
+<select id="caseCreation_tazFile">
+  <option value="templates/taz_files/TAZ_6.add.xml">TAZ_6 (默认)</option>
+  <option value="templates/taz_files/TAZ_5_validated.add.xml">TAZ_5 (验证版)</option>
+  <option value="templates/taz_files/TAZ_4.add.xml">TAZ_4</option>
+</select>
+```
+
+**Requirements**:
+- ✅ TAZ file path transmitted to backend
+- ✅ File copied to case config directory during creation
+- ✅ File recorded in case metadata `files.taz_file`
+- ✅ sumocfg generation includes TAZ file in additional-files
+- ✅ User understands TAZ file contains E1 detectors and traffic analysis zones
+
+**Acceptance Criteria**:
+- New cases have `metadata['files']['taz_file']` = "config/TAZ_6.add.xml"
+- TAZ_6.add.xml file exists in `cases/{case_id}/config/`
+- sumocfg includes TAZ file in `<additional-files>` list
+- E1 detector data collected during simulation
+
+**Tests Required**:
+- Manual test: Create case, verify taz_file in request
+- Integration test: Verify TAZ file copied to config
+- Verification: Check sumocfg contains TAZ file reference
+
+**Files Modified**:
+- `frontend/scenarios/scenario_browser.js`
+
+**Optional Future Enhancement**:
+- Add TAZ file dropdown to modal (Task 3.6.1)
+- Fetch available TAZ files from `/api/v1/template/list-taz`
+- Display TAZ file details (number of zones, detectors)
+
+---
+
+### Task 3.7: Documentation Update - Add Critical Fixes to Phase Summary
+**Type**: Documentation | **Effort**: 0.25 day | **Priority**: P1
+
+**Description**: Update phase documentation to reflect critical bug fixes.
+
+**Deliverables**:
+- [ ] Updated: `openspec/changes/event-scenario-simulation-integration/IMPLEMENTATION_COMPLETE_SUMMARY.md`
+  - Add Phase 3 section: Critical Bug Fixes
+  - Document EdgeData performance optimization
+  - Document TAZ file configuration fix
+  - Add performance benchmarks
+
+**Files Modified**:
+- `IMPLEMENTATION_COMPLETE_SUMMARY.md`
+- `SUMOCFG_ADDITIONAL_FILES_FIX.md` (reference in summary)
+- `EVENT_FILE_AND_EDGEDATA_ANALYSIS.md` (reference in summary)
+- `ADD_XML_FILES_ANALYSIS.md` (reference in summary)
+
+---
+
+**Updated Task List. Ready for critical bug fixes and performance optimization.**

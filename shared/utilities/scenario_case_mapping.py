@@ -357,3 +357,30 @@ class ScenarioCaseMapper:
         except Exception as e:
             logger.error(f"Failed to get all scenarios with cases: {e}")
             return {}
+
+    def link_scenario_to_case(
+        self,
+        scenario_id: str,
+        case_id: str,
+        simulation_id: str
+    ) -> bool:
+        """
+        Link scenario to case in scenario index.
+
+        This is an alias for register_case_creation for compatibility with
+        the event-based case architecture.
+
+        Args:
+            scenario_id: Scenario identifier
+            case_id: Case identifier
+            simulation_id: Simulation identifier
+
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.register_case_creation(
+            scenario_id=scenario_id,
+            case_id=case_id,
+            case_name=f"Case for {scenario_id}",
+            case_status="created"
+        )

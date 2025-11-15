@@ -1,0 +1,161 @@
+{
+  "generated_at": "2025-11-15 06:24:05",
+  "event_type": "流量激增工况",
+  "total_events": 5,
+  "total_scenarios": 19,
+  "scenarios_by_strategy": {
+    "VSS": 5,
+    "DHS": 4,
+    "TEC": 5,
+    "NO_CONTROL": 5
+  },
+  "scenarios": [
+    {
+      "event_id": "8210655",
+      "event_type": "流量激增工况",
+      "strategy": "NO_CONTROL",
+      "scenario_dir": "scenario_8210655_no_control",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "8210655",
+      "event_type": "流量激增工况",
+      "strategy": "VSS",
+      "scenario_dir": "scenario_8210655_vss",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "8210655",
+      "event_type": "流量激增工况",
+      "strategy": "TEC",
+      "scenario_dir": "scenario_8210655_tec",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "6120705",
+      "event_type": "流量激增工况",
+      "strategy": "NO_CONTROL",
+      "scenario_dir": "scenario_6120705_no_control",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "6120705",
+      "event_type": "流量激增工况",
+      "strategy": "VSS",
+      "scenario_dir": "scenario_6120705_vss",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "6120705",
+      "event_type": "流量激增工况",
+      "strategy": "TEC",
+      "scenario_dir": "scenario_6120705_tec",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "6120705",
+      "event_type": "流量激增工况",
+      "strategy": "DHS",
+      "scenario_dir": "scenario_6120705_dhs",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "7180720",
+      "event_type": "流量激增工况",
+      "strategy": "NO_CONTROL",
+      "scenario_dir": "scenario_7180720_no_control",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "7180720",
+      "event_type": "流量激增工况",
+      "strategy": "VSS",
+      "scenario_dir": "scenario_7180720_vss",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "7180720",
+      "event_type": "流量激增工况",
+      "strategy": "TEC",
+      "scenario_dir": "scenario_7180720_tec",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "7180720",
+      "event_type": "流量激增工况",
+      "strategy": "DHS",
+      "scenario_dir": "scenario_7180720_dhs",
+      "duration_minutes": 30.0
+    },
+    {
+      "event_id": "8260655",
+      "event_type": "流量激增工况",
+      "strategy": "NO_CONTROL",
+      "scenario_dir": "scenario_8260655_no_control",
+      "duration_minutes": 35.0
+    },
+    {
+      "event_id": "8260655",
+      "event_type": "流量激增工况",
+      "strategy": "VSS",
+      "scenario_dir": "scenario_8260655_vss",
+      "duration_minutes": 35.0
+    },
+    {
+      "event_id": "8260655",
+      "event_type": "流量激增工况",
+      "strategy": "TEC",
+      "scenario_dir": "scenario_8260655_tec",
+      "duration_minutes": 35.0
+    },
+    {
+      "event_id": "8260655",
+      "event_type": "流量激增工况",
+      "strategy": "DHS",
+      "scenario_dir": "scenario_8260655_dhs",
+      "duration_minutes": 35.0
+    },
+    {
+      "event_id": "9030655",
+      "event_type": "流量激增工况",
+      "strategy": "NO_CONTROL",
+      "scenario_dir": "scenario_9030655_no_control",
+      "duration_minutes": 45.0
+    },
+    {
+      "event_id": "9030655",
+      "event_type": "流量激增工况",
+      "strategy": "VSS",
+      "scenario_dir": "scenario_9030655_vss",
+      "duration_minutes": 45.0
+    },
+    {
+      "event_id": "9030655",
+      "event_type": "流量激增工况",
+      "strategy": "TEC",
+      "scenario_dir": "scenario_9030655_tec",
+      "duration_minutes": 45.0
+    },
+    {
+      "event_id": "9030655",
+      "event_type": "流量激增工况",
+      "strategy": "DHS",
+      "scenario_dir": "scenario_9030655_dhs",
+      "duration_minutes": 45.0
+    }
+  ],
+  "configuration": {
+    "min_duration_minutes": 30,
+    "dhs_morning_control": "07:30:00 - 09:30:00",
+    "dhs_segments": [
+      "-12680",
+      "-10376.203",
+      "-10376",
+      "-6906",
+      "-1438",
+      "-3324",
+      "-4360",
+      "-10188"
+    ]
+  }
+}

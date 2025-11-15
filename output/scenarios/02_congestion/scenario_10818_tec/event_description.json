@@ -1,0 +1,23 @@
+{
+  "event_id": "10818",
+  "event_type": "交通阻塞",
+  "event_description": "【交通阻塞首报】2025/6/13 18:20:16,接姜春蓉报：京昆高速绵广段绵阳至广元方向K1602+000处发生一起主线交通中断，江油站至二郎庙站入口广元方向封闭。已通知高速交警,执法,路维察看原因并进行疏导。",
+  "location": {
+    "road": "G5京昆高速（绵广段）",
+    "direction": "上行",
+    "mileage": "1602.0",
+    "junction_id": "-65368",
+    "edge_id": "nan"
+  },
+  "time": {
+    "start_time": "2025-06-13 18:20:16",
+    "end_time": "2025-06-13 19:24:30",
+    "duration_hours": 1.07
+  },
+  "impact": {
+    "affected_lanes": [
+      "nan"
+    ],
+    "lane_ids": []
+  }
+}

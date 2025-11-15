@@ -106,22 +106,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectedCaseId = localStorage.getItem('lastSelectedCaseId');
     }
 
-    // 如果没有保存的案例，自动选择第一个（Bug Fix: 首次进入时自动选择）
+    // 如果没有保存的案例，自动选择第一个有效的案例（Bug Fix: 首次进入时自动选择）
     if (!selectedCaseId) {
         const caseSelector = document.getElementById('caseSelector');
         if (caseSelector.options.length > 1) {
-            // options[0]是placeholder，选择options[1]
-            selectedCaseId = caseSelector.options[1].value;
-            localStorage.setItem('lastSelectedCaseId', selectedCaseId);
+            // options[0]是placeholder，选择第一个非disabled且有效的option
+            for (let i = 1; i < caseSelector.options.length; i++) {
+                const option = caseSelector.options[i];
+                if (!option.disabled && option.value && option.value.startsWith('case_')) {
+                    selectedCaseId = option.value;
+                    localStorage.setItem('lastSelectedCaseId', selectedCaseId);
+                    break;
+                }
+            }
         }
     }
 
-    if (selectedCaseId) {
+    // 验证selectedCaseId是否有效（非空且以"case_"开头）
+    if (selectedCaseId && selectedCaseId.startsWith('case_')) {
         currentCaseId = selectedCaseId;
         window.currentCaseId = currentCaseId;
         document.getElementById('caseSelector').value = selectedCaseId;
         // 加载该案例的时长
         await loadCaseDuration(selectedCaseId);
+    } else if (selectedCaseId) {
+        // 如果有值但不是有效的case_id，清除localStorage
+        console.warn('Invalid case_id in localStorage, clearing:', selectedCaseId);
+        localStorage.removeItem('lastSelectedCaseId');
     }
 
     // 初始化仿真配置事件监听 (Phase 2, 3)
@@ -222,7 +233,8 @@ function sortBatches() {
 
 async function loadCases() {
     try {
-        const response = await fetch(`${API_BASE}/case/list_cases/`);
+        // 加载所有案例（使用较大的page_size以确保获取所有案例）
+        const response = await fetch(`${API_BASE}/case/list_cases/?page_size=1000`);
         if (!response.ok) throw new Error('Failed to load cases');
 
         const data = await response.json();
@@ -231,14 +243,25 @@ async function loadCases() {
 
         // Phase 2: 过滤掉事件场景案例 - 管控仿真仅支持OD提取案例
         const filteredCases = data.cases.filter(c => {
-            const sourceType = c.source_type || 'od_extraction';
-            return sourceType !== 'event_scenario';
+            // 检查多种事件场景案例标识：
+            // 1. source_type 包含 'event_scenario' (包括 'event_scenario' 和 'event_scenario_batch')
+            // 2. case_type 为 'event_based' (旧版本事件场景案例)
+            // 3. case_type 为 'event_scenario_case' (新版本事件场景案例)
+            const sourceType = c.source_type || '';
+            const caseType = c.case_type || '';
+
+            const isEventScenario = sourceType.includes('event_scenario') ||
+                                   caseType === 'event_based' ||
+                                   caseType === 'event_scenario_case';
+
+            return !isEventScenario;
         });
 
         if (filteredCases.length === 0 && data.cases.length > 0) {
             const msg = '所有案例都是事件场景案例，不支持此工作流。请使用OD提取的案例。';
             console.warn(msg);
             const option = document.createElement('option');
+            option.value = '';  // 明确设置空value，避免浏览器使用textContent作为value
             option.disabled = true;
             option.textContent = msg;
             select.appendChild(option);

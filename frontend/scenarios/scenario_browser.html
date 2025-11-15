@@ -16,10 +16,6 @@
         <div class="top-bar-center">
             <h2 class="page-title">🎬 仿真推演场景集</h2>
         </div>
-        <div class="top-bar-buttons">
-            <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
-            <button class="btn btn-primary" onclick="checkHealth()">✓ 检查</button>
-        </div>
     </div>
 
     <div class="app-layout">
@@ -51,22 +47,28 @@
         <div class="main-content">
             <div class="container">
         <!-- 统计信息 -->
-        <div class="stats-grid">
-            <div class="stats-card">
-                <div class="stats-number" id="totalScenarios">0</div>
-                <div class="stats-label">总场景数</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="stats-grid" style="flex: 1;">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalScenarios">0</div>
+                    <div class="stats-label">总场景数</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number" id="eventTypeCount">0</div>
+                    <div class="stats-label">事件类型</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number" id="strategyCount">0</div>
+                    <div class="stats-label">管控策略</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number" id="createdCases">0</div>
+                    <div class="stats-label">已创建案例</div>
+                </div>
             </div>
-            <div class="stats-card">
-                <div class="stats-number" id="eventTypeCount">0</div>
-                <div class="stats-label">事件类型</div>
-            </div>
-            <div class="stats-card">
-                <div class="stats-number" id="strategyCount">0</div>
-                <div class="stats-label">管控策略</div>
-            </div>
-            <div class="stats-card">
-                <div class="stats-number" id="createdCases">0</div>
-                <div class="stats-label">已创建案例</div>
+            <div style="display: flex; gap: 10px; margin-left: 20px;">
+                <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
+                <button class="btn btn-primary" onclick="checkHealth()">✓ 检查</button>
             </div>
         </div>
 
@@ -74,12 +76,6 @@
         <div class="filter-section">
             <div class="filter-section-header">
                 <h3>🔍 二维分类筛选器</h3>
-                <div class="filter-header-right">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="hasOnlyCases" checked>
-                        <span>只显示有案例的类别</span>
-                    </label>
-                </div>
             </div>
 
             <div class="filter-container">
@@ -103,8 +99,21 @@
 
         <!-- 场景列表 -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <div style="font-size: 0.9rem; color: #666;">
-                <strong id="matchedCount">0</strong> 个场景 / <strong id="totalCount">0</strong> 总计
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="font-size: 0.9rem; color: #666;">
+                    <strong id="matchedCount">0</strong> 个场景 / <strong id="totalCount">0</strong> 总计
+                </div>
+                <!-- 视图切换按钮 -->
+                <div style="display: flex; gap: 5px; border: 1px solid #ddd; border-radius: 4px; padding: 2px;">
+                    <button class="btn btn-sm view-toggle-btn active" id="tableViewBtn" onclick="switchView('table')"
+                            style="padding: 4px 12px; font-size: 0.85rem;">
+                        📋 表格视图
+                    </button>
+                    <button class="btn btn-sm view-toggle-btn" id="eventViewBtn" onclick="switchView('event')"
+                            style="padding: 4px 12px; font-size: 0.85rem;">
+                        🎯 事件卡片
+                    </button>
+                </div>
             </div>
             <button class="btn btn-primary" onclick="openUploadCsvModal()" style="display: inline-flex; gap: 5px;">
                 📤 添加新事件CSV
@@ -199,7 +208,7 @@
     <div class="modal" id="uploadCsvModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>📤 上传事件CSV文件</h2>
+                <h2>🔄 解析事件CSV生成仿真推演场景</h2>
                 <button class="modal-close" onclick="closeModal('uploadCsvModal')">×</button>
             </div>
             <div class="modal-body">
@@ -219,20 +228,6 @@
                     </div>
                     <div class="help-text">不勾选则仅生成基础场景（无管控）</div>
                 </div>
-
-                <div class="form-group">
-                    <label>预期生成场景数</label>
-                    <input type="number" id="targetScenarioCount" value="50" min="10" max="500" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <div class="help-text">系统会从CSV中筛选最多此数量的代表性事件</div>
-                </div>
-
-                <div style="background-color: #e3f2fd; border-radius: 6px; padding: 12px; margin-top: 15px; border-left: 4px solid #1976d2;">
-                    <div style="font-size: 0.875rem; color: #0d47a1;">
-                        <strong>ℹ️ 说明</strong><br>
-                        <span style="display: block; margin-top: 5px;">✓ 功能实现中：后端场景生成服务开发进行中</span>
-                        <span style="display: block; margin-top: 3px;">✓ 当前可生成 ~100-1000 个仿真推演场景</span>
-                    </div>
-                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('uploadCsvModal')">取消</button>
@@ -245,46 +240,155 @@
 
     <!-- 创建仿真案例模态框（简化版：只需选择输出配置） -->
     <div class="modal" id="caseCreationModal">
-        <div class="modal-content" style="width: 480px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>📋 创建仿真案例</h2>
                 <button class="modal-close" onclick="closeCaseCreationModal()">×</button>
             </div>
             <div class="modal-body">
                 <!-- 场景信息（只读） -->
-                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 10px;">场景信息</h3>
-                <div class="form-group">
-                    <label>场景ID</label>
-                    <input type="text" id="caseCreation_scenarioId" readonly style="background-color: #f5f5f5;">
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #1976d2; padding-bottom: 10px; color: #1976d2;">📋 场景信息</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>场景ID</label>
+                        <input type="text" id="caseCreation_scenarioId" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件ID</label>
+                        <input type="text" id="caseCreation_eventId" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件类型</label>
+                        <input type="text" id="caseCreation_eventType" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>管控策略</label>
+                        <input type="text" id="caseCreation_strategy" readonly style="background-color: #f5f5f5;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>事件类型</label>
-                    <input type="text" id="caseCreation_eventType" readonly style="background-color: #f5f5f5;">
+
+                <h3 style="margin-bottom: 15px; margin-top: 20px; font-size: 1rem; border-bottom: 2px solid #388e3c; padding-bottom: 10px; color: #388e3c;">🌍 事件位置</h3>
+                <div class="form-grid-3col">
+                    <div class="form-group">
+                        <label>道路</label>
+                        <input type="text" id="caseCreation_road" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>方向</label>
+                        <input type="text" id="caseCreation_direction" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>里程（KM）</label>
+                        <input type="text" id="caseCreation_mileage" readonly style="background-color: #f5f5f5;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>管控策略</label>
-                    <input type="text" id="caseCreation_strategy" readonly style="background-color: #f5f5f5;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>路网Edge ID</label>
+                        <input type="text" id="caseCreation_edgeId" readonly style="background-color: #e8f5e9;">
+                    </div>
+                    <div class="form-group">
+                        <label>交叉口Junction ID</label>
+                        <input type="text" id="caseCreation_junctionId" readonly style="background-color: #e8f5e9;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>事件时间范围</label>
-                    <input type="text" id="caseCreation_timeRange" readonly style="background-color: #f5f5f5;">
+
+                <h3 style="margin-bottom: 15px; margin-top: 20px; font-size: 1rem; border-bottom: 2px solid #f57c00; padding-bottom: 10px; color: #f57c00;">⏰ 时间信息</h3>
+                <div class="form-grid-3col">
+                    <div class="form-group">
+                        <label>事件开始时间</label>
+                        <input type="text" id="caseCreation_eventStartTime" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件结束时间</label>
+                        <input type="text" id="caseCreation_eventEndTime" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件持续时长</label>
+                        <input type="text" id="caseCreation_eventDuration" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>仿真开始时间</label>
+                        <input type="text" id="caseCreation_simStartTime" readonly style="background-color: #e3f2fd;">
+                    </div>
+                    <div class="form-group">
+                        <label>仿真结束时间</label>
+                        <input type="text" id="caseCreation_simEndTime" readonly style="background-color: #e3f2fd;">
+                    </div>
+                    <div class="form-group">
+                        <label>仿真时长</label>
+                        <input type="text" id="caseCreation_simDuration" readonly style="background-color: #e3f2fd;">
+                    </div>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+
+                <!-- 管控策略信息 (NO_CONTROL时隐藏) -->
+                <div id="caseCreation_controlStrategySection" style="display: none;">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #ff6f00; padding-bottom: 10px; color: #ff6f00;">🚦 管控策略</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>策略类型</label>
+                            <input type="text" id="caseCreation_strategyType" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>策略名称</label>
+                            <input type="text" id="caseCreation_strategyName" readonly style="background-color: #f5f5f5;">
+                        </div>
+                    </div>
+                    <div class="form-grid-3col">
+                        <div class="form-group">
+                            <label>启动时间</label>
+                            <input type="text" id="caseCreation_activationTime" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>结束时间</label>
+                            <input type="text" id="caseCreation_deactivationTime" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>响应延迟</label>
+                            <input type="text" id="caseCreation_responseDelay" readonly style="background-color: #f5f5f5;">
+                        </div>
+                    </div>
+
+                    <!-- VSS 特定参数 -->
+                    <div id="caseCreation_vssParams" style="display: none; margin-top: 15px;">
+                        <div class="form-group">
+                            <label>限速值 (VSS)</label>
+                            <input type="text" id="caseCreation_speedLimit" readonly style="background-color: #e3f2fd; font-weight: 600;">
+                        </div>
+                    </div>
+
+                    <!-- TEC 特定参数 -->
+                    <div id="caseCreation_tecParams" style="display: none; margin-top: 15px;">
+                        <div class="form-group">
+                            <label>流量削减率 (TEC)</label>
+                            <input type="text" id="caseCreation_flowReduction" readonly style="background-color: #fff3e0; font-weight: 600;">
+                        </div>
+                    </div>
+
+                    <!-- DHS 特定参数 -->
+                    <div id="caseCreation_dhsParams" style="display: none; margin-top: 15px;">
+                        <div class="form-group">
+                            <label>硬路肩车道 (DHS)</label>
+                            <input type="text" id="caseCreation_shoulderLanes" readonly style="background-color: #e8f5e9; font-weight: 600;">
+                        </div>
+                    </div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
 
                 <!-- 输出配置（可编辑） -->
-                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 10px;">输出配置</h3>
-                <div class="form-group">
-                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
-                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
-                            <input type="checkbox" id="caseCreation_edgedata" checked>
-                            <span><strong>EdgeData</strong>（路段数据）</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
-                            <input type="checkbox" id="caseCreation_tripinfo" checked>
-                            <span><strong>TripInfo</strong>（行程信息）</span>
-                        </label>
-                    </div>
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #1976d2; padding-bottom: 10px; color: #1976d2;">📊 输出配置</h3>
+                <div style="display: flex; gap: 30px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                        <input type="checkbox" id="caseCreation_edgedata" checked>
+                        <span><strong>EdgeData</strong>（路段数据）</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                        <input type="checkbox" id="caseCreation_tripinfo" checked>
+                        <span><strong>TripInfo</strong>（行程信息）</span>
+                    </label>
                 </div>
 
                 <div style="background-color: #e3f2fd; border-radius: 6px; padding: 12px; margin-top: 15px; border-left: 4px solid #1976d2;">
@@ -306,7 +410,7 @@
 
     <!-- 场景详情模态框 -->
     <div class="modal" id="scenarioDetailsModal">
-        <div class="modal-content" style="width: 600px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>📍 场景详情</h2>
                 <button class="modal-close" onclick="closeScenarioDetailsModal()">×</button>
@@ -314,67 +418,85 @@
             <div class="modal-body">
                 <!-- 基本信息 -->
                 <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #1976d2; padding-bottom: 10px; color: #1976d2;">📋 基本信息</h3>
-                <div class="form-group">
-                    <label>场景ID</label>
-                    <input type="text" id="scenarioDetails_scenarioId" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>事件ID</label>
-                    <input type="text" id="scenarioDetails_eventId" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>事件类型</label>
-                    <input type="text" id="scenarioDetails_eventType" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>管控策略</label>
-                    <input type="text" id="scenarioDetails_strategy" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>事件描述</label>
-                    <textarea id="scenarioDetails_description" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 80px;"></textarea>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>场景ID</label>
+                        <input type="text" id="scenarioDetails_scenarioId" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件ID</label>
+                        <input type="text" id="scenarioDetails_eventId" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件类型</label>
+                        <input type="text" id="scenarioDetails_eventType" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>管控策略</label>
+                        <input type="text" id="scenarioDetails_strategy" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group form-grid-full">
+                        <label>事件描述</label>
+                        <textarea id="scenarioDetails_description" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 60px;"></textarea>
+                    </div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
 
                 <!-- 事件详情 -->
-                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #388e3c; padding-bottom: 10px; color: #388e3c;">🌍 事件发生地点与时间</h3>
-                <div class="form-group">
-                    <label>道路</label>
-                    <input type="text" id="scenarioDetails_road" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>方向</label>
-                    <input type="text" id="scenarioDetails_direction" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>里程（KM）</label>
-                    <input type="text" id="scenarioDetails_mileage" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>路网Edge ID</label>
-                    <input type="text" id="scenarioDetails_edgeId" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>交叉口ID</label>
-                    <input type="text" id="scenarioDetails_junctionId" readonly style="background-color: #f5f5f5;">
+                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #388e3c; padding-bottom: 10px; color: #388e3c;">🌍 事件发生地点</h3>
+                <div class="form-grid-3col">
+                    <div class="form-group">
+                        <label>道路</label>
+                        <input type="text" id="scenarioDetails_road" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>方向</label>
+                        <input type="text" id="scenarioDetails_direction" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>里程（KM）</label>
+                        <input type="text" id="scenarioDetails_mileage" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>路网Edge ID</label>
+                        <input type="text" id="scenarioDetails_edgeId" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>交叉口ID</label>
+                        <input type="text" id="scenarioDetails_junctionId" readonly style="background-color: #f5f5f5;">
+                    </div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
 
                 <!-- 时间信息 -->
                 <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #f57c00; padding-bottom: 10px; color: #f57c00;">⏰ 时间信息</h3>
-                <div class="form-group">
-                    <label>开始时间</label>
-                    <input type="text" id="scenarioDetails_startTime" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>结束时间</label>
-                    <input type="text" id="scenarioDetails_endTime" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>持续时长</label>
-                    <input type="text" id="scenarioDetails_duration" readonly style="background-color: #f5f5f5;">
+                <div class="form-grid-3col">
+                    <div class="form-group">
+                        <label>事件开始时间</label>
+                        <input type="text" id="scenarioDetails_startTime" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件结束时间</label>
+                        <input type="text" id="scenarioDetails_endTime" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>事件持续时长</label>
+                        <input type="text" id="scenarioDetails_duration" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>仿真开始时间</label>
+                        <input type="text" id="scenarioDetails_simStartTime" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>仿真结束时间</label>
+                        <input type="text" id="scenarioDetails_simEndTime" readonly style="background-color: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>仿真时长</label>
+                        <input type="text" id="scenarioDetails_simDuration" readonly style="background-color: #f5f5f5;">
+                    </div>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
@@ -383,20 +505,89 @@
                 <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #c62828; padding-bottom: 10px; color: #c62828;">⚠️ 事件影响</h3>
                 <div class="form-group">
                     <label>影响描述</label>
-                    <textarea id="scenarioDetails_impact" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 60px;"></textarea>
+                    <textarea id="scenarioDetails_impact" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 80px;"></textarea>
                 </div>
 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
 
-                <!-- 管控策略详情 -->
-                <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #7b1fa2; padding-bottom: 10px; color: #7b1fa2;">🎛️ 管控策略详情</h3>
-                <div class="form-group">
-                    <label>策略类型</label>
-                    <input type="text" id="scenarioDetails_strategyType" readonly style="background-color: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label>策略参数</label>
-                    <textarea id="scenarioDetails_strategyParams" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 80px; font-family: monospace;"></textarea>
+                <!-- 管控策略详情 (NO_CONTROL时隐藏) -->
+                <div id="scenarioDetails_controlStrategySection">
+                    <h3 style="margin-bottom: 15px; font-size: 1rem; border-bottom: 2px solid #7b1fa2; padding-bottom: 10px; color: #7b1fa2;">🎛️ 管控策略详情</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>策略类型</label>
+                            <input type="text" id="scenarioDetails_strategyType" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>策略名称</label>
+                            <input type="text" id="scenarioDetails_strategyName" readonly style="background-color: #f5f5f5;">
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>启动时间</label>
+                            <input type="text" id="scenarioDetails_activationTime" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>结束时间</label>
+                            <input type="text" id="scenarioDetails_deactivationTime" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>响应延迟</label>
+                            <input type="text" id="scenarioDetails_responseDelay" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>恢复期</label>
+                            <input type="text" id="scenarioDetails_recoveryPeriod" readonly style="background-color: #f5f5f5;">
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>影响路段</label>
+                            <input type="text" id="scenarioDetails_affectedEdges" readonly style="background-color: #f5f5f5;">
+                        </div>
+                        <div class="form-group">
+                            <label>影响车道</label>
+                            <input type="text" id="scenarioDetails_affectedLanes" readonly style="background-color: #f5f5f5;">
+                        </div>
+                    </div>
+
+                    <!-- VSS 特定参数 -->
+                    <div id="scenarioDetails_vssParams" class="form-grid" style="display: none;">
+                        <div class="form-group">
+                            <label>限速值 (VSS)</label>
+                            <input type="text" id="scenarioDetails_speedLimit" readonly style="background-color: #e3f2fd; font-weight: 600;">
+                        </div>
+                    </div>
+
+                    <!-- TEC 特定参数 -->
+                    <div id="scenarioDetails_tecParams" class="form-grid" style="display: none;">
+                        <div class="form-group">
+                            <label>流量削减率 (TEC)</label>
+                            <input type="text" id="scenarioDetails_flowReduction" readonly style="background-color: #fff3e0; font-weight: 600;">
+                        </div>
+                        <div class="form-group">
+                            <label>入口路段</label>
+                            <input type="text" id="scenarioDetails_entranceEdges" readonly style="background-color: #fff3e0;">
+                        </div>
+                        <div class="form-group">
+                            <label>是否执行管控</label>
+                            <input type="text" id="scenarioDetails_csvControl" readonly style="background-color: #fff3e0;">
+                        </div>
+                    </div>
+
+                    <!-- DHS 特定参数 -->
+                    <div id="scenarioDetails_dhsParams" class="form-grid" style="display: none;">
+                        <div class="form-group">
+                            <label>硬路肩车道 (DHS)</label>
+                            <input type="text" id="scenarioDetails_shoulderLanes" readonly style="background-color: #e8f5e9; font-weight: 600;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>策略参数详情</label>
+                        <textarea id="scenarioDetails_strategyParams" readonly style="background-color: #f5f5f5; resize: vertical; min-height: 100px; font-family: monospace;"></textarea>
+                    </div>
                 </div>
 
                 <div style="background-color: #f3e5f5; border-radius: 6px; padding: 12px; margin-top: 15px; border-left: 4px solid #7b1fa2;">

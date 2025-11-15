@@ -17,12 +17,12 @@
     "control_range": "nan",
     "control_measure": "麻城站、赤水河站、摩尼站入口往泸州方向关闭",
     "affected_edges": [
-      "-5670|-3000000312"
+      "-5670"
     ],
     "affected_lanes": [
-      "-5670|-3000000312_1",
-      "-5670|-3000000312_0",
-      "-5670|-3000000312_2"
+      "-5670",
+      "-5670",
+      "-5670"
     ],
     "response_delay_seconds": 300,
     "recovery_period_seconds": 600

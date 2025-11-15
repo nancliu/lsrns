@@ -87,3 +87,50 @@ class AnalysisResult(BaseModel):
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+class ScenarioCreationResult(BaseModel):
+    """单个场景创建结果"""
+    scenario_id: str = Field(..., description="场景ID")
+    strategy: str = Field(..., description="策略类型")
+    success: bool = Field(..., description="是否成功")
+    simulation_id: Optional[str] = Field(None, description="仿真ID")
+    error_message: Optional[str] = Field(None, description="错误信息")
+
+
+class EdgeDataInfo(BaseModel):
+    """EdgeData配置信息"""
+    file_path: str = Field(..., description="edgeData文件路径")
+    edge_count: int = Field(..., description="监测边缘总数")
+    event_edges: int = Field(..., description="事件边缘数")
+    strategy_edges: int = Field(..., description="策略边缘数")
+    source_breakdown: Dict[str, Any] = Field(..., description="来源分解")
+    validation_rate: float = Field(..., description="验证通过率")
+
+
+class EventCaseBatchCreationResponse(BaseModel):
+    """事件案例批量创建响应"""
+    # 事件信息
+    event_id: str = Field(..., description="事件ID")
+    event_type: str = Field(..., description="事件类型")
+
+    # 案例信息
+    case_id: str = Field(..., description="创建的案例ID")
+    case_name: str = Field(..., description="案例名称")
+    case_dir: str = Field(..., description="案例目录路径")
+
+    # 创建结果
+    total_scenarios: int = Field(..., description="总场景数")
+    successful_scenarios: int = Field(..., description="成功创建的场景数")
+    failed_scenarios: int = Field(..., description="失败的场景数")
+    scenario_results: List[ScenarioCreationResult] = Field(..., description="各场景创建结果")
+
+    # EdgeData信息
+    edgedata_info: Optional[EdgeDataInfo] = Field(None, description="EdgeData配置信息")
+
+    # 元数据
+    created_at: datetime = Field(..., description="创建时间")
+    duration_seconds: float = Field(..., description="创建耗时（秒）")
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}

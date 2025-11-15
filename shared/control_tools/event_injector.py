@@ -5,15 +5,19 @@ Generates SUMO-compatible event injection XML elements for traffic event scenari
 Supports traffic accidents, congestion, and other event types.
 
 Key Features:
-- Lane closure XML generation (closedLane elements for accidents)
-- Rerouter XML generation (placeholder for congestion events)
-- Lane ID resolution from Chinese descriptions to SUMO lane IDs
+- Lane closure XML generation (rerouter with closingLaneReroute elements)
 - Event time conversion from absolute timestamps to simulation time
+- Lane ID resolution from Chinese descriptions to SUMO lane IDs
+- Support for multiple event types (accidents, congestion, weather, etc.)
 
 Functions:
 - create_event_injector: Factory function to create appropriate injector
-- AccidentInjector: Generates closedLane XML for traffic accidents
+- AccidentInjector: Generates rerouter XML for traffic accidents
 - CongestionInjector: Generates rerouter XML for congestion (placeholder)
+- RoadControlInjector: Generates rerouter XML for road control events
+- GeologicalInjector: Generates rerouter XML for geological disasters
+- BreakdownInjector: Generates rerouter XML for vehicle breakdowns
+- WeatherInjector: Generates rerouter XML for severe weather events
 
 Author: AI Assistant
 Created: 2025-01-10
@@ -216,11 +220,11 @@ class EventInjector(ABC):
 
 
 class AccidentInjector(EventInjector):
-    """Generate closedLane XML for traffic accident events"""
+    """Generate rerouter with closingLaneReroute XML for traffic accident events"""
 
     def generate_xml(self, event_data: Dict[str, Any]) -> str:
         """
-        Generate closedLane XML element for accident.
+        Generate rerouter XML with closingLaneReroute elements for accident.
 
         Args:
             event_data: Dictionary with keys:
@@ -232,14 +236,17 @@ class AccidentInjector(EventInjector):
                 - sim_start_time (optional): Simulation start time
 
         Returns:
-            XML string for closedLane element
+            XML string for rerouter with closingLaneReroute elements
 
         Raises:
             ValueError: If required fields missing or validation fails
 
         Example:
-            <closedLane id="accident_12547" edge="-4688" lanes="-4688_0"
-                        disallow="all" begin="6749" end="12069"/>
+            <rerouter id="accident_12547" edges="-4688">
+                <interval begin="6749" end="12069">
+                    <closingLaneReroute id="-4688_0" disallow="all"/>
+                </interval>
+            </rerouter>
         """
         # Comprehensive validation
         self._validate_accident_event(event_data)
@@ -263,16 +270,21 @@ class AccidentInjector(EventInjector):
             event_data.get('sim_start_time')
         )
 
-        # Generate XML
-        lanes_str = " ".join(lane_ids)  # Space-separated lane IDs
-        xml = f'<closedLane id="accident_{event_data["report_id"]}" ' \
-              f'edge="{event_data["edge_id"]}" ' \
-              f'lanes="{lanes_str}" ' \
-              f'disallow="all" ' \
-              f'begin="{begin}" ' \
-              f'end="{end}"/>'
+        # Generate XML using SUMO's rerouter with closingLaneReroute elements
+        xml_parts = []
+        xml_parts.append(f'<rerouter id="accident_{event_data["report_id"]}" edges="{event_data["edge_id"]}">')
+        xml_parts.append(f'    <interval begin="{begin}" end="{end}">')
 
-        logger.info(f"Generated closedLane XML for accident {event_data['report_id']}: "
+        # Add closingLaneReroute for each lane
+        for lane_id in lane_ids:
+            xml_parts.append(f'        <closingLaneReroute id="{lane_id}" disallow="all"/>')
+
+        xml_parts.append('    </interval>')
+        xml_parts.append('</rerouter>')
+
+        xml = '\n'.join(xml_parts)
+
+        logger.info(f"Generated rerouter XML for accident {event_data['report_id']}: "
                    f"{len(lane_ids)} lanes closed from {begin}s to {end}s")
         return xml
 
@@ -374,11 +386,11 @@ class CongestionInjector(EventInjector):
 
 
 class RoadControlInjector(EventInjector):
-    """Generate closedLane XML for road control events"""
+    """Generate rerouter with closingLaneReroute XML for road control events"""
 
     def generate_xml(self, event_data: Dict[str, Any]) -> str:
         """
-        Generate closedLane XML element for road control events.
+        Generate rerouter XML with closingLaneReroute elements for road control events.
 
         Road control events (交通管制) are typically planned closures for maintenance,
         special events, or safety reasons. If no specific lanes are provided, ALL lanes
@@ -394,11 +406,15 @@ class RoadControlInjector(EventInjector):
                 - sim_start_time (optional): Simulation start time
 
         Returns:
-            XML string for closedLane element
+            XML string for rerouter with closingLaneReroute elements
 
         Example (all lanes):
-            <closedLane id="road_control_98765" edge="-4688" lanes="-4688_0 -4688_1"
-                        disallow="all" begin="0" end="7200"/>
+            <rerouter id="road_control_98765" edges="-4688">
+                <interval begin="0" end="7200">
+                    <closingLaneReroute id="-4688_0" disallow="all"/>
+                    <closingLaneReroute id="-4688_1" disallow="all"/>
+                </interval>
+            </rerouter>
         """
         # Validate required fields (affected_lanes now optional)
         required_fields = ['report_id', 'edge_id', 'start_time', 'end_time']
@@ -433,16 +449,21 @@ class RoadControlInjector(EventInjector):
             event_data.get('sim_start_time')
         )
 
-        # Generate XML (same structure as accident, different ID prefix)
-        lanes_str = " ".join(lane_ids)
-        xml = f'<closedLane id="road_control_{event_data["report_id"]}" ' \
-              f'edge="{event_data["edge_id"]}" ' \
-              f'lanes="{lanes_str}" ' \
-              f'disallow="all" ' \
-              f'begin="{begin}" ' \
-              f'end="{end}"/>'
+        # Generate XML using SUMO's rerouter with closingLaneReroute elements
+        xml_parts = []
+        xml_parts.append(f'<rerouter id="road_control_{event_data["report_id"]}" edges="{event_data["edge_id"]}">')
+        xml_parts.append(f'    <interval begin="{begin}" end="{end}">')
 
-        logger.info(f"Generated closedLane XML for road control {event_data['report_id']}: "
+        # Add closingLaneReroute for each lane
+        for lane_id in lane_ids:
+            xml_parts.append(f'        <closingLaneReroute id="{lane_id}" disallow="all"/>')
+
+        xml_parts.append('    </interval>')
+        xml_parts.append('</rerouter>')
+
+        xml = '\n'.join(xml_parts)
+
+        logger.info(f"Generated rerouter XML for road control {event_data['report_id']}: "
                    f"{len(lane_ids)} lanes closed from {begin}s to {end}s")
         return xml
 
@@ -472,11 +493,11 @@ class RoadControlInjector(EventInjector):
 
 
 class GeologicalInjector(EventInjector):
-    """Generate closedLane XML for geological disaster events"""
+    """Generate rerouter with closingLaneReroute XML for geological disaster events"""
 
     def generate_xml(self, event_data: Dict[str, Any]) -> str:
         """
-        Generate closedLane XML element for geological disasters.
+        Generate rerouter XML with closingLaneReroute elements for geological disasters.
 
         Geological disasters (地质灾害) such as landslides, rockfalls typically
         result in extended lane closures and may affect multiple lanes.
@@ -491,11 +512,15 @@ class GeologicalInjector(EventInjector):
                 - sim_start_time (optional): Simulation start time
 
         Returns:
-            XML string for closedLane element
+            XML string for rerouter with closingLaneReroute elements
 
         Example:
-            <closedLane id="geological_54321" edge="-4688" lanes="-4688_0 -4688_1"
-                        disallow="all" begin="0" end="36000"/>
+            <rerouter id="geological_54321" edges="-4688">
+                <interval begin="0" end="36000">
+                    <closingLaneReroute id="-4688_0" disallow="all"/>
+                    <closingLaneReroute id="-4688_1" disallow="all"/>
+                </interval>
+            </rerouter>
         """
         # Validate required fields
         required_fields = ['report_id', 'edge_id', 'affected_lanes', 'start_time', 'end_time']
@@ -528,26 +553,31 @@ class GeologicalInjector(EventInjector):
             logger.warning(f"Geological disaster {event_data['report_id']} has short duration: "
                          f"{duration_hours:.2f} hours. Geological events typically last longer.")
 
-        # Generate XML
-        lanes_str = " ".join(lane_ids)
-        xml = f'<closedLane id="geological_{event_data["report_id"]}" ' \
-              f'edge="{event_data["edge_id"]}" ' \
-              f'lanes="{lanes_str}" ' \
-              f'disallow="all" ' \
-              f'begin="{begin}" ' \
-              f'end="{end}"/>'
+        # Generate XML using SUMO's rerouter with closingLaneReroute elements
+        xml_parts = []
+        xml_parts.append(f'<rerouter id="geological_{event_data["report_id"]}" edges="{event_data["edge_id"]}">')
+        xml_parts.append(f'    <interval begin="{begin}" end="{end}">')
 
-        logger.info(f"Generated closedLane XML for geological disaster {event_data['report_id']}: "
+        # Add closingLaneReroute for each lane
+        for lane_id in lane_ids:
+            xml_parts.append(f'        <closingLaneReroute id="{lane_id}" disallow="all"/>')
+
+        xml_parts.append('    </interval>')
+        xml_parts.append('</rerouter>')
+
+        xml = '\n'.join(xml_parts)
+
+        logger.info(f"Generated rerouter XML for geological disaster {event_data['report_id']}: "
                    f"{len(lane_ids)} lanes closed from {begin}s to {end}s")
         return xml
 
 
 class BreakdownInjector(EventInjector):
-    """Generate closedLane XML for vehicle breakdown events"""
+    """Generate rerouter with closingLaneReroute XML for vehicle breakdown events"""
 
     def generate_xml(self, event_data: Dict[str, Any]) -> str:
         """
-        Generate closedLane XML element for vehicle breakdowns.
+        Generate rerouter XML with closingLaneReroute elements for vehicle breakdowns.
 
         Vehicle breakdowns (车辆故障) typically result in short-term lane
         blockages, usually affecting emergency lanes or single lanes.
@@ -562,11 +592,14 @@ class BreakdownInjector(EventInjector):
                 - sim_start_time (optional): Simulation start time
 
         Returns:
-            XML string for closedLane element
+            XML string for rerouter with closingLaneReroute elements
 
         Example:
-            <closedLane id="breakdown_11223" edge="-4688" lanes="-4688_0"
-                        disallow="all" begin="0" end="1800"/>
+            <rerouter id="breakdown_11223" edges="-4688">
+                <interval begin="0" end="1800">
+                    <closingLaneReroute id="-4688_0" disallow="all"/>
+                </interval>
+            </rerouter>
         """
         # Validate required fields
         required_fields = ['report_id', 'edge_id', 'affected_lanes', 'start_time', 'end_time']
@@ -599,26 +632,31 @@ class BreakdownInjector(EventInjector):
             logger.warning(f"Breakdown {event_data['report_id']} has unusually long duration: "
                          f"{duration_hours:.2f} hours. Most breakdowns are cleared quickly.")
 
-        # Generate XML
-        lanes_str = " ".join(lane_ids)
-        xml = f'<closedLane id="breakdown_{event_data["report_id"]}" ' \
-              f'edge="{event_data["edge_id"]}" ' \
-              f'lanes="{lanes_str}" ' \
-              f'disallow="all" ' \
-              f'begin="{begin}" ' \
-              f'end="{end}"/>'
+        # Generate XML using SUMO's rerouter with closingLaneReroute elements
+        xml_parts = []
+        xml_parts.append(f'<rerouter id="breakdown_{event_data["report_id"]}" edges="{event_data["edge_id"]}">')
+        xml_parts.append(f'    <interval begin="{begin}" end="{end}">')
 
-        logger.info(f"Generated closedLane XML for breakdown {event_data['report_id']}: "
+        # Add closingLaneReroute for each lane
+        for lane_id in lane_ids:
+            xml_parts.append(f'        <closingLaneReroute id="{lane_id}" disallow="all"/>')
+
+        xml_parts.append('    </interval>')
+        xml_parts.append('</rerouter>')
+
+        xml = '\n'.join(xml_parts)
+
+        logger.info(f"Generated rerouter XML for breakdown {event_data['report_id']}: "
                    f"{len(lane_ids)} lanes closed from {begin}s to {end}s")
         return xml
 
 
 class WeatherInjector(EventInjector):
-    """Generate closedLane XML for severe weather events"""
+    """Generate rerouter with closingLaneReroute XML for severe weather events"""
 
     def generate_xml(self, event_data: Dict[str, Any]) -> str:
         """
-        Generate closedLane XML element for severe weather events.
+        Generate rerouter XML with closingLaneReroute elements for severe weather events.
 
         Severe weather (恶劣天气) such as heavy rain, fog, snow may require
         lane closures for safety. In SUMO, we model this as lane closures.
@@ -636,11 +674,14 @@ class WeatherInjector(EventInjector):
                 - sim_start_time (optional): Simulation start time
 
         Returns:
-            XML string for closedLane element
+            XML string for rerouter with closingLaneReroute elements
 
         Example:
-            <closedLane id="weather_99887" edge="-4688" lanes="-4688_0"
-                        disallow="all" begin="0" end="5400"/>
+            <rerouter id="weather_99887" edges="-4688">
+                <interval begin="0" end="5400">
+                    <closingLaneReroute id="-4688_0" disallow="all"/>
+                </interval>
+            </rerouter>
         """
         # Validate required fields
         required_fields = ['report_id', 'edge_id', 'affected_lanes', 'start_time', 'end_time']
@@ -667,16 +708,21 @@ class WeatherInjector(EventInjector):
             event_data.get('sim_start_time')
         )
 
-        # Generate XML (basic lane closure for weather)
-        lanes_str = " ".join(lane_ids)
-        xml = f'<closedLane id="weather_{event_data["report_id"]}" ' \
-              f'edge="{event_data["edge_id"]}" ' \
-              f'lanes="{lanes_str}" ' \
-              f'disallow="all" ' \
-              f'begin="{begin}" ' \
-              f'end="{end}"/>'
+        # Generate XML using SUMO's rerouter with closingLaneReroute elements
+        xml_parts = []
+        xml_parts.append(f'<rerouter id="weather_{event_data["report_id"]}" edges="{event_data["edge_id"]}">')
+        xml_parts.append(f'    <interval begin="{begin}" end="{end}">')
 
-        logger.info(f"Generated closedLane XML for weather event {event_data['report_id']}: "
+        # Add closingLaneReroute for each lane
+        for lane_id in lane_ids:
+            xml_parts.append(f'        <closingLaneReroute id="{lane_id}" disallow="all"/>')
+
+        xml_parts.append('    </interval>')
+        xml_parts.append('</rerouter>')
+
+        xml = '\n'.join(xml_parts)
+
+        logger.info(f"Generated rerouter XML for weather event {event_data['report_id']}: "
                    f"{len(lane_ids)} lanes closed from {begin}s to {end}s")
         logger.info("Note: Weather simulation using lane closures only. "
                    "Advanced weather effects (visibility, friction) not implemented.")
@@ -688,7 +734,7 @@ def create_event_injector(event_type: str, network_file: Optional[str] = None) -
     Factory function to create appropriate event injector.
 
     Args:
-        event_type: Type of event (交通事故, 交通阻塞, 交通管制, 地质灾害, 车辆故障, 恶劣天气)
+        event_type: Type of event (交通事故, 交通阻塞, 交通管制, 地质灾害, 车辆故障, 恶劣天气, 流量激增工况)
         network_file: Optional path to SUMO network file
 
     Returns:
@@ -698,12 +744,13 @@ def create_event_injector(event_type: str, network_file: Optional[str] = None) -
         ValueError: If event type is not supported
 
     Supported Event Types:
-        - 交通事故 (Traffic Accident): closedLane XML for accidents
+        - 交通事故 (Traffic Accident): rerouter with closingLaneReroute for accidents
         - 交通阻塞 (Traffic Congestion): rerouter XML (placeholder)
-        - 交通管制 (Road Control): closedLane XML for planned closures
-        - 地质灾害 (Geological Disaster): closedLane XML for landslides, rockfalls
-        - 车辆故障 (Vehicle Breakdown): closedLane XML for short-term blockages
-        - 恶劣天气 (Severe Weather): closedLane XML for weather-related closures
+        - 交通管制 (Road Control): rerouter with closingLaneReroute for planned closures
+        - 地质灾害 (Geological Disaster): rerouter with closingLaneReroute for landslides/rockfalls
+        - 车辆故障 (Vehicle Breakdown): rerouter with closingLaneReroute for short-term blockages
+        - 恶劣天气 (Severe Weather): rerouter with closingLaneReroute for weather-related closures
+        - 流量激增工况 (Flow Surge Workload): No XML injection (control strategy only)
     """
     injectors = {
         "交通事故": AccidentInjector,
@@ -712,6 +759,7 @@ def create_event_injector(event_type: str, network_file: Optional[str] = None) -
         "地质灾害": GeologicalInjector,
         "车辆故障": BreakdownInjector,
         "恶劣天气": WeatherInjector,
+        "流量激增工况": CongestionInjector,  # Flow surge uses same injector (no XML)
     }
 
     if event_type not in injectors:

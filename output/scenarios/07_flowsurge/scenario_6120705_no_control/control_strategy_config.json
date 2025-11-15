@@ -1,0 +1,18 @@
+{
+  "strategy_type": "NO_CONTROL",
+  "strategy_name": "NO_CONTROL",
+  "parameters": {
+    "affected_edges": [
+      "-14078"
+    ],
+    "affected_lanes": [],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-06-12 07:10:00",
+    "deactivation_time": "2025-06-12 07:45:00",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

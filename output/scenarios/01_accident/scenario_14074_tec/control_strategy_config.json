@@ -1,0 +1,38 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-6364",
+      "-11410",
+      "-3802",
+      "-9070"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "toll_station_ids": [
+      "255",
+      "250",
+      "249",
+      "247"
+    ],
+    "control_measure": "绵广向K1593一辆运输百货的两轴货车侧翻，无人员受伤，占用主车道及应急车道，因处置该事故，江油站至厚坝站入口广元方向封闭。",
+    "control_range": "",
+    "activation_time": "2025-08-08 17:37:00",
+    "affected_edges": [
+      "-4786#2"
+    ],
+    "affected_lanes": [
+      "-4786#2_2",
+      "-4786#2_3"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-08-08 17:41:41",
+    "deactivation_time": "2025-08-08 19:44:20",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

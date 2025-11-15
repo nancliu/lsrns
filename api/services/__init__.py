@@ -64,9 +64,13 @@ from .batch_optimization_service import (
 # Phase 2 服务 (Week 1 基础设施)
 from .simulation_orchestrator import SimulationOrchestrator, get_simulation_orchestrator
 from .analysis_orchestration_service import AnalysisOrchestrationService
+from .event_batch_service import EventBatchService
 
 # Task 1.1: 创建全局 SimulationOrchestrator 单例
 simulation_orchestrator = get_simulation_orchestrator()
+
+# Event Batch Service instance
+event_batch_service = EventBatchService()
 
 # 导出所有服务函数，保持原有导入方式不变
 __all__ = [
@@ -115,4 +119,6 @@ __all__ = [
     "get_simulation_orchestrator",
     "simulation_orchestrator",
     "AnalysisOrchestrationService",
+    "EventBatchService",
+    "event_batch_service",
 ]

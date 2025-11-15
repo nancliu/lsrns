@@ -1,0 +1,40 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-6364",
+      "-11410",
+      "-3802",
+      "-9070",
+      "-13370"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "toll_station_ids": [
+      "255",
+      "250",
+      "249",
+      "247",
+      "246",
+      "244"
+    ],
+    "control_measure": "因处置该事故现科学城站至厚坝站入口成都方向封闭。",
+    "control_range": "",
+    "activation_time": "2025-09-20 06:11:00",
+    "affected_edges": [
+      "-11204"
+    ],
+    "affected_lanes": [
+      "-11204_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-09-20 02:12:31",
+    "deactivation_time": "2025-09-20 07:09:30",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

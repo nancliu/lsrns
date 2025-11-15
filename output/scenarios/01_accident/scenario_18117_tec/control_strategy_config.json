@@ -1,0 +1,43 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-6364",
+      "-11410",
+      "-3802",
+      "-9070",
+      "-13370"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "toll_station_ids": [
+      "258",
+      "256",
+      "255",
+      "250",
+      "249",
+      "247",
+      "246"
+    ],
+    "control_measure": "绵阳至广元方向1552公里处道路中断",
+    "control_range": "",
+    "activation_time": "2025-10-24 05:01:00",
+    "affected_edges": [
+      "-11078"
+    ],
+    "affected_lanes": [
+      "-11078_1",
+      "-11078_2",
+      "-11078_0"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-10-24 04:28:37",
+    "deactivation_time": "2025-10-24 08:12:21",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

@@ -199,6 +199,42 @@ output/scenarios/
 - Actually present: `scenario_accident_event_10754.add.xml` (SUMO additional file, not config)
 - **Impact**: Validation logic must NOT require sumocfg (it's generated at simulation time, not stored)
 
+### Scenario Configuration Files
+
+Each scenario directory contains the following JSON configuration files:
+
+#### traffic_input_config.json
+
+Defines the OD time range and simulation duration for the event scenario.
+
+**Structure**:
+```json
+{
+  "od_time_range": {
+    "start": "2025-07-14 01:23:49",
+    "end": "2025-07-14 03:52:39",
+    "event_start": "2025-07-14 01:53:49",
+    "event_end": "2025-07-14 03:22:39",
+    "buffer_before_minutes": 30,
+    "buffer_after_minutes": 30
+  },
+  "simulation_duration_hours": 2.48
+}
+```
+
+**Fields**:
+- `od_time_range.start`: Simulation start time (event start - buffer)
+- `od_time_range.end`: Simulation end time (event end + buffer)
+- `od_time_range.event_start`: Actual event start time
+- `od_time_range.event_end`: Actual event end time
+- `od_time_range.buffer_before_minutes`: Buffer before event (default: 30 minutes)
+- `od_time_range.buffer_after_minutes`: Buffer after event (default: 30 minutes)
+- `simulation_duration_hours`: Total simulation duration in hours
+
+**Note**:
+- ❌ Does NOT contain `od_table` field (OD table is determined by case metadata)
+- ❌ Does NOT contain `vehicle_types` field (vehicle types are from template configuration)
+
 ### Solution: Plan B - Robust Scenario Lookup
 
 **Validation Strategy** (`scripts/initialize_scenario_library.py:validate_event_scenario()`):
@@ -1489,6 +1525,233 @@ class AnalysisBatchProgressResponse(BaseModel):
    - Mark batch as "cancelled"
    - Allow in-flight tasks to complete gracefully
    - Stop queuing new tasks
+
+---
+
+## 7. CSV Batch Scenario Generation (Phase 2 Extension)
+
+### Overview
+
+Implement backend API to process event CSV files and generate scenario bundles in batch, with state tracking and duplicate detection.
+
+**Goal**: Enable users to upload/select event CSV files through the scenario browser UI and automatically generate scenarios for new events.
+
+### Architecture Decision: Simple State Tracking
+
+**Principle**: Keep it simple - minimal state tracking, reuse existing generation logic
+
+- ✅ Reuse `scripts/generate_scenarios_from_events.py` logic
+- ✅ Track generation state in JSON files (`events/csv_extraction_status/`)
+- ✅ Check existing scenarios before generation (avoid duplicates)
+- ❌ No complex queue system (direct execution)
+- ❌ No progress websockets (simple status polling if needed later)
+
+### API Design
+
+#### POST /api/v1/scenario/generate-from-csv
+
+**Request Body**:
+```json
+{
+  "csv_file": "all_extracted_events.csv",
+  "generate_all_strategies": true
+}
+```
+
+**Response**:
+```json
+{
+  "task_id": "csv_gen_20251114_143000",
+  "csv_file": "all_extracted_events.csv",
+  "status": "processing",
+  "message": "CSV场景生成已启动",
+  "estimated_scenarios": "待处理",
+  "state_file": "events/csv_extraction_status/all_extracted_events_status.json"
+}
+```
+
+**Process Flow**:
+```
+1. Validate CSV file exists in events/ folder
+2. Create state tracking file
+3. Read CSV and filter events
+4. Check each event report_id against existing scenarios
+5. Generate scenarios for new events only
+6. Update state file with results
+7. Update scenario_index.json
+```
+
+### State Tracking File Structure
+
+**Location**: `events/csv_extraction_status/{csv_filename}_status.json`
+
+**Structure**:
+```json
+{
+  "csv_file": "all_extracted_events.csv",
+  "task_id": "csv_gen_20251114_143000",
+  "started_at": "2025-11-14T14:30:00",
+  "completed_at": "2025-11-14T14:35:00",
+  "status": "completed",
+
+  "total_events_in_csv": 150,
+  "events_processed": 150,
+  "events_skipped_existing": 100,
+  "events_generated": 50,
+
+  "scenarios_generated": {
+    "no_control": 50,
+    "vss": 50,
+    "tec": 50,
+    "total": 150
+  },
+
+  "failed_events": [
+    {
+      "report_id": "12345",
+      "event_type": "交通事故",
+      "error": "Missing edge_id field",
+      "timestamp": "2025-11-14T14:31:00"
+    }
+  ],
+
+  "successful_events": [
+    {
+      "report_id": "12547",
+      "event_type": "交通事故",
+      "scenarios": ["scenario_12547_no_control", "scenario_12547_vss", "scenario_12547_tec"],
+      "timestamp": "2025-11-14T14:30:15"
+    }
+  ]
+}
+```
+
+**State Transitions**:
+- `queued` → `processing` → `completed` | `failed`
+- `processing` → `cancelled` (if user cancels)
+
+### Duplicate Detection Logic
+
+**Check Against Existing Scenarios**:
+
+```python
+def is_event_already_generated(report_id: str, strategy: str) -> bool:
+    """
+    Check if scenario already exists in scenario_index.json
+
+    Returns:
+        True if scenario exists, False otherwise
+    """
+    scenario_id = f"scenario_{report_id}_{strategy}"
+
+    # Load scenario_index.json
+    index_path = Path("output/scenarios/scenario_index.json")
+    if not index_path.exists():
+        return False
+
+    with open(index_path) as f:
+        index = json.load(f)
+
+    # Check if scenario_id exists
+    for scenario in index.get("scenarios", []):
+        if scenario.get("files", {}).get("scenario_dir") == scenario_id:
+            return True
+
+    return False
+```
+
+**Strategy**:
+1. Before generating each scenario, check `scenario_index.json`
+2. If `scenario_{report_id}_{strategy}` exists → skip
+3. Only generate scenarios for missing combinations
+4. Log skipped events in state file
+
+### Service Layer
+
+**Location**: `api/services/scenario_service.py`
+
+**New Method**:
+```python
+async def generate_scenarios_from_csv(
+    self,
+    csv_file: str,
+    generate_all_strategies: bool = True
+) -> Dict[str, Any]:
+    """
+    Generate scenarios from CSV file in batch.
+
+    Args:
+        csv_file: CSV filename in events/ folder
+        generate_all_strategies: Generate VSS/TEC/DHS or just NO_CONTROL
+
+    Returns:
+        {
+            "task_id": "csv_gen_...",
+            "status": "processing",
+            "state_file": "events/csv_extraction_status/..."
+        }
+
+    Process:
+        1. Validate CSV exists
+        2. Create state file
+        3. Load and filter events (reuse filter logic from script)
+        4. Check duplicates
+        5. Generate new scenarios
+        6. Update state file
+        7. Update scenario_index.json
+    """
+```
+
+### Implementation Plan
+
+**Phase 1: Backend API (This Iteration)**
+- ✅ Implement `/api/v1/scenario/generate-from-csv` endpoint
+- ✅ Create state tracking file structure
+- ✅ Implement duplicate detection logic
+- ✅ Reuse ScenarioGenerator from shared/control_tools
+- ✅ Update scenario_index.json after generation
+
+**Phase 2: Frontend Integration (Simple)**
+- ✅ Already implemented CSV file dropdown
+- ✅ Submit button calls API
+- ✅ Show simple alert with task_id
+- ❌ No real-time progress (can add later if needed)
+
+**Phase 3: Enhancement (Future)**
+- ❌ Background task queue (FastAPI BackgroundTasks)
+- ❌ Real-time progress updates (SSE or polling)
+- ❌ Batch optimization (parallel generation)
+
+### Error Handling
+
+**CSV Validation**:
+- File not found → 404 error
+- Invalid CSV format → 400 error with details
+- Missing required columns → 400 error with column names
+
+**Generation Errors**:
+- Event missing required fields → Log to failed_events, continue
+- ScenarioGenerator exception → Log to failed_events, continue
+- File write error → Log and retry once
+
+**State File**:
+- Cannot create state directory → 500 error (critical)
+- Cannot write state file → Log warning, continue (non-critical)
+
+### Testing Strategy
+
+**Unit Tests**:
+- Test duplicate detection logic
+- Test CSV parsing and filtering
+- Test state file creation/update
+
+**Integration Tests**:
+- Test full API flow with sample CSV
+- Test duplicate scenario skipping
+- Test state file accuracy
+
+**E2E Test**:
+- Upload CSV → Generate scenarios → Verify state file → Check scenario_index.json
 
 ---
 

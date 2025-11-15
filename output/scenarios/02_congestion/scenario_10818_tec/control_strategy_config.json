@@ -1,0 +1,38 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-6364",
+      "-11410",
+      "-3802",
+      "-9070",
+      "-13370"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "toll_station_ids": [
+      "256",
+      "255",
+      "250",
+      "249",
+      "247",
+      "246"
+    ],
+    "control_measure": "因主线车流量大，现主线绵广向K1602道路封闭，江油站至二郎庙站入口广元方向封闭。",
+    "control_range": "",
+    "activation_time": "2025-06-13 18:20:00",
+    "affected_edges": [
+      "nan"
+    ],
+    "affected_lanes": [],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-06-13 18:25:16",
+    "deactivation_time": "2025-06-13 19:34:30",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

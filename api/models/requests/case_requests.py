@@ -3,7 +3,7 @@
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 
 class CreateCaseRequest(BaseModel):
@@ -146,4 +146,133 @@ class CreateCaseWithSimulationRequest(BaseModel):
             "network_file": "templates/network_files/sichuan202508v7.net.xml",
             "od_file": "dwd.dwd_od_weekly",
             "taz_file": None
+        }
+
+
+class ScenarioDefinition(BaseModel):
+    """单个场景定义（用于批量创建）"""
+    scenario_id: str = Field(..., description="场景ID")
+    event_id: str = Field(..., description="事件ID")
+    event_type: str = Field(..., description="事件类型")
+    strategy: str = Field(..., description="策略类型")
+
+    # 事件位置信息
+    event_location: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="事件位置信息（edge_id, junction_id等）"
+    )
+
+    # 时间信息
+    time: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="时间信息（event_start_time, sim_start_time, sim_duration_hours等）"
+    )
+
+    # 输出配置
+    output_config: Dict[str, bool] = Field(
+        default_factory=lambda: {
+            "generate_edgedata": True,
+            "generate_summary": True,
+            "generate_tripinfo": True,
+            "generate_vehroute": False
+        },
+        description="输出文件配置"
+    )
+
+    # 管控策略参数（可选）
+    control_strategy: Optional[Dict[str, Any]] = Field(
+        None,
+        description="管控策略参数"
+    )
+
+
+class CreateEventCaseBatchRequest(BaseModel):
+    """批量创建事件案例请求模型"""
+    # 事件基本信息
+    event_id: str = Field(..., description="事件ID")
+    event_type: str = Field(..., description="事件类型")
+
+    # 场景列表
+    scenarios: List[ScenarioDefinition] = Field(
+        ...,
+        description="要创建的场景列表",
+        min_items=1
+    )
+
+    # 共享文件引用
+    network_file: str = Field(..., description="网络文件路径")
+    od_file: str = Field(..., description="OD/路由文件路径")
+    taz_file: Optional[str] = Field(None, description="TAZ文件路径（可选）")
+
+    # 共享时间范围
+    time_range: Dict[str, str] = Field(
+        ...,
+        description="时间范围（start, end）"
+    )
+
+    # 仿真参数
+    simulation_type: str = Field(
+        "microscopic",
+        description="仿真模式",
+        pattern="^(microscopic|mesoscopic)$"
+    )
+    random_seed: Optional[int] = Field(None, description="随机种子")
+
+    class Config:
+        example = {
+            "event_id": "12547",
+            "event_type": "01_accident",
+            "scenarios": [
+                {
+                    "scenario_id": "scenario_12547_no_control",
+                    "event_id": "12547",
+                    "event_type": "01_accident",
+                    "strategy": "NO_CONTROL",
+                    "event_location": {
+                        "road": "G5",
+                        "edge_id": "3026",
+                        "junction_id": "J1"
+                    },
+                    "time": {
+                        "event_start_time": "2025-01-15 08:00:00",
+                        "sim_start_time": "2025-01-15 07:00:00",
+                        "sim_duration_hours": 2.5
+                    },
+                    "output_config": {
+                        "generate_edgedata": True,
+                        "generate_summary": True,
+                        "generate_tripinfo": True
+                    }
+                },
+                {
+                    "scenario_id": "scenario_12547_vss",
+                    "event_id": "12547",
+                    "event_type": "01_accident",
+                    "strategy": "VSS",
+                    "event_location": {
+                        "road": "G5",
+                        "edge_id": "3026",
+                        "junction_id": "J1"
+                    },
+                    "time": {
+                        "event_start_time": "2025-01-15 08:00:00",
+                        "sim_start_time": "2025-01-15 07:00:00",
+                        "sim_duration_hours": 2.5
+                    },
+                    "control_strategy": {
+                        "strategy_type": "VSS",
+                        "parameters": {
+                            "edge_range": ["3000", "3050"]
+                        }
+                    }
+                }
+            ],
+            "network_file": "templates/network_files/highway.net.xml",
+            "od_file": "dwd.dwd_od_weekly",
+            "taz_file": None,
+            "time_range": {
+                "start": "2025-01-15 07:00:00",
+                "end": "2025-01-15 09:30:00"
+            },
+            "simulation_type": "microscopic"
         }

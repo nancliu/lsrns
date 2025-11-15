@@ -1,0 +1,11 @@
+{
+  "od_time_range": {
+    "start": "2025-06-13 17:50:16",
+    "end": "2025-06-13 19:54:30",
+    "event_start": "2025-06-13 18:20:16",
+    "event_end": "2025-06-13 19:24:30",
+    "buffer_before_minutes": 30,
+    "buffer_after_minutes": 30
+  },
+  "simulation_duration_hours": 2.07
+}

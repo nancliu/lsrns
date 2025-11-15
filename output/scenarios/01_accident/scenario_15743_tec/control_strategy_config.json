@@ -4,16 +4,16 @@
   "parameters": {
     "flow_reduction": 0.4,
     "entrance_edges": [
-      "-1024|-2000000090"
+      "-1024"
     ],
     "response_delay_seconds": 300,
     "recovery_period_seconds": 600,
     "csv_control": false,
     "affected_edges": [
-      "-1024|-2000000090"
+      "-1024"
     ],
     "affected_lanes": [
-      "-1024|-2000000090_2"
+      "-1024"
     ]
   },
   "timing": {

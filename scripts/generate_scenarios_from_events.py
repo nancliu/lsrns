@@ -660,7 +660,10 @@ def generate_scenario_library(events_csv: str, network_file: str,
 
 def create_scenario_index(results: Dict[str, Any], output_dir: str):
     """
-    Create scenario_index.json with all scenario metadata.
+    Update unified scenario_index.json with new scenario metadata (APPEND MODE).
+
+    IMPORTANT: This function APPENDS to existing index, not overwrites it.
+    This prevents data loss when regenerating specific scenarios.
 
     Args:
         results: Generation results dictionary
@@ -668,8 +671,8 @@ def create_scenario_index(results: Dict[str, Any], output_dir: str):
     """
     index_path = Path(output_dir) / "scenario_index.json"
 
-    # Build scenarios list with metadata
-    scenarios = []
+    # Build new scenarios list with metadata
+    new_scenarios = []
     for scenario_info in results["success"]:
         # Read event description JSON to get metadata
         event_desc_path = scenario_info["files"].get("event_description")
@@ -677,50 +680,66 @@ def create_scenario_index(results: Dict[str, Any], output_dir: str):
             with open(event_desc_path, 'r', encoding='utf-8') as f:
                 event_desc = json.load(f)
 
-            scenarios.append({
+            # Extract scenario_dir from file paths
+            add_xml_path = Path(scenario_info["files"]["add_xml"])
+            scenario_dir = add_xml_path.parent.name
+
+            new_scenarios.append({
                 "event_id": scenario_info["event_id"],
                 "event_type": event_desc.get("event_type", "未知"),
                 "strategy": scenario_info["strategy"],
-                "files": {
-                    "add_xml": scenario_info["files"]["add_xml"],
-                    "event_description": scenario_info["files"]["event_description"],
-                    "traffic_input_config": scenario_info["files"]["traffic_input_config"],
-                    "control_strategy_config": scenario_info["files"]["control_strategy_config"],
-                },
                 "location": event_desc.get("location", {}),
                 "time": event_desc.get("time", {}),
+                "files": {
+                    "scenario_dir": scenario_dir,
+                    "add_xml": add_xml_path.name,
+                    "event_description": "event_description.json",
+                    "traffic_config": "traffic_input_config.json",
+                    "control_config": "control_strategy_config.json"
+                },
+                "created_cases": []
             })
 
-    # Calculate statistics by event type and strategy
+    # Load existing unified index if it exists
+    if index_path.exists():
+        with open(index_path, 'r', encoding='utf-8') as f:
+            unified_index = json.load(f)
+        logger.info(f"Loaded existing unified index with {len(unified_index.get('scenarios', []))} scenarios")
+        before_count = len(unified_index.get('scenarios', []))
+    else:
+        unified_index = {
+            'generated_at': pd.Timestamp.now().isoformat(),
+            'total_scenarios': 0,
+            'scenarios': []
+        }
+        before_count = 0
+        logger.info("Creating new unified index")
+
+    # Append new scenarios to unified index
+    unified_index['scenarios'].extend(new_scenarios)
+
+    # Update metadata
+    unified_index['generated_at'] = pd.Timestamp.now().isoformat()
+    unified_index['total_scenarios'] = len(unified_index['scenarios'])
+
+    # Save unified index
+    with open(index_path, 'w', encoding='utf-8') as f:
+        json.dump(unified_index, f, indent=2, ensure_ascii=False)
+
+    logger.info(f"Updated unified scenario index: {index_path}")
+    logger.info(f"  Scenarios: {before_count} -> {len(unified_index['scenarios'])} (+{len(new_scenarios)} new)")
+
+    # Calculate statistics for the newly added scenarios only
     stats_by_type = {}
     stats_by_strategy = {}
-
-    for scenario in scenarios:
+    for scenario in new_scenarios:
         event_type = scenario["event_type"]
         strategy = scenario["strategy"]
-
         stats_by_type[event_type] = stats_by_type.get(event_type, 0) + 1
         stats_by_strategy[strategy] = stats_by_strategy.get(strategy, 0) + 1
 
-    index = {
-        "metadata": {
-            "total_scenarios": results["total_scenarios"],
-            "total_events": results["total_events"],
-            "success_count": len(results["success"]),
-            "failed_count": len(results["failed"]),
-            "last_updated": pd.Timestamp.now().isoformat(),
-            "version": "1.0.0",
-            "stats_by_event_type": stats_by_type,
-            "stats_by_strategy": stats_by_strategy,
-        },
-        "scenarios": scenarios,
-        "failed": results["failed"]
-    }
-
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding='utf-8')
-    logger.info(f"Created scenario index: {index_path}")
-    logger.info(f"  By event type: {stats_by_type}")
-    logger.info(f"  By strategy: {stats_by_strategy}")
+    logger.info(f"  New scenarios by event type: {stats_by_type}")
+    logger.info(f"  New scenarios by strategy: {stats_by_strategy}")
 
 
 def validate_input_data(events_csv: str, network_file: str, output_dir: str) -> bool:

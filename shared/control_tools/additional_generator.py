@@ -278,6 +278,16 @@ def generate_vss_xml(
             raise ValueError(f"VSS strategy {strategy_id} requires 'affected_edges' in parameters")
         speed_steps = parameters.get("speed_steps", [])
 
+        # Handle simplified format: convert speed_limit_kmh to speed_steps
+        if not speed_steps and "speed_limit_kmh" in parameters:
+            speed_limit = parameters["speed_limit_kmh"]
+            # Create a default step at time 0 with the specified speed
+            speed_steps = [{
+                "time_seconds": 0,
+                "speed_kmh": speed_limit
+            }]
+            logger.debug(f"Converted simplified format speed_limit_kmh={speed_limit} to speed_steps")
+
         # Determine network file path
         if network_file_path is None:
             # Use default network file
@@ -527,9 +537,13 @@ def generate_dhs_xml(
 
     try:
         # Extract parameters from strategy instance
-        affected_edges = parameters.get("affected_edges", [])
+        # Get shoulder_segments (or fallback to affected_edges for compatibility)
+        affected_edges = parameters.get("shoulder_segments")
         if not affected_edges:
-            raise ValueError(f"DHS strategy {strategy_id} requires 'affected_edges' in parameters")
+            affected_edges = parameters.get("affected_edges", [])
+
+        if not affected_edges:
+            raise ValueError(f"DHS strategy {strategy_id} requires 'shoulder_segments' parameter")
 
         # Get hard_shoulder_lane_index from strategy parameters, or from template default_value
         hard_shoulder_lane_index = parameters.get("hard_shoulder_lane_index")
@@ -545,7 +559,10 @@ def generate_dhs_xml(
                 hard_shoulder_lane_index = 0  # Final fallback
                 logger.warning(f"No hard_shoulder_lane_index found in parameters or template, using default 0")
 
-        intervals = parameters.get("intervals", [])
+        # Get activation_schedule (or fallback to intervals for compatibility)
+        intervals = parameters.get("activation_schedule")
+        if not intervals:
+            intervals = parameters.get("intervals", [])
 
         # Determine network file path
         if network_file_path is None:
@@ -587,17 +604,21 @@ def generate_dhs_xml(
         for interval in intervals:
             interval_elem = SubElement(rerouter_elem, "interval")
 
-            # Begin time in seconds
+            # Begin time in seconds (support both 'begin' and 'begin_seconds')
             if "begin_seconds" in interval:
                 begin_seconds = int(interval["begin_seconds"])
+            elif "begin" in interval:
+                begin_seconds = int(interval["begin"])
             elif "begin_hours" in interval:
                 begin_seconds = int(interval["begin_hours"] * 3600)
             else:
                 continue
 
-            # End time in seconds
+            # End time in seconds (support both 'end' and 'end_seconds')
             if "end_seconds" in interval:
                 end_seconds = int(interval["end_seconds"])
+            elif "end" in interval:
+                end_seconds = int(interval["end"])
             elif "end_hours" in interval:
                 end_seconds = int(interval["end_hours"] * 3600)
             else:
@@ -723,6 +744,21 @@ def _generate_tec_metering_xml(
 
     # Add flow intervals
     flow_intervals = parameters.get("flow_intervals", [])
+
+    # Handle simplified format: convert flow_reduction to flow_intervals
+    if not flow_intervals and "flow_reduction" in parameters:
+        flow_reduction = parameters["flow_reduction"]
+        # Create a default interval at time 0 with reduced flow
+        # Assuming baseline flow of 3600 veh/h (1 veh/sec), reduced by the coefficient
+        baseline_flow = 3600
+        reduced_flow = int(baseline_flow * (1 - flow_reduction))
+        flow_intervals = [{
+            "begin_seconds": 0,
+            "end_seconds": 86400,  # 24 hours (full day)
+            "vehsPerHour": reduced_flow
+        }]
+        logger.debug(f"Converted simplified format flow_reduction={flow_reduction} to flow_intervals with {reduced_flow} veh/h")
+
     for flow in flow_intervals:
         flow_elem = SubElement(calibrator_elem, "flow")
 
@@ -746,8 +782,17 @@ def _generate_tec_metering_xml(
         flow_elem.set("end", str(end_seconds))
 
         # Flow rate (vehicles per hour)
+        # Support both vehsPerHour (direct) and flow_coefficient (calculated)
         if "vehsPerHour" in flow:
             flow_elem.set("vehsPerHour", str(int(flow["vehsPerHour"])))
+        elif "flow_coefficient" in flow:
+            # Calculate vehsPerHour from flow_coefficient
+            # Baseline: 3600 veh/h (1 veh/sec), flow_coefficient is multiplier
+            baseline_flow = 3600
+            flow_coefficient = float(flow["flow_coefficient"])
+            vehs_per_hour = int(baseline_flow * flow_coefficient)
+            flow_elem.set("vehsPerHour", str(vehs_per_hour))
+            logger.debug(f"TEC flow_coefficient={flow_coefficient} -> vehsPerHour={vehs_per_hour}")
 
         # Target speed (m/s)
         if "target_speed" in flow:

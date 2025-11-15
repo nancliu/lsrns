@@ -1,0 +1,11 @@
+{
+  "od_time_range": {
+    "start": "2025-08-08 17:06:41",
+    "end": "2025-08-08 20:04:20",
+    "event_start": "2025-08-08 17:36:41",
+    "event_end": "2025-08-08 19:34:20",
+    "buffer_before_minutes": 30,
+    "buffer_after_minutes": 30
+  },
+  "simulation_duration_hours": 2.96
+}

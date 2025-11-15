@@ -7,11 +7,5 @@
     "buffer_before_minutes": 30,
     "buffer_after_minutes": 30
   },
-  "od_table": "baseline.od_data_sichuan_202510",
-  "simulation_duration_hours": 1.93,
-  "vehicle_types": [
-    "passenger",
-    "truck",
-    "bus"
-  ]
+  "simulation_duration_hours": 1.93
 }

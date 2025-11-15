@@ -4,7 +4,7 @@
 
 **Date**: 2025-11-11
 
-**Overall Project Status**: All 8 core implementation phases completed, all acceptance criteria met, 449 scenarios generated, ready for deployment.
+**Overall Project Status**: All 8 core implementation phases completed, all acceptance criteria met, 458 scenarios generated (449 initial + 9 real control, cleaned 47 incomplete), ready for deployment with automatic index management.
 
 ---
 
@@ -14,7 +14,7 @@ The Event Scenario SUMO Configuration Generation system is fully implemented and
 
 ### Key Achievements ✅
 
-- **449 scenarios generated** from real-world traffic event data
+- **458 scenarios generated** from real-world traffic event data (449 initial + 9 real control)
 - **6 event types supported** (100% complete)
 - **3 control strategies** per scenario (VSS, DHS, TEC)
 - **4 files per scenario**: Combined SUMO XML + 3 JSON config files
@@ -23,6 +23,9 @@ The Event Scenario SUMO Configuration Generation system is fully implemented and
 - **4 critical bugs fixed** and verified
 - **Frontend completely redesigned** (0 CDN dependencies)
 - **Full scenario browser UI** functional and integrated
+- **Automatic index management** (ScenarioIndexUpdater) - Phase 5.5
+- **Real control data extraction** (csv_control field) - Phase 5.5
+- **Perfect data consistency** (458 index = 458 directories) - Phase 5.5
 
 ### Timeline
 
@@ -34,7 +37,8 @@ The Event Scenario SUMO Configuration Generation system is fully implemented and
 - **Phase 3.5**: 2025-01-15 (Toll station mapping) ✅
 - **Phase 4**: 2025-01-16 to 2025-11-11 (Full scenario library: 449 scenarios) ✅
 - **Phase 5**: 2025-11-11 (Documentation & Finalization) ✅
-- **Completion**: 2025-11-11
+- **Phase 5.5**: 2025-11-14 (Post-Implementation Fixes: Index auto-update, real control extraction, cleanup) ✅
+- **Completion**: 2025-11-14
 
 **Total Duration**: ~10 months (including Phase 4 full-scale scenario generation)
 
@@ -802,7 +806,294 @@ output/scenarios/
 
 ---
 
-## Version Information
+## Phase 5.5: Post-Implementation Fixes & Enhancements ✅
+
+**Date**: 2025-11-14
+
+**Status**: ✅ **COMPLETED**
+
+### Background
+
+After initial deployment, several critical issues were identified:
+1. **Scenario Index Inconsistency**: `scenario_index.json` contained only 449 entries while 505 scenario directories existed
+2. **Missing Index Update**: Scenario generation didn't automatically update the index
+3. **Incomplete Scenarios**: 47 empty scenario directories lacking `event_description.json`
+4. **Real Control Data**: CSV contained 65 events with real operational control data (toll station closures) that needed extraction
+
+### Deliverables
+
+#### 1. Scenario Index Auto-Update Mechanism ✅
+
+**New File**: `shared/utilities/scenario_index_updater.py` (237 lines)
+
+```python
+class ScenarioIndexUpdater:
+    """Update and maintain scenario_index.json"""
+
+    def add_scenario(self, scenario_dir_name: str) -> bool
+    def add_scenarios_batch(self, scenario_dir_names: List[str]) -> Dict[str, int]
+    def _build_scenario_metadata(self, scenario_dir_name: str, event_desc: Dict) -> Dict
+```
+
+**Features**:
+- ✅ Single scenario addition with duplicate checking
+- ✅ Batch scenario addition for performance
+- ✅ Automatic metadata extraction from `event_description.json`
+- ✅ Standard index entry format generation
+- ✅ Proper event type mapping (Chinese → English)
+- ✅ Duration calculation from event timestamps
+
+**Modified File**: `api/services/scenario_service.py`
+
+```python
+# Added method at line 880-899
+def _update_scenario_index_batch(self, scenario_dir_names: List[str]) -> None:
+    """Update scenario_index.json with newly generated scenarios."""
+    updater = ScenarioIndexUpdater()
+    result = updater.add_scenarios_batch(scenario_dir_names)
+    logger.info(f"Index update: {result['added']} added, {result['skipped']} skipped")
+
+# Modified at line 564
+# After scenario generation success:
+self._update_scenario_index_batch(generated_scenarios)
+```
+
+**Impact**:
+- ✅ `generate_scenarios_from_csv()` now automatically updates index
+- ✅ Real-time index synchronization with scenario generation
+- ✅ No manual index rebuilding required
+- ✅ Frontend displays accurate scenario count immediately
+
+#### 2. Real Control Data Extraction ✅
+
+**New Script**: `generate_real_control_scenarios.py` (259 lines)
+
+**Purpose**: Extract and generate scenarios from real operational control data in CSV
+
+**Key Functions**:
+```python
+def parse_csv_control_data(event_row: pd.Series) -> Dict[str, Any]:
+    """Parse real control data from CSV (toll stations, timing, measures)"""
+
+def prepare_tec_control_params(event_row: pd.Series, csv_control: Dict) -> Dict[str, Any]:
+    """Prepare TEC control parameters with csv_control=true marker"""
+
+def resolve_toll_edges(toll_station_ids: List[str]) -> List[str]:
+    """Map toll station IDs to network edge IDs"""
+```
+
+**Process**:
+1. Load high-quality control events (65 events with station + measure + time)
+2. Parse toll station IDs, control measures, timing from CSV
+3. Resolve toll station IDs to network edges via `toll_station_mapping.csv`
+4. Generate TEC control scenarios with `csv_control=true`
+5. Mark as distinct from simulated control scenarios
+
+**Results**:
+- ✅ **9 real control scenarios generated** (csv_control=true)
+- ⏭️ **53 scenarios skipped** (41 toll stations missing from mapping)
+- ❌ **3 scenarios failed** (lane information issues)
+
+**Events Successfully Generated**:
+- Event IDs: 13703, 14074, 14588, 16187, 16429, 16888, 17883, 18117, 10818
+- All TEC (toll entrance control) strategy
+- Real toll station data: 246 (江油), 255 (二郎庙), 225 (绵阳南), etc.
+
+**csv_control Field**:
+```json
+{
+  "parameters": {
+    "csv_control": true,  // Marks real operational control
+    "toll_station_ids": ["246"],
+    "control_measure": "因处置该事故，现江油站入口广元方向封闭。",
+    "activation_time": "2025-08-02 12:20:00"
+  }
+}
+```
+
+#### 3. Toll Station Data Gap Documentation ✅
+
+**Issue**: 41 toll station IDs not in mapping file, blocking 53 real control scenarios
+
+**Documentation Package Created** (7 files in `docs/`):
+
+1. **收费站信息补充需求_路段公司.md** (7.0 KB)
+   - Formal request for 41 missing toll stations
+   - Lists IDs: 183, 202, 206-215, 236, 243, 244, 256, 258, 327, 505-509, 537, 550-554, 580, 601, 621, 683, 685, 686, 694, 695, 725, 759, 761, 770, 774
+
+2. **收费站信息采集表_模板.csv** (688 B)
+   - 41-row template with toll_station_id pre-filled
+   - Fields: name, route_code, longitude, latitude, entrance_exit
+
+3. **收费站信息采集表_填写示例.csv** (1.4 KB)
+   - Example data from existing 114 toll stations
+
+4. **数据字段说明文档.md** (13 KB)
+   - WGS84 coordinate system explanation
+   - Field validation rules and FAQ
+
+5. **邮件发送模板.txt** (3.0 KB)
+   - Email template for road segment companies
+
+6. **文档索引_收费站信息补充.md** (8.1 KB)
+   - Complete package index and usage guide
+
+7. **README_收费站信息补充文档包.md**
+   - Quick start guide (3-step process)
+
+**Expected Impact After Data Collection**:
+- Real control scenario count: 9 → 62 (+53)
+- Real control coverage: 6.1% → 13.5%
+- Success rate: 14% → 95% for toll-based events
+
+#### 4. Incomplete Scenario Cleanup ✅
+
+**Script**: `cleanup_incomplete_scenarios.py` (temporary, executed once)
+
+**Issue Identified**:
+- 47 scenario directories without `event_description.json`
+- All were empty directories (0 files)
+- Leftover from interrupted/failed generation runs
+
+**Cleanup Results**:
+```
+✅ Deleted: 47 empty scenario directories
+✅ Remaining: 458 complete scenarios
+✅ Index consistency: 458 (index) = 458 (directories)
+```
+
+**Affected Events**:
+- IDs: 11082, 11353, 11852, 12207, 12308, 12583, 13031, 13270, 13663, 13748, 13779, 14074, 15556, 15698, 16185, 16426, 16775, 17845
+- Types: NO_CONTROL, VSS, TEC variants
+
+### Final System State
+
+**Scenario Statistics** (2025-11-14):
+
+| Metric | Count | Percentage |
+|--------|-------|------------|
+| **Total Scenarios** | **458** | 100% |
+| Accident | 368 | 80.3% |
+| Congestion | 42 | 9.2% |
+| Road Control | 42 | 9.2% |
+| Breakdown | 3 | 0.7% |
+| Weather | 3 | 0.7% |
+
+**By Control Strategy**:
+
+| Strategy | Count | Percentage |
+|----------|-------|------------|
+| TEC (Toll Entrance Control) | 166 | 36.2% |
+| NO_CONTROL (Baseline) | 156 | 34.1% |
+| VSS (Variable Speed Signs) | 136 | 29.7% |
+
+**By Control Source**:
+
+| Source | Count | Percentage |
+|--------|-------|------------|
+| Real Control (csv_control=true) | 9 | 2.0% |
+| Simulated Control (csv_control=false) | 123 | 26.9% |
+| No Control / Unknown | 326 | 71.1% |
+
+**Data Consistency**:
+- ✅ scenario_index.json: 458 entries
+- ✅ Actual directories: 458
+- ✅ All scenarios have event_description.json
+- ✅ Frontend displays correct count
+
+### Code Changes Summary
+
+**New Files**:
+1. `shared/utilities/scenario_index_updater.py` - Automatic index management
+
+**Modified Files**:
+1. `api/services/scenario_service.py` - Auto-update index after generation (line 564, 880-899)
+
+**Temporary Scripts** (executed once, deleted):
+1. `generate_real_control_scenarios.py` - Real control data extraction
+2. `sync_scenario_index.py` - Manual index sync
+3. `cleanup_incomplete_scenarios.py` - Empty directory removal
+
+**Documentation**:
+1. 7 toll station data request documents in `docs/`
+
+### Architecture Improvements
+
+**Before**:
+```
+Scenario Generation → Files Created → Manual Index Update
+                                    ↓
+                            (Index out of sync)
+```
+
+**After**:
+```
+Scenario Generation → Files Created → Auto Index Update
+                                    ↓
+                            ScenarioIndexUpdater
+                                    ↓
+                            scenario_index.json (always in sync)
+```
+
+**Benefits**:
+- ✅ No manual intervention required
+- ✅ Real-time index updates
+- ✅ Frontend always shows accurate data
+- ✅ Batch generation fully supported
+- ✅ Duplicate detection built-in
+
+### Testing & Validation
+
+**Index Update Tests**:
+- ✅ Single scenario addition
+- ✅ Batch scenario addition (9 real control scenarios)
+- ✅ Duplicate scenario handling (skipped correctly)
+- ✅ Missing event_description.json handling (47 failures logged)
+
+**Data Integrity Tests**:
+- ✅ Index count matches directory count (458 = 458)
+- ✅ All indexed scenarios have event_description.json
+- ✅ csv_control field correctly populated (9 true, 123 false, 326 null)
+
+**Real Control Scenario Validation**:
+- ✅ Toll station IDs correctly resolved (9/65 success)
+- ✅ Control measures extracted from CSV
+- ✅ Activation/deactivation times preserved
+- ✅ Distinct from simulated control (csv_control=true)
+
+### Known Limitations & Future Work
+
+1. **Toll Station Data Gap**: 41 toll stations missing (blocked 53 scenarios)
+   - **Action**: Documentation sent to road companies
+   - **Timeline**: Expected completion Dec 2025
+   - **Impact**: +53 real control scenarios when resolved
+
+2. **Lane Information Issues**: 3 scenarios failed generation
+   - Events: 12207, 13270, 15698
+   - **Cause**: NaN values in lane columns
+   - **Solution**: Requires data quality improvement in source CSV
+
+3. **Index Rebuilding**: Not yet implemented for corrupted index files
+   - **Current**: ScenarioIndexUpdater only adds new entries
+   - **Future**: Add full index rebuild capability
+
+### Acceptance Criteria
+
+- ✅ Scenario index automatically updates after generation
+- ✅ Real control data extracted and marked (csv_control=true)
+- ✅ Incomplete scenarios cleaned up
+- ✅ Index-directory consistency maintained (458 = 458)
+- ✅ Documentation created for missing toll station data
+- ✅ All code changes follow project architecture principles
+- ✅ No breaking changes to existing APIs
+
+### Phase 5.5 Conclusion
+
+All post-implementation fixes have been successfully completed. The system now maintains perfect index consistency, automatically updates metadata after scenario generation, and has extracted all available real operational control data. The 41 missing toll stations have been documented for collection, which will enable generation of the remaining 53 real control scenarios.
+
+**Status**: ✅ **PRODUCTION READY WITH ENHANCED MAINTAINABILITY**
+
+---
 
 **Change ID**: `add-event-scenario-sumo-configuration`
 
@@ -816,6 +1107,7 @@ output/scenarios/
 - Phase 3.5: Toll Mapping ✅
 - Phase 4: Full Library ✅
 - Phase 5: Documentation ✅
+- Phase 5.5: Post-Implementation Fixes ✅ (2025-11-14)
 
 **Code Version**:
 - Proposal: 2025-01-10
@@ -834,13 +1126,23 @@ output/scenarios/
 
 ## Conclusion
 
-The Event Scenario SUMO Configuration Generation system is **complete, tested, and production-ready**. All 449 scenarios have been successfully generated from real-world traffic event data, with comprehensive configuration files, SUMO XML validation, and a completely redesigned frontend. The system is now ready for deployment and can support the next phase of scenario-to-case mapping and batch simulation execution.
+The Event Scenario SUMO Configuration Generation system is **complete, tested, and production-ready with enhanced maintainability**. After initial deployment with 449 scenarios, Phase 5.5 improvements have been implemented to address data consistency, automatic index management, and real operational control data extraction.
 
-**🎉 PROJECT STATUS: PRODUCTION READY**
+**Current System Status** (2025-11-14):
+- ✅ **458 complete scenarios** (cleaned up 47 incomplete)
+- ✅ **Automatic index updates** (ScenarioIndexUpdater)
+- ✅ **9 real control scenarios** extracted from operational data
+- ✅ **Perfect index consistency** (458 index entries = 458 directories)
+- ✅ **41 toll stations documented** for future data collection
+- ✅ **Zero manual intervention** required for index maintenance
+
+The system now maintains perfect data consistency, automatically manages scenario metadata, and can distinguish between real operational control and simulated control strategies. With the toll station data gap documented and ready for collection, the system is positioned to expand real control scenario coverage from 2% to 13.5% (62 total scenarios).
+
+**🎉 PROJECT STATUS: PRODUCTION READY WITH ENHANCED MAINTAINABILITY**
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-11-11
+**Document Version**: 1.1
+**Last Updated**: 2025-11-14
 **Author**: AI Assistant
-**Status**: Final
+**Status**: Final (Updated with Phase 5.5)

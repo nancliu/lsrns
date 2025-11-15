@@ -1,0 +1,33 @@
+{
+  "strategy_type": "TEC",
+  "strategy_name": "收费站管控",
+  "parameters": {
+    "entrance_edges": [
+      "-2000000363"
+    ],
+    "flow_reduction": 0.8,
+    "csv_control": true,
+    "toll_station_ids": [
+      "555",
+      "183"
+    ],
+    "control_measure": "因处置瑞公山隧道交通事故，现关闭麻城站、摩尼站、赤水河站贵州至泸州方向入口、高桥服务区贵州至泸州方向出口",
+    "control_range": "",
+    "activation_time": "2025-09-13 06:47:00",
+    "affected_edges": [
+      "-9620"
+    ],
+    "affected_lanes": [
+      "-9620",
+      "-9620"
+    ],
+    "response_delay_seconds": 300,
+    "recovery_period_seconds": 600
+  },
+  "timing": {
+    "activation_time": "2025-09-13 06:49:31",
+    "deactivation_time": "2025-09-13 11:27:26",
+    "response_delay_minutes": 5.0,
+    "recovery_period_minutes": 10.0
+  }
+}

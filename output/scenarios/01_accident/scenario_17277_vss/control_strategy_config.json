@@ -4,12 +4,12 @@
   "parameters": {
     "speed_limit_kmh": 60,
     "affected_edges": [
-      "-14572|-10176"
+      "-14572"
     ],
     "response_delay_seconds": 300,
     "recovery_period_seconds": 600,
     "affected_lanes": [
-      "-14572|-10176_2"
+      "-14572"
     ]
   },
   "timing": {
