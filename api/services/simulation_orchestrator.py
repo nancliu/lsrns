@@ -281,6 +281,44 @@ class SimulationOrchestrator(BaseService):
             "note": "OD simulations will be executed sequentially"
         }
 
+    async def cancel_batch_simulations(
+        self,
+        batch_id: str,
+        graceful: bool = True
+    ) -> Dict[str, Any]:
+        """
+        取消批量仿真
+
+        Args:
+            batch_id: 批次ID
+            graceful: 是否优雅停止 (允许当前运行完成)
+
+        Returns:
+            取消操作结果
+
+        Design: PRINCIPLE-INTEGRATION-002 (工作流隔离)
+        """
+        logger.info(f"取消批次: {batch_id}, 优雅停止: {graceful}")
+
+        try:
+            # 使用批量优化服务执行取消操作
+            result = self.batch_optimization_service.cancel_batch(
+                case_id="",  # batch_id already contains case context
+                batch_id=batch_id
+            )
+
+            logger.info(f"批次 {batch_id} 取消成功: {result}")
+            return {
+                "batch_id": batch_id,
+                "status": "cancelled",
+                "cancelled_count": result.get("cancelled_count", 0),
+                "in_flight_count": result.get("killed_count", 0) if not graceful else 0,
+                "cancelled_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"取消批次失败 {batch_id}: {str(e)}")
+            raise
+
     def _on_batch_completed(self, batch_id: str, results: Dict[str, Any]):
         """
         批次完成回调
