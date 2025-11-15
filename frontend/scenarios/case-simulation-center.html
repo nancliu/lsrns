@@ -6,6 +6,7 @@
     <title>场景案例管理 - 交通仿真推演系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="scenario_browser.css">
+    <link rel="stylesheet" href="css/event-scenario-comparison.css">
     <style>
         /* ===== Tab 标签页样式 ===== */
         .tab-navigation {
@@ -441,6 +442,9 @@
                     <button class="tab-btn" data-tab="monitor" onclick="switchTab('monitor')">
                         ▶️ 仿真监控
                     </button>
+                    <button class="tab-btn" data-tab="results" onclick="switchTab('results')">
+                        📊 批次结果
+                    </button>
                 </div>
 
                 <!-- Tab 1: 案例管理 -->
@@ -598,6 +602,81 @@
                         <button class="btn-danger" onclick="cancelBatch()">⏹️ 取消批次</button>
                     </div>
                 </div>
+
+                <!-- Tab 3: 批次结果 -->
+                <div id="results-tab" class="tab-content">
+                    <!-- 批次选择器 -->
+                    <div class="filter-section">
+                        <div class="filter-section-header">
+                            <h3>📊 批次结果查看</h3>
+                            <div class="filter-header-right">
+                                <label for="batchSelector" style="margin-right: 10px;">选择批次:</label>
+                                <select id="batchSelector" onchange="loadSelectedBatchResults()"
+                                    style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; min-width: 250px;">
+                                    <option value="">-- 请选择已完成的批次 --</option>
+                                </select>
+                                <button class="btn btn-secondary" onclick="loadBatchResultsTab()" style="margin-left: 10px;">
+                                    🔄 刷新批次列表
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 批次信息 -->
+                    <div id="batchInfoSection" style="display: none; background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div>
+                                <div style="font-size: 0.9rem; color: #666;">批次ID</div>
+                                <div style="font-size: 1.1rem; font-weight: 600; color: #333;" id="batchInfoId">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9rem; color: #666;">事件ID</div>
+                                <div style="font-size: 1.1rem; font-weight: 600; color: #333;" id="batchInfoEventId">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9rem; color: #666;">场景数量</div>
+                                <div style="font-size: 1.1rem; font-weight: 600; color: #1976d2;" id="batchInfoScenarioCount">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9rem; color: #666;">完成时间</div>
+                                <div style="font-size: 1.1rem; font-weight: 600; color: #333;" id="batchInfoCompletedAt">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 策略对比表格 -->
+                    <div id="comparisonSection" style="display: none; margin-bottom: 30px;">
+                        <div class="filter-section-header" style="margin-bottom: 20px;">
+                            <h3>📈 策略对比分析</h3>
+                        </div>
+                        <div id="comparisonTableContainer"></div>
+                    </div>
+
+                    <!-- 策略排名 -->
+                    <div id="rankingSection" style="display: none; margin-bottom: 30px;">
+                        <div class="filter-section-header" style="margin-bottom: 20px;">
+                            <h3>🏆 策略效果排名</h3>
+                        </div>
+                        <div id="strategyRankingContainer"></div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div id="resultsActions" style="display: none; text-align: center; margin-top: 30px;">
+                        <button class="btn btn-secondary" onclick="switchTab('monitor')">
+                            ← 返回监控
+                        </button>
+                        <button class="btn btn-primary" onclick="exportBatchReport()" style="margin-left: 10px;">
+                            📥 导出报告
+                        </button>
+                    </div>
+
+                    <!-- 空状态提示 -->
+                    <div id="emptyResultsState" style="text-align: center; padding: 60px 20px; color: #999;">
+                        <div style="font-size: 3rem; margin-bottom: 20px;">📊</div>
+                        <div style="font-size: 1.2rem; margin-bottom: 10px;">暂无批次结果</div>
+                        <div style="font-size: 0.9rem;">请先在"仿真监控"页面启动批次仿真，完成后在此查看结果</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -650,11 +729,14 @@
         </div>
     </div>
 
+    <script src="js/event-scenario-comparison.js"></script>
+    <script src="js/event-batch-management.js"></script>
     <script type="module">
         import { formatDate, formatTime } from '../components/shared-utils.js';
         import { APIClient } from '../components/api-client.js';
 
         const api = new APIClient();
+        const eventBatchManager = new EventBatchManager(api);
         let batchId = new URLSearchParams(window.location.search).get('batch_id');
         let caseId = new URLSearchParams(window.location.search).get('case_id');
         let currentTab = 'cases';
@@ -700,6 +782,9 @@
                 loadCases();
             } else if (tabName === 'monitor') {
                 startMonitoring();
+            } else if (tabName === 'results') {
+                stopMonitoring();
+                loadBatchResultsTab();
             }
         };
 
@@ -1246,12 +1331,140 @@
             }
         }
 
+        // ===== 批次结果功能 =====
+
+        /**
+         * 加载批次结果Tab
+         * 获取已完成批次列表并填充到下拉框
+         */
+        window.loadBatchResultsTab = async function() {
+            try {
+                // 获取已完成的批次列表
+                const batches = await eventBatchManager.getCompletedBatches(50);
+
+                // 填充批次选择器
+                const batchSelector = document.getElementById('batchSelector');
+                batchSelector.innerHTML = '<option value="">-- 请选择已完成的批次 --</option>';
+
+                if (batches && batches.length > 0) {
+                    batches.forEach(batch => {
+                        const option = document.createElement('option');
+                        option.value = batch.batch_id;
+                        option.textContent = `${batch.batch_id} - 事件 ${batch.event_id} (${formatDate(batch.completed_at)})`;
+                        batchSelector.appendChild(option);
+                    });
+
+                    // 隐藏空状态，显示选择器
+                    document.getElementById('emptyResultsState').style.display = 'none';
+                } else {
+                    // 显示空状态
+                    document.getElementById('emptyResultsState').style.display = 'block';
+                    document.getElementById('batchInfoSection').style.display = 'none';
+                    document.getElementById('comparisonSection').style.display = 'none';
+                    document.getElementById('rankingSection').style.display = 'none';
+                    document.getElementById('resultsActions').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('加载批次列表失败:', error);
+                alert('加载批次列表失败: ' + error.message);
+            }
+        };
+
+        /**
+         * 加载选中批次的结果
+         */
+        window.loadSelectedBatchResults = async function() {
+            const batchSelector = document.getElementById('batchSelector');
+            const selectedBatchId = batchSelector.value;
+
+            if (!selectedBatchId) {
+                // 隐藏所有结果区域
+                document.getElementById('batchInfoSection').style.display = 'none';
+                document.getElementById('comparisonSection').style.display = 'none';
+                document.getElementById('rankingSection').style.display = 'none';
+                document.getElementById('resultsActions').style.display = 'none';
+                return;
+            }
+
+            try {
+                // 获取批次结果
+                const results = await eventBatchManager.getBatchResults(selectedBatchId);
+
+                // 显示批次信息
+                document.getElementById('batchInfoId').textContent = results.batch_id || selectedBatchId;
+                document.getElementById('batchInfoEventId').textContent = results.event_id || 'N/A';
+                document.getElementById('batchInfoScenarioCount').textContent = results.scenario_count || 'N/A';
+                document.getElementById('batchInfoCompletedAt').textContent = results.completed_at ? formatDate(results.completed_at) : 'N/A';
+                document.getElementById('batchInfoSection').style.display = 'block';
+
+                // 渲染策略对比表格
+                if (typeof window.renderEventScenarioComparisonTable === 'function') {
+                    window.renderEventScenarioComparisonTable(results, 'comparisonTableContainer');
+                    document.getElementById('comparisonSection').style.display = 'block';
+                } else {
+                    console.error('renderEventScenarioComparisonTable function not found');
+                }
+
+                // 渲染策略排名
+                if (typeof window.renderStrategyRanking === 'function') {
+                    window.renderStrategyRanking(results, 'strategyRankingContainer');
+                    document.getElementById('rankingSection').style.display = 'block';
+                } else {
+                    console.error('renderStrategyRanking function not found');
+                }
+
+                // 显示操作按钮
+                document.getElementById('resultsActions').style.display = 'block';
+
+                // 隐藏空状态
+                document.getElementById('emptyResultsState').style.display = 'none';
+
+            } catch (error) {
+                console.error('加载批次结果失败:', error);
+                alert('加载批次结果失败: ' + error.message);
+
+                // 显示错误状态
+                document.getElementById('batchInfoSection').style.display = 'none';
+                document.getElementById('comparisonSection').style.display = 'none';
+                document.getElementById('rankingSection').style.display = 'none';
+                document.getElementById('resultsActions').style.display = 'none';
+            }
+        };
+
+        /**
+         * 导出批次报告
+         */
+        window.exportBatchReport = function() {
+            const batchSelector = document.getElementById('batchSelector');
+            const selectedBatchId = batchSelector.value;
+
+            if (!selectedBatchId) {
+                alert('请先选择一个批次');
+                return;
+            }
+
+            // TODO: 实现导出功能
+            // 可以导出为PDF或JSON格式
+            alert('导出功能开发中，批次ID: ' + selectedBatchId);
+
+            // 示例: 导出JSON数据
+            // const dataStr = JSON.stringify(currentBatchResults, null, 2);
+            // const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            // const url = URL.createObjectURL(dataBlob);
+            // const link = document.createElement('a');
+            // link.href = url;
+            // link.download = `batch_results_${selectedBatchId}.json`;
+            // link.click();
+        };
+
         // ===== 统一刷新逻辑 =====
         window.refreshCurrentTab = function() {
             if (currentTab === 'cases') {
                 loadCases();
             } else if (currentTab === 'monitor') {
                 refreshBatchStatus();
+            } else if (currentTab === 'results') {
+                loadBatchResultsTab();
             }
         };
 

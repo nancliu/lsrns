@@ -948,123 +948,6 @@ class CaseService(BaseService):
         except Exception as e:
             print(f"更新克隆案例元数据失败: {e}")
 
-    async def create_case_from_scenario(self, request: EventScenarioQuickCreateRequest) -> Dict[str, Any]:
-        """
-        从事件场景创建案例 (Task 1.3 - Week 1 Phase 2)
-
-        创建 v2.0 元数据案例:
-        - metadata_version: "2.0"
-        - source_scenario 字段
-        - immutable_fields 和 overridable_fields
-
-        Design Decision Q4: 独立端点 (不修改现有 create_case)
-
-        Args:
-            request: 事件场景快速创建请求
-
-        Returns:
-            包含新创建案例的信息
-
-        Note: 与 quick_create_case_from_event 不同,此方法创建 v2.0 元数据
-        """
-        try:
-            # 生成案例ID
-            case_id = request.case_id or self.generate_unique_id("case")
-
-            # 创建案例目录结构
-            case_dir = DirectoryManager.create_case_structure(case_id)
-
-            # 创建标准子目录
-            self._create_standard_directories(case_dir)
-
-            # 创建 v2.0 元数据 (事件场景案例)
-            metadata = self._create_v2_metadata_from_scenario(case_id, request)
-
-            # 保存元数据
-            MetadataManager.save_case_metadata(case_dir, metadata)
-
-            logger.info(f"创建事件场景案例: {case_id}, 场景: {request.scenario_id}")
-
-            return {
-                "case_id": case_id,
-                "case_dir": str(case_dir),
-                "metadata": metadata,
-                "metadata_version": "2.0"
-            }
-
-        except Exception as e:
-            raise Exception(f"从场景创建案例失败: {str(e)}")
-
-    def _create_v2_metadata_from_scenario(
-        self,
-        case_id: str,
-        request: EventScenarioQuickCreateRequest
-    ) -> Dict[str, Any]:
-        """
-        创建 v2.0 元数据 (事件场景案例)
-
-        Args:
-            case_id: 案例ID
-            request: 事件场景请求
-
-        Returns:
-            v2.0 元数据字典
-
-        Structure (design.md):
-            - metadata_version: "2.0"
-            - source_scenario: {...}
-            - immutable_fields: {...}
-            - overridable_fields: {...}
-        """
-        return {
-            "metadata_version": "2.0",
-            "case_id": case_id,
-            "case_name": request.case_name,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "status": CaseStatus.CREATED.value,
-
-            # 源场景信息 (AD-12: 场景溯源)
-            "source_scenario": {
-                "scenario_id": request.scenario_id,
-                "event_id": request.event_id,
-                "event_type": request.event_type,
-                "control_strategy_type": request.strategy,
-                "description": f"事件 {request.event_id}, 策略 {request.strategy}"
-            },
-
-            # 不可变字段 (AD-8: 配置覆盖策略)
-            "immutable_fields": {
-                "event_id": request.event_id,
-                "event_type": request.event_type,
-                "control_strategy_type": request.strategy,
-                # 位置和影响道路从场景元数据中提取 (TODO)
-            },
-
-            # 可覆盖字段 (AD-8)
-            "overridable_fields": {
-                "simulation_duration_hours": 2.5,  # 默认值
-                "random_seed": None,  # 运行时分配
-                "output_config": {
-                    "generate_edgedata": True,
-                    "generate_summary": True,
-                    "generate_tripinfo": True,
-                    "generate_vehroute": False
-                }
-            },
-
-            # 案例配置
-            "case_config": {
-                "network_file": request.network_file,
-                "od_file": request.od_file,
-                "taz_file": request.taz_file
-            },
-
-            "description": request.description or f"从场景 {request.scenario_id} 创建",
-            "statistics": {},
-            "files": {}
-        }
-
     async def quick_create_case_from_event(self, request: EventScenarioQuickCreateRequest) -> Dict[str, Any]:
         """
         从事件场景快速创建案例并生成OD文件 (Phase 5.3.3)
@@ -1716,15 +1599,6 @@ class CaseService(BaseService):
         except Exception as e:
             logger.error(f"Failed to create case with simulation: {str(e)}", exc_info=True)
             raise Exception(f"Failed to create case: {str(e)}")
-
-    # Backward compatibility alias (Phase 1 consolidation)
-    async def create_case_with_simulation(self, request: "CreateCaseWithSimulationRequest") -> Dict[str, Any]:
-        """
-        Backward compatibility wrapper for create_case_from_event_scenario()
-
-        This method is deprecated. Use create_case_from_event_scenario() instead.
-        """
-        return await self.create_case_from_event_scenario(request)
 
     async def _prepare_simulation_for_case(self, case_id: str, simulation_id: str, case_path: Path, request: "CreateCaseWithSimulationRequest") -> None:
         """
