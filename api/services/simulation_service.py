@@ -88,7 +88,8 @@ class SimulationService(BaseService):
                 raise Exception(f"仿真目录不存在: {simulation_folder}")
 
             sim_metadata = MetadataManager.load_simulation_metadata(simulation_folder)
-            cfg_file = sim_metadata.get("config_file") or str(simulation_folder / "simulation.sumocfg")
+            # 优先使用 config_file_path (实际文件路径)，fallback 到 config_file (但这是XML内容)
+            cfg_file = sim_metadata.get("config_file_path") or str(simulation_folder / "simulation.sumocfg")
             if not Path(cfg_file).exists():
                 raise Exception(f"未找到配置文件: {cfg_file}")
 
