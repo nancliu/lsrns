@@ -307,9 +307,9 @@
                 const comparisonWrapper = await comparisonRes.json();
                 const timeseriesWrapper = await timeseriesRes.json();
 
-                // 提取数据
-                const comparisonData = comparisonWrapper.data || comparisonWrapper;
-                const timeseriesData = timeseriesWrapper.data || timeseriesWrapper.timeseries || timeseriesWrapper;
+                // 提取数据 - 处理多种API响应格式
+                const comparisonData = comparisonWrapper.data || comparisonWrapper.strategy_comparison || comparisonWrapper;
+                const timeseriesData = timeseriesWrapper.data || timeseriesWrapper.timeseries || timeseriesWrapper.strategy_timeseries || timeseriesWrapper;
 
                 // 验证数据
                 validateData(comparisonData, timeseriesData);
@@ -335,10 +335,21 @@
             }
 
             const requiredStrategies = ['DHS', 'NO_CONTROL', 'TEC', 'VSS'];
+            let foundStrategy = false;
+
             for (let strategy of requiredStrategies) {
-                if (!(strategy in comparisonData)) {
-                    throw new Error(`缺少策略数据: ${strategy}`);
+                if (strategy in comparisonData) {
+                    foundStrategy = true;
+                    // 验证策略数据中至少有一个指标
+                    const strategyData = comparisonData[strategy];
+                    if (!strategyData || typeof strategyData !== 'object') {
+                        throw new Error(`策略${strategy}数据格式无效`);
+                    }
                 }
+            }
+
+            if (!foundStrategy) {
+                throw new Error(`未找到任何策略数据，收到: ${Object.keys(comparisonData).join(',')}`);
             }
         }
 
@@ -391,11 +402,11 @@
         function renderStrategyOverview() {
             const container = document.getElementById('strategyOverviewContainer');
             const metrics = analysisData.aggregatedMetrics;
-            const baselineMetrics = metrics['NO_CONTROL'];
+            const baselineMetrics = metrics['NO_CONTROL'] || {};
 
             const strategies = ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
             const cards = strategies.map(strategy => {
-                const strategyData = metrics[strategy];
+                const strategyData = metrics[strategy] || {};
                 const isBaseline = strategy === 'NO_CONTROL';
 
                 // 计算改进指标
@@ -472,8 +483,12 @@
 
             if (metricKey === 'avg_speed') {
                 return (parseFloat(value) || 0).toFixed(2);
-            } else if (['current_vehicles', 'loaded_vehicles', 'waiting_vehicles', 'completed_vehicles'].includes(metricKey)) {
+            } else if (['current_vehicles', 'loaded_vehicles', 'waiting_vehicles', 'completed_vehicles', 'terminated_vehicles'].includes(metricKey)) {
                 return Math.round(value).toLocaleString();
+            } else if (['chain_frequency', 'transmission_frequency'].includes(metricKey)) {
+                // 频率指标
+                const numValue = parseFloat(value);
+                return isNaN(numValue) ? '-' : numValue.toFixed(0);
             }
 
             return value.toString();
