@@ -263,6 +263,19 @@
                         </div>
                     </div>
 
+                    <!-- 案例快速切换器（多案例时显示） -->
+                    <div id="caseSwitcherContainer" style="margin-bottom: 20px; display: none;">
+                        <div style="display: flex; align-items: center; gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 6px;">
+                            <label for="caseQuickSwitcher" style="font-weight: 600; color: #333; white-space: nowrap;">快速查看案例:</label>
+                            <select id="caseQuickSwitcher" style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="">所有案例对比</option>
+                            </select>
+                        </div>
+                        <div id="selectedCaseDetailsContainer" style="margin-top: 15px;">
+                            <!-- 选中案例的详细信息卡片 -->
+                        </div>
+                    </div>
+
                     <!-- 对比分析区（主要内容） -->
                     <div style="margin-bottom: 40px;">
                         <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">📈 控制策略对比分析</h3>
@@ -368,8 +381,102 @@
                 summaryContainer.appendChild(card);
             });
 
+            // 初始化案例快速切换器（多案例时显示）
+            initializeCaseSwitcher(cases);
+
             // 渲染对比表格
             renderMultiCaseComparisonTable(cases);
+        }
+
+        /**
+         * 初始化案例快速切换器
+         */
+        function initializeCaseSwitcher(cases) {
+            if (!cases || cases.length < 2) {
+                // 隐藏切换器，因为没有足够的案例
+                const container = document.getElementById('caseSwitcherContainer');
+                if (container) container.style.display = 'none';
+                return;
+            }
+
+            const container = document.getElementById('caseSwitcherContainer');
+            const switcher = document.getElementById('caseQuickSwitcher');
+
+            if (!container || !switcher) return;
+
+            // 显示容器
+            container.style.display = 'block';
+
+            // 清空现有选项（保留"所有案例对比"）
+            switcher.innerHTML = '<option value="">所有案例对比</option>';
+
+            // 添加每个案例作为选项
+            cases.forEach((caseData) => {
+                const option = document.createElement('option');
+                option.value = caseData.case_id;
+                option.textContent = caseData.case_id;
+                switcher.appendChild(option);
+            });
+
+            // 移除旧的事件监听器（如果存在）
+            switcher.onchange = null;
+
+            // 添加变化事件处理器
+            switcher.addEventListener('change', function(e) {
+                const selectedCaseId = e.target.value;
+                if (selectedCaseId === '') {
+                    // 显示所有案例对比
+                    document.getElementById('selectedCaseDetailsContainer').innerHTML = '';
+                } else {
+                    // 显示选中案例的详细信息
+                    displayCaseDetails(selectedCaseId, cases);
+                }
+            });
+        }
+
+        /**
+         * 显示选中案例的详细信息
+         */
+        function displayCaseDetails(caseId, cases) {
+            const container = document.getElementById('selectedCaseDetailsContainer');
+            if (!container) return;
+
+            const caseData = cases.find(c => c.case_id === caseId);
+            if (!caseData) {
+                container.innerHTML = '<div class="empty-state">未找到案例数据</div>';
+                return;
+            }
+
+            const summary = caseData.summary || {};
+
+            // 创建详细信息卡片容器
+            let html = '<div class="metrics-grid">';
+
+            // 主要指标卡片
+            const metrics = [
+                { label: '总仿真数', value: summary.total_simulations || 0, unit: '个' },
+                { label: '已完成', value: summary.completed || 0, unit: '个' },
+                { label: '失败仿真', value: summary.failed || 0, unit: '个' },
+                {
+                    label: '完成率',
+                    value: summary.total_simulations > 0 ? ((summary.completed / summary.total_simulations) * 100).toFixed(1) : 0,
+                    unit: '%'
+                }
+            ];
+
+            metrics.forEach(metric => {
+                html += `
+                    <div class="metric-card">
+                        <div class="metric-label">${metric.label}</div>
+                        <div class="metric-value">${metric.value}</div>
+                        <div class="metric-label" style="font-size: 12px; color: #999; margin-top: 5px;">${metric.unit}</div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+
+            container.innerHTML = html;
         }
 
         /**
