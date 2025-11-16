@@ -263,6 +263,30 @@
                         </div>
                     </div>
 
+                    <!-- 加载指示器 -->
+                    <div id="loadingIndicator" style="display: none; text-align: center; padding: 40px; background: #f5f5f5; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">⏳</div>
+                        <div style="color: #666; font-size: 16px; margin-bottom: 10px;">加载中...</div>
+                        <div style="color: #999; font-size: 14px;">正在获取分析数据，请稍候</div>
+                        <div style="margin-top: 15px;">
+                            <div style="width: 200px; height: 4px; background: #e0e0e0; border-radius: 2px; margin: 0 auto; overflow: hidden;">
+                                <div style="width: 30%; height: 100%; background: #1976d2; animation: progress 1.5s ease-in-out infinite;"></div>
+                            </div>
+                        </div>
+                        <style>
+                            @keyframes progress {
+                                0% { width: 30%; }
+                                50% { width: 70%; }
+                                100% { width: 30%; }
+                            }
+                        </style>
+                    </div>
+
+                    <!-- 错误消息容器 -->
+                    <div id="errorContainer" style="display: none; margin-bottom: 20px;">
+                        <!-- 动态生成的错误消息 -->
+                    </div>
+
                     <!-- 案例快速切换器（多案例时显示） -->
                     <div id="caseSwitcherContainer" style="margin-bottom: 20px; display: none;">
                         <div style="display: flex; align-items: center; gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 6px;">
@@ -344,6 +368,74 @@
             const referrer = sessionStorage.getItem('analysisReferrer') || 'case-simulation-center.html';
             window.location.href = referrer;
         };
+
+        /**
+         * 显示加载指示器
+         */
+        function showLoading() {
+            const indicator = document.getElementById('loadingIndicator');
+            if (indicator) indicator.style.display = 'block';
+            hideError();
+        }
+
+        /**
+         * 隐藏加载指示器
+         */
+        function hideLoading() {
+            const indicator = document.getElementById('loadingIndicator');
+            if (indicator) indicator.style.display = 'none';
+        }
+
+        /**
+         * 显示错误消息
+         * @param {string} title - 错误标题
+         * @param {string} message - 错误详情
+         * @param {string} type - 错误类型 'error' | 'warning' | 'info'
+         */
+        function showError(title, message, type = 'error') {
+            const container = document.getElementById('errorContainer');
+            if (!container) return;
+
+            const bgColor = {
+                'error': '#ffebee',
+                'warning': '#fff3e0',
+                'info': '#e3f2fd'
+            }[type] || '#ffebee';
+
+            const borderColor = {
+                'error': '#ef5350',
+                'warning': '#ffa726',
+                'info': '#29b6f6'
+            }[type] || '#ef5350';
+
+            const iconEmoji = {
+                'error': '❌',
+                'warning': '⚠️',
+                'info': 'ℹ️'
+            }[type] || '❌';
+
+            const html = `
+                <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 6px; padding: 15px; display: flex; gap: 15px; align-items: flex-start;">
+                    <div style="font-size: 24px; flex-shrink: 0;">${iconEmoji}</div>
+                    <div>
+                        <div style="font-weight: 600; color: #333; margin-bottom: 5px;">${title}</div>
+                        <div style="color: #666; font-size: 14px; line-height: 1.5;">${message}</div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.style.display='none';" style="margin-left: auto; flex-shrink: 0; background: none; border: none; font-size: 18px; cursor: pointer; padding: 0;">✕</button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+            container.style.display = 'block';
+        }
+
+        /**
+         * 隐藏错误消息
+         */
+        function hideError() {
+            const container = document.getElementById('errorContainer');
+            if (container) container.style.display = 'none';
+        }
 
         /**
          * 渲染多案例比较摘要和对比表格
@@ -732,56 +824,127 @@
         // 加载分析结果
         async function loadAnalysisResults() {
             try {
+                showLoading();
+
+                // 检查是否有任何参数
+                if (!caseIds && !caseId && !batchId && !simulationId) {
+                    hideLoading();
+                    showError(
+                        '缺少参数',
+                        '未找到要加载的案例或批次。请从案例管理器中选择案例后重试。',
+                        'warning'
+                    );
+                    return;
+                }
+
                 // 优先使用 case_ids (用于多案例比较)
                 if (caseIds && caseIds.length > 0) {
                     console.log(`加载多案例比较数据: ${caseIds.join(', ')}`);
-                    const comparisonAnalyses = await loadComparisonData(caseIds);
-                    analysisData = mergeComparisonAnalyses(comparisonAnalyses);
-                    console.log('多案例比较数据:', analysisData);
+                    try {
+                        const comparisonAnalyses = await loadComparisonData(caseIds);
+                        analysisData = mergeComparisonAnalyses(comparisonAnalyses);
+
+                        if (!analysisData || !analysisData.cases || analysisData.cases.length === 0) {
+                            showError(
+                                '数据不可用',
+                                '未能加载选定案例的分析数据。某些案例可能仍在处理中，请稍后重试。',
+                                'warning'
+                            );
+                            console.warn('多案例比较数据为空', analysisData);
+                        } else {
+                            console.log('多案例比较数据:', analysisData);
+                        }
+                    } catch (error) {
+                        showError(
+                            '加载多案例数据失败',
+                            `无法加载 ${caseIds.join(', ')} 的分析数据。${error.message}`,
+                            'error'
+                        );
+                        console.error('加载多案例数据失败:', error);
+                        return;
+                    }
                 }
                 // 其次使用 case_id (用于批量分析结果)
                 else if (caseId) {
-                    // 使用 case_id 加载批量分析结果
-                    // 如果有 batch_id，使用具体的批次ID；否则使用 case_id 作为批次标识
                     const batchIdentifier = batchId || caseId;
-
                     console.log(`加载批量分析结果: case_id=${caseId}, batch_id=${batchIdentifier}`);
 
                     try {
-                        const response = await api.request(`/analysis/results/${batchIdentifier}?case_id=${caseId}`);
-                        analysisData = response.data || response;
-                        console.log('批量分析结果:', analysisData);
-                    } catch (error) {
-                        console.warn(`加载分析结果失败: ${error.message}`);
-                        // 尝试从 simulation_progress 获取仿真列表作为备选
-                        const progressResponse = await api.request(`/simulation/simulation_progress/${caseId}`);
-                        const progressData = progressResponse.data || progressResponse;
+                        try {
+                            const response = await api.request(`/analysis/results/${batchIdentifier}?case_id=${caseId}`);
+                            analysisData = response.data || response;
+                            console.log('批量分析结果:', analysisData);
+                        } catch (error) {
+                            console.warn(`加载分析结果失败: ${error.message}，尝试备选方案...`);
+                            // 尝试从 simulation_progress 获取仿真列表作为备选
+                            try {
+                                const progressResponse = await api.request(`/simulation/simulation_progress/${caseId}`);
+                                const progressData = progressResponse.data || progressResponse;
 
-                        // 构建最小的分析数据对象
-                        analysisData = {
-                            summary: {
-                                case_id: caseId,
-                                batch_id: batchIdentifier,
-                                total_simulations: progressData.simulations?.length || 0,
-                                completed: progressData.simulations?.filter(s => s.status === 'completed').length || 0,
-                                failed: progressData.simulations?.filter(s => s.status === 'failed').length || 0
-                            },
-                            simulations: progressData.simulations || []
-                        };
+                                // 构建最小的分析数据对象
+                                analysisData = {
+                                    summary: {
+                                        case_id: caseId,
+                                        batch_id: batchIdentifier,
+                                        total_simulations: progressData.simulations?.length || 0,
+                                        completed: progressData.simulations?.filter(s => s.status === 'completed').length || 0,
+                                        failed: progressData.simulations?.filter(s => s.status === 'failed').length || 0
+                                    },
+                                    simulations: progressData.simulations || []
+                                };
+                                console.log('使用备选方案获取案例数据成功');
+                                showError(
+                                    '使用备选数据',
+                                    '主分析接口暂不可用，正在使用实时进度数据。',
+                                    'info'
+                                );
+                            } catch (fallbackError) {
+                                showError(
+                                    '加载案例数据失败',
+                                    `无法加载案例 ${caseId} 的数据。请确保案例存在且仿真已启动。`,
+                                    'error'
+                                );
+                                console.error('所有加载方式都失败:', fallbackError);
+                                hideLoading();
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        showError(
+                            '处理案例数据失败',
+                            `加载案例 ${caseId} 时出现意外错误。${error.message}`,
+                            'error'
+                        );
+                        hideLoading();
+                        return;
                     }
                 } else if (batchId) {
-                    const response = await api.request(`/analysis/results/${batchId}`);
-                    analysisData = response.data || response;
+                    try {
+                        const response = await api.request(`/analysis/results/${batchId}`);
+                        analysisData = response.data || response;
+                    } catch (error) {
+                        showError(
+                            '加载批次数据失败',
+                            `无法加载批次 ${batchId} 的数据。${error.message}`,
+                            'error'
+                        );
+                        hideLoading();
+                        return;
+                    }
                 } else if (simulationId) {
-                    // 加载单个仿真的分析结果
                     analysisData = {};
                 }
 
+                hideLoading();
                 renderResults();
             } catch (error) {
-                console.error('加载分析结果失败:', error);
-                document.getElementById('summaryMetrics').innerHTML =
-                    '<div class="no-data">加载失败，请重试</div>';
+                hideLoading();
+                showError(
+                    '加载分析结果失败',
+                    `出现意外错误：${error.message}，请刷新页面重试。`,
+                    'error'
+                );
+                console.error('加载分析结果未预期的错误:', error);
             }
         }
 
