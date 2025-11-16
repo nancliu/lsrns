@@ -1587,8 +1587,11 @@
             if (monitoringInterval) {
                 clearInterval(monitoringInterval);
             }
-            // 每10秒刷新一次
-            monitoringInterval = setInterval(refreshBatchStatus, 10000);
+            // 根据展开/折叠状态设置刷新频率
+            const expandedContent = document.getElementById('expandedContent');
+            const isExpanded = expandedContent && expandedContent.classList.contains('visible');
+            const interval = isExpanded ? 7000 : 10000; // 展开时7秒，默认10秒
+            monitoringInterval = setInterval(refreshBatchStatus, interval);
         }
 
         /**
@@ -2045,20 +2048,14 @@
         function updateRefreshRate() {
             const expandedContent = document.getElementById('expandedContent');
             const isExpanded = expandedContent && expandedContent.classList.contains('visible');
-            
+
             // 停止当前监控
             stopMonitoring();
-            
-            // 设置新的刷新频率
-            if (isExpanded) {
-                monitoringInterval = 7000; // 7秒 (5-10秒范围内)
-            } else {
-                monitoringInterval = 30000; // 30秒
-            }
-            
-            // 重新启动监控
+
+            // 重新启动监控（带新的刷新频率）
             if (currentTab === 'monitor') {
-                startMonitoring();
+                const interval = isExpanded ? 7000 : 30000;
+                monitoringInterval = setInterval(refreshBatchStatus, interval);
             }
         }
         
@@ -2071,12 +2068,12 @@
                 refreshBtn.style.opacity = '0.5';
                 refreshBtn.disabled = true;
             }
-            
+
             // 立即刷新监控数据
-            if (batchId) {
-                updateBatchMonitoring();
+            if (currentTab === 'monitor') {
+                refreshBatchStatus();
             }
-            
+
             // 恢复按钮状态（300ms后）
             setTimeout(() => {
                 if (refreshBtn) {
