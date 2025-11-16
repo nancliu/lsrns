@@ -668,6 +668,8 @@ class SimulationService(BaseService):
 
         返回格式：
         {
+            "case_id": "case_event_10754",
+            "batch_id": "batch_event_10754_20251116_100000",  # 如果可用
             "simulations": [
                 {
                     "simulation_id": "...",
@@ -694,6 +696,7 @@ class SimulationService(BaseService):
 
             if not simulations_dir.exists():
                 return {
+                    "case_id": case_id,
                     "simulations": [],
                     "progress_percentage": 0,
                     "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0}
@@ -704,6 +707,7 @@ class SimulationService(BaseService):
 
             if not simulations:
                 return {
+                    "case_id": case_id,
                     "simulations": [],
                     "progress_percentage": 0,
                     "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0}
@@ -711,6 +715,8 @@ class SimulationService(BaseService):
 
             # 增强仿真信息：添加进度文件中的实时信息
             enhanced_simulations = []
+            batch_ids = set()  # 收集所有 batch_ids
+
             for sim in simulations:
                 sim_id = sim.get("simulation_id")
                 sim_folder = simulations_dir / sim_id
@@ -725,9 +731,17 @@ class SimulationService(BaseService):
                             sim["status"] = progress_data.get("status", sim.get("status"))
                             sim["progress"] = progress_data.get("percent", 0)
                             sim["progress_message"] = progress_data.get("message", "")
+
+                            # 如果进度数据中有 batch_id，收集它
+                            if "batch_id" in progress_data:
+                                batch_ids.add(progress_data.get("batch_id"))
                     except:
                         # 如果读取失败，使用元数据中的状态
                         sim["progress"] = 100 if sim.get("status") == "completed" else 0
+
+                # 检查模拟元数据中是否有 batch_id
+                if "batch_id" in sim:
+                    batch_ids.add(sim.get("batch_id"))
 
                 enhanced_simulations.append(sim)
 
@@ -746,15 +760,25 @@ class SimulationService(BaseService):
             else:
                 progress_percentage = 0
 
-            return {
+            # 构建响应，包括 batch_id（如果有）
+            response = {
+                "case_id": case_id,
                 "simulations": enhanced_simulations,
                 "progress_percentage": progress_percentage,
                 "stats": stats
             }
 
+            # 如果收集到 batch_ids，添加到响应中（取第一个）
+            if batch_ids:
+                response["batch_id"] = list(batch_ids)[0]
+                response["all_batch_ids"] = list(batch_ids)
+
+            return response
+
         except Exception as e:
             logger.error(f"获取仿真进度失败: {str(e)}")
             return {
+                "case_id": case_id,
                 "simulations": [],
                 "progress_percentage": 0,
                 "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0},
