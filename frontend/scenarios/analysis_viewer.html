@@ -233,18 +233,18 @@
         <div class="main-content">
             <div class="container">
 
-                <!-- 分析标签页 -->
-                <div class="analysis-tabs">
-                    <button class="analysis-tab active" onclick="switchTab('summary')">📊 概览</button>
-                    <button class="analysis-tab" onclick="switchTab('edgedata')">🗺️ 路段分析</button>
-                    <button class="analysis-tab" onclick="switchTab('comparison')">📈 对比分析</button>
-                    <button class="analysis-tab" onclick="switchTab('detail')">📋 详细指标</button>
-                </div>
+                <!-- 分析结果单页面布局 -->
+                <div id="analysisResultsContainer">
 
-                <!-- 概览标签页 -->
-                <div class="analysis-content active" id="tab-summary">
-                    <h3>📊 仿真概览</h3>
-                    <div class="metrics-grid" id="summaryMetrics">
+                    <!-- 顶部返回和标题区 -->
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #ecf0f1;">
+                        <button class="btn btn-secondary" onclick="goBack()" style="padding: 8px 16px;">← 返回</button>
+                        <h2 id="analysisTitle" style="margin: 0; flex: 1;">📈 影响分析结果</h2>
+                        <span id="caseInfoBadge" style="background: #e3f2fd; color: #1976d2; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;"></span>
+                    </div>
+
+                    <!-- 快速统计卡片 -->
+                    <div class="metrics-grid" id="summaryMetrics" style="margin-bottom: 35px;">
                         <div class="metric-card">
                             <div class="metric-label">总车辆数</div>
                             <div class="metric-value" id="totalVehicles">--</div>
@@ -262,55 +262,45 @@
                             <div class="metric-value" id="avgSpeed">--</div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 路段分析标签页 -->
-                <div class="analysis-content" id="tab-edgedata">
-                    <h3>🗺️ 路段拥堵分析 (EdgeData)</h3>
-                    <div class="chart-container">
-                        <h4>最拥堵的前10条路段</h4>
-                        <div class="edge-list" id="edgeList">
-                            <div class="no-data">加载中...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 对比分析标签页 -->
-                <div class="analysis-content" id="tab-comparison">
-                    <h3>📈 控制策略对比分析</h3>
-
-                    <!-- 对比表格容器 -->
-                    <div id="comparisonTableContainer">
-                        <div class="empty-state">加载中...</div>
-                    </div>
-
-                    <!-- 策略排名容器 -->
-                    <div style="margin-top: 30px;">
-                        <h3>🏆 策略效果排名</h3>
-                        <div id="strategyRankingContainer">
+                    <!-- 对比分析区（主要内容） -->
+                    <div style="margin-bottom: 40px;">
+                        <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">📈 控制策略对比分析</h3>
+                        <div id="comparisonTableContainer" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                             <div class="empty-state">加载中...</div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 详细指标标签页 -->
-                <div class="analysis-content" id="tab-detail">
-                    <h3 id="detailTitle">📋 详细指标</h3>
-                    <table class="comparison-table" id="detailTable">
-                        <thead id="detailHeader">
-                            <tr>
-                                <th>指标名称</th>
-                                <th>数值</th>
-                                <th>单位</th>
-                                <th>说明</th>
-                            </tr>
-                        </thead>
-                        <tbody id="detailBody">
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: #999;">加载中...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <!-- 策略排名区 -->
+                    <div style="margin-bottom: 40px;">
+                        <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">🏆 策略效果排名</h3>
+                        <div id="strategyRankingContainer" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <div class="empty-state">加载中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 仿真详情区 -->
+                    <div style="margin-bottom: 40px;">
+                        <h3 id="detailTitle" style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">📋 仿真详情</h3>
+                        <table class="comparison-table" id="detailTable" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <thead id="detailHeader">
+                                <tr>
+                                    <th>指标名称</th>
+                                    <th>数值</th>
+                                    <th>单位</th>
+                                    <th>说明</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailBody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: #999; padding: 30px;">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 底部空白 -->
+                    <div style="height: 30px;"></div>
                 </div>
             </div>
         </div>
@@ -334,19 +324,12 @@
             caseIds = caseIdsParam.split(',').map(id => id.trim()).filter(id => id);
         }
 
-        // 切换标签页
-        window.switchTab = function(tabName) {
-            // 隐藏所有内容
-            document.querySelectorAll('.analysis-content').forEach(el => {
-                el.classList.remove('active');
-            });
-            document.querySelectorAll('.analysis-tab').forEach(el => {
-                el.classList.remove('active');
-            });
-
-            // 显示选中的标签页
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            event.target.classList.add('active');
+        /**
+         * 返回到案例管理页面
+         */
+        window.goBack = function() {
+            const referrer = sessionStorage.getItem('analysisReferrer') || 'case-simulation-center.html';
+            window.location.href = referrer;
         };
 
         /**
@@ -359,6 +342,12 @@
             summaryContainer.innerHTML = '';
 
             const cases = analysisData.cases;
+
+            // 更新顶部案例信息徽章
+            const caseInfoBadge = document.getElementById('caseInfoBadge');
+            if (caseInfoBadge) {
+                caseInfoBadge.textContent = `📊 对比分析：${cases.length} 个案例`;
+            }
 
             // 为每个案例创建摘要卡片
             cases.forEach((caseData) => {
@@ -378,14 +367,6 @@
                 `;
                 summaryContainer.appendChild(card);
             });
-
-            // 切换到对比分析标签页
-            setTimeout(() => {
-                const comparisonTab = document.querySelector('[onclick="switchTab(\'comparison\')"]');
-                if (comparisonTab) {
-                    comparisonTab.click();
-                }
-            }, 100);
         }
 
         // 渲染仿真详情表格

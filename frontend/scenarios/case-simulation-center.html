@@ -698,19 +698,19 @@
                     <div class="stats-grid">
                         <div class="stats-card">
                             <div class="stats-number" id="totalCases">0</div>
-                            <div class="stats-label">总场景数</div>
+                            <div class="stats-label">总案例数</div>
                         </div>
                         <div class="stats-card">
                             <div class="stats-number" id="simulatingCases">0</div>
-                            <div class="stats-label">仿真中</div>
+                            <div class="stats-label">案例仿真中</div>
                         </div>
                         <div class="stats-card">
                             <div class="stats-number" id="completedCases">0</div>
-                            <div class="stats-label">已完成</div>
+                            <div class="stats-label">案例已完成</div>
                         </div>
                         <div class="stats-card">
                             <div class="stats-number" id="failedCases">0</div>
-                            <div class="stats-label">失败</div>
+                            <div class="stats-label">案例失败</div>
                         </div>
                     </div>
 
@@ -2989,6 +2989,9 @@
             }
 
             const caseIds = Array.from(selectedCases);
+
+            // 保存返回地址到sessionStorage
+            sessionStorage.setItem('analysisReferrer', 'case-simulation-center.html');
 
             if (caseIds.length === 1) {
                 // Single case - direct navigation with case_id parameter
