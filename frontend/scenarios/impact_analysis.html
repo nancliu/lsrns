@@ -480,13 +480,227 @@
         }
 
         function renderTimeseriesCharts() {
-            // 占位符 - 在后续Phase中实现
-            console.log('时序图表渲染函数已准备，待Phase 2实施');
+            const timeseriesData = analysisData.timeseriesData;
+            const metricsToChart = ['current_vehicles', 'avg_speed', 'completed_vehicles', 'waiting_vehicles', 'loaded_vehicles'];
+
+            metricsToChart.forEach(metricKey => {
+                const canvasId = `chart${capitalize(metricKey)}`;
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+
+                const chartData = buildChartData(metricKey, timeseriesData);
+                const chartConfig = buildChartConfig(metricKey, chartData);
+
+                if (charts[metricKey]) {
+                    charts[metricKey].destroy();
+                }
+                charts[metricKey] = new Chart(canvas.getContext('2d'), chartConfig);
+            });
+        }
+
+        function capitalize(str) {
+            return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+        }
+
+        function buildChartData(metricKey, timeseriesData) {
+            const strategies = ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
+            const datasets = [];
+
+            strategies.forEach(strategy => {
+                const strategyData = timeseriesData[strategy];
+                if (!strategyData || !strategyData[metricKey]) return;
+
+                const metricPoints = strategyData[metricKey];
+                const values = Array.isArray(metricPoints)
+                    ? metricPoints.map(p => p.value || p)
+                    : [];
+
+                datasets.push({
+                    label: STRATEGY_LABELS[strategy],
+                    data: values,
+                    borderColor: STRATEGY_COLORS[strategy],
+                    backgroundColor: `${STRATEGY_COLORS[strategy]}15`,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.3,
+                    fill: false
+                });
+            });
+
+            const labels = Array.from({ length: datasets[0]?.data?.length || 0 }, (_, i) => i);
+
+            return { labels, datasets };
+        }
+
+        function buildChartConfig(metricKey, chartData) {
+            const metric = TRAFFIC_METRICS[metricKey];
+            const unitLabel = metric ? `(${metric.unit})` : '';
+
+            return {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 12,
+                                font: { size: 13 }
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '仿真时间 (秒)',
+                                font: { size: 13 }
+                            },
+                            max: 5400,
+                            ticks: {
+                                maxTicksLimit: 12
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: unitLabel,
+                                font: { size: 13 }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 0
+                    }
+                }
+            };
         }
 
         function renderImprovementAnalysis() {
-            // 占位符 - 在后续Phase中实现
-            console.log('改进分析渲染函数已准备，待Phase 2实施');
+            const metrics = analysisData.aggregatedMetrics;
+            const baselineMetrics = metrics['NO_CONTROL'];
+            const strategies = ['DHS', 'TEC', 'VSS'];
+
+            // Calculate improvements for all metrics
+            const improvementMap = {};
+            strategies.forEach(strategy => {
+                improvementMap[strategy] = {};
+                const strategyData = metrics[strategy];
+
+                Object.keys(TRAFFIC_METRICS).forEach(metricKey => {
+                    const baseline = baselineMetrics[metricKey];
+                    const current = strategyData[metricKey];
+                    const isHigherBetter = TRAFFIC_METRICS[metricKey].higher_is_better;
+
+                    let improvement = 0;
+                    if (baseline !== 0 && baseline !== undefined && current !== undefined) {
+                        if (isHigherBetter) {
+                            improvement = ((current - baseline) / baseline) * 100;
+                        } else {
+                            improvement = ((baseline - current) / baseline) * 100;
+                        }
+                    }
+                    improvementMap[strategy][metricKey] = improvement;
+                });
+            });
+
+            renderImprovementRankings(improvementMap, strategies);
+            renderBestWorstMetrics(improvementMap, strategies);
+        }
+
+        function renderImprovementRankings(improvementMap, strategies) {
+            const container = document.getElementById('improvementRankingsContainer');
+            const rankings = strategies.map(strategy => {
+                const improvements = Object.values(improvementMap[strategy]);
+                const avgImprovement = improvements.reduce((a, b) => a + b, 0) / improvements.length;
+
+                return {
+                    strategy,
+                    improvement: avgImprovement
+                };
+            }).sort((a, b) => b.improvement - a.improvement);
+
+            const rankingsHTML = rankings.map((rank, index) => {
+                const isPositive = rank.improvement >= 0;
+                const direction = isPositive ? '↑' : '↓';
+                const signClass = isPositive ? 'positive' : 'negative';
+
+                return `
+                    <div class="ranking-item">
+                        <div class="ranking-number">#${index + 1}</div>
+                        <div class="ranking-strategy">${STRATEGY_LABELS[rank.strategy]}</div>
+                        <div class="ranking-value ${signClass}">
+                            ${direction} ${Math.abs(rank.improvement).toFixed(2)}%
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = rankingsHTML;
+        }
+
+        function renderBestWorstMetrics(improvementMap, strategies) {
+            const allMetrics = [];
+
+            strategies.forEach(strategy => {
+                Object.keys(improvementMap[strategy]).forEach(metricKey => {
+                    allMetrics.push({
+                        metric: metricKey,
+                        label: TRAFFIC_METRICS[metricKey].label,
+                        strategy,
+                        improvement: improvementMap[strategy][metricKey]
+                    });
+                });
+            });
+
+            const sorted = allMetrics.sort((a, b) => b.improvement - a.improvement);
+            const best = sorted.slice(0, 3);
+            const worst = sorted.slice(-3).reverse();
+
+            const bestHTML = best.map(item => {
+                const isPositive = item.improvement >= 0;
+                const direction = isPositive ? '↑' : '↓';
+
+                return `
+                    <li class="metric-item">
+                        <span class="metric-name">${item.label}</span>
+                        <span class="metric-strategy">${STRATEGY_LABELS[item.strategy]}</span>
+                        <span class="metric-improvement ${isPositive ? 'positive' : 'negative'}">
+                            ${direction} ${Math.abs(item.improvement).toFixed(2)}%
+                        </span>
+                    </li>
+                `;
+            }).join('');
+
+            const worstHTML = worst.map(item => {
+                const isPositive = item.improvement >= 0;
+                const direction = isPositive ? '↑' : '↓';
+
+                return `
+                    <li class="metric-item">
+                        <span class="metric-name">${item.label}</span>
+                        <span class="metric-strategy">${STRATEGY_LABELS[item.strategy]}</span>
+                        <span class="metric-improvement ${isPositive ? 'positive' : 'negative'}">
+                            ${direction} ${Math.abs(item.improvement).toFixed(2)}%
+                        </span>
+                    </li>
+                `;
+            }).join('');
+
+            document.getElementById('bestMetricsList').innerHTML = bestHTML;
+            document.getElementById('worstMetricsList').innerHTML = worstHTML;
         }
 
         // ============================================================================

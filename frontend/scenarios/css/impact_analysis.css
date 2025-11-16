@@ -487,6 +487,72 @@ body {
     font-size: var(--font-size-sm);
 }
 
+.ranking-number {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-right: var(--spacing-md);
+    min-width: 40px;
+    text-align: center;
+}
+
+.ranking-strategy {
+    flex: 1;
+    font-weight: 500;
+    font-size: var(--font-size-base);
+}
+
+.ranking-value {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    min-width: 80px;
+    text-align: right;
+}
+
+.ranking-value.positive {
+    color: var(--color-success);
+}
+
+.ranking-value.negative {
+    color: var(--color-error);
+}
+
+.metric-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+}
+
+.metric-name {
+    flex: 1;
+    font-weight: 400;
+    color: var(--color-black);
+}
+
+.metric-strategy {
+    margin: 0 var(--spacing-md);
+    font-size: var(--font-size-xs);
+    color: var(--color-dark-gray);
+    background: var(--color-light-gray);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+}
+
+.metric-improvement {
+    font-weight: 600;
+    min-width: 60px;
+    text-align: right;
+}
+
+.metric-improvement.positive {
+    color: var(--color-success);
+}
+
+.metric-improvement.negative {
+    color: var(--color-error);
+}
+
 /* ============================================================================
    10. Loading State
    ============================================================================ */
