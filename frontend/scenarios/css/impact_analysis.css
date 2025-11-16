@@ -83,10 +83,10 @@ body {
    ============================================================================ */
 
 .page-header {
-    background: linear-gradient(135deg, var(--color-primary) 0%, #1976d2 100%);
-    color: var(--color-white);
-    padding: var(--spacing-2xl) var(--spacing-lg);
-    box-shadow: var(--shadow-md);
+    background: var(--color-white);
+    color: var(--color-black);
+    padding: var(--spacing-lg) var(--spacing-lg);
+    border-bottom: 2px solid var(--color-primary);
     margin-bottom: var(--spacing-xl);
 }
 
@@ -98,7 +98,7 @@ body {
 .breadcrumb {
     font-size: var(--font-size-sm);
     margin-bottom: var(--spacing-md);
-    opacity: 0.9;
+    color: var(--color-dark-gray);
 }
 
 .breadcrumb-link {
@@ -128,7 +128,7 @@ body {
 
 .page-subtitle {
     font-size: var(--font-size-sm);
-    opacity: 0.9;
+    color: var(--color-dark-gray);
 }
 
 .header-status {
