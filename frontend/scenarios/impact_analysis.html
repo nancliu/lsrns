@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="交通控制策略对比影响分析">
+    <meta name="theme-color" content="#2196f3">
+    <title>影响分析 - 交通仿真推演系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="css/impact_analysis.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="page-header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="/scenarios/case-simulation-center.html" class="breadcrumb-link">案例列表</a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current" id="caseBreadcrumb">加载中...</span>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">影响分析</span>
+            </div>
+            <h1 class="page-title">策略对比影响分析</h1>
+            <p class="page-subtitle">交通控制策略的性能对标和改进分析</p>
+        </div>
+        <div class="header-status">
+            <span id="statusIndicator" class="status-indicator loading">加载数据中...</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page-content">
+        <!-- Loading Spinner -->
+        <div id="loadingContainer" class="loading-container">
+            <div class="spinner"></div>
+            <p>正在加载分析数据...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorContainer" class="error-container hidden">
+            <div class="error-box">
+                <h3>加载失败</h3>
+                <p id="errorMessage">未知错误</p>
+                <button class="btn btn-primary" onclick="location.reload()">重新加载</button>
+                <a href="/scenarios/case-simulation-center.html" class="btn btn-secondary">返回列表</a>
+            </div>
+        </div>
+
+        <!-- Content Container -->
+        <div id="contentContainer" class="content-container hidden">
+
+            <!-- Section 1: Strategy Overview -->
+            <section class="section section-overview">
+                <div class="section-header">
+                    <h2>策略对比总览</h2>
+                    <p class="section-subtitle">4个控制策略与基准线(NO_CONTROL)的性能对比</p>
+                </div>
+                <div class="section-body">
+                    <div id="strategyOverviewContainer" class="strategy-overview">
+                        <!-- 动态生成4个卡片 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Comparison Table -->
+            <section class="section section-table">
+                <div class="section-header">
+                    <h2>详细指标对比</h2>
+                    <p class="section-subtitle">8个交通性能指标在4个策略中的完整数据矩阵</p>
+                </div>
+                <div class="section-body">
+                    <div class="table-wrapper">
+                        <table id="comparisonTable" class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-column">性能指标</th>
+                                    <th>DHS</th>
+                                    <th>TEC</th>
+                                    <th>VSS</th>
+                                    <th class="baseline-column">NO_CONTROL(基准)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- 动态生成8行数据 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Timeseries Charts -->
+            <section class="section section-charts">
+                <div class="section-header">
+                    <h2>时序数据可视化</h2>
+                    <p class="section-subtitle">5个关键指标随仿真时间的变化趋势(5400个数据点)</p>
+                </div>
+                <div class="section-body">
+                    <div class="charts-grid">
+                        <!-- Chart 1: Current Vehicles -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">当前运行车数</h3>
+                            <p class="chart-unit">单位: 辆</p>
+                            <canvas id="chartCurrentVehicles"></canvas>
+                        </div>
+
+                        <!-- Chart 2: Average Speed -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">平均速度</h3>
+                            <p class="chart-unit">单位: km/h</p>
+                            <canvas id="chartAvgSpeed"></canvas>
+                        </div>
+
+                        <!-- Chart 3: Completed Vehicles -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">已完成车数</h3>
+                            <p class="chart-unit">单位: 辆</p>
+                            <canvas id="chartCompletedVehicles"></canvas>
+                        </div>
+
+                        <!-- Chart 4: Waiting Vehicles -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">等待车数</h3>
+                            <p class="chart-unit">单位: 辆</p>
+                            <canvas id="chartWaitingVehicles"></canvas>
+                        </div>
+
+                        <!-- Chart 5: Loaded Vehicles -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">已载入车数</h3>
+                            <p class="chart-unit">单位: 辆</p>
+                            <canvas id="chartLoadedVehicles"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Improvement Analysis -->
+            <section class="section section-improvement">
+                <div class="section-header">
+                    <h2>改进指标分析</h2>
+                    <p class="section-subtitle">与基准线(NO_CONTROL)的改进百分比和排行</p>
+                </div>
+                <div class="section-body">
+                    <div class="improvement-content">
+                        <!-- Improvement Rankings -->
+                        <div class="improvement-rankings">
+                            <h3>改进排行</h3>
+                            <div id="improvementRankingsContainer" class="rankings-container">
+                                <!-- 动态生成排行 -->
+                            </div>
+                        </div>
+
+                        <!-- Best/Worst Metrics -->
+                        <div class="improvement-metrics">
+                            <div class="metrics-column">
+                                <h4>最优指标</h4>
+                                <ul id="bestMetricsList" class="metrics-list">
+                                    <!-- 动态生成Best3 -->
+                                </ul>
+                            </div>
+                            <div class="metrics-column">
+                                <h4>最差指标</h4>
+                                <ul id="worstMetricsList" class="metrics-list">
+                                    <!-- 动态生成Worst3 -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Footer / Export -->
+            <section class="section section-footer">
+                <div class="section-body">
+                    <div class="footer-actions">
+                        <button class="btn btn-secondary" onclick="window.print()">打印报告</button>
+                        <button class="btn btn-secondary" onclick="exportToJSON()">导出JSON</button>
+                        <button class="btn btn-secondary" onclick="exportToCSV()">导出CSV</button>
+                        <a href="/scenarios/case-simulation-center.html" class="btn btn-primary">返回列表</a>
+                    </div>
+                    <p class="footer-info">
+                        数据生成时间: <span id="dataTimestamp">-</span> |
+                        案例ID: <span id="caseIdDisplay">-</span>
+                    </p>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        // ============================================================================
+        // 全局配置和常量
+        // ============================================================================
+
+        const API_BASE = '/api/v1';
+        const TRAFFIC_METRICS = {
+            'current_vehicles': {
+                label: '当前运行车数',
+                unit: '辆',
+                higher_is_better: false
+            },
+            'avg_speed': {
+                label: '平均速度',
+                unit: 'km/h',
+                higher_is_better: true
+            },
+            'loaded_vehicles': {
+                label: '已载入车数',
+                unit: '辆',
+                higher_is_better: true
+            },
+            'waiting_vehicles': {
+                label: '等待车数',
+                unit: '辆',
+                higher_is_better: false
+            },
+            'completed_vehicles': {
+                label: '已完成车数',
+                unit: '辆',
+                higher_is_better: true
+            },
+            'chain_frequency': {
+                label: '链接频率',
+                unit: '次',
+                higher_is_better: true
+            },
+            'transmission_frequency': {
+                label: '传送频率',
+                unit: '次',
+                higher_is_better: true
+            },
+            'terminated_vehicles': {
+                label: '已中止车数',
+                unit: '辆',
+                higher_is_better: false
+            }
+        };
+
+        const STRATEGY_COLORS = {
+            'DHS': '#f9a825',
+            'TEC': '#4ecdc4',
+            'VSS': '#45b7d1',
+            'NO_CONTROL': '#ff6b6b'
+        };
+
+        const STRATEGY_LABELS = {
+            'DHS': '动态硬路肩',
+            'TEC': '收费站管控',
+            'VSS': '可变限速',
+            'NO_CONTROL': '无控制(基准)'
+        };
+
+        // 全局数据存储
+        let analysisData = {
+            caseId: null,
+            aggregatedMetrics: null,
+            timeseriesData: null,
+            timestamp: null
+        };
+
+        let charts = {}; // Chart.js实例存储
+
+        // ============================================================================
+        // 页面初始化
+        // ============================================================================
+
+        document.addEventListener('DOMContentLoaded', initializePage);
+
+        async function initializePage() {
+            // 获取URL参数中的case_id
+            const urlParams = new URLSearchParams(window.location.search);
+            const caseId = urlParams.get('case_id');
+
+            if (!caseId || caseId.trim() === '') {
+                showError('缺少必要的参数: case_id');
+                return;
+            }
+
+            analysisData.caseId = caseId;
+            document.getElementById('caseBreadcrumb').textContent = caseId;
+            document.getElementById('caseIdDisplay').textContent = caseId;
+
+            // 加载数据
+            await loadAnalysisData(caseId);
+        }
+
+        // ============================================================================
+        // 数据加载
+        // ============================================================================
+
+        async function loadAnalysisData(caseId) {
+            showLoading();
+            try {
+                // 并行加载两个API
+                const [comparisonRes, timeseriesRes] = await Promise.all([
+                    fetch(`${API_BASE}/analysis/strategy-comparison/${caseId}`),
+                    fetch(`${API_BASE}/analysis/strategy-timeseries/${caseId}`)
+                ]);
+
+                if (!comparisonRes.ok || !timeseriesRes.ok) {
+                    throw new Error('API请求失败');
+                }
+
+                const comparisonWrapper = await comparisonRes.json();
+                const timeseriesWrapper = await timeseriesRes.json();
+
+                // 提取数据
+                const comparisonData = comparisonWrapper.data || comparisonWrapper;
+                const timeseriesData = timeseriesWrapper.data || timeseriesWrapper.timeseries || timeseriesWrapper;
+
+                // 验证数据
+                validateData(comparisonData, timeseriesData);
+
+                // 存储数据
+                analysisData.aggregatedMetrics = comparisonData;
+                analysisData.timeseriesData = timeseriesData;
+                analysisData.timestamp = new Date().toLocaleString('zh-CN');
+
+                // 渲染页面
+                renderPage();
+                hideLoading();
+                showContent();
+            } catch (error) {
+                console.error('数据加载错误:', error);
+                showError(`数据加载失败: ${error.message}`);
+            }
+        }
+
+        function validateData(comparisonData, timeseriesData) {
+            if (!comparisonData || typeof comparisonData !== 'object') {
+                throw new Error('对比数据格式无效');
+            }
+
+            const requiredStrategies = ['DHS', 'NO_CONTROL', 'TEC', 'VSS'];
+            for (let strategy of requiredStrategies) {
+                if (!(strategy in comparisonData)) {
+                    throw new Error(`缺少策略数据: ${strategy}`);
+                }
+            }
+        }
+
+        // ============================================================================
+        // UI状态管理
+        // ============================================================================
+
+        function showLoading() {
+            document.getElementById('loadingContainer').classList.remove('hidden');
+            document.getElementById('contentContainer').classList.add('hidden');
+            document.getElementById('errorContainer').classList.add('hidden');
+            updateStatus('loading', '加载数据中...');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingContainer').classList.add('hidden');
+        }
+
+        function showContent() {
+            document.getElementById('contentContainer').classList.remove('hidden');
+            updateStatus('success', '数据加载成功');
+        }
+
+        function showError(message) {
+            document.getElementById('contentContainer').classList.add('hidden');
+            document.getElementById('loadingContainer').classList.add('hidden');
+            document.getElementById('errorContainer').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+            updateStatus('error', '加载失败');
+        }
+
+        function updateStatus(type, message) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.textContent = message;
+            indicator.className = `status-indicator ${type}`;
+        }
+
+        // ============================================================================
+        // 页面渲染
+        // ============================================================================
+
+        function renderPage() {
+            renderStrategyOverview();
+            renderComparisonTable();
+            renderTimeseriesCharts();
+            renderImprovementAnalysis();
+            document.getElementById('dataTimestamp').textContent = analysisData.timestamp;
+        }
+
+        function renderStrategyOverview() {
+            const container = document.getElementById('strategyOverviewContainer');
+            const metrics = analysisData.aggregatedMetrics;
+            const baselineMetrics = metrics['NO_CONTROL'];
+
+            const strategies = ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
+            const cards = strategies.map(strategy => {
+                const strategyData = metrics[strategy];
+                const isBaseline = strategy === 'NO_CONTROL';
+
+                // 计算改进指标
+                let improvementPercent = 0;
+                if (!isBaseline) {
+                    const avgSpeed = strategyData['avg_speed'] || 0;
+                    const baselineSpeed = baselineMetrics['avg_speed'] || 0;
+                    improvementPercent = baselineSpeed > 0
+                        ? ((avgSpeed - baselineSpeed) / baselineSpeed * 100)
+                        : 0;
+                }
+
+                const completedVehicles = Math.round(strategyData['completed_vehicles'] || 0);
+                const baselineCompleted = Math.round(baselineMetrics['completed_vehicles'] || 0);
+
+                return `
+                    <div class="strategy-card" data-strategy="${strategy}">
+                        <div class="card-header">
+                            <h3 class="strategy-name">${STRATEGY_LABELS[strategy]}</h3>
+                            ${isBaseline
+                                ? '<span class="baseline-badge">基准线</span>'
+                                : `<span class="improvement-badge ${improvementPercent >= 0 ? 'positive' : 'negative'}">
+                                     ${improvementPercent >= 0 ? '+' : ''}${improvementPercent.toFixed(2)}%
+                                   </span>`
+                            }
+                        </div>
+                        <div class="card-metrics">
+                            <div class="metric-item">
+                                <span class="metric-label">已完成车数</span>
+                                <span class="metric-value">${completedVehicles.toLocaleString()}</span>
+                                ${!isBaseline ? `<span class="metric-compare">(基准: ${baselineCompleted.toLocaleString()})</span>` : ''}
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-label">平均速度</span>
+                                <span class="metric-value">${(strategyData['avg_speed'] || 0).toFixed(2)} km/h</span>
+                                ${!isBaseline ? `<span class="metric-compare">(基准: ${(baselineMetrics['avg_speed'] || 0).toFixed(2)} km/h)</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = cards.join('');
+        }
+
+        function renderComparisonTable() {
+            const tbody = document.getElementById('tableBody');
+            const metrics = analysisData.aggregatedMetrics;
+            const metricKeys = Object.keys(TRAFFIC_METRICS);
+
+            const rows = metricKeys.map(metricKey => {
+                const metric = TRAFFIC_METRICS[metricKey];
+                const dhs = metrics['DHS'][metricKey];
+                const tec = metrics['TEC'][metricKey];
+                const vss = metrics['VSS'][metricKey];
+                const nc = metrics['NO_CONTROL'][metricKey];
+
+                return `
+                    <tr>
+                        <td class="metric-column"><strong>${metric.label}</strong></td>
+                        <td>${formatMetricValue(metricKey, dhs)}</td>
+                        <td>${formatMetricValue(metricKey, tec)}</td>
+                        <td>${formatMetricValue(metricKey, vss)}</td>
+                        <td class="baseline-column"><strong>${formatMetricValue(metricKey, nc)}</strong></td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = rows.join('');
+        }
+
+        function formatMetricValue(metricKey, value) {
+            if (value === null || value === undefined) return '-';
+
+            if (metricKey === 'avg_speed') {
+                return (parseFloat(value) || 0).toFixed(2);
+            } else if (['current_vehicles', 'loaded_vehicles', 'waiting_vehicles', 'completed_vehicles'].includes(metricKey)) {
+                return Math.round(value).toLocaleString();
+            }
+
+            return value.toString();
+        }
+
+        function renderTimeseriesCharts() {
+            // 占位符 - 在后续Phase中实现
+            console.log('时序图表渲染函数已准备，待Phase 2实施');
+        }
+
+        function renderImprovementAnalysis() {
+            // 占位符 - 在后续Phase中实现
+            console.log('改进分析渲染函数已准备，待Phase 2实施');
+        }
+
+        // ============================================================================
+        // 导出功能
+        // ============================================================================
+
+        function exportToJSON() {
+            const data = {
+                caseId: analysisData.caseId,
+                timestamp: analysisData.timestamp,
+                aggregatedMetrics: analysisData.aggregatedMetrics
+            };
+            const json = JSON.stringify(data, null, 2);
+            downloadFile(json, `analysis_${analysisData.caseId}.json`, 'application/json');
+        }
+
+        function exportToCSV() {
+            const metrics = analysisData.aggregatedMetrics;
+            const metricKeys = Object.keys(TRAFFIC_METRICS);
+
+            let csv = '性能指标,DHS,TEC,VSS,NO_CONTROL\n';
+            metricKeys.forEach(metricKey => {
+                const metric = TRAFFIC_METRICS[metricKey];
+                const row = [
+                    metric.label,
+                    metrics['DHS'][metricKey],
+                    metrics['TEC'][metricKey],
+                    metrics['VSS'][metricKey],
+                    metrics['NO_CONTROL'][metricKey]
+                ].join(',');
+                csv += row + '\n';
+            });
+
+            downloadFile(csv, `analysis_${analysisData.caseId}.csv`, 'text/csv;charset=utf-8');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
