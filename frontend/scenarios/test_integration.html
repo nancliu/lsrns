@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>策略对比集成测试 - 交通仿真系统</title>
+    <link rel="stylesheet" href="css/event-scenario-comparison.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .response-section {
+            margin-top: 30px;
+        }
+        .response-section h3 {
+            color: #333;
+            border-bottom: 2px solid #2196f3;
+            padding-bottom: 10px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #trafficPerformanceContainer {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>策略对比集成测试</h1>
+        <div class="test-info">
+            <strong>测试目标：</strong> 验证前端能否成功调用后端API并正确渲染8个交通性能指标的对比表格
+            <br/>
+            <strong>案例ID：</strong> case_event_6120705
+        </div>
+
+        <div class="controls">
+            <button onclick="testGenerateMetrics()">1. 生成指标数据</button>
+            <button onclick="testLoadComparison()">2. 加载对比数据</button>
+            <button onclick="testLoadTimeseries()">3. 加载时序数据</button>
+            <button onclick="testFullIntegration()">4. 完整集成测试</button>
+            <button onclick="clearResults()">清除结果</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="response-section">
+            <h3>API响应 - 对比数据</h3>
+            <pre id="comparisonResponse">等待测试...</pre>
+        </div>
+
+        <div id="trafficPerformanceContainer"></div>
+
+        <div class="response-section">
+            <h3>API响应 - 时序数据</h3>
+            <pre id="timeseriesResponse">等待测试...</pre>
+        </div>
+
+        <div class="response-section">
+            <h3>测试日志</h3>
+            <pre id="testLog"></pre>
+        </div>
+    </div>
+
+    <script src="js/event-scenario-comparison.js"></script>
+    <script>
+        const caseId = 'case_event_6120705';
+        const apiBase = '/api/v1';
+
+        function log(message) {
+            const logEl = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.textContent += `[${timestamp}] ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function setStatus(message, type = 'loading') {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function clearResults() {
+            document.getElementById('comparisonResponse').textContent = '已清除';
+            document.getElementById('timeseriesResponse').textContent = '已清除';
+            document.getElementById('testLog').textContent = '';
+            document.getElementById('status').textContent = '';
+            document.getElementById('trafficPerformanceContainer').innerHTML = '';
+            log('已清除所有结果');
+        }
+
+        async function testGenerateMetrics() {
+            log(`开始生成指标数据...`);
+            setStatus('正在生成指标数据...', 'loading');
+
+            try {
+                const response = await fetch(`${apiBase}/analysis/strategy-comparison/generate/${caseId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log(`✓ 生成成功！检测到${data.data.strategies.length}个策略`);
+                log(`  策略: ${data.data.strategies.join(', ')}`);
+                setStatus(`✓ 生成成功！检测到${data.data.strategies.length}个策略`, 'success');
+
+                // 显示对比数据
+                document.getElementById('comparisonResponse').textContent = JSON.stringify(data.data.strategy_comparison, null, 2);
+            } catch (error) {
+                log(`✗ 错误: ${error.message}`);
+                setStatus(`✗ 生成失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLoadComparison() {
+            log(`开始加载对比数据...`);
+            setStatus('正在加载对比数据...', 'loading');
+
+            try {
+                const response = await fetch(`${apiBase}/analysis/strategy-comparison/${caseId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const wrapper = await response.json();
+                const data = wrapper.data || wrapper;
+
+                log(`✓ 加载成功！包含${Object.keys(data).length}个策略的数据`);
+                log(`  策略: ${Object.keys(data).join(', ')}`);
+                setStatus(`✓ 加载成功！`, 'success');
+
+                // 显示对比数据
+                document.getElementById('comparisonResponse').textContent = JSON.stringify(data, null, 2);
+
+                // 尝试渲染表格
+                log(`尝试渲染交通性能对比表格...`);
+                const batchResults = {
+                    strategy_comparison: data
+                };
+                window.renderTrafficPerformanceComparison(batchResults);
+                log(`✓ 表格渲染成功！`);
+            } catch (error) {
+                log(`✗ 错误: ${error.message}`);
+                setStatus(`✗ 加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLoadTimeseries() {
+            log(`开始加载时序数据...`);
+            setStatus('正在加载时序数据...', 'loading');
+
+            try {
+                const response = await fetch(`${apiBase}/analysis/strategy-timeseries/${caseId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const wrapper = await response.json();
+                const data = wrapper.data || wrapper;
+
+                log(`✓ 加载成功！包含${Object.keys(data).length}个策略的时序数据`);
+                setStatus(`✓ 加载成功！`, 'success');
+
+                // 显示时序数据
+                document.getElementById('timeseriesResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                log(`✗ 错误: ${error.message}`);
+                setStatus(`✗ 加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFullIntegration() {
+            log(`====== 开始完整集成测试 ======`);
+            setStatus('正在进行完整集成测试...', 'loading');
+
+            try {
+                // 第一步：生成数据
+                log(`第1步: 生成指标数据...`);
+                const generateResponse = await fetch(`${apiBase}/analysis/strategy-comparison/generate/${caseId}`, {
+                    method: 'POST'
+                });
+                if (!generateResponse.ok) throw new Error('生成失败');
+                const generateData = await generateResponse.json();
+                log(`✓ 生成成功`);
+
+                // 第二步：加载对比数据
+                log(`第2步: 加载对比数据...`);
+                const comparisonResponse = await fetch(`${apiBase}/analysis/strategy-comparison/${caseId}`);
+                if (!comparisonResponse.ok) throw new Error('加载对比数据失败');
+                const comparisonWrapper = await comparisonResponse.json();
+                const comparisonData = comparisonWrapper.data || comparisonWrapper;
+                log(`✓ 对比数据加载成功`);
+
+                // 第三步：加载时序数据
+                log(`第3步: 加载时序数据...`);
+                const timeseriesResponse = await fetch(`${apiBase}/analysis/strategy-timeseries/${caseId}`);
+                if (!timeseriesResponse.ok) throw new Error('加载时序数据失败');
+                const timeseriesWrapper = await timeseriesResponse.json();
+                const timeseriesData = timeseriesWrapper.data || timeseriesWrapper;
+                log(`✓ 时序数据加载成功`);
+
+                // 第四步：渲染表格
+                log(`第4步: 渲染交通性能对比表格...`);
+                const batchResults = {
+                    strategy_comparison: comparisonData,
+                    timeseries: timeseriesData
+                };
+                window.renderTrafficPerformanceComparison(batchResults);
+                log(`✓ 表格渲染成功！`);
+
+                // 显示结果
+                document.getElementById('comparisonResponse').textContent = JSON.stringify(comparisonData, null, 2);
+                document.getElementById('timeseriesResponse').textContent = JSON.stringify(timeseriesData, null, 2);
+
+                log(`====== 完整集成测试成功！ ======`);
+                setStatus(`✓ 集成测试完成！数据已正确加载和渲染`, 'success');
+            } catch (error) {
+                log(`✗ 集成测试失败: ${error.message}`);
+                setStatus(`✗ 集成测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 初始化
+        log('测试页面已加载');
+        log('可用操作: 1.生成数据 → 2.加载对比 → 3.加载时序 或 4.完整集成');
+    </script>
+</body>
+</html>
