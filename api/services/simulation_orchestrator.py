@@ -228,8 +228,10 @@ class SimulationOrchestrator(BaseService):
         """
         logger.info(f"启动事件场景仿真批次: {len(simulation_ids)} 个仿真, 案例: {case_id}")
 
-        # 生成批次ID
-        batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # 生成批次ID (从事件案例ID中提取事件ID)
+        # case_id 格式: case_event_10754 -> 提取 10754
+        event_id = case_id.replace("case_event_", "") if case_id.startswith("case_event_") else case_id
+        batch_id = f"batch_event_{event_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
         # TODO: 将事件场景结构转换为批量格式
         # TODO: 调用 BatchSimulationScheduler
