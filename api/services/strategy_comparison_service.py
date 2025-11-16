@@ -380,23 +380,16 @@ class StrategyComparisonService(BaseService):
     def _extract_from_edgedata(self, edgedata_dir: Path) -> Dict[str, Any]:
         """
         从edgedata目录提取指标
+
+        注意: 在Plan A实现中，我们改用summary.xml中的指标:
+        - collisions (取代chain_frequency)
+        - meanWaitingTime (取代transmission_frequency)
+
+        edgedata指标extraction已弃用，返回空字典
         """
-        metrics = {
-            'chain_frequency': 0,
-            'transmission_frequency': 0
-        }
-
-        # 这里简化处理，实际应该从edgedata文件中计算
-        # 例如统计边的转移次数
-        try:
-            for csv_file in edgedata_dir.glob("*.csv"):
-                # 简单计数
-                metrics['chain_frequency'] += 1
-                metrics['transmission_frequency'] += 1
-        except Exception as e:
-            logger.warning(f"Error reading edgedata: {e}")
-
-        return metrics
+        # 返回空字典 - edgedata指标不再使用
+        # Plan A的8个指标完全来自summary.xml
+        return {}
 
     def _extract_timeseries_data(
         self,
