@@ -715,6 +715,9 @@
                         <div class="filter-section-header">
                             <h3>📋 案例列表</h3>
                             <div class="filter-header-right">
+                                <button class="chip" id="showMonitoringBtn" onclick="showMonitoringPanel()" style="cursor: pointer; padding: 8px 16px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; color: #856404; display: none; margin-right: 10px;">
+                                    📊 显示监控
+                                </button>
                                 <button class="chip" id="statusFilter" onclick="toggleStatusMenu()" style="cursor: pointer; padding: 8px 16px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;">
                                     筛选状态
                                 </button>
@@ -777,12 +780,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                                <!-- 仿真监控面板（批量启动后显示） -->
-                <div id="monitor-tab" class="tab-content" style="display: none;">
-                    <!-- 展开/折叠式监控面板 -->
-                    <div id="batchMonitoring" class="batch-monitoring">
+                    <!-- 仿真监控面板（批量启动后显示在案例列表下方） -->
+                    <div id="batchMonitoring" class="batch-monitoring" style="display: none; margin-top: 30px;">
                         <!-- 监控头部：标题 + 切换按钮 + 刷新按钮 -->
                         <div class="monitoring-header">
                             <div class="monitoring-title">
@@ -863,12 +863,13 @@
                         </div>
                     </div>
 
-                    <!-- 批次操作 -->
-                    <div class="batch-actions">
-                        <button class="btn-primary" onclick="startBatch()">▶️ 启动仿真</button>
-                        <button class="btn-danger" onclick="cancelBatch()">⏹️ 取消批次</button>
-                        <button class="btn btn-secondary" onclick="hideMonitoringPanel()" style="margin-left: auto;">← 返回案例列表</button>
-                        <button class="btn btn-primary" id="viewAnalysisBtn" onclick="viewAnalysisResults()" style="display: none; margin-left: 10px;">📊 查看分析结果</button>
+                        <!-- 批次操作 -->
+                        <div class="batch-actions">
+                            <button class="btn-primary" onclick="startBatch()">▶️ 启动仿真</button>
+                            <button class="btn-danger" onclick="cancelBatch()">⏹️ 取消批次</button>
+                            <button class="btn btn-primary" id="viewAnalysisBtn" onclick="viewAnalysisResults()" style="display: none;">📊 查看分析结果</button>
+                            <button class="btn btn-secondary" onclick="hideMonitoringPanel()" style="margin-left: auto;">🔽 隐藏监控</button>
+                        </div>
                     </div>
                 </div>
 
@@ -902,28 +903,55 @@
         // 案例数据缓存（用于快速查找）
         let caseDataMap = {};
 
-        // ===== Tab 切换逻辑 =====
+        // ===== 监控面板显示/隐藏逻辑 =====
         /**
-         * 显示监测面板，隐藏案例列表
+         * 显示监测面板（在案例列表下方）
          */
         function showMonitoringPanel() {
-            const casesTab = document.getElementById('cases-tab');
-            const monitorTab = document.getElementById('monitor-tab');
-            if (casesTab) casesTab.style.display = 'none';
-            if (monitorTab) monitorTab.style.display = 'block';
+            const batchMonitoring = document.getElementById('batchMonitoring');
+            const showMonitoringBtn = document.getElementById('showMonitoringBtn');
+
+            if (batchMonitoring) {
+                batchMonitoring.style.display = 'block';
+                // 默认展开监控面板
+                const collapsedContent = document.getElementById('collapsedContent');
+                const expandedContent = document.getElementById('expandedContent');
+                if (collapsedContent && expandedContent) {
+                    collapsedContent.style.display = 'none';
+                    collapsedContent.classList.add('hidden');
+                    expandedContent.style.display = 'block';
+                    expandedContent.classList.add('visible');
+                    const toggleIcon = document.querySelector('.toggle-icon');
+                    if (toggleIcon) {
+                        toggleIcon.classList.add('expanded');
+                    }
+                }
+            }
+
+            // 隐藏"显示监控"按钮
+            if (showMonitoringBtn) {
+                showMonitoringBtn.style.display = 'none';
+            }
 
             currentTab = 'monitor';
             startMonitoring();
         }
 
         /**
-         * 隐藏监测面板，显示案例列表
+         * 隐藏监测面板
          */
         function hideMonitoringPanel() {
-            const casesTab = document.getElementById('cases-tab');
-            const monitorTab = document.getElementById('monitor-tab');
-            if (casesTab) casesTab.style.display = 'block';
-            if (monitorTab) monitorTab.style.display = 'none';
+            const batchMonitoring = document.getElementById('batchMonitoring');
+            const showMonitoringBtn = document.getElementById('showMonitoringBtn');
+
+            if (batchMonitoring) {
+                batchMonitoring.style.display = 'none';
+            }
+
+            // 显示"显示监控"按钮
+            if (showMonitoringBtn) {
+                showMonitoringBtn.style.display = 'block';
+            }
 
             currentTab = 'cases';
             stopMonitoring();
@@ -1964,22 +1992,19 @@
             }
 
             // 初始化界面
-            const activeTab = new URLSearchParams(window.location.search).get('activeTab') || 'cases';
+            // 总是显示案例列表
+            currentTab = 'cases';
+            const casesTab = document.getElementById('cases-tab');
+            if (casesTab) casesTab.style.display = 'block';
 
-            // 根据URL参数决定显示哪个面板
+            // 加载初始数据
+            updateCaseStats();
+            loadCases();
+
+            // 根据URL参数决定是否显示监控面板
+            const activeTab = new URLSearchParams(window.location.search).get('activeTab') || 'cases';
             if (activeTab === 'monitor' || batchId) {
                 showMonitoringPanel();
-            } else {
-                // 显示案例列表模式
-                currentTab = 'cases';
-                const casesTab = document.getElementById('cases-tab');
-                const monitorTab = document.getElementById('monitor-tab');
-                if (casesTab) casesTab.style.display = 'block';
-                if (monitorTab) monitorTab.style.display = 'none';
-
-                // 加载初始数据
-                updateCaseStats();
-                loadCases();
             }
         });
 
