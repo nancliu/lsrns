@@ -11,14 +11,14 @@ Strategy Comparison Service
 - 提供API接口返回对比结果
 
 8个交通性能指标:
-1. 当前运行车数 (current_vehicles) - lower is better
+1. 当前运行车数 (current_vehicles) - lower is better (辆)
 2. 平均速度 (avg_speed) - higher is better (km/h)
-3. 已载入车数 (loaded_vehicles) - higher is better
-4. 链接频率 (chain_frequency) - higher is better
-5. 传送频率 (transmission_frequency) - higher is better
-6. 已完成车数 (completed_vehicles) - higher is better
-7. 已中止车数 (terminated_vehicles) - lower is better
-8. 等待车数 (waiting_vehicles) - lower is better
+3. 已载入车数 (loaded_vehicles) - higher is better (辆)
+4. 碰撞次数 (collisions) - lower is better (次，交通安全指标)
+5. 平均等待时间 (meanWaitingTime) - lower is better (秒，拥堵指标)
+6. 已完成车数 (completed_vehicles) - higher is better (辆)
+7. 已到达车数 (arrived) - higher is better (辆，成功率指标)
+8. 等待车数 (waiting_vehicles) - lower is better (辆)
 """
 
 import logging
@@ -46,49 +46,52 @@ class StrategyComparisonService(BaseService):
             'label': '当前运行车数',
             'unit': '辆',
             'higher_is_better': False,
-            'source': 'progress'  # 从progress.json中提取
+            'source': 'summary'
         },
         'avg_speed': {
             'label': '平均速度',
             'unit': 'km/h',
             'higher_is_better': True,
-            'source': 'summary'  # 从summary.xml中计算
+            'source': 'summary'
         },
         'loaded_vehicles': {
             'label': '已载入车数',
             'unit': '辆',
             'higher_is_better': True,
-            'source': 'progress'
+            'source': 'summary'
         },
-        'chain_frequency': {
-            'label': '链接频率',
+        'collisions': {
+            'label': '碰撞次数',
             'unit': '次',
-            'higher_is_better': True,
-            'source': 'edgedata'
+            'higher_is_better': False,
+            'source': 'summary',
+            'description': '交通安全指标：越少越好'
         },
-        'transmission_frequency': {
-            'label': '传送频率',
-            'unit': '次',
-            'higher_is_better': True,
-            'source': 'edgedata'
+        'meanWaitingTime': {
+            'label': '平均等待时间',
+            'unit': '秒',
+            'higher_is_better': False,
+            'source': 'summary',
+            'description': '交通拥堵指标：越短越好'
         },
         'completed_vehicles': {
             'label': '已完成车数',
             'unit': '辆',
             'higher_is_better': True,
-            'source': 'tripinfo'
+            'source': 'summary'
         },
-        'terminated_vehicles': {
-            'label': '已中止车数',
+        'arrived': {
+            'label': '已到达车数',
             'unit': '辆',
-            'higher_is_better': False,
-            'source': 'tripinfo'
+            'higher_is_better': True,
+            'source': 'summary',
+            'description': '仿真成功率：越多越好'
         },
         'waiting_vehicles': {
             'label': '等待车数',
             'unit': '辆',
             'higher_is_better': False,
-            'source': 'progress'
+            'source': 'summary'
         }
     }
 
@@ -248,8 +251,8 @@ class StrategyComparisonService(BaseService):
         """
         aggregated = {}
 
-        # 为每个指标收集所有仿真的数据
-        metric_values = {metric_key: [] for metric_key in self.TRAFFIC_METRICS.keys()}
+        # 收集所有仿真的指标数据（动态收集，不预先定义）
+        metric_values = {}
 
         for sim_dir in sim_dirs:
             # 从该仿真提取指标
@@ -257,19 +260,15 @@ class StrategyComparisonService(BaseService):
 
             for metric_key, value in metrics.items():
                 if value is not None:
+                    if metric_key not in metric_values:
+                        metric_values[metric_key] = []
                     metric_values[metric_key].append(value)
 
-        # 计算聚合值（平均值或总值）
-        for metric_key in self.TRAFFIC_METRICS.keys():
-            values = metric_values[metric_key]
+        # 计算聚合值（平均值）
+        for metric_key, values in metric_values.items():
             if values:
-                # 某些指标取平均，某些指标取总和
-                if metric_key in ['completed_vehicles', 'terminated_vehicles', 'current_vehicles', 'loaded_vehicles']:
-                    # 这些是累计数字，取平均值
-                    aggregated[metric_key] = sum(values) / len(values)
-                else:
-                    # 其他指标取平均值
-                    aggregated[metric_key] = sum(values) / len(values)
+                # 所有指标都取平均值
+                aggregated[metric_key] = sum(values) / len(values)
             else:
                 aggregated[metric_key] = None
 
@@ -312,14 +311,26 @@ class StrategyComparisonService(BaseService):
         """
         从SUMO的summary.xml文件提取所有8个交通性能指标
         从最后一个step（仿真结束时的状态）提取
+
+        指标来源（均来自summary.xml最后一个step属性）:
+        - current_vehicles: running - 当前运行车数
+        - avg_speed: meanSpeed - 平均速度（需转换m/s→km/h）
+        - loaded_vehicles: loaded - 已载入车数
+        - collisions: collisions - 碰撞次数（安全指标）
+        - meanWaitingTime: meanWaitingTime - 平均等待时间（拥堵指标）
+        - completed_vehicles: ended - 已完成车数
+        - arrived: arrived - 已到达车数（成功率指标）
+        - waiting_vehicles: waiting - 等待车数
         """
         metrics = {
             'current_vehicles': None,
             'avg_speed': None,
             'loaded_vehicles': None,
+            'collisions': None,
+            'meanWaitingTime': None,
             'completed_vehicles': None,
-            'waiting_vehicles': None,
-            'terminated_vehicles': None
+            'arrived': None,
+            'waiting_vehicles': None
         }
 
         try:
@@ -334,13 +345,14 @@ class StrategyComparisonService(BaseService):
 
             # 从最后一个step提取所有指标
             if last_step is not None:
-                # 车辆数据 - 直接来自summary.xml属性
+                # 1. 车辆数据 - 直接来自summary.xml属性
                 metrics['current_vehicles'] = int(last_step.get('running', 0))
                 metrics['loaded_vehicles'] = int(last_step.get('loaded', 0))
                 metrics['waiting_vehicles'] = int(last_step.get('waiting', 0))
                 metrics['completed_vehicles'] = int(last_step.get('ended', 0))
+                metrics['arrived'] = int(last_step.get('arrived', 0))
 
-                # 平均速度 - m/s转换为km/h
+                # 2. 平均速度 - m/s转换为km/h
                 avg_speed_str = last_step.get('meanSpeed', '0')
                 try:
                     avg_speed = float(avg_speed_str) * 3.6  # m/s to km/h
@@ -348,10 +360,17 @@ class StrategyComparisonService(BaseService):
                 except:
                     metrics['avg_speed'] = 0.0
 
-                # terminated_vehicles - 在SUMO summary中可能没有直接显示
-                # 通常需要从tripinfo.xml中计算
-                # 目前保持为None，会在后续处理中补充或从edgedata计算
-                metrics['terminated_vehicles'] = None
+                # 3. 安全指标 - 碰撞次数
+                try:
+                    metrics['collisions'] = int(last_step.get('collisions', 0))
+                except:
+                    metrics['collisions'] = 0
+
+                # 4. 拥堵指标 - 平均等待时间
+                try:
+                    metrics['meanWaitingTime'] = float(last_step.get('meanWaitingTime', 0))
+                except:
+                    metrics['meanWaitingTime'] = 0.0
 
         except Exception as e:
             logger.warning(f"Error parsing summary.xml: {e}")
