@@ -13,6 +13,7 @@
 """
 
 import logging
+import asyncio
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -22,6 +23,9 @@ from .base_metadata_service import BaseMetadataService
 from .simulation_service import SimulationService
 from .batch_optimization_service import BatchOptimizationService
 from shared.control_tools.batch_simulation_scheduler import BatchSimulationScheduler
+
+# 导入仿真服务函数 (用于启动单个仿真)
+from . import start_simulation_service
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +228,7 @@ class SimulationOrchestrator(BaseService):
         Returns:
             批量执行响应
 
-        Design: 复用现有基础设施,不重新实现
+        Design: 异步启动所有仿真,监控进度
         """
         logger.info(f"启动事件场景仿真批次: {len(simulation_ids)} 个仿真, 案例: {case_id}")
 
@@ -233,9 +237,23 @@ class SimulationOrchestrator(BaseService):
         event_id = case_id.replace("case_event_", "") if case_id.startswith("case_event_") else case_id
         batch_id = f"batch_event_{event_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        # TODO: 将事件场景结构转换为批量格式
-        # TODO: 调用 BatchSimulationScheduler
-        # 当前返回占位响应
+        # 异步启动所有仿真 (不阻塞响应)
+        # 使用 asyncio.create_task 在后台运行
+        try:
+            asyncio.create_task(
+                self._run_event_batch_simulations(
+                    batch_id=batch_id,
+                    case_id=case_id,
+                    simulation_ids=simulation_ids,
+                    parallel_workers=parallel_workers,
+                    auto_run_analysis=auto_run_analysis,
+                    analysis_types=analysis_types
+                )
+            )
+        except Exception as e:
+            logger.error(f"创建后台任务失败: {str(e)}")
+
+        # 立即返回批次信息 (仿真在后台异步运行)
         return {
             "batch_id": batch_id,
             "case_id": case_id,
@@ -248,6 +266,61 @@ class SimulationOrchestrator(BaseService):
             "status": "queued",
             "created_at": datetime.now().isoformat()
         }
+
+    async def _run_event_batch_simulations(
+        self,
+        batch_id: str,
+        case_id: str,
+        simulation_ids: List[str],
+        parallel_workers: int,
+        auto_run_analysis: bool,
+        analysis_types: List[str]
+    ) -> None:
+        """
+        后台任务: 启动事件批次仿真并监控进度
+
+        Args:
+            batch_id: 批次ID
+            case_id: 案例ID
+            simulation_ids: 仿真ID列表
+            parallel_workers: 并发工作数
+            auto_run_analysis: 完成后自动分析
+            analysis_types: 分析类型列表
+        """
+        try:
+            logger.info(f"后台启动批次仿真: {batch_id}, 仿真数: {len(simulation_ids)}")
+
+            # 使用信号量控制并发数
+            semaphore = asyncio.Semaphore(parallel_workers)
+
+            async def _start_simulation_with_limit(sim_id: str):
+                async with semaphore:
+                    try:
+                        logger.info(f"启动仿真: {sim_id}")
+                        # 调用 start_simulation_service 启动单个仿真
+                        result = await start_simulation_service(
+                            case_id=case_id,
+                            simulation_id=sim_id,
+                            gui=False
+                        )
+                        logger.info(f"仿真启动成功: {sim_id}, 结果: {result}")
+                        return {"simulation_id": sim_id, "status": "started", "result": result}
+                    except Exception as e:
+                        logger.error(f"启动仿真失败: {sim_id}, 错误: {str(e)}")
+                        return {"simulation_id": sim_id, "status": "failed", "error": str(e)}
+
+            # 并发启动所有仿真
+            tasks = [_start_simulation_with_limit(sim_id) for sim_id in simulation_ids]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            logger.info(f"批次 {batch_id} 仿真启动完成. 结果: {results}")
+
+            # TODO: 如果启用了自动分析,在所有仿真完成后运行分析
+            # if auto_run_analysis:
+            #     await self._run_auto_analysis(case_id, batch_id, analysis_types)
+
+        except Exception as e:
+            logger.error(f"后台批次启动失败: {str(e)}")
 
     async def _batch_start_od_simulations(
         self,
