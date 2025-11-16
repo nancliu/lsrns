@@ -336,8 +336,9 @@ class SimulationService(BaseService):
             }
             with open(prog_path, "w", encoding="utf-8") as f:
                 json.dump(progress_data, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+            logger.info(f"已初始化进度文件: {prog_path}")
+        except Exception as e:
+            logger.warning(f"初始化进度文件失败: {str(e)}")
 
     async def _ensure_od_file_available(self, case_path: Path) -> None:
         """
