@@ -903,11 +903,57 @@
         // 案例数据缓存（用于快速查找）
         let caseDataMap = {};
 
+        // ===== 批次信息持久化 =====
+        /**
+         * 保存批次信息到 sessionStorage（用户会话期间保留）
+         */
+        function saveBatchInfo(bId, cId) {
+            if (bId) {
+                sessionStorage.setItem('currentBatchId', bId);
+            }
+            if (cId) {
+                sessionStorage.setItem('currentMonitoringCaseId', cId);
+            }
+        }
+
+        /**
+         * 从 sessionStorage 恢复批次信息
+         */
+        function restoreBatchInfo() {
+            // 如果URL中没有batch_id，尝试从sessionStorage恢复
+            if (!batchId) {
+                batchId = sessionStorage.getItem('currentBatchId');
+            }
+
+            // 总是从sessionStorage恢复case_id
+            if (!window.currentMonitoringCaseId) {
+                window.currentMonitoringCaseId = sessionStorage.getItem('currentMonitoringCaseId');
+            }
+
+            console.log('恢复批次信息 - batchId:', batchId, 'caseId:', window.currentMonitoringCaseId);
+        }
+
+        /**
+         * 清除批次信息（仅在仿真完全取消或页面卸载时）
+         */
+        function clearBatchInfo() {
+            sessionStorage.removeItem('currentBatchId');
+            sessionStorage.removeItem('currentMonitoringCaseId');
+            batchId = null;
+            window.currentMonitoringCaseId = null;
+        }
+
         // ===== 监控面板显示/隐藏逻辑 =====
         /**
          * 显示监测面板（在案例列表下方）
          */
         function showMonitoringPanel() {
+            // 显示监控前，先恢复批次信息
+            if (!batchId && !window.currentMonitoringCaseId) {
+                console.log('显示监控面板前，尝试恢复批次信息');
+                restoreBatchInfo();
+            }
+
             const batchMonitoring = document.getElementById('batchMonitoring');
             const showMonitoringBtn = document.getElementById('showMonitoringBtn');
 
@@ -1279,6 +1325,9 @@
                         batchId = newBatchId;
                         window.currentMonitoringCaseId = caseId;
 
+                        // 保存批次信息到sessionStorage
+                        saveBatchInfo(batchId, caseId);
+
                         console.log('已设置全局batchId:', batchId);
 
                         alert(`✓ 事件批次仿真已启动！\n案例 ID: ${caseId}`);
@@ -1581,6 +1630,12 @@
             }
 
             try {
+                // 首先尝试恢复批次信息（以防batchId被清空）
+                if (!batchId && !window.currentMonitoringCaseId) {
+                    console.log('尝试从sessionStorage恢复批次信息');
+                    restoreBatchInfo();
+                }
+
                 let actualBatchId = batchId;
 
                 // 如果没有 batchId，尝试从 case_id 获取
@@ -2002,6 +2057,9 @@
                         window.currentMonitoringCaseId = selectedCases[0];
                     }
 
+                    // 保存批次信息到sessionStorage
+                    saveBatchInfo(batchId, window.currentMonitoringCaseId);
+
                     // 隐藏案例列表，显示监测面板
                     clearSelection();
                     showMonitoringPanel();
@@ -2036,6 +2094,9 @@
             }
 
             // 初始化界面
+            // 首先恢复之前保存的批次信息
+            restoreBatchInfo();
+
             // 总是显示案例列表
             currentTab = 'cases';
             const casesTab = document.getElementById('cases-tab');
@@ -2045,7 +2106,7 @@
             updateCaseStats();
             loadCases();
 
-            // 根据URL参数决定是否显示监控面板
+            // 根据URL参数或恢复的batchId决定是否显示监控面板
             const activeTab = new URLSearchParams(window.location.search).get('activeTab') || 'cases';
             if (activeTab === 'monitor' || batchId) {
                 showMonitoringPanel();
