@@ -292,6 +292,14 @@ class ODProcessor:
                 v.set("color", str(vehicle_config.get('color', 'white')))
                 v.set("vClass", str(vehicle_config.get('vClass', 'passenger')))
                 v.set("carFollowModel", str(vehicle_config.get('carFollowModel', 'IDM')))
+                # geh use these param
+                v.set("lcStrategic", str(vehicle_config.get('lcStrategic', 1.5)))
+                v.set("lcCooperative", str(vehicle_config.get('lcCooperative', 1.2)))
+                v.set("lcAssertive", str(vehicle_config.get('lcAssertive', 1.0)))
+                v.set("lcImpatience", str(vehicle_config.get('lcImpatience', 0.2)))
+                v.set("lcKeepRight", str(vehicle_config.get('lcKeepRight', -1)))
+                v.set("tau", str(vehicle_config.get('tau', 0.9)))
+                # geh use end                
                 logger.debug(f"使用配置文件参数定义车型 {vt}: {vehicle_config}")
             else:
                 # 使用默认参数
@@ -300,6 +308,14 @@ class ODProcessor:
                 v.set("sigma", "0.5")
                 v.set("length", "5")
                 v.set("maxSpeed", "27.78")
+                # geh use these param
+                v.set("lcStrategic", "1.5")
+                v.set("lcCooperative", "1.2")
+                v.set("lcAssertive", "1.0")
+                v.set("lcImpatience", "0.2")
+                v.set("lcKeepRight", "-1")
+                v.set("tau", "0.9")
+                # geh use end   
                 logger.debug(f"使用默认参数定义车型 {vt}")
         
         # 按begin时间排序，确保SUMO不会发出排序警告
@@ -317,7 +333,9 @@ class ODProcessor:
             if 'vtype' in row and pd.notnull(row['vtype']):
                 f.set("type", str(row['vtype']))
             f.set("vehsPerHour", str(float(row['vehsPerHour'])))
-            
+            # geh use these two
+            f.set("departLane", "random")
+            f.set("departSpeed", "random")
             # 记录排序后的时间信息用于调试
             if i < 5:  # 只记录前5条用于调试
                 logger.debug(f"Flow f{i}: begin={row['begin']}, end={row['end']}, from={row['fromTaz']}, to={row['toTaz']}")

@@ -705,10 +705,11 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
         <meso-junction-control value="true"/>
     </mesosim>'''
 	
+	# geh use device.rerouting.probability 0.01 , before 0.1
 	routing_section = ""
 	if getattr(simulation_type, 'value', '') == 'microscopic':
 		routing_section = '''    <routing>
-        <device.rerouting.probability value="0.1"/>
+        <device.rerouting.probability value="0.01"/>
         <device.rerouting.explicit value="true"/>
     </routing>'''
 	
