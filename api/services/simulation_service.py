@@ -644,30 +644,74 @@ class SimulationService(BaseService):
             }
 
     async def get_simulation_progress(self, case_id: str) -> Dict[str, Any]:
-        """获取仿真进度"""
+        """获取案例下的所有仿真列表及进度统计（用于监控面板）
+
+        返回格式：
+        {
+            "simulations": [
+                {"simulation_id": "...", "status": "...", "progress": ..., ...},
+                ...
+            ],
+            "progress_percentage": XX,
+            "stats": {
+                "total": X,
+                "completed": Y,
+                "in_progress": Z,
+                "failed": W,
+                "queued": V
+            }
+        }
+        """
         try:
             case_dir = Path("cases") / case_id
             simulations_dir = case_dir / "simulations"
-            
+
             if not simulations_dir.exists():
-                return {"status": "unknown", "percent": 0, "message": "暂无进度"}
-            
-            # 查找最新的仿真目录
-            latest_sim_dir = self._find_latest_simulation(simulations_dir)
-            
-            if not latest_sim_dir:
-                return {"status": "unknown", "percent": 0, "message": "暂无进度"}
-            
-            # 读取进度文件
-            prog_file = latest_sim_dir / "progress.json"
-            if not prog_file.exists():
-                return {"status": "unknown", "percent": 0, "message": "暂无进度"}
-            
-            with open(prog_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-                
+                return {
+                    "simulations": [],
+                    "progress_percentage": 0,
+                    "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0}
+                }
+
+            # 获取案例下的所有仿真
+            simulations = await self.get_case_simulations(case_id)
+
+            if not simulations:
+                return {
+                    "simulations": [],
+                    "progress_percentage": 0,
+                    "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0}
+                }
+
+            # 计算统计信息
+            stats = {
+                "total": len(simulations),
+                "completed": len([s for s in simulations if s.get("status") == "completed"]),
+                "in_progress": len([s for s in simulations if s.get("status") in ["running", "simulating"]]),
+                "failed": len([s for s in simulations if s.get("status") == "failed"]),
+                "queued": len([s for s in simulations if s.get("status") == "queued"])
+            }
+
+            # 计算总进度百分比
+            if stats["total"] > 0:
+                progress_percentage = int((stats["completed"] / stats["total"]) * 100)
+            else:
+                progress_percentage = 0
+
+            return {
+                "simulations": simulations,
+                "progress_percentage": progress_percentage,
+                "stats": stats
+            }
+
         except Exception as e:
-            return {"status": "error", "percent": 0, "message": str(e)}
+            logger.error(f"获取仿真进度失败: {str(e)}")
+            return {
+                "simulations": [],
+                "progress_percentage": 0,
+                "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0},
+                "error": str(e)
+            }
     
     def _find_latest_simulation(self, simulations_dir: Path) -> Path:
         """查找最新的仿真目录"""
