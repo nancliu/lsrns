@@ -152,8 +152,8 @@ body {
 }
 
 .status-indicator.loading {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: var(--color-white);
+    background-color: rgba(33, 150, 243, 0.1);
+    color: var(--color-primary);
     animation: pulse 2s infinite;
 }
 
