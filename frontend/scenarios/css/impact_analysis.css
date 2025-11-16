@@ -126,6 +126,10 @@ body {
     margin-bottom: var(--spacing-sm);
 }
 
+.page-header .page-title {
+    color: var(--color-black);
+}
+
 .page-subtitle {
     font-size: var(--font-size-sm);
     color: var(--color-dark-gray);
