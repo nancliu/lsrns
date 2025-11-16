@@ -240,28 +240,28 @@ body {
 .strategy-card {
     background: linear-gradient(135deg, var(--color-white) 0%, var(--color-light-gray) 100%);
     border: 1px solid var(--color-gray);
-    border-left: 4px solid var(--color-gray);
+    border-top: 3px solid var(--color-gray);
     border-radius: var(--radius-md);
     padding: var(--spacing-lg);
     transition: all var(--transition-normal);
     cursor: pointer;
 }
 
-/* Strategy-specific card border colors */
+/* Strategy-specific card top border colors (subtle accent) */
 .strategy-card[data-strategy="DHS"] {
-    border-left-color: #388e3c;
+    border-top-color: #388e3c;
 }
 
 .strategy-card[data-strategy="TEC"] {
-    border-left-color: #f57c00;
+    border-top-color: #f57c00;
 }
 
 .strategy-card[data-strategy="VSS"] {
-    border-left-color: #1976d2;
+    border-top-color: #1976d2;
 }
 
 .strategy-card[data-strategy="NO_CONTROL"] {
-    border-left-color: #999;
+    border-top-color: #999;
 }
 
 .strategy-card:hover {
@@ -284,23 +284,6 @@ body {
     font-weight: 600;
     color: var(--color-black);
     margin: 0;
-}
-
-/* Strategy-specific header colors */
-.strategy-card[data-strategy="DHS"] .strategy-name {
-    color: #388e3c;
-}
-
-.strategy-card[data-strategy="TEC"] .strategy-name {
-    color: #f57c00;
-}
-
-.strategy-card[data-strategy="VSS"] .strategy-name {
-    color: #1976d2;
-}
-
-.strategy-card[data-strategy="NO_CONTROL"] .strategy-name {
-    color: #666;
 }
 
 .baseline-badge {
@@ -586,6 +569,92 @@ body {
 
 .metric-improvement.negative {
     color: var(--color-error);
+}
+
+/* ============================================================================
+   9.1 8 Metrics Detailed Comparison Table (Phase 2)
+   ============================================================================ */
+
+.improvement-table-section {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 2px solid var(--color-gray);
+}
+
+.improvement-table-section h3 {
+    font-size: var(--font-size-lg);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.table-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-dark-gray);
+    margin-bottom: var(--spacing-lg);
+}
+
+.improvement-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.improvement-detail-table thead {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-bottom: 2px solid var(--color-primary);
+}
+
+.improvement-detail-table th {
+    padding: var(--spacing-md);
+    text-align: center;
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+}
+
+.improvement-detail-table th.metric-column {
+    text-align: left;
+    min-width: 200px;
+}
+
+.improvement-detail-table td {
+    padding: var(--spacing-md);
+    text-align: center;
+    border-bottom: 1px solid var(--color-gray);
+    font-weight: 500;
+}
+
+.improvement-detail-table td.metric-column {
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-black);
+}
+
+.metric-unit {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-dark-gray);
+    font-weight: 400;
+    margin-top: var(--spacing-xs);
+}
+
+.improvement-detail-table td.positive {
+    color: var(--color-success);
+    background-color: rgba(76, 175, 80, 0.05);
+}
+
+.improvement-detail-table td.negative {
+    color: var(--color-error);
+    background-color: rgba(244, 67, 54, 0.05);
+}
+
+.improvement-detail-table td.highlight {
+    font-weight: 700;
+    background-color: rgba(255, 193, 7, 0.15);
+}
+
+.improvement-detail-table tbody tr:hover {
+    background-color: rgba(33, 150, 243, 0.03);
 }
 
 /* ============================================================================
