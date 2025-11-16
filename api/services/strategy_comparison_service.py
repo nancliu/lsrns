@@ -287,20 +287,7 @@ class StrategyComparisonService(BaseService):
         """
         metrics = {metric_key: None for metric_key in self.TRAFFIC_METRICS.keys()}
 
-        # 1. 从progress.json提取: current_vehicles, loaded_vehicles, waiting_vehicles
-        progress_file = sim_dir / "progress.json"
-        if progress_file.exists():
-            try:
-                with open(progress_file, 'r', encoding='utf-8') as f:
-                    progress_data = json.load(f)
-
-                metrics['current_vehicles'] = progress_data.get('running_vehicles', 0)
-                metrics['loaded_vehicles'] = progress_data.get('loaded_vehicles', 0)
-                metrics['waiting_vehicles'] = progress_data.get('waiting_vehicles', 0)
-            except Exception as e:
-                logger.warning(f"Failed to read progress.json from {sim_dir}: {e}")
-
-        # 2. 从summary.xml计算: avg_speed, completed_vehicles, terminated_vehicles
+        # 1. 从summary.xml提取: 所有指标都从最后一个step提取
         summary_file = sim_dir / "summary.xml"
         if summary_file.exists():
             try:
@@ -309,7 +296,7 @@ class StrategyComparisonService(BaseService):
             except Exception as e:
                 logger.warning(f"Failed to read summary.xml from {sim_dir}: {e}")
 
-        # 3. 从edgedata提取: chain_frequency, transmission_frequency
+        # 2. 从edgedata提取: chain_frequency, transmission_frequency
         # (这些需要从SUMO的edgedata输出中计算)
         edgedata_dir = sim_dir / "edgedata"
         if edgedata_dir.exists():
@@ -323,11 +310,15 @@ class StrategyComparisonService(BaseService):
 
     def _extract_from_summary(self, summary_file: Path) -> Dict[str, Any]:
         """
-        从SUMO的summary.xml文件提取指标
+        从SUMO的summary.xml文件提取所有8个交通性能指标
+        从最后一个step（仿真结束时的状态）提取
         """
         metrics = {
+            'current_vehicles': None,
             'avg_speed': None,
+            'loaded_vehicles': None,
             'completed_vehicles': None,
+            'waiting_vehicles': None,
             'terminated_vehicles': None
         }
 
@@ -336,24 +327,31 @@ class StrategyComparisonService(BaseService):
             tree = ET.parse(summary_file)
             root = tree.getroot()
 
-            # 查找summary元素
+            # 遍历所有step，保存最后一个（最终仿真状态）
+            last_step = None
             for step in root.findall('step'):
-                # 获取最后一个step的数据
-                running = int(step.get('running', 0))
-                ended = int(step.get('ended', 0))
+                last_step = step
 
-                # 简单的速度计算（可能需要从tripinfo获取更精确的值）
-                # 这里使用的是SUMO summary中的平均速度
-                avg_speed_str = step.get('meanSpeed', '0')
+            # 从最后一个step提取所有指标
+            if last_step is not None:
+                # 车辆数据 - 直接来自summary.xml属性
+                metrics['current_vehicles'] = int(last_step.get('running', 0))
+                metrics['loaded_vehicles'] = int(last_step.get('loaded', 0))
+                metrics['waiting_vehicles'] = int(last_step.get('waiting', 0))
+                metrics['completed_vehicles'] = int(last_step.get('ended', 0))
+
+                # 平均速度 - m/s转换为km/h
+                avg_speed_str = last_step.get('meanSpeed', '0')
                 try:
                     avg_speed = float(avg_speed_str) * 3.6  # m/s to km/h
                     metrics['avg_speed'] = avg_speed
                 except:
                     metrics['avg_speed'] = 0.0
 
-                metrics['completed_vehicles'] = ended
-                # 假设terminated_vehicles在summary中可能没有直接显示
-                # 可以从后续处理补充
+                # terminated_vehicles - 在SUMO summary中可能没有直接显示
+                # 通常需要从tripinfo.xml中计算
+                # 目前保持为None，会在后续处理中补充或从edgedata计算
+                metrics['terminated_vehicles'] = None
 
         except Exception as e:
             logger.warning(f"Error parsing summary.xml: {e}")
