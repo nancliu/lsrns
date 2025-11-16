@@ -745,12 +745,79 @@ class ScenarioService(BaseService):
 
         # DHS Strategy: Dynamic Hard Shoulder
         if strategy.upper() == "DHS":
+            # Import timedelta for time calculation
+            from datetime import timedelta
+
+            # DHS (Dynamic Hard Shoulder) - Fixed peak hour control
+            # Note: DHS has special handling for morning peak (7:30-9:30)
+            # Reference: scripts/generate_flowsurge_scenarios.py::generate_control_params_dhs()
+
+            # G4202 south segment edges for DHS control (default configuration)
+            # These are the emergency lane segments that can be opened
+            default_dhs_edges = [
+                "-12680", "-10376.203", "-10376", "-6906",
+                "-1438", "-3324", "-4360", "-10188"
+            ]
+
+            # Use edge_id from CSV if available, otherwise use default segments
+            affected_edges = [edge_id] if edge_id else default_dhs_edges
+            lane_index = 0  # Emergency lane (hardest shoulder, rightmost)
+
+            # Generate affected_lanes list: edge_id + "_" + lane_index
+            affected_lanes = [f"{edge}_{lane_index}" for edge in affected_edges]
+
+            # Calculate simulation time range (event time + 30min buffer)
+            try:
+                event_start = pd.to_datetime(row.get('开始时间', ''))
+                event_end = pd.to_datetime(row.get('结束时间', ''))
+                buffer = timedelta(minutes=30)
+
+                sim_start = event_start - buffer
+                sim_end = event_end + buffer
+                sim_duration_seconds = int((sim_end - sim_start).total_seconds())
+
+                # DHS control period: 7:30-9:30 (fixed for morning peak)
+                dhs_start_time = event_start.replace(hour=7, minute=30, second=0, microsecond=0)
+                dhs_end_time = event_start.replace(hour=9, minute=30, second=0, microsecond=0)
+
+                # Convert to simulation time (seconds relative to sim_start)
+                dhs_begin_seconds = max(0, int((dhs_start_time - sim_start).total_seconds()))
+                dhs_end_seconds_raw = int((dhs_end_time - sim_start).total_seconds())
+
+                # Ensure not exceeding simulation duration
+                dhs_end_seconds = min(dhs_end_seconds_raw, sim_duration_seconds)
+
+                # Calculate actual control start/end times
+                actual_control_start = sim_start + timedelta(seconds=dhs_begin_seconds)
+                actual_control_end = sim_start + timedelta(seconds=dhs_end_seconds)
+
+            except Exception as e:
+                # Fallback if time parsing fails
+                logger.warning(f"Failed to parse DHS time parameters: {e}, using defaults")
+                dhs_begin_seconds = 3300  # Default: 55 minutes
+                dhs_end_seconds = 5400    # Default: 90 minutes
+                sim_duration_seconds = 5400
+                actual_control_start = None
+                actual_control_end = None
+
             return {
-                "open_shoulder": True,
-                "affected_edges": [edge_id] if edge_id else [],
-                "response_delay_seconds": 300,
-                "recovery_period_seconds": 600,
-                "csv_control": True  # Extracted from CSV
+                "shoulder_segments": affected_edges,  # Required: emergency lane segments
+                "affected_lanes": affected_lanes,
+                "hard_shoulder_lane_index": lane_index,  # Emergency lane (rightmost, _0)
+                "activation_schedule": [  # Required: activation time schedule (per docs)
+                    {
+                        "begin": dhs_begin_seconds,  # Seconds relative to simulation start
+                        "end": dhs_end_seconds,      # Seconds relative to simulation start
+                        "allowed_vehicle_types": ["passenger"]  # Only passenger cars (per flowsurge pattern)
+                    }
+                ],
+                "response_delay_seconds": 0,  # Pre-scheduled, no delay
+                "recovery_period_seconds": 0,  # Pre-scheduled end time
+                "csv_control": True,  # Extracted from CSV
+                # Additional timing info for control_strategy_config.json
+                "_actual_control_start": actual_control_start.strftime('%Y-%m-%d %H:%M:%S') if actual_control_start else '',
+                "_actual_control_end": actual_control_end.strftime('%Y-%m-%d %H:%M:%S') if actual_control_end else '',
+                "_sim_duration_seconds": sim_duration_seconds
             }
 
         # Default fallback

@@ -378,6 +378,41 @@ class ScenarioGenerator:
                 interval['begin'] = begin_seconds
                 interval['end'] = end_seconds
 
+        elif strategy_type.upper() == 'DHS':
+            # For DHS (Dynamic Hard Shoulder), handle activation_schedule (primary) or intervals (fallback)
+            # Priority: activation_schedule > intervals > auto-create from event timing
+
+            # Check for activation_schedule field (primary, from _prepare_control_params)
+            if 'activation_schedule' in control_params and control_params['activation_schedule']:
+                # activation_schedule already provided with timing - just convert field names if needed
+                # For XML generation, additional_generator expects either activation_schedule or intervals
+                # No modification needed - keep as is
+                logger.info(f"DHS using provided activation_schedule with {len(control_params['activation_schedule'])} intervals")
+
+            # Check for existing intervals field
+            elif 'intervals' in control_params and control_params['intervals']:
+                # Enrich existing intervals with timing if needed
+                for interval in control_params['intervals']:
+                    if 'begin_seconds' not in interval:
+                        interval['begin_seconds'] = begin_seconds
+                    if 'end_seconds' not in interval:
+                        interval['end_seconds'] = end_seconds
+                    # Ensure status is set (default to CLOSED for safety)
+                    if 'status' not in interval:
+                        interval['status'] = 'CLOSED'
+                logger.info(f"DHS enriched existing intervals with timing")
+
+            else:
+                # Create intervals from event timing (fallback)
+                control_params['intervals'] = [
+                    {
+                        'begin_seconds': begin_seconds,
+                        'end_seconds': end_seconds,
+                        'status': 'CLOSED'  # Hard shoulder is closed during this period
+                    }
+                ]
+                logger.info(f"Created DHS interval: CLOSED from {begin_seconds}s to {end_seconds}s")
+
         return control_params
 
     def _generate_add_xml(self, scenario_dir: Path, event_data: Dict,

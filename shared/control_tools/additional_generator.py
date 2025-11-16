@@ -545,52 +545,57 @@ def generate_dhs_xml(
         if not affected_edges:
             raise ValueError(f"DHS strategy {strategy_id} requires 'shoulder_segments' parameter")
 
-        # Get hard_shoulder_lane_index from strategy parameters, or from template default_value
-        hard_shoulder_lane_index = parameters.get("hard_shoulder_lane_index")
-        if hard_shoulder_lane_index is None:
-            # Fallback to template default_value if not in parameters
-            template_schema = template.get("parameters_schema", [])
-            for param_schema in template_schema:
-                if param_schema.get("parameter_name") == "hard_shoulder_lane_index":
-                    hard_shoulder_lane_index = param_schema.get("default_value", 0)
-                    logger.debug(f"Using default hard_shoulder_lane_index from template: {hard_shoulder_lane_index}")
-                    break
-            if hard_shoulder_lane_index is None:
-                hard_shoulder_lane_index = 0  # Final fallback
-                logger.warning(f"No hard_shoulder_lane_index found in parameters or template, using default 0")
-
         # Get activation_schedule (or fallback to intervals for compatibility)
         intervals = parameters.get("activation_schedule")
         if not intervals:
             intervals = parameters.get("intervals", [])
 
-        # Determine network file path
-        if network_file_path is None:
-            # Use default network file
-            network_file_path = "templates/network_files/sichuan202508v7.net.xml"
-            logger.debug(f"Using default network file: {network_file_path}")
-
-        # Convert to absolute path if relative
-        net_path = Path(network_file_path)
-        if not net_path.is_absolute():
-            # Assume relative to project root
-            project_root = Path(__file__).parent.parent.parent
-            net_path = project_root / network_file_path
-
-        # Get lane IDs for all affected edges
-        lane_ids = _get_lane_ids_from_network(
-            str(net_path),
-            affected_edges,
-            hard_shoulder_lane_index
-        )
+        # Get lane IDs from parameters (affected_lanes) or generate from network file
+        lane_ids = parameters.get("affected_lanes")
 
         if not lane_ids:
-            raise ValueError(
-                f"No valid lanes found for edges {affected_edges} "
-                f"with lane_index {hard_shoulder_lane_index} in network file {network_file_path}"
+            # Fallback: Generate lane IDs from network file
+            # Get hard_shoulder_lane_index from strategy parameters, or from template default_value
+            hard_shoulder_lane_index = parameters.get("hard_shoulder_lane_index")
+            if hard_shoulder_lane_index is None:
+                # Fallback to template default_value if not in parameters
+                template_schema = template.get("parameters_schema", [])
+                for param_schema in template_schema:
+                    if param_schema.get("parameter_name") == "hard_shoulder_lane_index":
+                        hard_shoulder_lane_index = param_schema.get("default_value", 0)
+                        logger.debug(f"Using default hard_shoulder_lane_index from template: {hard_shoulder_lane_index}")
+                        break
+                if hard_shoulder_lane_index is None:
+                    hard_shoulder_lane_index = 0  # Final fallback
+                    logger.warning(f"No hard_shoulder_lane_index found in parameters or template, using default 0")
+
+            # Determine network file path
+            if network_file_path is None:
+                # Use default network file
+                network_file_path = "templates/network_files/sichuan202508v7.net.xml"
+                logger.debug(f"Using default network file: {network_file_path}")
+
+            # Convert to absolute path if relative
+            net_path = Path(network_file_path)
+            if not net_path.is_absolute():
+                # Assume relative to project root
+                project_root = Path(__file__).parent.parent.parent
+                net_path = project_root / network_file_path
+
+            # Get lane IDs for all affected edges from network file
+            lane_ids = _get_lane_ids_from_network(
+                str(net_path),
+                affected_edges,
+                hard_shoulder_lane_index
             )
 
-        logger.info(f"Generated {len(lane_ids)} lane IDs: {lane_ids[:3]}..." if len(lane_ids) > 3 else f"Generated lane IDs: {lane_ids}")
+            if not lane_ids:
+                raise ValueError(
+                    f"No valid lanes found for edges {affected_edges} "
+                    f"with lane_index {hard_shoulder_lane_index} in network file {network_file_path}"
+                )
+
+        logger.info(f"Using {len(lane_ids)} lane IDs for DHS control: {lane_ids[:3]}..." if len(lane_ids) > 3 else f"Using lane IDs: {lane_ids}")
 
         # Create root element
         rerouter_elem = Element("rerouter")
@@ -600,55 +605,72 @@ def generate_dhs_xml(
         if affected_edges:
             rerouter_elem.set("edges", " ".join(affected_edges))
 
-        # Add intervals
-        for interval in intervals:
-            interval_elem = SubElement(rerouter_elem, "interval")
+        # DHS (Dynamic Hard Shoulder) XML generation with interval-based time control
+        # SUMO 1.24 supports time-based rerouting via <interval> elements wrapping <closingLaneReroute>
+        #
+        # Structure:
+        # <rerouter id="dhs_xxx" edges="edge1 edge2 ...">
+        #   <interval begin="0" end="3300">
+        #     <closingLaneReroute id="edge1_0" disallow="all" />
+        #   </interval>
+        #   <interval begin="3300" end="5400">
+        #     <closingLaneReroute id="edge1_0" allow="all" />
+        #   </interval>
+        # </rerouter>
 
-            # Begin time in seconds (support both 'begin' and 'begin_seconds')
-            if "begin_seconds" in interval:
-                begin_seconds = int(interval["begin_seconds"])
-            elif "begin" in interval:
-                begin_seconds = int(interval["begin"])
-            elif "begin_hours" in interval:
-                begin_seconds = int(interval["begin_hours"] * 3600)
-            else:
-                continue
+        if not intervals:
+            logger.warning(f"DHS strategy {strategy_id}: No intervals provided, skipping closingLaneReroute generation")
+        else:
+            # Process each activation interval
+            for interval in intervals:
+                # Extract timing info
+                if "begin_seconds" in interval:
+                    begin_seconds = int(interval["begin_seconds"])
+                elif "begin" in interval:
+                    begin_seconds = int(interval["begin"])
+                elif "begin_hours" in interval:
+                    begin_seconds = int(interval["begin_hours"] * 3600)
+                else:
+                    begin_seconds = 0
 
-            # End time in seconds (support both 'end' and 'end_seconds')
-            if "end_seconds" in interval:
-                end_seconds = int(interval["end_seconds"])
-            elif "end" in interval:
-                end_seconds = int(interval["end"])
-            elif "end_hours" in interval:
-                end_seconds = int(interval["end_hours"] * 3600)
-            else:
-                continue
+                if "end_seconds" in interval:
+                    end_seconds = int(interval["end_seconds"])
+                elif "end" in interval:
+                    end_seconds = int(interval["end"])
+                elif "end_hours" in interval:
+                    end_seconds = int(interval["end_hours"] * 3600)
+                else:
+                    end_seconds = 86400
 
-            # ASSERTION: Validate time bounds
-            assert 0 <= begin_seconds <= 86400, f"Begin time {begin_seconds}s out of SUMO bounds [0, 86400]"
-            assert 0 <= end_seconds <= 86400, f"End time {end_seconds}s out of SUMO bounds [0, 86400]"
-            assert begin_seconds < end_seconds, f"Begin time {begin_seconds}s must be < end time {end_seconds}s"
+                # Validate time bounds
+                assert 0 <= begin_seconds <= 86400, f"Begin time {begin_seconds}s out of SUMO bounds [0, 86400]"
+                assert 0 <= end_seconds <= 86400, f"End time {end_seconds}s out of SUMO bounds [0, 86400]"
+                assert begin_seconds < end_seconds, f"Begin time {begin_seconds}s must be < end time {end_seconds}s"
 
-            interval_elem.set("begin", str(begin_seconds))
-            interval_elem.set("end", str(end_seconds))
+                # Create interval element with time attributes
+                interval_elem = SubElement(rerouter_elem, "interval")
+                interval_elem.set("begin", str(begin_seconds))
+                interval_elem.set("end", str(end_seconds))
 
-            # Add closingLaneReroute elements for hard shoulder
-            # NOTE: DHS uses closingLaneReroute to control lane availability
-            # - When CLOSED: include <closingLaneReroute id="{edge_id}_0" allow="" /> for each edge (prohibits all vehicles)
-            # - When OPEN: do NOT include closingLaneReroute element (allows all vehicles)
-            status = interval.get("status", "CLOSED")
+                # Get interval status (OPEN or CLOSED, default CLOSED)
+                status = interval.get("status", "CLOSED")
 
-            if status == "CLOSED":
-                # Create closingLaneReroute for each lane (each edge's hard shoulder)
+                # Add closingLaneReroute elements within the interval
+                # Status determines whether lanes are open or closed
                 for lane_id in lane_ids:
                     closing_elem = SubElement(interval_elem, "closingLaneReroute")
                     closing_elem.set("id", lane_id)  # Full lane ID: {edge_id}_{lane_index}
-                    closing_elem.set("allow", "")  # Empty allow = prohibit all vehicles
-                logger.debug(f"DHS interval {begin_seconds}-{end_seconds}: {len(lane_ids)} lanes CLOSED")
-            else:
-                # When OPEN: omit closingLaneReroute element entirely
-                # This allows the lane to function normally (available to all vehicle types)
-                logger.debug(f"DHS interval {begin_seconds}-{end_seconds}: {len(lane_ids)} lanes OPEN (no closingLaneReroute)")
+
+                    if status == "CLOSED":
+                        # Hard shoulder is closed (prohibited)
+                        closing_elem.set("disallow", "all")
+                        logger.debug(f"DHS {strategy_id}: Lane {lane_id} CLOSED (disallow=all)")
+                    else:  # OPEN
+                        # Hard shoulder is open (allowed for all)
+                        closing_elem.set("allow", "all")
+                        logger.debug(f"DHS {strategy_id}: Lane {lane_id} OPEN (allow=all)")
+
+                logger.info(f"DHS {strategy_id}: Created interval {begin_seconds}-{end_seconds}s with {len(lane_ids)} lanes, status={status}")
 
         # Convert to string
         xml_str = tostring(rerouter_elem, encoding="unicode")

@@ -253,10 +253,13 @@ class EdgeImpactAggregator:
         """
         从VSS策略参数中提取受控边缘
 
-        VSS策略可能包含:
-        - edge_range: [start_edge, end_edge]
-        - edge_list: [edge1, edge2, ...]
-        - edge_pattern: "3000-3050"
+        VSS策略参数格式（v0.9.0+）:
+        - affected_edges: [edge1, edge2, ...] 直接的边缘列表（推荐）
+        - edge_list: [edge1, edge2, ...] 旧版本的边缘列表
+
+        向后兼容旧格式:
+        - edge_range: [start_edge, end_edge] 边缘范围
+        - edge_pattern: "3000-3050" 模式字符串
 
         Args:
             parameters: VSS策略参数
@@ -266,11 +269,21 @@ class EdgeImpactAggregator:
         """
         edges = []
 
-        # 方法1: 直接的边缘列表
-        if 'edge_list' in parameters:
-            edges.extend(parameters['edge_list'])
+        # 优先使用新格式：affected_edges （直接的边缘列表）
+        if 'affected_edges' in parameters:
+            affected_edges = parameters['affected_edges']
+            if isinstance(affected_edges, list):
+                edges.extend(affected_edges)
+                logger.debug(f"VSS: 从affected_edges提取 {len(edges)} 条可变限速边缘")
 
-        # 方法2: 边缘范围
+        # 旧格式: 直接的边缘列表
+        elif 'edge_list' in parameters:
+            edge_list = parameters['edge_list']
+            if isinstance(edge_list, list):
+                edges.extend(edge_list)
+                logger.debug(f"VSS: 从edge_list提取 {len(edges)} 条可变限速边缘")
+
+        # 旧格式: 边缘范围
         elif 'edge_range' in parameters:
             edge_range = parameters['edge_range']
             if isinstance(edge_range, list) and len(edge_range) == 2:
@@ -278,20 +291,27 @@ class EdgeImpactAggregator:
                     start = int(edge_range[0])
                     end = int(edge_range[1])
                     edges = [str(i) for i in range(start, end + 1)]
+                    logger.debug(f"VSS: 从edge_range提取 {len(edges)} 条可变限速边缘")
                 except ValueError:
                     logger.warning(f"VSS edge_range格式错误: {edge_range}")
 
-        # 方法3: 模式字符串 "3000-3050"
+        # 旧格式: 模式字符串 "3000-3050"
         elif 'edge_pattern' in parameters:
             pattern = parameters['edge_pattern']
-            if '-' in pattern:
+            if isinstance(pattern, str) and '-' in pattern:
                 try:
                     parts = pattern.split('-')
                     start = int(parts[0])
                     end = int(parts[1])
                     edges = [str(i) for i in range(start, end + 1)]
+                    logger.debug(f"VSS: 从edge_pattern提取 {len(edges)} 条可变限速边缘")
                 except ValueError:
                     logger.warning(f"VSS edge_pattern格式错误: {pattern}")
+
+        if edges:
+            logger.info(f"VSS策略: 聚合了 {len(edges)} 条可变限速边缘 - {edges[:3]}...")
+        else:
+            logger.warning(f"VSS策略: 未能从参数中提取可变限速边缘")
 
         return edges
 
@@ -299,9 +319,13 @@ class EdgeImpactAggregator:
         """
         从TEC策略参数中提取受控边缘
 
-        TEC策略通常包含:
+        TEC策略参数格式（v0.9.0+）:
         - entrance_edges: 收费站入口边缘列表
+        - affected_edges: 所有受影响的边缘列表（推荐）
+
+        向后兼容旧格式:
         - control_edges: 额外的受控边缘
+        - entrance_edge: 单个入口边缘
 
         Args:
             parameters: TEC策略参数
@@ -309,27 +333,52 @@ class EdgeImpactAggregator:
         Returns:
             受控边缘列表
         """
-        edges = []
+        edges_set = set()
+
+        # 优先使用新格式：affected_edges （所有受影响的边）
+        if 'affected_edges' in parameters:
+            affected_edges = parameters['affected_edges']
+            if isinstance(affected_edges, list):
+                edges_set.update(affected_edges)
+                logger.debug(f"TEC: 从affected_edges提取 {len(edges_set)} 条收费管控边缘")
 
         # 收费站入口边缘
         if 'entrance_edges' in parameters:
-            edges.extend(parameters['entrance_edges'])
+            entrance_edges = parameters['entrance_edges']
+            if isinstance(entrance_edges, list):
+                edges_set.update(entrance_edges)
+                logger.debug(f"TEC: 从entrance_edges提取 {len(entrance_edges)} 条入口边缘")
 
         # 额外的受控边缘
         if 'control_edges' in parameters:
-            edges.extend(parameters['control_edges'])
+            control_edges = parameters['control_edges']
+            if isinstance(control_edges, list):
+                edges_set.update(control_edges)
+                logger.debug(f"TEC: 从control_edges提取 {len(control_edges)} 条额外受控边缘")
 
         # 单个entrance_edge（向后兼容）
         if 'entrance_edge' in parameters:
-            edges.append(parameters['entrance_edge'])
+            entrance_edge = parameters['entrance_edge']
+            if isinstance(entrance_edge, str) and entrance_edge:
+                edges_set.add(entrance_edge)
 
-        return edges
+        if edges_set:
+            logger.info(f"TEC策略: 聚合了 {len(edges_set)} 条收费管控边缘 - {list(edges_set)[:3]}...")
+        else:
+            logger.warning(f"TEC策略: 未能从参数中提取收费管控边缘")
+
+        return list(edges_set)
 
     def _extract_dhs_edges(self, parameters: Dict[str, any]) -> List[str]:
         """
         从DHS策略参数中提取受控边缘
 
-        DHS策略通常包含:
+        DHS策略参数格式（v0.9.0+）:
+        - shoulder_segments: 应急车道edge ID列表 ["edge1", "edge2", ...]
+        - affected_lanes: 应急车道车道ID列表，格式为 "edge_id_lane_index" ["-12680_0", ...]
+        - activation_schedule: 激活时间表配置
+
+        向后兼容旧格式:
         - shoulder_lanes: 硬路肩车道列表，格式为 "edge_id_lane_index"
         - main_edges: 主线边缘列表
 
@@ -337,12 +386,32 @@ class EdgeImpactAggregator:
             parameters: DHS策略参数
 
         Returns:
-            受控边缘列表（从lane ID中提取edge ID）
+            受控边缘列表（从lane ID或segments中提取edge ID）
         """
         edges_set = set()
 
-        # 从shoulder_lanes中提取edge ID
-        if 'shoulder_lanes' in parameters:
+        # 优先使用新格式：shoulder_segments (edge ID直接列表)
+        if 'shoulder_segments' in parameters:
+            shoulder_segments = parameters['shoulder_segments']
+            if isinstance(shoulder_segments, list):
+                for edge_id in shoulder_segments:
+                    if isinstance(edge_id, str) and edge_id.strip():
+                        edges_set.add(edge_id.strip())
+                logger.debug(f"DHS: 从shoulder_segments提取 {len(edges_set)} 条应急车道边缘")
+
+        # 新格式: affected_lanes (从lane ID中提取edge ID)
+        if 'affected_lanes' in parameters:
+            affected_lanes = parameters['affected_lanes']
+            if isinstance(affected_lanes, list):
+                for lane_id in affected_lanes:
+                    # 格式: "edge_id_lane_index" 例如 "-12680_0"
+                    if isinstance(lane_id, str) and '_' in lane_id:
+                        edge_id = lane_id.rsplit('_', 1)[0]
+                        edges_set.add(edge_id)
+                logger.debug(f"DHS: 从affected_lanes提取 {len(edges_set)} 条应急车道边缘")
+
+        # 向后兼容旧格式：shoulder_lanes
+        if 'shoulder_lanes' in parameters and len(edges_set) == 0:
             shoulder_lanes = parameters['shoulder_lanes']
             if isinstance(shoulder_lanes, list):
                 for lane_id in shoulder_lanes:
@@ -353,7 +422,14 @@ class EdgeImpactAggregator:
 
         # 主线边缘
         if 'main_edges' in parameters:
-            edges_set.update(parameters['main_edges'])
+            main_edges = parameters['main_edges']
+            if isinstance(main_edges, list):
+                edges_set.update(main_edges)
+
+        if edges_set:
+            logger.info(f"DHS策略: 聚合了 {len(edges_set)} 条应急车道边缘 - {list(edges_set)[:3]}...")
+        else:
+            logger.warning(f"DHS策略: 未能从参数中提取应急车道边缘")
 
         return list(edges_set)
 

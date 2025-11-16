@@ -250,18 +250,25 @@ control_params = {
 
 ---
 
-### DHS (Dynamic Hard Shoulder)
+### DHS (Dynamic Hard Shoulder / 动态硬路肩)
 
-**Purpose**: Open hard shoulder during peak periods
+**Purpose**: Open hard shoulder lanes during peak periods to increase capacity
 
-#### Format
+#### Format (v0.9.0+)
 
 ```python
 control_params = {
-    'shoulder_segments': list[str],      # Required: Edge segments for shoulder
-    'activation_schedule': list[dict],   # Required: Time-based activation
-    'response_delay_seconds': int,       # Default: 0 (pre-scheduled)
-    'recovery_period_seconds': int       # Default: 0 (pre-scheduled)
+    # Primary parameters for SUMO XML generation
+    'shoulder_segments': list[str],      # Required: Edge IDs for hard shoulder segments
+    'affected_lanes': list[str],         # Required (for edgeData): Lane IDs in format "edge_id_lane_index"
+    'hard_shoulder_lane_index': int,     # Required: Lane index (0=rightmost/hardest shoulder)
+
+    # Time-based activation schedule
+    'activation_schedule': list[dict],   # Required: Time intervals and control status
+
+    # Control timing
+    'response_delay_seconds': int,       # Default: 0 (pre-scheduled, no delay)
+    'recovery_period_seconds': int       # Default: 0 (pre-scheduled, immediate close)
 }
 ```
 
@@ -270,7 +277,8 @@ control_params = {
 {
     'begin': int,                        # Required: Begin time (simulation seconds)
     'end': int,                          # Required: End time (simulation seconds)
-    'allowed_vehicle_types': list[str]   # Optional: ['passenger'] (default: all)
+    'status': str,                       # Optional: 'OPEN' or 'CLOSED' (default: CLOSED)
+    'allowed_vehicle_types': list[str]   # Optional: Vehicle types allowed (e.g., ['passenger'])
 }
 ```
 
@@ -279,17 +287,32 @@ control_params = {
 ```python
 control_params = {
     'shoulder_segments': [
-        '-12854', '-12856', '-12858', '-12874', '-12876'
+        '-12680', '-10376.203', '-10376', '-6906', '-1438', '-3324', '-4360', '-10188'
     ],
+    'affected_lanes': [
+        '-12680_0', '-10376.203_0', '-10376_0', '-6906_0',
+        '-1438_0', '-3324_0', '-4360_0', '-10188_0'
+    ],
+    'hard_shoulder_lane_index': 0,       # Lane 0 = rightmost/hard shoulder
+
     'activation_schedule': [{
-        'begin': 3300,                    # 7:30 AM (if sim starts at 6:25)
-        'end': 10500,                     # 9:30 AM
+        'begin': 3300,                    # 55 min from sim start (7:30 AM if sim starts at 6:25)
+        'end': 5400,                      # 90 min from sim start (9:00 AM)
+        'status': 'OPEN',                 # OPEN hard shoulder during peak
         'allowed_vehicle_types': ['passenger']
     }],
+
     'response_delay_seconds': 0,          # Pre-scheduled, no delay
-    'recovery_period_seconds': 0
+    'recovery_period_seconds': 0          # Pre-scheduled close
 }
 ```
+
+#### Important Notes
+
+- **Time is in simulation seconds** (relative to simulation start, not wall clock time)
+- **Multiple intervals supported**: Use multiple dicts in `activation_schedule` for complex patterns
+- **affected_lanes is critical**: Required for edgeData aggregation (lane IDs must match SUMO format: `edge_id_lane_index`)
+- **status field**: Determines XML attribute (`disallow="all"` for CLOSED, `allow="all"` for OPEN)
 
 ---
 
@@ -305,14 +328,22 @@ control_params = {
   "strategy_type": "VSS|TEC|DHS",
   "strategy_name": "可变限速标志|收费站管控|动态硬路肩",
   "parameters": {
-    "affected_edges": [...],
-    "speed_steps": [...],      // VSS only
-    "entrance_edges": [...],   // TEC only
-    "flow_intervals": [...],   // TEC only
-    "shoulder_segments": [...],// DHS only
-    "activation_schedule": [...], // DHS only
-    "response_delay_seconds": 300,
-    "recovery_period_seconds": 600
+    "affected_edges": [...],           // All strategies (required for edgeData)
+    "affected_lanes": [...],           // All strategies (required for edgeData, optional for VSS/TEC)
+
+    "speed_limit_kmh": 70,             // VSS: speed limit
+    "speed_steps": [...],              // VSS: detailed speed control
+
+    "entrance_edges": [...],           // TEC: entrance control points
+    "flow_reduction": 0.2,             // TEC: flow reduction ratio
+    "flow_intervals": [...],           // TEC: detailed flow control
+
+    "shoulder_segments": [...],        // DHS: emergency lane segments
+    "hard_shoulder_lane_index": 0,     // DHS: lane index (0=rightmost)
+    "activation_schedule": [...],      // DHS: time-based activation
+
+    "response_delay_seconds": 300,     // All strategies
+    "recovery_period_seconds": 600     // All strategies
   },
   "timing": {
     "activation_time": "YYYY-MM-DD HH:MM:SS",
@@ -322,6 +353,12 @@ control_params = {
   }
 }
 ```
+
+**Key Points**:
+- ✅ `affected_edges` is **required for all strategies** and **critical for edgeData aggregation**
+- ✅ `affected_lanes` should match SUMO format: `"edge_id_lane_index"` (e.g., `"-3734_0"`)
+- ✅ DHS includes additional parameters: `shoulder_segments`, `hard_shoulder_lane_index`, `activation_schedule`
+- ✅ All parameters are stored for audit/reporting purposes, even if not used by SUMO XML
 
 ### 2. event_description.json
 
@@ -410,9 +447,20 @@ control_params = {
 
 ### DHS Parameters
 
-- ✅ `shoulder_segments` must be non-empty list
+- ✅ `shoulder_segments` must be non-empty list of edge IDs
+- ✅ `affected_lanes` must be non-empty list of lane IDs (format: `edge_id_lane_index`)
+- ✅ `hard_shoulder_lane_index` must be valid (typically 0)
 - ✅ `activation_schedule` must have at least one entry
 - ✅ `begin` < `end` for each schedule entry
+- ⚠️ Warning if `affected_lanes` count != `shoulder_segments` count (incomplete lane mapping)
+
+### edgeData Aggregation (All Strategies)
+
+- ✅ `affected_edges` **must be non-empty** for proper edgeData aggregation
+- ✅ Edge IDs must exist in the network file (validated during aggregation)
+- ✅ Lane IDs **must follow SUMO format**: `edge_id_lane_index` (e.g., `"-3734_0"`)
+- ✅ Duplicate edges are automatically removed during aggregation
+- ⚠️ Warning if `affected_edges` is empty (edgeData won't include strategy edges)
 
 ---
 
@@ -476,16 +524,26 @@ When `begin`/`end`/`time_seconds` are **provided**:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2025-11-16 | ✅ Updated DHS parameters to include `affected_lanes` and `hard_shoulder_lane_index`; Added edgeData aggregation validation rules; Clarified parameter importance for all strategies |
 | 1.0 | 2025-11-14 | Initial interface contract documentation |
 
 ---
 
 ## Related Documents
 
+### Implementation & Reference
+- `shared/control_tools/scenario_generator.py` - Scenario generation implementation
+- `shared/control_tools/additional_generator.py` - SUMO XML generation (DHS, VSS, TEC)
+- `shared/utilities/edge_aggregator.py` - edgeData aggregation for all strategies
+
+### Strategy-Specific Fixes (v0.9.0)
+- `ALL_STRATEGIES_EDGEDATA_AGGREGATION_FIX.md` - Unified edgeData aggregation for all strategies
+- `DHS_COMPLETE_FIX_SUMMARY.md` - DHS XML generation and edgeData aggregation
+- `VSS_TEC_EDGEDATA_AGGREGATION_FIX.md` - VSS/TEC parameter recognition fixes
+
+### Project History
 - `CRITICAL_ISSUES_FIX_COMPLETE.md` - Phase 1 completion report
 - `FLOWSURGE_REFACTORING_COMPLETE.md` - Phase 2 completion report
-- `shared/control_tools/scenario_generator.py` - Implementation
-- `shared/control_tools/additional_generator.py` - XML generation
 
 ---
 
