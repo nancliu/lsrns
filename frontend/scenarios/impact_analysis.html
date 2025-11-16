@@ -7,27 +7,66 @@
     <meta name="theme-color" content="#2196f3">
     <title>影响分析 - 交通仿真推演系统</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="scenario_browser.css">
     <link rel="stylesheet" href="css/impact_analysis.css">
     <script src="../libs/chart.js/3.9.1/chart.min.js"></script>
 </head>
 <body>
-    <!-- Header Section -->
-    <header class="page-header">
-        <div class="header-content">
-            <div class="breadcrumb">
-                <a href="/scenarios/case-simulation-center.html" class="breadcrumb-link">案例列表</a>
-                <span class="breadcrumb-separator">/</span>
-                <span class="breadcrumb-current" id="caseBreadcrumb">加载中...</span>
-                <span class="breadcrumb-separator">/</span>
-                <span class="breadcrumb-current">影响分析</span>
+    <!-- 顶栏 -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <h1 class="system-title">超大规模路网仿真推演系统</h1>
+        </div>
+        <div class="top-bar-center">
+            <h2 class="page-title">📈 影响分析</h2>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <!-- 左侧导航栏 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>交通仿真系统</h3>
             </div>
-            <h1 class="page-title">策略对比影响分析</h1>
-            <p class="page-subtitle">交通控制策略的性能对标和改进分析</p>
-        </div>
-        <div class="header-status">
-            <span id="statusIndicator" class="status-indicator loading">加载数据中...</span>
-        </div>
-    </header>
+            <ul class="nav-menu">
+                <li class="nav-section-title">在线仿真</li>
+                <li><a href="#" class="nav-item">仿真准备</a></li>
+                <li><a href="#" class="nav-item">在线仿真</a></li>
+                <li><a href="#" class="nav-item">路况评价</a></li>
+
+                <li class="nav-section-title">事件触发仿真</li>
+                <li><a href="scenario_browser.html" class="nav-item">🎬 仿真推演场景集</a></li>
+                <li><a href="case-simulation-center.html" class="nav-item">🔄 场景案例管理</a></li>
+                <li><a href="impact_analysis.html" class="nav-item active">📈 影响分析</a></li>
+
+                <li class="nav-section-title">交通管控仿真</li>
+                <li><a href="../control/templates.html" class="nav-item">策略管理</a></li>
+                <li><a href="../control/plans.html" class="nav-item">方案管理</a></li>
+                <li><a href="../control/simulations.html" class="nav-item">批量仿真</a></li>
+                <li><a href="../control/optimization.html" class="nav-item">方案优化</a></li>
+            </ul>
+        </nav>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="container">
+                <!-- Header Section -->
+                <header class="page-header">
+                    <div class="header-content">
+                        <div class="breadcrumb">
+                            <a href="case-simulation-center.html" class="breadcrumb-link">案例列表</a>
+                            <span class="breadcrumb-separator">/</span>
+                            <span class="breadcrumb-current" id="caseBreadcrumb">加载中...</span>
+                            <span class="breadcrumb-separator">/</span>
+                            <span class="breadcrumb-current">影响分析</span>
+                        </div>
+                        <h1 class="page-title">策略对比影响分析</h1>
+                        <p class="page-subtitle">交通控制策略的性能对标和改进分析</p>
+                    </div>
+                    <div class="header-status">
+                        <span id="statusIndicator" class="status-indicator loading">加载数据中...</span>
+                    </div>
+                </header>
 
     <!-- Main Content -->
     <main class="page-content">
@@ -87,7 +126,7 @@
             <section class="section section-charts">
                 <div class="section-header">
                     <h2>时序数据可视化</h2>
-                    <p class="section-subtitle">5个关键指标随仿真时间的变化趋势(5400个数据点)</p>
+                    <p class="section-subtitle">6个关键指标随仿真时间的变化趋势(5400个数据点)</p>
                 </div>
                 <div class="section-body">
                     <div class="charts-grid">
@@ -105,25 +144,32 @@
                             <canvas id="chartAvgSpeed"></canvas>
                         </div>
 
-                        <!-- Chart 3: Completed Vehicles -->
-                        <div class="chart-card">
-                            <h3 class="chart-title">已完成车数</h3>
-                            <p class="chart-unit">单位: 辆</p>
-                            <canvas id="chartCompletedVehicles"></canvas>
-                        </div>
-
-                        <!-- Chart 4: Waiting Vehicles -->
-                        <div class="chart-card">
-                            <h3 class="chart-title">等待车数</h3>
-                            <p class="chart-unit">单位: 辆</p>
-                            <canvas id="chartWaitingVehicles"></canvas>
-                        </div>
-
-                        <!-- Chart 5: Loaded Vehicles -->
+                        <!-- Chart 3: Loaded Vehicles -->
                         <div class="chart-card">
                             <h3 class="chart-title">已载入车数</h3>
                             <p class="chart-unit">单位: 辆</p>
                             <canvas id="chartLoadedVehicles"></canvas>
+                        </div>
+
+                        <!-- Chart 4: Collisions -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">碰撞次数</h3>
+                            <p class="chart-unit">单位: 次 (安全指标)</p>
+                            <canvas id="chartCollisions"></canvas>
+                        </div>
+
+                        <!-- Chart 5: Mean Waiting Time -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">平均等待时间</h3>
+                            <p class="chart-unit">单位: 秒 (拥堵指标)</p>
+                            <canvas id="chartMeanWaitingTime"></canvas>
+                        </div>
+
+                        <!-- Chart 6: Completed Vehicles -->
+                        <div class="chart-card">
+                            <h3 class="chart-title">已完成车数</h3>
+                            <p class="chart-unit">单位: 辆</p>
+                            <canvas id="chartCompletedVehicles"></canvas>
                         </div>
                     </div>
                 </div>
@@ -182,6 +228,13 @@
 
         </div>
     </main>
+                <!-- 分页或底部信息 -->
+                <div class="footer-info-section">
+                    <small>数据已加载完成</small>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript -->
     <script>
@@ -206,28 +259,31 @@
                 unit: '辆',
                 higher_is_better: true
             },
-            'waiting_vehicles': {
-                label: '等待车数',
-                unit: '辆',
-                higher_is_better: false
+            'collisions': {
+                label: '碰撞次数',
+                unit: '次',
+                higher_is_better: false,
+                description: '交通安全指标'
+            },
+            'meanWaitingTime': {
+                label: '平均等待时间',
+                unit: '秒',
+                higher_is_better: false,
+                description: '交通拥堵指标'
             },
             'completed_vehicles': {
                 label: '已完成车数',
                 unit: '辆',
                 higher_is_better: true
             },
-            'chain_frequency': {
-                label: '链接频率',
-                unit: '次',
-                higher_is_better: true
+            'arrived': {
+                label: '已到达车数',
+                unit: '辆',
+                higher_is_better: true,
+                description: '仿真成功率'
             },
-            'transmission_frequency': {
-                label: '传送频率',
-                unit: '次',
-                higher_is_better: true
-            },
-            'terminated_vehicles': {
-                label: '已中止车数',
+            'waiting_vehicles': {
+                label: '等待车数',
                 unit: '辆',
                 higher_is_better: false
             }
@@ -506,7 +562,13 @@
 
             if (metricKey === 'avg_speed') {
                 return (parseFloat(value) || 0).toFixed(2);
-            } else if (['current_vehicles', 'loaded_vehicles', 'waiting_vehicles', 'completed_vehicles', 'terminated_vehicles'].includes(metricKey)) {
+            } else if (metricKey === 'meanWaitingTime') {
+                // 平均等待时间：显示2位小数
+                return (parseFloat(value) || 0).toFixed(2);
+            } else if (['current_vehicles', 'loaded_vehicles', 'waiting_vehicles', 'completed_vehicles', 'terminated_vehicles', 'arrived'].includes(metricKey)) {
+                return Math.round(value).toLocaleString();
+            } else if (metricKey === 'collisions') {
+                // 碰撞次数：整数
                 return Math.round(value).toLocaleString();
             } else if (['chain_frequency', 'transmission_frequency'].includes(metricKey)) {
                 // 频率指标
@@ -519,12 +581,23 @@
 
         function renderTimeseriesCharts() {
             const timeseriesData = analysisData.timeseriesData;
-            const metricsToChart = ['current_vehicles', 'avg_speed', 'completed_vehicles', 'waiting_vehicles', 'loaded_vehicles'];
+            // Phase 2更新：6个时序数据指标
+            const metricsToChart = [
+                'current_vehicles',    // 当前运行车数
+                'avg_speed',           // 平均速度
+                'loaded_vehicles',     // 已载入车数
+                'collisions',          // 碰撞次数 (新增)
+                'meanWaitingTime',     // 平均等待时间 (新增)
+                'completed_vehicles'   // 已完成车数
+            ];
 
             metricsToChart.forEach(metricKey => {
-                const canvasId = `chart${capitalize(metricKey)}`;
+                const canvasId = getCanvasId(metricKey);
                 const canvas = document.getElementById(canvasId);
-                if (!canvas) return;
+                if (!canvas) {
+                    console.warn(`Canvas not found for metric: ${metricKey} (id: ${canvasId})`);
+                    return;
+                }
 
                 const chartData = buildChartData(metricKey, timeseriesData);
                 const chartConfig = buildChartConfig(metricKey, chartData);
@@ -534,6 +607,19 @@
                 }
                 charts[metricKey] = new Chart(canvas.getContext('2d'), chartConfig);
             });
+        }
+
+        function getCanvasId(metricKey) {
+            // 将指标键转换为canvas ID
+            const mapping = {
+                'current_vehicles': 'chartCurrentVehicles',
+                'avg_speed': 'chartAvgSpeed',
+                'loaded_vehicles': 'chartLoadedVehicles',
+                'collisions': 'chartCollisions',
+                'meanWaitingTime': 'chartMeanWaitingTime',
+                'completed_vehicles': 'chartCompletedVehicles'
+            };
+            return mapping[metricKey] || `chart${capitalize(metricKey)}`;
         }
 
         function capitalize(str) {
@@ -576,6 +662,27 @@
             const metric = TRAFFIC_METRICS[metricKey];
             const unitLabel = metric ? `(${metric.unit})` : '';
 
+            // 为不同指标自定义Y轴配置
+            let yAxisConfig = {
+                title: {
+                    display: true,
+                    text: unitLabel,
+                    font: { size: 13 }
+                }
+            };
+
+            // 针对特定指标的Y轴特殊配置
+            if (metricKey === 'collisions') {
+                // 碰撞次数：通常是累计值，Y轴从0开始
+                yAxisConfig.beginAtZero = true;
+            } else if (metricKey === 'meanWaitingTime') {
+                // 平均等待时间：Y轴从0开始
+                yAxisConfig.beginAtZero = true;
+            } else if (metricKey === 'avg_speed') {
+                // 平均速度：Y轴从0到合理的最大值
+                yAxisConfig.beginAtZero = true;
+            }
+
             return {
                 type: 'line',
                 data: chartData,
@@ -612,13 +719,7 @@
                                 maxTicksLimit: 12
                             }
                         },
-                        y: {
-                            title: {
-                                display: true,
-                                text: unitLabel,
-                                font: { size: 13 }
-                            }
-                        }
+                        y: yAxisConfig
                     },
                     animation: {
                         duration: 0
