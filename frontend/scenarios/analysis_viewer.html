@@ -333,7 +333,7 @@
         };
 
         /**
-         * 渲染多案例比较摘要
+         * 渲染多案例比较摘要和对比表格
          */
         function renderMultiCaseComparison() {
             if (!analysisData || !analysisData.cases) return;
@@ -367,6 +367,148 @@
                 `;
                 summaryContainer.appendChild(card);
             });
+
+            // 渲染对比表格
+            renderMultiCaseComparisonTable(cases);
+        }
+
+        /**
+         * 渲染多案例对比表格
+         * 显示各案例的主要指标和改善/恶化情况
+         */
+        function renderMultiCaseComparisonTable(cases) {
+            const container = document.getElementById('comparisonTableContainer');
+            if (!container) return;
+
+            if (!cases || cases.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无对比数据</div>';
+                return;
+            }
+
+            // 基准案例（第一个案例）
+            const baseline = cases[0];
+            const baselineSummary = baseline.summary || {};
+
+            // 构建表格
+            let html = `
+                <div class="comparison-table-wrapper">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>案例 ID</th>
+                                <th colspan="2">总仿真数</th>
+                                <th colspan="2">已完成</th>
+                                <th colspan="2">失败仿真</th>
+                                <th colspan="2">完成率 (%)</th>
+                            </tr>
+                            <tr>
+                                <th>案例</th>
+                                <th>数值</th>
+                                <th>对比</th>
+                                <th>数值</th>
+                                <th>对比</th>
+                                <th>数值</th>
+                                <th>对比</th>
+                                <th>数值</th>
+                                <th>对比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            // 遍历每个案例
+            cases.forEach((caseData, index) => {
+                const summary = caseData.summary || {};
+                const caseId = caseData.case_id;
+                const isBaseline = (index === 0);
+
+                // 计算指标
+                const totalSims = summary.total_simulations || 0;
+                const completed = summary.completed || 0;
+                const failed = summary.failed || 0;
+                const completionRate = totalSims > 0 ? ((completed / totalSims) * 100).toFixed(1) : 0;
+
+                // 计算改善百分比（与基准对比）
+                let totalSimsChange = '-';
+                let completedChange = '-';
+                let failedChange = '-';
+                let completionRateChange = '-';
+
+                if (!isBaseline) {
+                    // 总仿真数对比（更多不一定是好的，但我们显示差异）
+                    if (baselineSummary.total_simulations) {
+                        const diff = totalSims - baselineSummary.total_simulations;
+                        totalSimsChange = diff === 0 ? '→' :
+                            `<span class="metric-change ${diff > 0 ? 'positive' : 'negative'}">${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)}</span>`;
+                    }
+
+                    // 完成数对比（更多更好）
+                    if (baselineSummary.completed) {
+                        const diff = completed - baselineSummary.completed;
+                        const percentChange = (diff / baselineSummary.completed * 100).toFixed(1);
+                        completedChange = diff >= 0 ?
+                            `<span class="improvement">↑ +${percentChange}%</span>` :
+                            `<span class="deterioration">↓ ${percentChange}%</span>`;
+                    }
+
+                    // 失败数对比（更少更好）
+                    if (baselineSummary.failed !== undefined) {
+                        const diff = failed - baselineSummary.failed;
+                        failedChange = diff <= 0 ?
+                            `<span class="improvement">↓ ${Math.abs(diff)}</span>` :
+                            `<span class="deterioration">↑ ${diff}</span>`;
+                    }
+
+                    // 完成率对比（更高更好）
+                    const baselineRate = baselineSummary.total_simulations > 0 ?
+                        (baselineSummary.completed / baselineSummary.total_simulations * 100) : 0;
+                    const rateDiff = completionRate - baselineRate;
+                    completionRateChange = rateDiff >= 0 ?
+                        `<span class="improvement">↑ +${rateDiff.toFixed(1)}%</span>` :
+                        `<span class="deterioration">↓ ${rateDiff.toFixed(1)}%</span>`;
+                }
+
+                // 添加表格行
+                const rowClass = isBaseline ? 'baseline-row' : '';
+                html += `
+                    <tr class="${rowClass}">
+                        <td class="strategy-name">
+                            <strong>${caseId}</strong>
+                            ${isBaseline ? '<span class="baseline-badge">基准</span>' : ''}
+                        </td>
+                        <td class="metric-value">${totalSims}</td>
+                        <td class="metric-change">${totalSimsChange}</td>
+                        <td class="metric-value">${completed}</td>
+                        <td class="metric-change">${completedChange}</td>
+                        <td class="metric-value">${failed}</td>
+                        <td class="metric-change">${failedChange}</td>
+                        <td class="metric-value">${completionRate}</td>
+                        <td class="metric-change">${completionRateChange}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-legend">
+                    <div class="legend-item">
+                        <span class="legend-icon improvement">↑</span>
+                        <span class="legend-text">改善</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon deterioration">↓</span>
+                        <span class="legend-text">恶化</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-text">百分比相对于基准案例（第一个选择的案例）</span>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
         }
 
         // 渲染仿真详情表格

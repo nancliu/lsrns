@@ -35,7 +35,7 @@ Phase 3 (⏳ 待定): 集成测试和文档
 
 **Priority**: 🔴 High
 **Estimated**: 2 hours
-**Assigned**: -
+**Assigned**: ✅ Completed
 **Dependencies**: Phase 1 完成
 
 **Description**:
@@ -47,14 +47,15 @@ Phase 3 (⏳ 待定): 集成测试和文档
 - 移除现有的固定显示方式
 
 **Validation**:
-- [ ] 新 HTML 结构包含所有必需的元素
-- [ ] 通过浏览器验证：DOM 结构正确，无重复ID
-- [ ] 存在一个 ID 为 `batchMonitoring` 的主容器
-- [ ] 存在折叠和展开两种状态的内容区
+- [x] 新 HTML 结构包含所有必需的元素
+- [x] 通过浏览器验证：DOM 结构正确，无重复ID
+- [x] 存在一个 ID 为 `batchMonitoring` 的主容器
+- [x] 存在折叠和展开两种状态的内容区
 
 **Notes**:
 - 保持现有的统计卡片、进度条等元素，仅改变结构
 - 不修改数据模型或 API 调用
+- HTML结构已在case-simulation-center.html:789-868中实现
 
 ---
 
