@@ -120,6 +120,7 @@ class SimulationService(BaseService):
 
             return {
                 "simulation_id": simulation_id,
+                "case_id": case_id,  # 添加case_id，便于前端识别
                 "run_folder": str(simulation_folder),
                 "gui": gui,
                 "mesoscopic": sim_metadata.get("simulation_type") == "mesoscopic",
@@ -311,7 +312,7 @@ class SimulationService(BaseService):
                 metadata["last_step"] = "simulation_start"
             MetadataManager.save_case_metadata(case_path, metadata)
         except Exception as e:
-            print(f"更新案例状态失败: {e}")
+            logger.error(f"更新案例状态失败: {e}")
     
     def _build_simulation_params(self, request: SimulationRequest, simulation_folder: Path,
                                cfg_file: str) -> Dict[str, Any]:
@@ -443,7 +444,7 @@ class SimulationService(BaseService):
             self._update_case_completion_status(case_path, ended_at, "completed")
 
         except Exception as e:
-            print(f"处理仿真成功状态失败: {e}")
+            logger.error(f"处理仿真成功状态失败: {e}")
 
     def _write_success_progress(self, simulation_folder: Path) -> None:
         """写入成功完成进度"""
@@ -480,7 +481,7 @@ class SimulationService(BaseService):
             self._update_case_completion_status(case_path, datetime.now().isoformat(), "failed")
             
         except Exception as e:
-            print(f"处理仿真失败状态失败: {e}")
+            logger.error(f"处理仿真失败状态失败: {e}")
     
     def _write_failure_progress(self, simulation_folder: Path, error_message: str) -> None:
         """写入失败进度"""
@@ -519,12 +520,12 @@ class SimulationService(BaseService):
                 # 为所有关联的scenario更新状态
                 for scenario_id in metadata.get('scenarios', []):
                     mapper.update_case_status(scenario_id, case_id, new_status)
-                    print(f"✓ scenario_index.json已更新: {scenario_id} - {case_id} 状态 → {new_status}")
+                    logger.debug(f"scenario_index.json已更新: {scenario_id} - {case_id} 状态 → {new_status}")
             except Exception as mapping_error:
-                print(f"⚠️ 更新scenario_index.json失败（非致命错误）: {mapping_error}")
+                logger.warning(f"更新scenario_index.json失败（非致命错误）: {mapping_error}")
 
         except Exception as e:
-            print(f"更新案例完成状态失败: {e}")
+            logger.error(f"更新案例完成状态失败: {e}")
     
     def _build_simulation_response(self, request: SimulationRequest, simulation_id: str,
                                  request_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -728,7 +729,16 @@ class SimulationService(BaseService):
 
             for sim in simulations:
                 sim_id = sim.get("simulation_id")
-                sim_folder = simulations_dir / sim_id
+
+                # 从元数据中获取仿真结果文件夹
+                # 支持两种方式：
+                # 1. 旧格式：使用 simulations_dir / sim_id
+                # 2. 新格式：使用元数据中的 result_folder
+                result_folder_str = sim.get("result_folder")
+                if result_folder_str:
+                    sim_folder = Path(result_folder_str)
+                else:
+                    sim_folder = simulations_dir / sim_id
 
                 # 尝试读取进度文件
                 progress_file = sim_folder / "progress.json"
@@ -744,9 +754,13 @@ class SimulationService(BaseService):
                             # 如果进度数据中有 batch_id，收集它
                             if "batch_id" in progress_data:
                                 batch_ids.add(progress_data.get("batch_id"))
-                    except:
+                    except Exception as e:
                         # 如果读取失败，使用元数据中的状态
+                        logger.warning(f"读取进度文件失败 {progress_file}: {str(e)}")
                         sim["progress"] = 100 if sim.get("status") == "completed" else 0
+                else:
+                    # 进度文件不存在，使用元数据中的状态
+                    sim["progress"] = 100 if sim.get("status") == "completed" else 0
 
                 # 检查模拟元数据中是否有 batch_id
                 if "batch_id" in sim:
@@ -821,44 +835,264 @@ class SimulationService(BaseService):
         return latest_sim_dir
     
     async def get_case_simulations(self, case_id: str) -> List[Dict[str, Any]]:
-        """获取案例下的所有仿真结果"""
+        """获取案例下的所有仿真结果
+
+        向后兼容性支持：
+        - 旧格式：simulations/{simulation_id}/simulation_metadata.json
+        - 新格式：simulations/{scenario_name}/batch_{timestamp}/{simulation_id}/simulation_metadata.json
+        """
         try:
             case_path = Path("cases") / case_id
             simulations_path = case_path / "simulations"
-            
+
             if not simulations_path.exists():
                 return []
-            
+
             simulations = []
-            for sim_dir in simulations_path.iterdir():
-                if sim_dir.is_dir():
+
+            # 遍历 simulations 目录
+            for item in simulations_path.iterdir():
+                if not item.is_dir():
+                    continue
+
+                # 情况1：旧格式 - 直接在 simulations/{simulation_id}/ 下有 simulation_metadata.json
+                metadata_file = item / "simulation_metadata.json"
+                if metadata_file.exists():
                     try:
-                        sim_data = MetadataManager.load_simulation_metadata(sim_dir)
+                        sim_data = MetadataManager.load_simulation_metadata(item)
                         simulations.append(sim_data)
+                        logger.debug(f"加载仿真元数据: {item.name} (旧格式)")
                     except Exception as e:
-                        print(f"读取仿真元数据失败: {e}")
-            
+                        logger.warning(f"读取仿真元数据失败 {item.name}: {str(e)}")
+                        continue
+
+                # 情况2：新格式 - simulations/{scenario_name}/batch_{timestamp}/{scenario_folder}/{simulation_id}/
+                # 需要递归查找批次结构中的仿真
+                else:
+                    try:
+                        for sub_item in item.iterdir():
+                            if not sub_item.is_dir():
+                                continue
+
+                            # 检查是否是批次目录 (batch_*)
+                            if sub_item.name.startswith("batch_"):
+                                # 在批次目录下查找所有仿真
+                                # 结构: batch_*/scenario_folder/sim_*/simulation_metadata.json
+                                self._load_simulations_from_batch(sub_item, simulations)
+                            # 检查该目录本身是否为仿真目录
+                            else:
+                                sim_metadata_file = sub_item / "simulation_metadata.json"
+                                if sim_metadata_file.exists():
+                                    try:
+                                        sim_data = MetadataManager.load_simulation_metadata(sub_item)
+                                        simulations.append(sim_data)
+                                        logger.debug(f"加载仿真元数据: {sub_item.name} (转换格式)")
+                                    except Exception as e:
+                                        logger.warning(f"读取仿真元数据失败 {sub_item.name}: {str(e)}")
+                                        continue
+                    except Exception as e:
+                        logger.debug(f"遍历子目录失败 {item.name}: {str(e)}")
+                        continue
+
             # 按创建时间倒序排列
             simulations.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+
+            logger.debug(f"案例 {case_id} 加载了 {len(simulations)} 个仿真")
             return simulations
-            
+
         except Exception as e:
+            logger.error(f"获取仿真列表失败 {case_id}: {str(e)}")
             raise Exception(f"获取仿真列表失败: {str(e)}")
-    
+
+    def _load_simulations_from_batch(self, batch_dir: Path, simulations: List[Dict[str, Any]]) -> None:
+        """从批次目录递归加载仿真元数据
+
+        支持嵌套结构：
+        - batch_{timestamp}/sim_*/simulation_metadata.json
+        - batch_{timestamp}/scenario_folder/sim_*/simulation_metadata.json
+        """
+        try:
+            for item in batch_dir.iterdir():
+                if not item.is_dir():
+                    continue
+
+                # 检查直接的元数据（可能是 sim_*/ 目录）
+                metadata_file = item / "simulation_metadata.json"
+                if metadata_file.exists():
+                    try:
+                        sim_data = MetadataManager.load_simulation_metadata(item)
+                        simulations.append(sim_data)
+                        logger.debug(f"加载仿真元数据: {item.name} (批次格式)")
+                    except Exception as e:
+                        logger.warning(f"读取仿真元数据失败 {item.name}: {str(e)}")
+                    continue
+
+                # 递归检查子目录（可能是场景文件夹）
+                try:
+                    for sub_item in item.iterdir():
+                        if not sub_item.is_dir():
+                            continue
+
+                        sub_metadata_file = sub_item / "simulation_metadata.json"
+                        if sub_metadata_file.exists():
+                            try:
+                                sim_data = MetadataManager.load_simulation_metadata(sub_item)
+                                simulations.append(sim_data)
+                                logger.debug(f"加载仿真元数据: {sub_item.name} (批次场景格式)")
+                            except Exception as e:
+                                logger.warning(f"读取仿真元数据失败 {sub_item.name}: {str(e)}")
+                except Exception:
+                    pass  # 忽略无法遍历的目录
+
+        except Exception as e:
+            logger.debug(f"加载批次仿真失败 {batch_dir.name}: {str(e)}")
+
+    async def get_simulation_progress_detail(self, case_id: str, simulation_id: str) -> Dict[str, Any]:
+        """获取单个仿真的详细进度信息（用于前端实时监控）
+
+        Args:
+            case_id: 案例ID
+            simulation_id: 仿真ID
+
+        Returns:
+            {
+                "simulation_id": "...",
+                "case_id": "...",
+                "status": "running|completed|failed|pending",
+                "percent": 45,
+                "message": "t=1628s/3600s",
+                "created_at": "...",
+                "started_at": "...",
+                "completed_at": "...",
+                "result_folder": "..."
+            }
+        """
+        try:
+            case_path = Path("cases") / case_id
+            simulations_path = case_path / "simulations"
+
+            # 查找仿真元数据（支持普通仿真和批次仿真）
+            simulations = await self.get_case_simulations(case_id)
+            target_sim = None
+
+            for sim in simulations:
+                if sim.get("simulation_id") == simulation_id:
+                    target_sim = sim
+                    break
+
+            # 如果在已保存的元数据中找不到，尝试直接查找目录和progress.json
+            # 这处理了新创建但尚未被get_case_simulations发现的仿真
+            if not target_sim:
+                # 尝试多种可能的路径
+                possible_paths = [
+                    simulations_path / simulation_id,  # 标准格式
+                    # 批次格式的路径（可能有多种组织方式）
+                ]
+
+                # 搜索所有子目录中的仿真ID
+                try:
+                    for item in simulations_path.rglob("*"):
+                        if item.is_dir() and item.name == simulation_id:
+                            possible_paths.append(item)
+                except Exception:
+                    pass
+
+                # 检查这些路径中是否存在progress.json
+                for path in possible_paths:
+                    if path.exists():
+                        progress_file = path / "progress.json"
+                        if progress_file.exists():
+                            # 找到了进度文件，创建一个临时的target_sim对象
+                            try:
+                                with open(progress_file, 'r', encoding='utf-8') as f:
+                                    progress_data = json.load(f)
+                                target_sim = {
+                                    "simulation_id": simulation_id,
+                                    "case_id": case_id,
+                                    "status": progress_data.get("status", "running"),
+                                    "percent": progress_data.get("percent", 0),
+                                    "message": progress_data.get("message", ""),
+                                    "result_folder": str(path),
+                                    "created_at": None,
+                                    "started_at": None,
+                                    "completed_at": None
+                                }
+                                # 尝试读取元数据补充信息
+                                metadata_file = path / "simulation_metadata.json"
+                                if metadata_file.exists():
+                                    try:
+                                        with open(metadata_file, 'r', encoding='utf-8') as f:
+                                            metadata = json.load(f)
+                                            target_sim.update({
+                                                "created_at": metadata.get("created_at"),
+                                                "started_at": metadata.get("started_at"),
+                                                "completed_at": metadata.get("completed_at")
+                                            })
+                                    except Exception:
+                                        pass
+                                break
+                            except Exception as e:
+                                logger.debug(f"读取进度文件失败 {progress_file}: {str(e)}")
+                                continue
+
+            if not target_sim:
+                raise Exception(f"未找到仿真: {simulation_id}")
+
+            # 获取实时进度文件信息
+            result_folder_str = target_sim.get("result_folder")
+            if result_folder_str:
+                progress_file = Path(result_folder_str) / "progress.json"
+            else:
+                progress_file = simulations_path / simulation_id / "progress.json"
+
+            # 尝试读取进度文件
+            if progress_file.exists():
+                try:
+                    with open(progress_file, 'r', encoding='utf-8') as f:
+                        progress_data = json.load(f)
+                        target_sim["status"] = progress_data.get("status", target_sim.get("status"))
+                        target_sim["percent"] = progress_data.get("percent", 0)
+                        target_sim["message"] = progress_data.get("message", "")
+                except Exception as e:
+                    logger.warning(f"读取进度文件失败 {progress_file}: {str(e)}")
+                    # 使用元数据中的状态作为备选
+                    target_sim["percent"] = 100 if target_sim.get("status") == "completed" else 0
+            else:
+                # 进度文件不存在，使用元数据中的状态
+                target_sim["percent"] = 100 if target_sim.get("status") == "completed" else 0
+
+            # 只返回必要的字段
+            return {
+                "simulation_id": target_sim.get("simulation_id"),
+                "case_id": case_id,
+                "status": target_sim.get("status"),
+                "percent": target_sim.get("percent", 0),
+                "message": target_sim.get("message", ""),
+                "progress": target_sim.get("progress", target_sim.get("percent", 0)),
+                "created_at": target_sim.get("created_at"),
+                "started_at": target_sim.get("started_at"),
+                "completed_at": target_sim.get("completed_at"),
+                "result_folder": target_sim.get("result_folder")
+            }
+
+        except Exception as e:
+            logger.error(f"获取仿真进度详情失败 {case_id}/{simulation_id}: {str(e)}")
+            raise Exception(f"获取仿真进度详情失败: {str(e)}")
+
     async def get_simulation_detail(self, simulation_id: str) -> Dict[str, Any]:
         """获取仿真详情"""
         try:
             # 查找仿真元数据文件
             cases_path = Path("cases")
-            
+
             for case_dir in cases_path.iterdir():
                 if case_dir.is_dir():
                     sim_dir = case_dir / "simulations" / simulation_id
                     if sim_dir.exists():
                         return MetadataManager.load_simulation_metadata(sim_dir)
-            
+
             raise Exception(f"未找到仿真: {simulation_id}")
-            
+
         except Exception as e:
             raise Exception(f"获取仿真详情失败: {str(e)}")
     
@@ -1002,7 +1236,7 @@ class SimulationService(BaseService):
 
             return None
         except Exception as e:
-            print(f"加载事件场景失败: {e}")
+            logger.warning(f"加载事件场景失败: {e}")
             return None
 
     def _generate_simulation_config_with_event(self, case_path: Path, simulation_folder: Path,
@@ -1073,8 +1307,13 @@ async def run_simulation_service(request: SimulationRequest) -> Dict[str, Any]:
 
 
 async def get_simulation_progress_service(case_id: str) -> Dict[str, Any]:
-    """获取仿真进度服务函数"""
+    """获取仿真进度服务函数（案例级汇总）"""
     return await simulation_service.get_simulation_progress(case_id)
+
+
+async def get_simulation_progress_detail_service(case_id: str, simulation_id: str) -> Dict[str, Any]:
+    """获取单个仿真详细进度服务函数（用于前端实时监控）"""
+    return await simulation_service.get_simulation_progress_detail(case_id, simulation_id)
 
 
 async def get_case_simulations_service(case_id: str) -> List[Dict[str, Any]]:

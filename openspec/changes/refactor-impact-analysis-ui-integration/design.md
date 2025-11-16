@@ -43,12 +43,12 @@
 │  │  │  [Line Chart]    │  │ [Line Chart]     │            │   │
 │  │  └──────────────────┘  └──────────────────┘            │   │
 │  │  ┌──────────────────┐  ┌──────────────────┐            │   │
-│  │  │completed_vehicles│  │waiting_vehicles  │            │   │
+│  │  │loaded_vehicles   │  │collisions        │            │   │
 │  │  │  [Line Chart]    │  │ [Line Chart]     │            │   │
 │  │  └──────────────────┘  └──────────────────┘            │   │
 │  │  ┌──────────────────┐  ┌──────────────────┐            │   │
-│  │  │loaded_vehicles   │  │ [Reserved]       │            │   │
-│  │  │  [Line Chart]    │  │                  │            │   │
+│  │  │meanWaitingTime   │  │completed_vehicles│            │   │
+│  │  │  [Line Chart]    │  │ [Line Chart]     │            │   │
 │  │  └──────────────────┘  └──────────────────┘            │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
@@ -233,14 +233,15 @@ strategy_overview = {
 
 ### 2.4 时序图表渲染 (`renderTimeseriesCharts()`)
 
-**职责**: 使用Chart.js渲染5个时序图表
+**职责**: 使用Chart.js渲染6个时序图表
 
-**图表列表**:
+**图表列表** (Phase 2调整):
 1. current_vehicles (当前运行车数)
 2. avg_speed (平均速度)
-3. completed_vehicles (已完成车数)
-4. waiting_vehicles (等待车数)
-5. loaded_vehicles (已载入车数)
+3. loaded_vehicles (已载入车数)
+4. collisions (碰撞次数 - 安全指标)
+5. meanWaitingTime (平均等待时间 - 拥堵指标)
+6. completed_vehicles (已完成车数)
 
 **Chart.js 配置** (示例):
 ```javascript
@@ -350,7 +351,14 @@ impact_analysis.html (800 行)
     │   │   │   └── <canvas id="chart-current-vehicles">
     │   │   ├── <div class="chart-container">
     │   │   │   └── <canvas id="chart-avg-speed">
-    │   │   ├── ...
+    │   │   ├── <div class="chart-container">
+    │   │   │   └── <canvas id="chart-loaded-vehicles">
+    │   │   ├── <div class="chart-container">
+    │   │   │   └── <canvas id="chart-collisions">
+    │   │   ├── <div class="chart-container">
+    │   │   │   └── <canvas id="chart-meanWaitingTime">
+    │   │   ├── <div class="chart-container">
+    │   │   │   └── <canvas id="chart-completed-vehicles">
     │   │
     │   └── <section class="improvement-analysis">
     │       ├── <div class="improvement-rankings">
@@ -537,8 +545,9 @@ function validateComparisonData(data) {
 ### 6.2 集成测试
 
 - 导航流程: 案例列表 → impact_analysis.html
-- 数据完整性: 加载数据后所有Section都正确渲染
+- 数据完整性: 加载数据后所有Section都正确渲染（6个时序图表）
 - 交互测试: 鼠标悬停、点击等交互正常
+- 图表验证: 确保6个图表都正确绘制，数据线正确显示4个策略
 
 ### 6.3 浏览器兼容性
 

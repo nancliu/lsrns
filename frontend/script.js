@@ -257,18 +257,27 @@ async function loadCaseSimulations(caseId) {
         document.getElementById('existing-simulations').innerHTML = '<div class="loading">请先选择案例</div>';
         return;
     }
-    
+
     try {
         document.getElementById('existing-simulations').innerHTML = '<div class="loading">加载中...</div>';
         const response = await apiFetch(`${API_BASE_URL}/simulations/${caseId}`);
         const simulations = response.data?.simulations || [];
-        
-        if (simulations.length === 0) {
+
+        // 过滤掉管控方案优化（plan_opti）的仿真
+        const filteredSimulations = simulations.filter(sim => {
+            // 检查仿真是否来自plan_opti（管控方案优化）
+            // plan_opti仿真的路径通常在 simulations/plan_opti/ 目录下
+            const simPath = sim.simulation_dir || '';
+            const isPlanOpti = simPath.includes('plan_opti');
+            return !isPlanOpti;
+        });
+
+        if (filteredSimulations.length === 0) {
             document.getElementById('existing-simulations').innerHTML = '<div class="no-data">该案例暂无仿真结果</div>';
             return;
         }
-        
-        const simulationsHtml = simulations.map(sim => `
+
+        const simulationsHtml = filteredSimulations.map(sim => `
             <div class="simulation-card ${sim.status}">
                 <div class="simulation-card-header">
                     <div class="simulation-card-title">${sim.simulation_name || sim.simulation_id}</div>
@@ -448,7 +457,8 @@ async function runSimulation() {
             const pollOnce = async () => {
                 try {
                     const ts = Date.now();
-                    const p = await apiFetch(`${API_BASE_URL}/simulation_progress/${caseId}?_=${ts}`);
+                    // 调用新的单个仿真进度API
+                    const p = await apiFetch(`${API_BASE_URL}/simulation_progress/${caseId}/${currentSim.simulationId}?_=${ts}`);
                     const data = p && p.data ? p.data : p;
                     const pct = (data && typeof data.percent === 'number') ? Math.max(0, Math.min(100, data.percent)) : 0;
                     const msg = data && data.message ? data.message : '';
@@ -460,15 +470,30 @@ async function runSimulation() {
                         if (data.status === 'completed') {
                             updateSimulationStatus('completed', `仿真完成 100%`);
                             if (fill) fill.style.width = '100%';
-                            const endTs = (data && data.updated_at) ? data.updated_at : new Date().toISOString();
-                            displaySimulationResult({ run_folder: `cases/${caseId}/simulation`, simulation_type: simulationType, gui: guiMode, started_at: currentSim.startedAt, ended_at: endTs, status: 'completed' });
+                            const endTs = (data && data.completed_at) ? data.completed_at : new Date().toISOString();
+                            displaySimulationResult({
+                                run_folder: data.result_folder || `cases/${caseId}/simulations`,
+                                simulation_type: simulationType,
+                                gui: guiMode,
+                                started_at: currentSim.startedAt,
+                                ended_at: endTs,
+                                status: 'completed'
+                            });
                         } else {
                             updateSimulationStatus('failed', `仿真失败 ${pct}%${msg ? `（${msg}）` : ''}`);
-                            displaySimulationResult({ run_folder: `cases/${caseId}/simulation`, simulation_type: simulationType, gui: guiMode, started_at: currentSim.startedAt, status: 'failed' });
+                            displaySimulationResult({
+                                run_folder: data.result_folder || `cases/${caseId}/simulations`,
+                                simulation_type: simulationType,
+                                gui: guiMode,
+                                started_at: currentSim.startedAt,
+                                status: 'failed'
+                            });
                         }
                         hideProgressBar();
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) {
+                    console.error('轮询仿真进度失败:', e);
+                }
             };
             pollTimer = setInterval(pollOnce, 10000);
             pollOnce();
@@ -495,8 +520,15 @@ async function runSimulation() {
         const payload = result && result.data ? result.data : result;
         showNotification('仿真已启动', 'success');
         currentSim.caseId = caseId;
+        currentSim.simulationId = payload.simulation_id;  // 保存仿真ID用于进度查询
         currentSim.startedAt = payload.started_at || new Date().toISOString();
-        displaySimulationResult({ run_folder: `cases/${caseId}/simulation`, simulation_type: simulationType, gui: guiMode, started_at: currentSim.startedAt, status: 'started' });
+        displaySimulationResult({
+            run_folder: payload.run_folder || `cases/${caseId}/simulations/${payload.simulation_id}`,
+            simulation_type: simulationType,
+            gui: guiMode,
+            started_at: currentSim.startedAt,
+            status: 'started'
+        });
         
         // 等待后端写入初始progress.json后再开始轮询
         setTimeout(startPolling, 1200);
@@ -1127,11 +1159,12 @@ async function loadCases() {
         const data = await apiFetch(`${API_BASE_URL}/list_cases/?page_size=1000`);
         const allCases = data.cases || [];
 
-        // Phase 2: 过滤掉事件场景案例 - OD仿真仅支持OD提取案例
+        // 过滤掉事件场景案例和管控方案优化案例 - OD仿真仅支持OD提取案例
         // 检查多种事件场景案例标识：
         // 1. source_type 包含 'event_scenario' (包括 'event_scenario' 和 'event_scenario_batch')
         // 2. case_type 为 'event_based' (旧版本事件场景案例)
         // 3. case_type 为 'event_scenario_case' (新版本事件场景案例)
+        // 4. case_id 对应的案例包含 plan_opti 仿真（管控方案优化）
         currentCases = allCases.filter(c => {
             const sourceType = c.source_type || '';
             const caseType = c.case_type || '';
@@ -1143,7 +1176,7 @@ async function loadCases() {
             return !isEventScenario;
         });
 
-        // 如果有事件场景案例被过滤掉，记录日志
+        // 记录日志
         const eventScenarioCases = allCases.filter(c => {
             const sourceType = c.source_type || '';
             const caseType = c.case_type || '';

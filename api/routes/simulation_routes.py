@@ -17,6 +17,7 @@ from ..models.responses.batch_simulation_responses import (
 )
 from ..services import (
     run_simulation_service, get_simulation_progress_service,
+    get_simulation_progress_detail_service,  # 新增：单个仿真详细进度
     get_case_simulations_service, get_simulation_detail_service,
     delete_simulation_service,
     prepare_simulation_service, start_simulation_service,
@@ -64,10 +65,33 @@ async def start_simulation(case_id: str, simulation_id: str, gui: bool = False):
 @handle_service_errors
 async def get_simulation_progress(case_id: str):
     """
-    获取仿真任务进度
+    获取案例下所有仿真的进度汇总（监控面板）
     """
     data = await get_simulation_progress_service(case_id)
     return create_success_response("获取进度成功", data)
+
+
+@router.get("/simulation_progress/{case_id}/{simulation_id}")
+@handle_service_errors
+async def get_simulation_progress_detail(case_id: str, simulation_id: str):
+    """
+    获取单个仿真的详细进度（前端实时监控）
+
+    返回格式：
+    {
+        "simulation_id": "...",
+        "case_id": "...",
+        "status": "running|completed|failed|pending",
+        "percent": 45,
+        "message": "t=1628s/3600s",
+        "created_at": "...",
+        "started_at": "...",
+        "completed_at": "...",
+        "result_folder": "..."
+    }
+    """
+    data = await get_simulation_progress_detail_service(case_id, simulation_id)
+    return create_success_response("获取仿真进度详情成功", data)
 
 
 @router.get("/simulations/{case_id}")

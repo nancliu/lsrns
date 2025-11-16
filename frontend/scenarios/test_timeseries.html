@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>时序数据诊断</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .metric-group { margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #007bff; }
+        .metric-name { font-weight: bold; font-size: 16px; color: #007bff; margin: 10px 0; }
+        .metric-data { background: white; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+        .strategy-row { margin: 10px 0; padding: 8px; background: #e8f4f8; border-radius: 4px; }
+        .error { color: #d32f2f; padding: 10px; background: #ffebee; border-radius: 4px; margin: 10px 0; }
+        .success { color: #388e3c; padding: 10px; background: #e8f5e9; border-radius: 4px; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #007bff; color: white; }
+        tr:hover { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>时序数据加载诊断</h1>
+        <div id="status"></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        const caseId = 'case_event_10754';
+
+        async function diagnoseTimeseriesData() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+
+            try {
+                statusDiv.innerHTML = '<div class="success">正在加载时序数据...</div>';
+
+                const response = await fetch(`${API_BASE}/analysis/strategy-timeseries/${caseId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || '未知错误');
+                }
+
+                statusDiv.innerHTML = '<div class="success">✓ 数据加载成功</div>';
+
+                const timeseries = data.data || {};
+                const strategies = Object.keys(timeseries);
+
+                let html = `
+                    <h2>数据概览</h2>
+                    <table>
+                        <tr>
+                            <th>策略</th>
+                            <th>包含指标</th>
+                            <th>数据点数</th>
+                            <th>首个值</th>
+                            <th>最后一个值</th>
+                        </tr>
+                `;
+
+                strategies.forEach(strategy => {
+                    const sData = timeseries[strategy];
+                    const metrics = Object.keys(sData);
+
+                    metrics.forEach((metric, idx) => {
+                        const points = sData[metric];
+                        const pointCount = Array.isArray(points) ? points.length : 0;
+                        const firstVal = pointCount > 0 ? JSON.stringify(points[0]).substring(0, 50) : 'N/A';
+                        const lastVal = pointCount > 0 ? JSON.stringify(points[pointCount - 1]).substring(0, 50) : 'N/A';
+
+                        html += `
+                            <tr>
+                                <td>${idx === 0 ? strategy : ''}</td>
+                                <td>${metric}</td>
+                                <td>${pointCount}</td>
+                                <td>${firstVal}...</td>
+                                <td>${lastVal}...</td>
+                            </tr>
+                        `;
+                    });
+                });
+
+                html += '</table>';
+
+                // 详细分析新增指标
+                html += '<h2>关键指标详细分析</h2>';
+
+                strategies.forEach(strategy => {
+                    html += `<div class="metric-group">
+                        <div class="metric-name">${strategy}</div>`;
+
+                    ['collisions', 'meanWaitingTime'].forEach(metric => {
+                        const points = timeseries[strategy][metric] || [];
+                        if (points.length > 0) {
+                            const values = points.map(p => p.value);
+                            const min = Math.min(...values);
+                            const max = Math.max(...values);
+                            const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+
+                            html += `
+                                <div class="strategy-row">
+                                    <strong>${metric}</strong><br>
+                                    数据点: ${points.length} |
+                                    最小值: ${min.toFixed(2)} |
+                                    最大值: ${max.toFixed(2)} |
+                                    平均值: ${avg}
+                                </div>
+                            `;
+                        }
+                    });
+
+                    html += '</div>';
+                });
+
+                resultDiv.innerHTML = html;
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">✗ 错误: ${error.message}</div>`;
+                console.error('诊断错误:', error);
+            }
+        }
+
+        // 页面加载时运行诊断
+        document.addEventListener('DOMContentLoaded', diagnoseTimeseriesData);
+    </script>
+</body>
+</html>

@@ -206,10 +206,10 @@
         {
           "case_id": "case_event_10807",
           "case_name": "case_10807_batch",
-          "status": "created",
+          "status": "failed",
           "source_scenario": "scenario_10807_no_control",
           "created_at": "2025-11-16T20:46:01.625158",
-          "updated_at": "2025-11-16T20:46:43.359031"
+          "updated_at": "2025-11-16T22:33:16.592185"
         }
       ]
     },
@@ -274,10 +274,10 @@
         {
           "case_id": "case_event_10807",
           "case_name": "case_10807_batch",
-          "status": "created",
+          "status": "failed",
           "source_scenario": "scenario_10807_vss",
           "created_at": "2025-11-16T20:46:01.669774",
-          "updated_at": "2025-11-16T20:46:43.414213"
+          "updated_at": "2025-11-16T22:33:16.532356"
         }
       ]
     },
@@ -504,7 +504,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases: []
     },
     {
       "event_id": "10854",
@@ -1015,7 +1015,7 @@
         "direction": "下行",
         "mileage": "K1957.0+000",
         "junction_id": "-43279",
-        "edge_id": "-6608"
+        ""edge_id": "-6608"
       },
       "time": {
         "start_time": "2025-06-24 23:27:42",
@@ -1525,7 +1525,7 @@
       "files": {
         "scenario_dir": "scenario_12538_tec",
         "add_xml": "scenario_accident_tec_12538.add.xml",
-        "event_description": "event_description.json",
+        "event_description: "event_description.json",
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
@@ -2800,7 +2800,7 @@
       "files": {
         "scenario_dir": "scenario_14583_vss",
         "add_xml": "scenario_accident_vss_14583.add.xml",
-        "event_description": "event_description.json",
+        "event_description":: "event_description.json",
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
@@ -3568,7 +3568,7 @@
         "edge_id": "-12928"
       },
       "time": {
-        "start_time": "2025-08-25 13:19:54",
+        "start_time": "2025-08-25 13:19:54,
         "end_time": "2025-08-25 13:50:23",
         "duration_hours": 0.51
       },
@@ -5608,7 +5608,7 @@
     },
     {
       "event_id": "17257",
-      "event_type": "交通事故",
+      ""event_type": "交通事故",
       "strategy": "NO_CONTROL",
       "location": {
         "road": "G76厦蓉高速（纳黔段）",

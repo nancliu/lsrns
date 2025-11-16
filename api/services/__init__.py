@@ -21,6 +21,7 @@ from .data_service import (
 from .simulation_service import (
     run_simulation_service,
     get_simulation_progress_service,
+    get_simulation_progress_detail_service,  # 新增：单个仿真详细进度
     get_case_simulations_service,
     get_simulation_detail_service,
     delete_simulation_service,
@@ -84,6 +85,7 @@ __all__ = [
     # 仿真服务
     "run_simulation_service",
     "get_simulation_progress_service",
+    "get_simulation_progress_detail_service",  # 新增：单个仿真详细进度
     "get_case_simulations_service",
     "get_simulation_detail_service",
     "delete_simulation_service",

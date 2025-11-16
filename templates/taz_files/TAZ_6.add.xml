@@ -153,14 +153,14 @@
     <inductionLoop id="G420151002001020010_2" lane="-7206_2" pos="137.03" period="300.00" file="e1/G420151002001020010_2.xml"/>
     <!-- TAZs -->
     <taz id="G000551002000110010" shape="345559.68,571255.93 345562.98,571242.73 345628.49,571259.23 345623.92,571275.23 345559.43,571256.44 345559.68,571255.93" name="chuanbei(guangyuan-zhaohua)" color="blue">
-        <tazSource id="-1312#3" weight="1.00"/>
-        <tazSink id="-1312#3" weight="1.00"/>
+        <tazSource id="-16372#3" weight="1.00"/>
+        <tazSink id="-16372#3" weight="1.00"/>
     </taz>
     <taz id="G000551002000120010" shape="345432.19,571209.42 345434.50,571198.71 345482.13,571211.51 345478.98,571222.22 345431.98,571209.42 345432.19,571209.42" name="chuanbei(zhaohua-guangyuan)" color="blue">
-        <tazSource id="-1312#3" weight="1.00"/>
-        <tazSink id="-1312#3" weight="1.00"/>
-        <tazSource id="-17234#0" weight="1.00"/>
-        <tazSink id="-17234#0" weight="1.00"/>
+        <tazSource id="-16372#3" weight="1.00"/>
+        <tazSink id="-16372#3" weight="1.00"/>
+        <tazSource id="-17236#0" weight="1.00"/>
+        <tazSink id="-17236#0" weight="1.00"/>
     </taz>
     <taz id="G000551002000210010" shape="341423.45,570906.99 341430.38,570877.80 341574.37,570913.42 341564.96,570947.07 341422.96,570908.48 341423.45,570906.99" name="chuanbei(zhaohua-luojiagou)" color="blue">
         <tazSource id="-3092" weight="1.00"/>

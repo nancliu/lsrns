@@ -279,7 +279,31 @@ Chart.js数据集: {
 | API响应超时 | 数据加载失败 | 添加超时处理 + 重试机制 |
 | 浏览器兼容性 | 功能在旧浏览器失效 | 针对Chrome/Edge/Firefox测试 |
 
-## 后续改进（Phase 2+）
+## Phase 2 更新（已实现）
+
+**时序数据指标调整**（基于Phase 1反馈和8个聚合指标优化）：
+
+从原有的5个指标：
+- current_vehicles, avg_speed, completed_vehicles, waiting_vehicles, loaded_vehicles
+
+调整为6个指标，移除 `waiting_vehicles`，新增 `collisions` 和 `meanWaitingTime`：
+1. `current_vehicles` - 当前运行车数（实时路网饱和度）
+2. `avg_speed` - 平均速度（交通流质量）
+3. `loaded_vehicles` - 已载入车数（需求侧指标）
+4. `collisions` - 碰撞次数（交通安全指标，累计）
+5. `meanWaitingTime` - 平均等待时间（拥堵程度实时动态）
+6. `completed_vehicles` - 已完成车数（仿真进展）
+
+**调整原因**：
+- `meanWaitingTime` 比 `waiting_vehicles` 更具代表性（质量vs数量）
+- `collisions` 直接对应8个聚合指标中的安全指标
+- 完整覆盖8个聚合指标的核心维度
+
+**UI布局**：2x3网格（6个图表）
+
+---
+
+## 后续改进（Phase 3+）
 
 1. **高级功能**
    - 多案例对比分析

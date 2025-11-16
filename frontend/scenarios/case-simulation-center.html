@@ -685,7 +685,7 @@
             <ul class="nav-menu">
                 <li><a href="scenario_browser.html" class="nav-item">🎬 仿真推演场景集</a></li>
                 <li><a href="case-simulation-center.html" class="nav-item active">🔄 场景案例管理</a></li>
-                <li><a href="analysis_viewer.html" class="nav-item">📈 影响分析</a></li>
+                <li><a href="impact_analysis.html" class="nav-item">📈 影响分析</a></li>
             </ul>
         </nav>
 
@@ -1510,11 +1510,11 @@
         window.viewAnalysisResults = function() {
             // 优先使用当前监测的case_id（来自批量启动）
             if (window.currentMonitoringCaseId) {
-                window.location.href = `analysis_viewer.html?case_id=${window.currentMonitoringCaseId}`;
+                window.location.href = `impact_analysis.html?case_id=${window.currentMonitoringCaseId}`;
             } else if (caseId) {
-                window.location.href = `analysis_viewer.html?case_id=${caseId}`;
+                window.location.href = `impact_analysis.html?case_id=${caseId}`;
             } else if (batchId) {
-                window.location.href = `analysis_viewer.html?batch_id=${batchId}`;
+                window.location.href = `impact_analysis.html?batch_id=${batchId}`;
             } else {
                 alert('没有可用的分析数据');
             }
@@ -2165,7 +2165,7 @@
          * 查看分析结果
          */
         window.viewResults = function(caseId) {
-            window.location.href = `analysis_viewer.html?case_id=${caseId}`;
+            window.location.href = `impact_analysis.html?case_id=${caseId}`;
         };
 
         /**
@@ -2995,11 +2995,11 @@
 
             if (caseIds.length === 1) {
                 // Single case - direct navigation with case_id parameter
-                window.location.href = `analysis_viewer.html?case_id=${caseIds[0]}`;
+                window.location.href = `impact_analysis.html?case_id=${caseIds[0]}`;
             } else {
                 // Multi-case comparison - navigate with case_ids parameter
                 const caseIdsParam = caseIds.join(',');
-                window.location.href = `analysis_viewer.html?case_ids=${caseIdsParam}`;
+                window.location.href = `impact_analysis.html?case_ids=${caseIdsParam}`;
             }
         }
 

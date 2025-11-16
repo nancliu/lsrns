@@ -494,6 +494,7 @@ class StrategyComparisonService(BaseService):
                 ended = int(step.get('ended', 0))
                 waiting = int(step.get('waiting', 0))
                 loaded = int(step.get('loaded', 0))
+                collisions = int(step.get('collisions', 0))
 
                 # 提取速度数据
                 avg_speed_str = step.get('meanSpeed', '0')
@@ -501,6 +502,12 @@ class StrategyComparisonService(BaseService):
                     avg_speed = float(avg_speed_str) * 3.6  # m/s to km/h
                 except:
                     avg_speed = 0.0
+
+                # 提取平均等待时间
+                try:
+                    mean_waiting_time = float(step.get('meanWaitingTime', 0))
+                except:
+                    mean_waiting_time = 0.0
 
                 # 添加时序数据点
                 timeseries['current_vehicles'].append({
@@ -521,13 +528,18 @@ class StrategyComparisonService(BaseService):
                     'value': loaded
                 })
 
-                timeseries['waiting_vehicles'].append({
+                timeseries['collisions'].append({
                     'time': time,
                     'timestamp': f"{time:.1f}s",
-                    'value': waiting
+                    'value': collisions
                 })
 
-                # 累积值
+                timeseries['meanWaitingTime'].append({
+                    'time': time,
+                    'timestamp': f"{time:.1f}s",
+                    'value': round(mean_waiting_time, 2)
+                })
+
                 timeseries['completed_vehicles'].append({
                     'time': time,
                     'timestamp': f"{time:.1f}s",

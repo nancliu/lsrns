@@ -126,10 +126,10 @@
             <section class="section section-charts">
                 <div class="section-header">
                     <h2>时序数据可视化</h2>
-                    <p class="section-subtitle">6个关键指标随仿真时间的变化趋势(5400个数据点)</p>
+                    <p class="section-subtitle">4个关键时序指标随仿真时间的变化趋势 (碰撞次数和等待时间在8项指标对比表中展示)</p>
                 </div>
                 <div class="section-body">
-                    <div class="charts-grid">
+                    <div class="charts-grid" style="grid-template-columns: repeat(2, 1fr);">
                         <!-- Chart 1: Current Vehicles -->
                         <div class="chart-card">
                             <h3 class="chart-title">当前运行车数</h3>
@@ -151,21 +151,7 @@
                             <canvas id="chartLoadedVehicles"></canvas>
                         </div>
 
-                        <!-- Chart 4: Collisions -->
-                        <div class="chart-card">
-                            <h3 class="chart-title">碰撞次数</h3>
-                            <p class="chart-unit">单位: 次 (安全指标)</p>
-                            <canvas id="chartCollisions"></canvas>
-                        </div>
-
-                        <!-- Chart 5: Mean Waiting Time -->
-                        <div class="chart-card">
-                            <h3 class="chart-title">平均等待时间</h3>
-                            <p class="chart-unit">单位: 秒 (拥堵指标)</p>
-                            <canvas id="chartMeanWaitingTime"></canvas>
-                        </div>
-
-                        <!-- Chart 6: Completed Vehicles -->
+                        <!-- Chart 4: Completed Vehicles -->
                         <div class="chart-card">
                             <h3 class="chart-title">已完成车数</h3>
                             <p class="chart-unit">单位: 辆</p>
@@ -204,6 +190,22 @@
                                 <ul id="worstMetricsList" class="metrics-list">
                                     <!-- 动态生成Worst3 -->
                                 </ul>
+                            </div>
+                        </div>
+
+                        <!-- 8 Metrics Detailed Comparison Table -->
+                        <div class="improvement-table-section">
+                            <h3>8项指标详细对比</h3>
+                            <p class="table-subtitle">每个策略与NO_CONTROL基准的改进百分比对比</p>
+                            <div class="table-wrapper">
+                                <table id="improvementTable" class="improvement-detail-table">
+                                    <thead id="improvementTableHead">
+                                        <!-- 动态生成表头 -->
+                                    </thead>
+                                    <tbody id="improvementTableBody">
+                                        <!-- 动态生成8行数据 -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -581,13 +583,12 @@
 
         function renderTimeseriesCharts() {
             const timeseriesData = analysisData.timeseriesData;
-            // Phase 2更新：6个时序数据指标
+
+            // Phase 2更新：4个主要时序数据指标（碰撞次数和平均等待时间在8项指标对比表中展示）
             const metricsToChart = [
                 'current_vehicles',    // 当前运行车数
                 'avg_speed',           // 平均速度
                 'loaded_vehicles',     // 已载入车数
-                'collisions',          // 碰撞次数 (新增)
-                'meanWaitingTime',     // 平均等待时间 (新增)
                 'completed_vehicles'   // 已完成车数
             ];
 
@@ -602,6 +603,11 @@
                 const chartData = buildChartData(metricKey, timeseriesData);
                 const chartConfig = buildChartConfig(metricKey, chartData);
 
+                if (chartData.datasets.length === 0) {
+                    console.warn(`No datasets generated for ${metricKey}`);
+                    return;
+                }
+
                 if (charts[metricKey]) {
                     charts[metricKey].destroy();
                 }
@@ -611,12 +617,11 @@
 
         function getCanvasId(metricKey) {
             // 将指标键转换为canvas ID
+            // 注意：collisions和meanWaitingTime在8项指标对比表中展示，不需要时序图表
             const mapping = {
                 'current_vehicles': 'chartCurrentVehicles',
                 'avg_speed': 'chartAvgSpeed',
                 'loaded_vehicles': 'chartLoadedVehicles',
-                'collisions': 'chartCollisions',
-                'meanWaitingTime': 'chartMeanWaitingTime',
                 'completed_vehicles': 'chartCompletedVehicles'
             };
             return mapping[metricKey] || `chart${capitalize(metricKey)}`;
@@ -633,12 +638,31 @@
 
             strategies.forEach(strategy => {
                 const strategyData = timeseriesData[strategy];
-                if (!strategyData || !strategyData[metricKey]) return;
+                if (!strategyData) {
+                    console.warn(`No timeseries data for strategy: ${strategy}`);
+                    return;
+                }
+
+                if (!strategyData[metricKey]) {
+                    console.warn(`No timeseries data for ${metricKey} in ${strategy}`);
+                    return;
+                }
 
                 const metricPoints = strategyData[metricKey];
                 const values = Array.isArray(metricPoints)
-                    ? metricPoints.map(p => p.value || p)
+                    ? metricPoints.map(p => {
+                        // 处理两种格式：{time, value} 或直接数值
+                        if (typeof p === 'object' && p.value !== undefined) {
+                            return p.value;
+                        }
+                        return p;
+                    })
                     : [];
+
+                if (values.length === 0) {
+                    console.warn(`Empty values for ${metricKey} in ${strategy}`);
+                    return;
+                }
 
                 datasets.push({
                     label: STRATEGY_LABELS[strategy],
@@ -759,6 +783,7 @@
 
             renderImprovementRankings(improvementMap, strategies);
             renderBestWorstMetrics(improvementMap, strategies);
+            renderImprovementDetailTable(improvementMap, strategies);  // Phase 2新增：详细对比表格
         }
 
         function renderImprovementRankings(improvementMap, strategies) {
@@ -842,6 +867,66 @@
 
             document.getElementById('bestMetricsList').innerHTML = bestHTML;
             document.getElementById('worstMetricsList').innerHTML = worstHTML;
+        }
+
+        function renderImprovementDetailTable(improvementMap, strategies) {
+            // Phase 2新增：8项指标详细对比表格
+            const thead = document.getElementById('improvementTableHead');
+            const tbody = document.getElementById('improvementTableBody');
+
+            // 只显示8个主要指标（不包括deprecated的指标）
+            const mainMetrics = [
+                'current_vehicles',
+                'avg_speed',
+                'loaded_vehicles',
+                'collisions',
+                'meanWaitingTime',
+                'completed_vehicles',
+                'arrived',
+                'waiting_vehicles'
+            ];
+
+            // 生成表头
+            const headerCells = strategies.map(strategy => {
+                return `<th>${STRATEGY_LABELS[strategy]}</th>`;
+            }).join('');
+
+            thead.innerHTML = `
+                <tr>
+                    <th class="metric-column">性能指标</th>
+                    ${headerCells}
+                </tr>
+            `;
+
+            // 生成8行数据
+            const rows = mainMetrics.map(metricKey => {
+                const metric = TRAFFIC_METRICS[metricKey];
+                if (!metric) return '';  // 跳过不存在的指标
+
+                const valueCells = strategies.map(strategy => {
+                    const improvement = improvementMap[strategy][metricKey];
+                    const isPositive = improvement >= 0;
+                    const direction = isPositive ? '↑' : '↓';
+                    const signClass = isPositive ? 'positive' : 'negative';
+                    const bgClass = Math.abs(improvement) > 5 ? 'highlight' : '';
+
+                    return `<td class="${signClass} ${bgClass}">
+                        ${direction} ${improvement.toFixed(2)}%
+                    </td>`;
+                }).join('');
+
+                return `
+                    <tr>
+                        <td class="metric-column">
+                            <strong>${metric.label}</strong>
+                            <span class="metric-unit">(${metric.unit})</span>
+                        </td>
+                        ${valueCells}
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rows;
         }
 
         // ============================================================================
