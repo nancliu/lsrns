@@ -916,12 +916,15 @@
         /**
          * 保存批次信息到 sessionStorage（用户会话期间保留）
          */
-        function saveBatchInfo(bId, cId) {
+        function saveBatchInfo(bId, cId, sId) {
             if (bId) {
                 sessionStorage.setItem('currentBatchId', bId);
             }
             if (cId) {
                 sessionStorage.setItem('currentMonitoringCaseId', cId);
+            }
+            if (sId) {
+                sessionStorage.setItem('currentScenarioId', sId);
             }
         }
 
@@ -939,7 +942,23 @@
                 window.currentMonitoringCaseId = sessionStorage.getItem('currentMonitoringCaseId');
             }
 
-            console.log('恢复批次信息 - batchId:', batchId, 'caseId:', window.currentMonitoringCaseId);
+            // 如果没有caseId，也尝试从sessionStorage恢复
+            if (!caseId) {
+                const savedCaseId = sessionStorage.getItem('currentMonitoringCaseId');
+                if (savedCaseId) {
+                    caseId = savedCaseId;
+                }
+            }
+
+            // 如果没有scenarioId，尝试从sessionStorage恢复
+            if (!scenarioId) {
+                const savedScenarioId = sessionStorage.getItem('currentScenarioId');
+                if (savedScenarioId) {
+                    scenarioId = savedScenarioId;
+                }
+            }
+
+            console.log('恢复批次信息 - batchId:', batchId, 'caseId:', caseId, 'scenarioId:', scenarioId);
         }
 
         /**
@@ -1335,7 +1354,7 @@
                         window.currentMonitoringCaseId = caseId;
 
                         // 保存批次信息到sessionStorage
-                        saveBatchInfo(batchId, caseId);
+                        saveBatchInfo(batchId, caseId, scenarioId);
 
                         console.log('已设置全局batchId:', batchId);
 
@@ -1913,6 +1932,34 @@
                 }
             }
 
+            // 当选中案例时，自动更新全局 caseId 和 scenarioId
+            if (selectedCases.length > 0) {
+                const firstSelectedCaseId = selectedCases[0];
+                const caseData = caseDataMap[firstSelectedCaseId];
+
+                if (caseData) {
+                    // 更新全局 caseId
+                    caseId = firstSelectedCaseId;
+
+                    // 提取并更新 scenarioId
+                    if (caseData.simulations && typeof caseData.simulations === 'object') {
+                        const scenarioIds = Object.keys(caseData.simulations);
+                        if (scenarioIds.length > 0) {
+                            scenarioId = scenarioIds[0];
+                        }
+                    }
+
+                    console.log('✓ 从案例列表获取ID - caseId:', caseId, 'scenarioId:', scenarioId);
+                    // 保存案例信息到sessionStorage
+                    saveBatchInfo(null, caseId, scenarioId);
+                }
+            } else {
+                // 如果没有选中案例，清除caseId和scenarioId
+                caseId = null;
+                scenarioId = null;
+                console.log('已清除caseId和scenarioId');
+            }
+
             // 更新全选复选框状态
             if (selectAllCheckbox) {
                 const allCheckboxes = document.querySelectorAll('input.case-checkbox');
@@ -2066,8 +2113,8 @@
                         window.currentMonitoringCaseId = selectedCases[0];
                     }
 
-                    // 保存批次信息到sessionStorage
-                    saveBatchInfo(batchId, window.currentMonitoringCaseId);
+                    // 保存批次信息到sessionStorage（包括scenarioId）
+                    saveBatchInfo(batchId, window.currentMonitoringCaseId, scenarioId);
 
                     // 隐藏案例列表，显示监测面板
                     clearSelection();
