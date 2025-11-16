@@ -300,7 +300,15 @@
                         </div>
                     </div>
 
-                    <!-- 对比分析区（主要内容） -->
+                    <!-- 交通性能对比分析区（主要内容） -->
+                    <div style="margin-bottom: 40px;">
+                        <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">📊 交通性能对比指标（8个）</h3>
+                        <div id="trafficPerformanceContainer" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <div class="empty-state">加载中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 对比分析区（补充） -->
                     <div style="margin-bottom: 40px;">
                         <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 15px;">📈 控制策略对比分析</h3>
                         <div id="comparisonTableContainer" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -864,49 +872,89 @@
                         return;
                     }
                 }
-                // 其次使用 case_id (用于批量分析结果)
+                // 其次使用 case_id (用于事件场景分析和批量分析结果)
                 else if (caseId) {
                     const batchIdentifier = batchId || caseId;
-                    console.log(`加载批量分析结果: case_id=${caseId}, batch_id=${batchIdentifier}`);
+                    console.log(`加载案例分析结果: case_id=${caseId}, batch_id=${batchIdentifier}`);
 
                     try {
+                        // 优先尝试加载新的策略对比数据 (Phase 2 事件场景分析)
                         try {
-                            const response = await api.request(`/analysis/results/${batchIdentifier}?case_id=${caseId}`);
-                            analysisData = response.data || response;
-                            console.log('批量分析结果:', analysisData);
-                        } catch (error) {
-                            console.warn(`加载分析结果失败: ${error.message}，尝试备选方案...`);
-                            // 尝试从 simulation_progress 获取仿真列表作为备选
-                            try {
-                                const progressResponse = await api.request(`/simulation/simulation_progress/${caseId}`);
-                                const progressData = progressResponse.data || progressResponse;
+                            console.log(`尝试从新API加载策略对比数据: /analysis/strategy-comparison/${caseId}`);
+                            const response = await api.request(`/analysis/strategy-comparison/${caseId}`);
+                            const comparisonData = response.data || response;
 
-                                // 构建最小的分析数据对象
-                                analysisData = {
-                                    summary: {
-                                        case_id: caseId,
-                                        batch_id: batchIdentifier,
-                                        total_simulations: progressData.simulations?.length || 0,
-                                        completed: progressData.simulations?.filter(s => s.status === 'completed').length || 0,
-                                        failed: progressData.simulations?.filter(s => s.status === 'failed').length || 0
-                                    },
-                                    simulations: progressData.simulations || []
-                                };
-                                console.log('使用备选方案获取案例数据成功');
-                                showError(
-                                    '使用备选数据',
-                                    '主分析接口暂不可用，正在使用实时进度数据。',
-                                    'info'
-                                );
-                            } catch (fallbackError) {
-                                showError(
-                                    '加载案例数据失败',
-                                    `无法加载案例 ${caseId} 的数据。请确保案例存在且仿真已启动。`,
-                                    'error'
-                                );
-                                console.error('所有加载方式都失败:', fallbackError);
-                                hideLoading();
-                                return;
+                            // 如果获取到了对比数据，同时尝试获取时序数据
+                            let timeseriesData = {};
+                            try {
+                                const timeseriesResponse = await api.request(`/analysis/strategy-timeseries/${caseId}`);
+                                timeseriesData = timeseriesResponse.data || timeseriesResponse;
+                                console.log('时序数据获取成功:', timeseriesData);
+                            } catch (timeseriesError) {
+                                console.warn(`加载时序数据失败: ${timeseriesError.message}，继续使用对比数据...`);
+                            }
+
+                            // 构建前端期望的格式
+                            analysisData = {
+                                strategy_comparison: comparisonData,
+                                timeseries: timeseriesData,
+                                summary: {
+                                    case_id: caseId,
+                                    batch_id: batchIdentifier
+                                }
+                            };
+                            console.log('新格式策略对比分析结果:', analysisData);
+                        } catch (newApiError) {
+                            console.warn(`加载新格式对比结果失败: ${newApiError.message}，尝试旧批量API...`);
+
+                            // 备选方案：使用旧的批量分析API（基于batch_id）
+                            try {
+                                const response = await api.request(`/analysis/strategy_comparison/${batchIdentifier}?case_id=${caseId}`);
+                                analysisData = response.data || response;
+                                console.log('使用旧批量API分析结果:', analysisData);
+                            } catch (strategyComparisonError) {
+                                console.warn(`加载旧批量API结果失败: ${strategyComparisonError.message}，尝试分析结果接口...`);
+
+                                // 继续尝试从旧的分析结果接口获取数据
+                                try {
+                                    const response = await api.request(`/analysis/results/${batchIdentifier}?case_id=${caseId}`);
+                                    analysisData = response.data || response;
+                                    console.log('使用分析结果接口:', analysisData);
+                                } catch (oldApiError) {
+                                    // 继续尝试从 simulation_progress 获取仿真列表作为备选
+                                    console.warn(`加载分析结果失败: ${oldApiError.message}，尝试进度数据...`);
+                                    try {
+                                        const progressResponse = await api.request(`/simulation/simulation_progress/${caseId}`);
+                                        const progressData = progressResponse.data || progressResponse;
+
+                                        // 构建最小的分析数据对象
+                                        analysisData = {
+                                            summary: {
+                                                case_id: caseId,
+                                                batch_id: batchIdentifier,
+                                                total_simulations: progressData.simulations?.length || 0,
+                                                completed: progressData.simulations?.filter(s => s.status === 'completed').length || 0,
+                                                failed: progressData.simulations?.filter(s => s.status === 'failed').length || 0
+                                            },
+                                            simulations: progressData.simulations || []
+                                        };
+                                        console.log('使用备选方案获取案例数据成功');
+                                        showError(
+                                            '使用备选数据',
+                                            '主分析接口暂不可用，正在使用实时进度数据。',
+                                            'info'
+                                        );
+                                    } catch (fallbackError) {
+                                        showError(
+                                            '加载案例数据失败',
+                                            `无法加载案例 ${caseId} 的数据。请确保案例存在且仿真已启动。`,
+                                            'error'
+                                        );
+                                        console.error('所有加载方式都失败:', fallbackError);
+                                        hideLoading();
+                                        return;
+                                    }
+                                }
                             }
                         }
                     } catch (error) {
@@ -920,8 +968,15 @@
                     }
                 } else if (batchId) {
                     try {
-                        const response = await api.request(`/analysis/results/${batchId}`);
-                        analysisData = response.data || response;
+                        // 优先尝试策略对比接口
+                        try {
+                            const response = await api.request(`/analysis/strategy_comparison/${batchId}`);
+                            analysisData = response.data || response;
+                        } catch (strategyError) {
+                            // 回退到旧接口
+                            const response = await api.request(`/analysis/results/${batchId}`);
+                            analysisData = response.data || response;
+                        }
                     } catch (error) {
                         showError(
                             '加载批次数据失败',
@@ -1021,6 +1076,11 @@
             if (analysisData.strategy_comparison || analysisData.comparison) {
                 // 如果有新格式的数据（strategy_comparison），使用新组件
                 if (analysisData.strategy_comparison) {
+                    // 首先渲染交通性能对比指标（8个）
+                    if (typeof window.renderTrafficPerformanceComparison === 'function') {
+                        window.renderTrafficPerformanceComparison(analysisData);
+                    }
+
                     renderEventScenarioComparisonTable(analysisData, 'comparisonTableContainer');
 
                     if (analysisData.strategy_ranking) {

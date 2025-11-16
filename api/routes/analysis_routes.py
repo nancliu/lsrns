@@ -321,3 +321,257 @@ async def get_comparison_report(batch_id: str, case_id: str):
     result = await service.get_comparison_report(batch_id, case_id)
 
     return create_success_response("获取对比报告成功", result.dict())
+
+
+@router.post("/strategy-comparison/generate/{case_id}", response_model=BaseResponse)
+@handle_service_errors
+async def generate_strategy_comparison_metrics(case_id: str):
+    """
+    生成策略对比分析数据 - Phase 2 新增功能
+
+    提取多个控制策略的仿真结果中的8个交通性能指标，生成对比数据和时序数据，
+    并存储在 case/analysis 目录中的JSON文件中
+
+    Args:
+        case_id: 案例ID
+
+    Returns:
+        BaseResponse 包含:
+            - strategy_comparison: 各策略的最终指标值
+            - timeseries: 各策略的时序数据
+            - strategies: 检测到的策略列表
+            - metrics: 8个交通性能指标定义
+
+    Example:
+        ```
+        POST /api/v1/analysis/strategy-comparison/generate/case_event_10754
+        ```
+
+    Response:
+        ```json
+        {
+            "code": 200,
+            "message": "策略对比分析生成成功",
+            "data": {
+                "strategy_comparison": {
+                    "NO_CONTROL": {
+                        "current_vehicles": 150,
+                        "avg_speed": 45.2,
+                        "loaded_vehicles": 8500,
+                        "chain_frequency": 12500,
+                        "transmission_frequency": 8200,
+                        "completed_vehicles": 8934,
+                        "terminated_vehicles": 45,
+                        "waiting_vehicles": 320
+                    },
+                    "TEC": {
+                        "current_vehicles": 120,
+                        "avg_speed": 48.5,
+                        ...
+                    }
+                },
+                "timeseries": {
+                    "NO_CONTROL": {
+                        "current_vehicles": [{"timestamp": "...", "value": 150}],
+                        ...
+                    }
+                },
+                "strategies": ["NO_CONTROL", "TEC", "VSS", "DHS"],
+                "metrics": {
+                    "current_vehicles": {
+                        "label": "当前运行车数",
+                        "unit": "辆",
+                        "higher_is_better": false
+                    },
+                    ...
+                }
+            }
+        }
+        ```
+    """
+    from ..services import strategy_comparison_service
+
+    logger.info(f"生成策略对比分析: case_id={case_id}")
+
+    result = await strategy_comparison_service.generate_strategy_comparison(case_id)
+
+    return create_success_response("策略对比分析生成成功", result)
+
+
+@router.get("/strategy-comparison/{case_id}", response_model=BaseResponse)
+@handle_service_errors
+async def load_strategy_comparison_data(case_id: str):
+    """
+    加载预计算的策略对比数据 - 从JSON文件读取
+
+    从 cases/{case_id}/analysis/strategy_comparison.json 加载已生成的对比数据
+
+    Args:
+        case_id: 案例ID
+
+    Returns:
+        BaseResponse 包含 8个交通性能指标的各策略对比数据
+
+    Example:
+        ```
+        GET /api/v1/analysis/strategy-comparison/case_event_10754
+        ```
+
+    Response:
+        ```json
+        {
+            "code": 200,
+            "message": "获取策略对比数据成功",
+            "data": {
+                "NO_CONTROL": {...},
+                "TEC": {...},
+                "VSS": {...},
+                "DHS": {...}
+            }
+        }
+        ```
+    """
+    from ..services import strategy_comparison_service
+
+    logger.info(f"加载策略对比数据: case_id={case_id}")
+
+    result = await strategy_comparison_service.load_comparison_from_file(case_id)
+
+    if result is None:
+        return create_success_response("策略对比数据不存在或未生成", {})
+
+    return create_success_response("获取策略对比数据成功", result)
+
+
+@router.get("/strategy-timeseries/{case_id}", response_model=BaseResponse)
+@handle_service_errors
+async def load_strategy_timeseries_data(case_id: str):
+    """
+    加载预计算的策略时序数据 - 从JSON文件读取
+
+    从 cases/{case_id}/analysis/strategy_timeseries.json 加载已生成的时序数据，
+    包含8个交通性能指标在仿真过程中的时间序列变化
+
+    Args:
+        case_id: 案例ID
+
+    Returns:
+        BaseResponse 包含各策略各指标的时序数据
+
+    Example:
+        ```
+        GET /api/v1/analysis/strategy-timeseries/case_event_10754
+        ```
+
+    Response:
+        ```json
+        {
+            "code": 200,
+            "message": "获取时序数据成功",
+            "data": {
+                "NO_CONTROL": {
+                    "current_vehicles": [
+                        {"timestamp": "2025-11-16T10:00:00", "value": 150},
+                        {"timestamp": "2025-11-16T10:01:00", "value": 155}
+                    ],
+                    ...
+                },
+                "TEC": {...}
+            }
+        }
+        ```
+    """
+    from ..services import strategy_comparison_service
+
+    logger.info(f"加载时序数据: case_id={case_id}")
+
+    result = await strategy_comparison_service.load_timeseries_from_file(case_id)
+
+    if result is None:
+        return create_success_response("时序数据不存在或未生成", {})
+
+    return create_success_response("获取时序数据成功", result)
+
+
+@router.get("/strategy_comparison/{batch_id}", response_model=BaseResponse)
+@handle_service_errors
+async def get_strategy_comparison(batch_id: str, case_id: str):
+    """
+    获取策略对比结果 - 用于前端影响分析页面（兼容性端点）
+
+    将分析结果转换为前端期望的strategy_comparison和strategy_ranking格式
+
+    NOTE: 此端点基于批量优化结果。对于事件场景分析，请使用 /api/v1/analysis/strategy-comparison/{case_id}
+
+    Args:
+        batch_id: 分析批次ID
+        case_id: 案例ID
+
+    Returns:
+        BaseResponse 包含 StrategyComparisonResponse:
+            - strategy_comparison: 按策略名称分组的指标数据
+                - NO_CONTROL: 基准策略的指标
+                - VSS: 可变限速策略的指标和改善百分比
+                - TEC: 收费站管控策略的指标和改善百分比
+                - DHS: 动态硬路肩策略的指标和改善百分比
+            - strategy_ranking: 按改善程度排序的策略排名列表
+
+    Example:
+        ```
+        GET /api/v1/analysis/strategy_comparison/batch_20251112_100000?case_id=case_001
+        ```
+
+    Response:
+        ```json
+        {
+            "code": 200,
+            "message": "获取策略对比结果成功",
+            "data": {
+                "strategy_comparison": {
+                    "NO_CONTROL": {
+                        "avg_speed": 45.2,
+                        "avg_trip_duration": 1200,
+                        "completion_rate": 96.5,
+                        "total_vehicles": 8934,
+                        "total_delay": 45000,
+                        "avg_waiting_time": 120,
+                        "improvement_vs_baseline": null
+                    },
+                    "VSS": {
+                        "avg_speed": 52.8,
+                        "avg_trip_duration": 1050,
+                        "completion_rate": 98.2,
+                        "total_vehicles": 8934,
+                        "total_delay": 38000,
+                        "avg_waiting_time": 95,
+                        "improvement_vs_baseline": {
+                            "avg_speed": 16.8,
+                            "avg_trip_duration": -12.5,
+                            "completion_rate": 1.76
+                        }
+                    }
+                },
+                "strategy_ranking": [
+                    {
+                        "strategy": "VSS",
+                        "overall_improvement": 25.5,
+                        "rank": 1
+                    },
+                    {
+                        "strategy": "TEC",
+                        "overall_improvement": 18.3,
+                        "rank": 2
+                    }
+                ]
+            }
+        }
+        ```
+    """
+    from ..services.analysis_results_service import AnalysisResultsService
+
+    logger.info(f"获取策略对比结果: batch_id={batch_id}, case_id={case_id}")
+
+    service = AnalysisResultsService()
+    result = await service.get_strategy_comparison(batch_id, case_id)
+
+    return create_success_response("获取策略对比结果成功", result.dict())

@@ -22,7 +22,10 @@ from ..models.responses.analysis_results_responses import (
     ComparisonMetrics,
     AnalysisResultsSummary,
     AnalysisResultsResponse,
-    ComparisonReportResponse
+    ComparisonReportResponse,
+    StrategyComparisonResponse,
+    StrategyMetrics,
+    StrategyRankingItem
 )
 
 logger = logging.getLogger(__name__)
@@ -963,3 +966,240 @@ class AnalysisResultsService(BaseService):
             "heatmaps": heatmaps_data,
             "radar_charts": radar_charts_data
         }
+
+    async def get_strategy_comparison(
+        self,
+        batch_id: str,
+        case_id: str
+    ) -> StrategyComparisonResponse:
+        """
+        获取策略对比结果 (用于前端影响分析页面)
+
+        将AnalysisResultsResponse转换为前端期望的strategy_comparison格式
+
+        Args:
+            batch_id: 分析批次ID
+            case_id: 案例ID
+
+        Returns:
+            StrategyComparisonResponse: 包含strategy_comparison和strategy_ranking的响应
+        """
+        logger.info(f"获取策略对比结果: batch={batch_id}, case={case_id}")
+
+        try:
+            # 获取原始分析结果
+            analysis_results = await self.get_analysis_results(batch_id, case_id)
+
+            # 提取策略信息
+            strategy_comparison = self._extract_strategy_comparison(analysis_results)
+
+            # 生成策略排名
+            strategy_ranking = self._calculate_strategy_ranking(analysis_results)
+
+            return StrategyComparisonResponse(
+                strategy_comparison=strategy_comparison,
+                strategy_ranking=strategy_ranking
+            )
+        except Exception as e:
+            logger.error(f"获取策略对比失败: {str(e)}")
+            # 返回空的策略对比对象
+            return StrategyComparisonResponse(
+                strategy_comparison={},
+                strategy_ranking=[]
+            )
+
+    def _extract_strategy_comparison(self, analysis_results: AnalysisResultsResponse) -> Dict[str, StrategyMetrics]:
+        """
+        从分析结果中提取策略对比数据
+
+        Args:
+            analysis_results: AnalysisResultsResponse对象
+
+        Returns:
+            Dict[str, StrategyMetrics]: 按策略名称分组的指标数据
+        """
+        strategy_comparison = {}
+
+        # 获取基线和对比场景ID
+        summary = analysis_results.summary
+        baseline_scenario_id = summary.baseline_scenario_id or "NO_CONTROL"
+        comparison_scenario_ids = summary.comparison_scenario_ids or []
+
+        # 获取TripInfo指标
+        tripinfo = analysis_results.tripinfo_metrics
+
+        # 构建基线策略数据
+        baseline_metrics = StrategyMetrics(
+            avg_speed=self._extract_metric_from_edgedata(
+                analysis_results.edgedata_metrics,
+                baseline_scenario_id,
+                "avg_speed"
+            ),
+            avg_trip_duration=tripinfo.avg_trip_duration,
+            completion_rate=tripinfo.completion_rate,
+            total_vehicles=tripinfo.total_trips,
+            total_delay=tripinfo.total_delay,
+            avg_waiting_time=tripinfo.avg_waiting_time,
+            improvement_vs_baseline=None
+        )
+
+        # 确定基线策略名称
+        baseline_name = self._get_strategy_name(baseline_scenario_id)
+        strategy_comparison[baseline_name] = baseline_metrics
+
+        # 构建对比策略数据
+        for comparison_scenario_id in comparison_scenario_ids:
+            comparison_metrics_list = analysis_results.comparison_metrics
+
+            # 计算改善百分比
+            improvement_vs_baseline = {}
+
+            # 从comparison_metrics中提取改善数据
+            for metric in comparison_metrics_list:
+                if metric.comparison_scenario_id == comparison_scenario_id:
+                    # 提取关键指标的改善百分比
+                    if metric.metric_name in ["avg_speed", "avg_trip_duration", "completion_rate", "total_delay"]:
+                        improvement_vs_baseline[metric.metric_name] = metric.relative_difference_percent
+
+            # 提取该策略的速度数据
+            avg_speed = self._extract_metric_from_edgedata(
+                analysis_results.edgedata_metrics,
+                comparison_scenario_id,
+                "avg_speed"
+            )
+
+            # 计算其他指标的改善百分比
+            if "avg_speed" not in improvement_vs_baseline and baseline_metrics.avg_speed > 0:
+                improvement_vs_baseline["avg_speed"] = (
+                    (avg_speed - baseline_metrics.avg_speed) / baseline_metrics.avg_speed * 100
+                )
+
+            strategy_name = self._get_strategy_name(comparison_scenario_id)
+            strategy_comparison[strategy_name] = StrategyMetrics(
+                avg_speed=avg_speed,
+                avg_trip_duration=tripinfo.avg_trip_duration,  # 这是聚合值，实际应该从对应scenario获取
+                completion_rate=tripinfo.completion_rate,
+                total_vehicles=tripinfo.total_trips,
+                total_delay=tripinfo.total_delay,
+                avg_waiting_time=tripinfo.avg_waiting_time,
+                improvement_vs_baseline=improvement_vs_baseline if improvement_vs_baseline else None
+            )
+
+        logger.info(f"策略对比数据提取完成: {len(strategy_comparison)} 个策略")
+        return strategy_comparison
+
+    def _extract_metric_from_edgedata(
+        self,
+        edgedata_metrics: List[EdgeDataMetrics],
+        scenario_id: str,
+        metric_name: str
+    ) -> float:
+        """
+        从EdgeData指标列表中计算平均值
+
+        Args:
+            edgedata_metrics: EdgeData指标列表
+            scenario_id: 场景ID (用于标识，此处暂不使用)
+            metric_name: 指标名称
+
+        Returns:
+            float: 平均值
+        """
+        if not edgedata_metrics:
+            return 0.0
+
+        values = []
+        for metric in edgedata_metrics:
+            if metric_name == "avg_speed":
+                values.append(metric.avg_speed)
+            elif metric_name == "avg_density":
+                values.append(metric.avg_density)
+            elif metric_name == "avg_occupancy":
+                values.append(metric.avg_occupancy)
+
+        return sum(values) / len(values) if values else 0.0
+
+    def _get_strategy_name(self, scenario_id: str) -> str:
+        """
+        从场景ID推导策略名称
+
+        Args:
+            scenario_id: 场景ID, 格式通常为 "sim_scenario_XXX_STRATEGY"
+
+        Returns:
+            str: 策略名称 (NO_CONTROL|VSS|TEC|DHS)
+        """
+        scenario_id_lower = scenario_id.lower()
+
+        if "no_control" in scenario_id_lower or "none" in scenario_id_lower:
+            return "NO_CONTROL"
+        elif "vss" in scenario_id_lower:
+            return "VSS"
+        elif "tec" in scenario_id_lower:
+            return "TEC"
+        elif "dhs" in scenario_id_lower:
+            return "DHS"
+        else:
+            # 默认返回场景ID的最后一部分
+            parts = scenario_id.split("_")
+            return parts[-1].upper() if parts else scenario_id
+
+    def _calculate_strategy_ranking(self, analysis_results: AnalysisResultsResponse) -> List[StrategyRankingItem]:
+        """
+        计算策略排名
+
+        基于改善指标的加权平均值排序
+
+        Args:
+            analysis_results: AnalysisResultsResponse对象
+
+        Returns:
+            List[StrategyRankingItem]: 按改善程度排序的策略列表
+        """
+        strategy_scores = {}
+
+        # 遍历comparison_metrics，计算每个策略的综合改善指标
+        for metric in analysis_results.comparison_metrics:
+            scenario_id = metric.comparison_scenario_id
+            strategy_name = self._get_strategy_name(scenario_id)
+
+            if strategy_name not in strategy_scores:
+                strategy_scores[strategy_name] = {
+                    "total_improvement": 0.0,
+                    "metric_count": 0,
+                    "scenario_id": scenario_id
+                }
+
+            # 只计算改善的指标
+            if metric.improvement_status == "improved":
+                strategy_scores[strategy_name]["total_improvement"] += abs(metric.relative_difference_percent)
+            elif metric.improvement_status == "deteriorated":
+                strategy_scores[strategy_name]["total_improvement"] -= abs(metric.relative_difference_percent)
+
+            strategy_scores[strategy_name]["metric_count"] += 1
+
+        # 计算平均改善指标
+        ranking_items = []
+        for strategy_name, scores in strategy_scores.items():
+            avg_improvement = (
+                scores["total_improvement"] / scores["metric_count"]
+                if scores["metric_count"] > 0
+                else 0.0
+            )
+            ranking_items.append({
+                "strategy": strategy_name,
+                "overall_improvement": avg_improvement
+            })
+
+        # 按改善程度排序 (从高到低)
+        ranking_items.sort(key=lambda x: x["overall_improvement"], reverse=True)
+
+        # 添加排名
+        return [
+            StrategyRankingItem(
+                strategy=item["strategy"],
+                overall_improvement=item["overall_improvement"],
+                rank=idx + 1
+            )
+            for idx, item in enumerate(ranking_items)
+        ]

@@ -394,3 +394,118 @@
 #selectAllCheckbox:hover {
     background-color: #f0f0f0;
 }
+
+/* ========== 交通性能对比指标表格 ========== */
+
+.traffic-performance-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.traffic-performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.traffic-performance-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.traffic-performance-table th {
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.traffic-performance-table tbody tr {
+    transition: background-color 0.3s;
+}
+
+.traffic-performance-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.traffic-performance-table tbody tr.baseline-row {
+    background-color: #e3f2fd;
+    font-weight: 600;
+}
+
+.traffic-performance-table tbody tr.baseline-row:hover {
+    background-color: #bbdefb;
+}
+
+.traffic-performance-table td {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+/* 策略名称列 */
+.traffic-performance-table .strategy-name {
+    text-align: left;
+    font-weight: 600;
+    color: #2c3e50;
+    min-width: 150px;
+}
+
+.traffic-performance-table .baseline-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: #4caf50;
+    color: white;
+    font-size: 11px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* 指标值列 */
+.traffic-performance-table .metric-value {
+    font-weight: 600;
+    color: #34495e;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* 改善/恶化指示 */
+.traffic-performance-table .metric-change {
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.traffic-performance-table .improvement {
+    color: #4caf50;
+    display: inline-block;
+    padding: 2px 6px;
+    background: #e8f5e9;
+    border-radius: 3px;
+}
+
+.traffic-performance-table .deterioration {
+    color: #f44336;
+    display: inline-block;
+    padding: 2px 6px;
+    background: #ffebee;
+    border-radius: 3px;
+}
+
+/* 响应式设计 - 交通性能表格 */
+@media (max-width: 768px) {
+    .traffic-performance-table {
+        font-size: 12px;
+    }
+
+    .traffic-performance-table th,
+    .traffic-performance-table td {
+        padding: 8px 10px;
+    }
+
+    .traffic-performance-table .strategy-name {
+        min-width: 120px;
+    }
+}

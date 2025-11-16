@@ -293,6 +293,49 @@ class AnalysisResultsResponse(BaseModel):
         }
 
 
+class StrategyMetrics(BaseModel):
+    """
+    单个策略的关键指标
+
+    用于策略对比表格展示
+    """
+
+    avg_speed: float = Field(default=0.0, description="平均速度 (km/h)")
+    avg_trip_duration: float = Field(default=0.0, description="平均行程时间 (秒)")
+    completion_rate: float = Field(default=0.0, description="完成率 (%)")
+    total_vehicles: int = Field(default=0, description="总车辆数")
+    total_delay: float = Field(default=0.0, description="总延误 (秒)")
+    avg_waiting_time: float = Field(default=0.0, description="平均等待时间 (秒)")
+    improvement_vs_baseline: Optional[Dict[str, float]] = Field(None, description="相比基准的改善百分比")
+
+
+class StrategyRankingItem(BaseModel):
+    """
+    策略排名项
+    """
+
+    strategy: str = Field(..., description="策略名称 (NO_CONTROL|VSS|TEC|DHS)")
+    overall_improvement: float = Field(..., description="综合改善百分比")
+    rank: int = Field(..., description="排名 (1为最好)")
+
+
+class StrategyComparisonResponse(BaseModel):
+    """
+    策略对比响应
+
+    针对前端影响分析页面的响应格式，包含策略对比和排名数据
+    """
+
+    strategy_comparison: Dict[str, StrategyMetrics] = Field(
+        ...,
+        description="按策略名称分组的指标数据"
+    )
+    strategy_ranking: List[StrategyRankingItem] = Field(
+        default=[],
+        description="按改善程度排序的策略列表"
+    )
+
+
 class ComparisonReportResponse(BaseModel):
     """
     对比报告响应

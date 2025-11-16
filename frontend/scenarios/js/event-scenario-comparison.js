@@ -390,7 +390,152 @@ async function loadEventBatchResults(batchId) {
     }
 }
 
+/**
+ * 渲染交通性能对比指标（8个）
+ * 根据不同控制策略对比交通性能的影响
+ *
+ * @param {Object} batchResults - 批次分析结果
+ * @param {string} containerId - 容器元素ID
+ */
+window.renderTrafficPerformanceComparison = function(batchResults, containerId = 'trafficPerformanceContainer') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!batchResults || !batchResults.strategy_comparison) {
+        container.innerHTML = '<div class="empty-state">暂无交通性能对比数据</div>';
+        return;
+    }
+
+    const strategyComparison = batchResults.strategy_comparison;
+    const strategyOrder = ['NO_CONTROL', 'VSS', 'TEC', 'DHS'];
+    const strategyNames = {
+        'NO_CONTROL': '无控制（基准）',
+        'VSS': '可变限速',
+        'TEC': '收费站管控',
+        'DHS': '动态硬路肩'
+    };
+
+    // 获取基准数据
+    const baseline = strategyComparison['NO_CONTROL'];
+    if (!baseline) {
+        container.innerHTML = '<div class="empty-state">未找到基准场景（NO_CONTROL）</div>';
+        return;
+    }
+
+    // 8个交通性能指标定义
+    const trafficMetrics = [
+        { key: 'current_vehicles', label: '当前运行车数', unit: '辆', higher_is_better: false },
+        { key: 'avg_speed', label: '平均速度', unit: 'km/h', higher_is_better: true },
+        { key: 'loaded_vehicles', label: '已载入车数', unit: '辆', higher_is_better: true },
+        { key: 'chain_frequency', label: '链接频率', unit: '次', higher_is_better: true },
+        { key: 'transmission_frequency', label: '传送频率', unit: '次', higher_is_better: true },
+        { key: 'completed_vehicles', label: '已完成车数', unit: '辆', higher_is_better: true },
+        { key: 'terminated_vehicles', label: '已中止车数', unit: '辆', higher_is_better: false },
+        { key: 'waiting_vehicles', label: '等待车数', unit: '辆', higher_is_better: false }
+    ];
+
+    // 构建表格HTML
+    let html = `
+        <div class="traffic-performance-table-wrapper">
+            <table class="traffic-performance-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">控制策略</th>
+    `;
+
+    // 添加指标列头
+    trafficMetrics.forEach(metric => {
+        html += `<th colspan="2">${metric.label} (${metric.unit})</th>`;
+    });
+
+    html += `
+                    </tr>
+                    <tr>
+    `;
+
+    // 添加数值和对比的子列头
+    trafficMetrics.forEach(() => {
+        html += `<th>数值</th><th>相比基准</th>`;
+    });
+
+    html += `
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    // 遍历策略
+    strategyOrder.forEach(strategy => {
+        if (!strategyComparison[strategy]) return;
+
+        const metrics = strategyComparison[strategy];
+        const isBaseline = (strategy === 'NO_CONTROL');
+
+        html += `
+            <tr ${isBaseline ? 'class="baseline-row"' : ''}>
+                <td class="strategy-name">
+                    <strong>${strategyNames[strategy] || strategy}</strong>
+                    ${isBaseline ? '<span class="baseline-badge">基准</span>' : ''}
+                </td>
+        `;
+
+        // 添加每个指标的数值和对比
+        trafficMetrics.forEach(metric => {
+            const value = metrics[metric.key];
+            const displayValue = value !== undefined ? (typeof value === 'number' ? value.toFixed(1) : value) : 'N/A';
+
+            let changeHtml = '-';
+            if (!isBaseline && baseline[metric.key] !== undefined) {
+                const baselineValue = baseline[metric.key];
+                const diff = value - baselineValue;
+                const percentChange = baselineValue !== 0 ? ((diff / baselineValue) * 100).toFixed(1) : 0;
+
+                let isImprovement = false;
+                if (metric.higher_is_better) {
+                    isImprovement = diff > 0;
+                } else {
+                    isImprovement = diff < 0;
+                }
+
+                const changeClass = isImprovement ? 'improvement' : 'deterioration';
+                const changeSymbol = isImprovement ? '↑' : '↓';
+                changeHtml = `<span class="${changeClass}">${changeSymbol} ${Math.abs(percentChange)}%</span>`;
+            }
+
+            html += `
+                <td class="metric-value">${displayValue}</td>
+                <td class="metric-change">${changeHtml}</td>
+            `;
+        });
+
+        html += `</tr>`;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-legend">
+            <div class="legend-item">
+                <span class="legend-icon improvement">↑</span>
+                <span class="legend-text">性能改善</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon deterioration">↓</span>
+                <span class="legend-text">性能恶化</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-text">百分比相对于基准案例（无控制）</span>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+};
+
 // 导出函数供外部使用
 window.renderEventScenarioComparisonTable = renderEventScenarioComparisonTable;
 window.renderStrategyRanking = renderStrategyRanking;
 window.loadEventBatchResults = loadEventBatchResults;
+window.renderTrafficPerformanceComparison = window.renderTrafficPerformanceComparison;

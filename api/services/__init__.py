@@ -65,12 +65,16 @@ from .batch_optimization_service import (
 from .simulation_orchestrator import SimulationOrchestrator, get_simulation_orchestrator
 from .analysis_orchestration_service import AnalysisOrchestrationService
 from .event_batch_service import EventBatchService
+from .strategy_comparison_service import StrategyComparisonService
 
 # Task 1.1: 创建全局 SimulationOrchestrator 单例
 simulation_orchestrator = get_simulation_orchestrator()
 
 # Event Batch Service instance
 event_batch_service = EventBatchService()
+
+# Strategy Comparison Service instance
+strategy_comparison_service = StrategyComparisonService()
 
 # 导出所有服务函数，保持原有导入方式不变
 __all__ = [
@@ -121,4 +125,8 @@ __all__ = [
     "AnalysisOrchestrationService",
     "EventBatchService",
     "event_batch_service",
+
+    # 策略对比服务
+    "StrategyComparisonService",
+    "strategy_comparison_service",
 ]
