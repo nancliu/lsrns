@@ -344,7 +344,7 @@ class StrategyComparisonService(BaseService):
 
                 # 简单的速度计算（可能需要从tripinfo获取更精确的值）
                 # 这里使用的是SUMO summary中的平均速度
-                avg_speed_str = step.get('avgSpeed', '0')
+                avg_speed_str = step.get('meanSpeed', '0')
                 try:
                     avg_speed = float(avg_speed_str) * 3.6  # m/s to km/h
                     metrics['avg_speed'] = avg_speed
@@ -486,7 +486,7 @@ class StrategyComparisonService(BaseService):
                 loaded = int(step.get('loaded', 0))
 
                 # 提取速度数据
-                avg_speed_str = step.get('avgSpeed', '0')
+                avg_speed_str = step.get('meanSpeed', '0')
                 try:
                     avg_speed = float(avg_speed_str) * 3.6  # m/s to km/h
                 except:

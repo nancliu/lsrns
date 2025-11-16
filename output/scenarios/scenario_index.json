@@ -202,7 +202,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_10807",
+          "case_name": "case_10807_batch",
+          "status": "created",
+          "source_scenario": "scenario_10807_no_control",
+          "created_at": "2025-11-16T20:46:01.625158",
+          "updated_at": "2025-11-16T20:46:43.359031"
+        }
+      ]
     },
     {
       "event_id": "10807",
@@ -227,7 +236,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_10807",
+          "case_name": "case_10807_batch",
+          "status": "created",
+          "source_scenario": "scenario_10807_tec",
+          "created_at": "2025-11-16T20:46:01.715381",
+          "updated_at": "2025-11-16T20:46:43.466040"
+        }
+      ]
     },
     {
       "event_id": "10807",
@@ -252,7 +270,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_10807",
+          "case_name": "case_10807_batch",
+          "status": "created",
+          "source_scenario": "scenario_10807_vss",
+          "created_at": "2025-11-16T20:46:01.669774",
+          "updated_at": "2025-11-16T20:46:43.414213"
+        }
+      ]
     },
     {
       "event_id": "10814",
