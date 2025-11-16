@@ -421,7 +421,7 @@ class SimulationService(BaseService):
             sim_metadata["status"] = "completed"
             ended_at = datetime.now().isoformat()
             sim_metadata["completed_at"] = ended_at
-            
+
             # 计算耗时
             try:
                 start_time = datetime.fromisoformat(sim_metadata["started_at"])
@@ -430,15 +430,33 @@ class SimulationService(BaseService):
                 sim_metadata["duration"] = int(duration)
             except:
                 pass
-            
+
             MetadataManager.save_simulation_metadata(simulation_folder, sim_metadata)
             MetadataManager.update_simulations_index(case_path, simulation_id, sim_metadata)
-            
+
+            # 更新进度文件为完成状态
+            self._write_success_progress(simulation_folder)
+
             # 更新案例状态
             self._update_case_completion_status(case_path, ended_at, "completed")
-            
+
         except Exception as e:
             print(f"处理仿真成功状态失败: {e}")
+
+    def _write_success_progress(self, simulation_folder: Path) -> None:
+        """写入成功完成进度"""
+        try:
+            progress_data = {
+                "status": "completed",
+                "percent": 100,
+                "message": "仿真已完成",
+                "updated_at": datetime.now().isoformat(),
+                "pid": None
+            }
+            with open(simulation_folder / "progress.json", "w", encoding="utf-8") as f:
+                json.dump(progress_data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
     
     def _handle_simulation_failure(self, case_path: Path, simulation_id: str, 
                                  simulation_folder: Path, error_message: str) -> None:
@@ -650,7 +668,13 @@ class SimulationService(BaseService):
         返回格式：
         {
             "simulations": [
-                {"simulation_id": "...", "status": "...", "progress": ..., ...},
+                {
+                    "simulation_id": "...",
+                    "status": "...",  # from metadata or progress.json
+                    "progress": ...,  # from progress.json
+                    "created_at": "...",
+                    ...
+                },
                 ...
             ],
             "progress_percentage": XX,
@@ -684,13 +708,35 @@ class SimulationService(BaseService):
                     "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0}
                 }
 
-            # 计算统计信息
+            # 增强仿真信息：添加进度文件中的实时信息
+            enhanced_simulations = []
+            for sim in simulations:
+                sim_id = sim.get("simulation_id")
+                sim_folder = simulations_dir / sim_id
+
+                # 尝试读取进度文件
+                progress_file = sim_folder / "progress.json"
+                if progress_file.exists():
+                    try:
+                        with open(progress_file, 'r', encoding='utf-8') as f:
+                            progress_data = json.load(f)
+                            # 用进度文件中的状态覆盖元数据中的状态
+                            sim["status"] = progress_data.get("status", sim.get("status"))
+                            sim["progress"] = progress_data.get("percent", 0)
+                            sim["progress_message"] = progress_data.get("message", "")
+                    except:
+                        # 如果读取失败，使用元数据中的状态
+                        sim["progress"] = 100 if sim.get("status") == "completed" else 0
+
+                enhanced_simulations.append(sim)
+
+            # 计算统计信息（使用增强后的数据）
             stats = {
-                "total": len(simulations),
-                "completed": len([s for s in simulations if s.get("status") == "completed"]),
-                "in_progress": len([s for s in simulations if s.get("status") in ["running", "simulating"]]),
-                "failed": len([s for s in simulations if s.get("status") == "failed"]),
-                "queued": len([s for s in simulations if s.get("status") == "queued"])
+                "total": len(enhanced_simulations),
+                "completed": len([s for s in enhanced_simulations if s.get("status") == "completed"]),
+                "in_progress": len([s for s in enhanced_simulations if s.get("status") in ["running", "simulating"]]),
+                "failed": len([s for s in enhanced_simulations if s.get("status") == "failed"]),
+                "queued": len([s for s in enhanced_simulations if s.get("status") == "queued"])
             }
 
             # 计算总进度百分比
@@ -700,7 +746,7 @@ class SimulationService(BaseService):
                 progress_percentage = 0
 
             return {
-                "simulations": simulations,
+                "simulations": enhanced_simulations,
                 "progress_percentage": progress_percentage,
                 "stats": stats
             }
