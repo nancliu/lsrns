@@ -72,14 +72,8 @@
                 <div class="section-body">
                     <div class="table-wrapper">
                         <table id="comparisonTable" class="comparison-table">
-                            <thead>
-                                <tr>
-                                    <th class="metric-column">性能指标</th>
-                                    <th>DHS</th>
-                                    <th>TEC</th>
-                                    <th>VSS</th>
-                                    <th class="baseline-column">NO_CONTROL(基准)</th>
-                                </tr>
+                            <thead id="tableHead">
+                                <!-- 动态生成表头 -->
                             </thead>
                             <tbody id="tableBody">
                                 <!-- 动态生成8行数据 -->
@@ -334,12 +328,12 @@
                 throw new Error('对比数据格式无效');
             }
 
-            const requiredStrategies = ['DHS', 'NO_CONTROL', 'TEC', 'VSS'];
-            let foundStrategy = false;
+            const possibleStrategies = ['DHS', 'NO_CONTROL', 'TEC', 'VSS'];
+            let foundStrategies = [];
 
-            for (let strategy of requiredStrategies) {
+            for (let strategy of possibleStrategies) {
                 if (strategy in comparisonData) {
-                    foundStrategy = true;
+                    foundStrategies.push(strategy);
                     // 验证策略数据中至少有一个指标
                     const strategyData = comparisonData[strategy];
                     if (!strategyData || typeof strategyData !== 'object') {
@@ -348,9 +342,13 @@
                 }
             }
 
-            if (!foundStrategy) {
-                throw new Error(`未找到任何策略数据，收到: ${Object.keys(comparisonData).join(',')}`);
+            if (foundStrategies.length === 0) {
+                const receivedKeys = Object.keys(comparisonData);
+                throw new Error(`未找到任何策略数据。\n期望策略: DHS, NO_CONTROL, TEC, VSS\n实际收到的键: ${receivedKeys.length === 0 ? '(无)' : receivedKeys.join(', ')}\n\n提示: 如果分析数据尚未生成，请等待所有仿真完成后重新刷新页面。`);
             }
+
+            // 记录实际找到的策略（某些案例可能不包含所有4个策略）
+            analysisData.availableStrategies = foundStrategies;
         }
 
         // ============================================================================
@@ -404,7 +402,12 @@
             const metrics = analysisData.aggregatedMetrics;
             const baselineMetrics = metrics['NO_CONTROL'] || {};
 
-            const strategies = ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
+            // 使用实际可用的策略，确保NO_CONTROL始终在末尾
+            let strategies = analysisData.availableStrategies || ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
+            strategies = strategies.filter(s => s !== 'NO_CONTROL');
+            if (metrics['NO_CONTROL']) {
+                strategies.push('NO_CONTROL');
+            }
             const cards = strategies.map(strategy => {
                 const strategyData = metrics[strategy] || {};
                 const isBaseline = strategy === 'NO_CONTROL';
@@ -453,24 +456,44 @@
         }
 
         function renderComparisonTable() {
+            const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
             const metrics = analysisData.aggregatedMetrics;
             const metricKeys = Object.keys(TRAFFIC_METRICS);
 
+            // 获取实际可用的策略（不包括NO_CONTROL），然后添加NO_CONTROL在最后
+            let strategyOrder = analysisData.availableStrategies.filter(s => s !== 'NO_CONTROL') || ['DHS', 'TEC', 'VSS'];
+            if (analysisData.availableStrategies.includes('NO_CONTROL')) {
+                strategyOrder.push('NO_CONTROL');
+            }
+
+            // 生成表头
+            const headerCells = strategyOrder.map(strategy => {
+                const isBL = strategy === 'NO_CONTROL';
+                const label = isBL ? `${STRATEGY_LABELS[strategy]}(基准)` : STRATEGY_LABELS[strategy];
+                return `<th${isBL ? ' class="baseline-column"' : ''}>${label}</th>`;
+            }).join('');
+
+            thead.innerHTML = `
+                <tr>
+                    <th class="metric-column">性能指标</th>
+                    ${headerCells}
+                </tr>
+            `;
+
+            // 生成表体
             const rows = metricKeys.map(metricKey => {
                 const metric = TRAFFIC_METRICS[metricKey];
-                const dhs = metrics['DHS'][metricKey];
-                const tec = metrics['TEC'][metricKey];
-                const vss = metrics['VSS'][metricKey];
-                const nc = metrics['NO_CONTROL'][metricKey];
+                const valuesCells = strategyOrder.map(strategy => {
+                    const value = metrics[strategy] ? metrics[strategy][metricKey] : undefined;
+                    const isBL = strategy === 'NO_CONTROL';
+                    return `<td${isBL ? ' class="baseline-column"' : ''}>${isBL ? '<strong>' : ''}${formatMetricValue(metricKey, value)}${isBL ? '</strong>' : ''}</td>`;
+                }).join('');
 
                 return `
                     <tr>
                         <td class="metric-column"><strong>${metric.label}</strong></td>
-                        <td>${formatMetricValue(metricKey, dhs)}</td>
-                        <td>${formatMetricValue(metricKey, tec)}</td>
-                        <td>${formatMetricValue(metricKey, vss)}</td>
-                        <td class="baseline-column"><strong>${formatMetricValue(metricKey, nc)}</strong></td>
+                        ${valuesCells}
                     </tr>
                 `;
             });
@@ -518,7 +541,8 @@
         }
 
         function buildChartData(metricKey, timeseriesData) {
-            const strategies = ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
+            // 使用实际可用的策略
+            const strategies = analysisData.availableStrategies || ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
             const datasets = [];
 
             strategies.forEach(strategy => {
@@ -606,7 +630,8 @@
         function renderImprovementAnalysis() {
             const metrics = analysisData.aggregatedMetrics;
             const baselineMetrics = metrics['NO_CONTROL'];
-            const strategies = ['DHS', 'TEC', 'VSS'];
+            // 排除NO_CONTROL，获取其他可用的策略
+            const strategies = analysisData.availableStrategies.filter(s => s !== 'NO_CONTROL');
 
             // Calculate improvements for all metrics
             const improvementMap = {};
@@ -735,17 +760,18 @@
         function exportToCSV() {
             const metrics = analysisData.aggregatedMetrics;
             const metricKeys = Object.keys(TRAFFIC_METRICS);
+            const strategies = analysisData.availableStrategies || ['DHS', 'TEC', 'VSS', 'NO_CONTROL'];
 
-            let csv = '性能指标,DHS,TEC,VSS,NO_CONTROL\n';
+            // 创建表头
+            let csv = '性能指标,' + strategies.map(s => STRATEGY_LABELS[s]).join(',') + '\n';
+
             metricKeys.forEach(metricKey => {
                 const metric = TRAFFIC_METRICS[metricKey];
-                const row = [
-                    metric.label,
-                    metrics['DHS'][metricKey],
-                    metrics['TEC'][metricKey],
-                    metrics['VSS'][metricKey],
-                    metrics['NO_CONTROL'][metricKey]
-                ].join(',');
+                const values = strategies.map(strategy => {
+                    const val = metrics[strategy] ? metrics[strategy][metricKey] : '-';
+                    return val !== undefined ? val : '-';
+                });
+                const row = [metric.label, ...values].join(',');
                 csv += row + '\n';
             });
 
