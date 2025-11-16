@@ -105,6 +105,7 @@ class SimulationService(BaseService):
                 "config_file": cfg_file,
                 "expected_duration": sim_metadata.get("simulation_params", {}).get("expected_duration"),
                 "case_id": case_id,  # 添加case_id用于进程跟踪
+                "extra_cli_args": sim_metadata.get("extra_cli_args"),  # 传递额外的SUMO命令行参数
             }
             self._init_progress_file(simulation_folder)
 
@@ -702,6 +703,14 @@ class SimulationService(BaseService):
                     "stats": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0, "queued": 0}
                 }
 
+            # 加载案例元数据以获取event_type
+            case_event_type = None
+            try:
+                case_metadata = MetadataManager.load_case_metadata(case_dir)
+                case_event_type = case_metadata.get("event_scenario", {}).get("event_type")
+            except:
+                pass
+
             # 获取案例下的所有仿真
             simulations = await self.get_case_simulations(case_id)
 
@@ -760,13 +769,17 @@ class SimulationService(BaseService):
             else:
                 progress_percentage = 0
 
-            # 构建响应，包括 batch_id（如果有）
+            # 构建响应，包括 batch_id 和 event_type（如果有）
             response = {
                 "case_id": case_id,
                 "simulations": enhanced_simulations,
                 "progress_percentage": progress_percentage,
                 "stats": stats
             }
+
+            # 如果有event_type，添加到响应中
+            if case_event_type:
+                response["event_type"] = case_event_type
 
             # 如果收集到 batch_ids，添加到响应中（取第一个）
             if batch_ids:

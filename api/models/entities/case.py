@@ -69,6 +69,10 @@ class CaseMetadata(BaseModel):
         None,
         description="事件类型（event_based案例）"
     )
+    event_scenario: Optional[Dict[str, Any]] = Field(
+        None,
+        description="事件场景信息（包含event_id, event_type等）"
+    )
 
     @field_validator('status', mode='before')
     @classmethod

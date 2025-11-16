@@ -45,14 +45,15 @@ class SimulationProcessor:
             "generate_sumocfg is deprecated here. Use api.utils.generate_sumocfg in API pipeline."
         )
     
-    def run_simulation(self, config_file: str, gui: bool = False, 
+    def run_simulation(self, config_file: str, gui: bool = False,
                       mesoscopic: bool = False,
                       run_folder: Optional[str] = None,
                       progress_path: Optional[str] = None,
-                      expected_duration: Optional[int] = None) -> Dict[str, Any]:
+                      expected_duration: Optional[int] = None,
+                      extra_cli_args: Optional[list] = None) -> Dict[str, Any]:
         """
         运行仿真
-        
+
         Args:
             config_file: 配置文件路径
             gui: 是否启用GUI
@@ -60,7 +61,8 @@ class SimulationProcessor:
             run_folder: 仿真输出目录，用于放置summary.xml与进度文件
             progress_path: 进度文件路径（progress.json）
             expected_duration: 预期仿真时长（秒），用于估算百分比
-            
+            extra_cli_args: 额外的SUMO命令行参数列表，如 ["--edgedata-output", "path/to/output.xml"]
+
         Returns:
             仿真结果
         """
@@ -89,6 +91,10 @@ class SimulationProcessor:
             # GUI 模式下自动开始
             if gui:
                 cmd.append("--start")
+
+            # 添加额外的CLI参数（如 --edgedata-output）
+            if extra_cli_args:
+                cmd.extend(extra_cli_args)
 
             logger.info(f"执行命令: {' '.join(cmd)}")
             logger.info(f"工作目录: {config_dir}")
@@ -601,11 +607,15 @@ class SimulationProcessor:
 
             progress_path = os.path.join(run_folder, "progress.json") if run_folder else None
 
+            # 提取额外的CLI参数
+            extra_cli_args = request.get("extra_cli_args")
+
             simulation_result = self.run_simulation(
                 config_file, gui, mesoscopic,
                 run_folder=run_folder,
                 progress_path=progress_path,
-                expected_duration=expected_duration
+                expected_duration=expected_duration,
+                extra_cli_args=extra_cli_args
             )
             
             if simulation_result["success"]:

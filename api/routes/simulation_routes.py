@@ -2,8 +2,10 @@
 仿真管理相关路由
 """
 
+import logging
 from fastapi import APIRouter
 from ..models import SimulationRequest, BaseResponse
+
 from ..models.requests.simulation_requests import EventScenarioSimulationRequest
 from ..models.requests.batch_simulation_requests import (
     BatchSimulationStartRequest,
@@ -21,6 +23,8 @@ from ..services import (
     start_simulation_with_event_service
 )
 from .middleware import handle_service_errors, create_success_response
+
+logger = logging.getLogger(__name__)
 
 # 创建仿真管理路由器
 router = APIRouter()

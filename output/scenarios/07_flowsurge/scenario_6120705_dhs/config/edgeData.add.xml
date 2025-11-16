@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<additional>
+  <!-- EdgeData configuration for event case -->
+  <!-- Total edges (validated): 9 -->
+  <!-- Event edges: 1 -->
+  <!-- Strategy edges: 8 -->
+  <!-- Invalid edges excluded: 0 -->
+  <edgeData id="ed1"
+    freq="300"
+    file="edgedata/edgedata.xml"
+    edges="-10188 -10376 -10376.203 -12680 -14078 -1438 -3324 -4360 -6906"
+    excludeEmpty="true"
+    withInternal="false"/>
+</additional>

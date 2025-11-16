@@ -163,32 +163,6 @@
             font-weight: 600;
         }
 
-        .export-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-
-        .export-buttons button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .export-buttons .btn-primary {
-            background: #1976d2;
-            color: white;
-        }
-
-        .export-buttons .btn-secondary {
-            background: #f5f5f5;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-
         .no-data {
             text-align: center;
             padding: 40px;
@@ -207,6 +181,26 @@
         .arrow-down {
             color: #f44336;
         }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .badge.positive {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .badge.negative {
+            background: #ffcdd2;
+            color: #c62828;
+        }
     </style>
 </head>
 <body>
@@ -219,8 +213,6 @@
             <h2 class="page-title">📈 影响分析</h2>
         </div>
         <div class="top-bar-buttons">
-            <button class="btn btn-secondary" onclick="refreshResults()">🔄 刷新</button>
-            <button class="btn btn-primary" onclick="window.history.back()">返回</button>
         </div>
     </div>
 
@@ -240,11 +232,6 @@
         <!-- 主内容区域 -->
         <div class="main-content">
             <div class="container">
-                <!-- 导出按钮 -->
-                <div class="export-buttons">
-                    <button class="btn-primary" onclick="exportPDF()">📄 导出PDF</button>
-                    <button class="btn-secondary" onclick="exportJSON()">📋 导出JSON</button>
-                </div>
 
                 <!-- 分析标签页 -->
                 <div class="analysis-tabs">
@@ -308,9 +295,9 @@
 
                 <!-- 详细指标标签页 -->
                 <div class="analysis-content" id="tab-detail">
-                    <h3>📋 详细指标</h3>
+                    <h3 id="detailTitle">📋 详细指标</h3>
                     <table class="comparison-table" id="detailTable">
-                        <thead>
+                        <thead id="detailHeader">
                             <tr>
                                 <th>指标名称</th>
                                 <th>数值</th>
@@ -334,8 +321,10 @@
         import { APIClient } from '../components/api-client.js';
 
         const api = new APIClient();
-        let batchId = new URLSearchParams(window.location.search).get('batch_id');
-        let simulationId = new URLSearchParams(window.location.search).get('simulation_id');
+        const urlParams = new URLSearchParams(window.location.search);
+        let caseId = urlParams.get('case_id');
+        let batchId = urlParams.get('batch_id');
+        let simulationId = urlParams.get('simulation_id');
         let analysisData = null;
 
         // 切换标签页
@@ -353,12 +342,97 @@
             event.target.classList.add('active');
         };
 
+        // 渲染仿真详情表格
+        function renderSimulationDetails(simulations) {
+            const detailBody = document.getElementById('detailBody');
+            const detailHeader = document.getElementById('detailHeader');
+            const detailTitle = document.getElementById('detailTitle');
+
+            if (!detailBody) return;
+
+            // 更新标题和表头（仅在批量模式下）
+            if (caseId) {
+                detailTitle.textContent = '📋 仿真列表';
+                if (detailHeader) {
+                    detailHeader.innerHTML = `
+                        <tr>
+                            <th>#</th>
+                            <th>仿真ID</th>
+                            <th>状态</th>
+                            <th>进度</th>
+                            <th>耗时</th>
+                        </tr>
+                    `;
+                }
+            }
+
+            // 清空现有内容
+            detailBody.innerHTML = '';
+
+            if (!simulations || simulations.length === 0) {
+                detailBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">暂无仿真数据</td></tr>';
+                return;
+            }
+
+            // 创建行
+            simulations.forEach((sim, idx) => {
+                const row = document.createElement('tr');
+                const statusClass = sim.status === 'completed' ? 'positive' : (sim.status === 'failed' ? 'negative' : '');
+                const statusText = {
+                    'completed': '已完成',
+                    'running': '运行中',
+                    'simulating': '仿真中',
+                    'failed': '失败',
+                    'queued': '排队中'
+                }[sim.status] || sim.status;
+
+                row.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td>${sim.simulation_id || '--'}</td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td>${(sim.progress_percent || 0)}%</td>
+                    <td>${sim.elapsed_seconds ? sim.elapsed_seconds.toFixed(1) + 's' : '--'}</td>
+                `;
+                detailBody.appendChild(row);
+            });
+        }
+
         // 加载分析结果
         async function loadAnalysisResults() {
             try {
-                if (batchId) {
+                // 优先使用 case_id (用于批量分析结果)
+                if (caseId) {
+                    // 使用 case_id 加载批量分析结果
+                    // 如果有 batch_id，使用具体的批次ID；否则使用 case_id 作为批次标识
+                    const batchIdentifier = batchId || caseId;
+
+                    console.log(`加载批量分析结果: case_id=${caseId}, batch_id=${batchIdentifier}`);
+
+                    try {
+                        const response = await api.request(`/analysis/results/${batchIdentifier}?case_id=${caseId}`);
+                        analysisData = response.data || response;
+                        console.log('批量分析结果:', analysisData);
+                    } catch (error) {
+                        console.warn(`加载分析结果失败: ${error.message}`);
+                        // 尝试从 simulation_progress 获取仿真列表作为备选
+                        const progressResponse = await api.request(`/simulation/simulation_progress/${caseId}`);
+                        const progressData = progressResponse.data || progressResponse;
+
+                        // 构建最小的分析数据对象
+                        analysisData = {
+                            summary: {
+                                case_id: caseId,
+                                batch_id: batchIdentifier,
+                                total_simulations: progressData.simulations?.length || 0,
+                                completed: progressData.simulations?.filter(s => s.status === 'completed').length || 0,
+                                failed: progressData.simulations?.filter(s => s.status === 'failed').length || 0
+                            },
+                            simulations: progressData.simulations || []
+                        };
+                    }
+                } else if (batchId) {
                     const response = await api.request(`/analysis/results/${batchId}`);
-                    analysisData = response.data;
+                    analysisData = response.data || response;
                 } else if (simulationId) {
                     // 加载单个仿真的分析结果
                     analysisData = {};
@@ -376,13 +450,35 @@
         function renderResults() {
             if (!analysisData) return;
 
-            // 概览数据
+            // 概览数据 - 支持两种格式：单仿真和批量仿真
             if (analysisData.summary) {
                 const summary = analysisData.summary;
-                document.getElementById('totalVehicles').textContent = summary.total_vehicles || '--';
-                document.getElementById('avgTripTime').textContent = (summary.avg_trip_time || 0).toFixed(1);
-                document.getElementById('completionRate').textContent = (summary.completion_rate || 0).toFixed(1);
-                document.getElementById('avgSpeed').textContent = (summary.avg_speed || 0).toFixed(1);
+
+                // 如果是批量仿真结果 (case_id 模式)
+                if (caseId && summary.case_id) {
+                    // 渲染批量仿真统计
+                    document.getElementById('totalVehicles').textContent = summary.total_simulations || '--';
+                    document.getElementById('avgTripTime').textContent = summary.completed ? summary.completed : '--';
+                    document.getElementById('completionRate').textContent = summary.failed || 0;
+                    document.getElementById('avgSpeed').textContent = (summary.total_simulations ? ((summary.completed / summary.total_simulations) * 100).toFixed(1) : 0) + '%';
+
+                    // 更新统计标签
+                    document.querySelectorAll('.metric-label')[0].textContent = '总仿真数';
+                    document.querySelectorAll('.metric-label')[1].textContent = '已完成仿真';
+                    document.querySelectorAll('.metric-label')[2].textContent = '失败仿真';
+                    document.querySelectorAll('.metric-label')[3].textContent = '完成率';
+
+                    // 渲染仿真详情表格
+                    if (analysisData.simulations && Array.isArray(analysisData.simulations)) {
+                        renderSimulationDetails(analysisData.simulations);
+                    }
+                } else {
+                    // 单仿真结果格式
+                    document.getElementById('totalVehicles').textContent = summary.total_vehicles || '--';
+                    document.getElementById('avgTripTime').textContent = (summary.avg_trip_time || 0).toFixed(1);
+                    document.getElementById('completionRate').textContent = (summary.completion_rate || 0).toFixed(1);
+                    document.getElementById('avgSpeed').textContent = (summary.avg_speed || 0).toFixed(1);
+                }
             }
 
             // EdgeData数据
@@ -431,27 +527,7 @@
             }
         }
 
-        // 刷新结果
-        window.refreshResults = loadAnalysisResults;
 
-        // 导出PDF
-        window.exportPDF = function() {
-            alert('PDF导出功能将在后续版本支持');
-            // window.print();
-        };
-
-        // 导出JSON
-        window.exportJSON = function() {
-            const dataStr = JSON.stringify(analysisData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-            const exportFileDefaultName = `analysis_${batchId || simulationId}.json`;
-
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-        };
 
         // 页面加载
         loadAnalysisResults();

@@ -517,8 +517,9 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 		print(f"使用默认仿真时长: {duration}秒")
 	
 	# 处理 edgeData additional 文件
+	# ❌ 禁用 EdgeData 输出以优化性能 (v0.10.0+)
 	edgedata_files = []
-	if simulation_params.get('output_edgedata', False):
+	if False and simulation_params.get('output_edgedata', False):  # ❌ EdgeData 输出已禁用
 		# 创建 edgedata 子目录
 		edgedata_dir = simulation_folder / "edgedata"
 		edgedata_dir.mkdir(exist_ok=True)
@@ -680,9 +681,10 @@ def generate_sumocfg_for_simulation(case_metadata: dict, simulation_type, simula
 	if simulation_params.get('output_emission', False):
 		output_lines.append('        <emission-output value="emission.xml"/>')
 
-	# ✅ PHASE 1.2: 显式配置edgeData输出（当启用edgeData集合时）
-	if simulation_params.get('output_edgedata', False):
-		output_lines.append('        <edgedata-output value="edgedata/edgedata.xml"/>')
+	# ❌ DISABLED: edgedata-output 配置已禁用以优化性能 (v0.10.0+)
+	# ❌ 理由：EdgeData 大文件生成导致 I/O 瓶颈，性能下降显著
+	# if simulation_params.get('output_edgedata', False):
+	#	output_lines.append('        <edgedata-output value="edgedata/edgedata.xml"/>')
 	
 	output_section = f'''    <output>
 {chr(10).join(output_lines)}

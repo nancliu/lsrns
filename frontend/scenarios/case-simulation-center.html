@@ -18,7 +18,8 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            table-layout: auto;
+            table-layout: fixed;
+            min-width: 900px;
         }
 
         /* 宽屏优化 */
@@ -264,9 +265,10 @@
 
         .action-buttons {
             display: flex;
-            gap: 10px;
-            flex-wrap: nowrap;
+            gap: 6px;
+            flex-wrap: wrap;
             min-width: 0;
+            justify-content: flex-start;
         }
 
         /* 宽屏优化 - 操作按钮间距 */
@@ -277,12 +279,14 @@
         }
 
         .btn-small {
-            padding: 6px 12px;
+            padding: 6px 10px;
             font-size: 12px;
             cursor: pointer;
             border: 1px solid #ddd;
             background: white;
             border-radius: 4px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .btn-small:hover {
@@ -752,13 +756,13 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
-                                        <th>案例ID</th>
-                                        <th>场景ID</th>
-                                        <th>事件类型</th>
-                                        <th>管控策略</th>
-                                        <th>状态</th>
-                                        <th>创建时间</th>
-                                        <th>操作</th>
+                                        <th style="width: 150px;">案例ID</th>
+                                        <th style="width: 200px;">场景ID</th>
+                                        <th style="width: 100px;">事件类型</th>
+                                        <th style="width: 120px;">管控策略</th>
+                                        <th style="width: 80px;">状态</th>
+                                        <th style="width: 150px;">创建时间</th>
+                                        <th style="width: 60px;">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody id="caseTableBody">
@@ -937,6 +941,16 @@
                 batchId = sessionStorage.getItem('currentBatchId');
             }
 
+            // 恢复所有监控的 case_ids（支持多案例）
+            const savedCaseIds = sessionStorage.getItem('currentMonitoringCaseIds');
+            if (savedCaseIds) {
+                try {
+                    window.currentMonitoringCaseIds = JSON.parse(savedCaseIds);
+                } catch (e) {
+                    console.error('恢复 currentMonitoringCaseIds 失败:', e);
+                }
+            }
+
             // 总是从sessionStorage恢复case_id
             if (!window.currentMonitoringCaseId) {
                 window.currentMonitoringCaseId = sessionStorage.getItem('currentMonitoringCaseId');
@@ -958,7 +972,12 @@
                 }
             }
 
-            console.log('恢复批次信息 - batchId:', batchId, 'caseId:', caseId, 'scenarioId:', scenarioId);
+            // 如果scenarioId是逗号分隔的字符串，解析并显示数量
+            let scenarioCount = 0;
+            if (scenarioId && typeof scenarioId === 'string') {
+                scenarioCount = scenarioId.split(',').length;
+            }
+            console.log('恢复批次信息 - batchId:', batchId, 'caseId:', caseId, 'scenarioId:', scenarioId, '(数量:', scenarioCount, ')');
         }
 
         /**
@@ -969,6 +988,100 @@
             sessionStorage.removeItem('currentMonitoringCaseId');
             batchId = null;
             window.currentMonitoringCaseId = null;
+        }
+
+        /**
+         * 内部函数：重置案例仿真状态
+         * 清除所有状态信息并允许用户重新启动仿真
+         */
+        async function resetCaseSimulationState() {
+            console.log('重置案例仿真状态...');
+
+            try {
+                // 停止监控
+                stopMonitoring();
+
+                // 获取需要重置的案例ID列表
+                let casesIdToReset = [];
+
+                // 首先尝试从当前监控的案例中获取
+                if (window.currentMonitoringCaseId) {
+                    casesIdToReset.push(window.currentMonitoringCaseId);
+                } else if (caseId) {
+                    casesIdToReset.push(caseId);
+                } else {
+                    // 从复选框中获取所有选中的案例
+                    const checkedCheckboxes = document.querySelectorAll('input.case-checkbox:checked');
+                    if (checkedCheckboxes && checkedCheckboxes.length > 0) {
+                        checkedCheckboxes.forEach(cb => casesIdToReset.push(cb.value));
+                    }
+                }
+
+                console.log('需要重置的案例ID:', casesIdToReset);
+
+                // 调用API重置所有案例的仿真状态
+                if (casesIdToReset.length > 0) {
+                    for (const caseIdToReset of casesIdToReset) {
+                        try {
+                            console.log('重置案例仿真状态:', caseIdToReset);
+                            const resetResponse = await api.request(
+                                `/case/${caseIdToReset}/reset-simulation-status`,
+                                { method: 'POST' }
+                            );
+                            console.log(`✓ 案例 ${caseIdToReset} 状态已重置:`, resetResponse);
+                        } catch (resetError) {
+                            console.warn(`重置案例 ${caseIdToReset} 状态失败:`, resetError.message);
+                            // 继续重置其他案例，不中断
+                        }
+                    }
+                }
+
+                // 清除所有批次信息
+                clearBatchInfo();
+                caseId = null;
+                scenarioId = null;
+                sessionStorage.removeItem('currentScenarioId');
+
+                // 隐藏监控面板
+                hideMonitoringPanel();
+
+                // 清除UI中的监控内容
+                const simulationTableBody = document.getElementById('simulationTableBody');
+                if (simulationTableBody) {
+                    simulationTableBody.innerHTML = '';
+                }
+
+                // 重置统计信息显示
+                const totalElement = document.getElementById('totalSims');
+                const completedElement = document.getElementById('completedSims');
+                const runningElement = document.getElementById('runningCount');
+                const failedElement = document.getElementById('failedCount');
+                const progressPercentElement = document.getElementById('progressPercent');
+                const progressBarElement = document.getElementById('progressBar');
+
+                if (totalElement) totalElement.textContent = '0';
+                if (completedElement) completedElement.textContent = '0';
+                if (runningElement) runningElement.textContent = '0';
+                if (failedElement) failedElement.textContent = '0';
+                if (progressPercentElement) progressPercentElement.textContent = '0%';
+                if (progressBarElement) progressBarElement.style.width = '0%';
+
+                // 清除复选框选择
+                const checkboxes = document.querySelectorAll('input.case-checkbox');
+                checkboxes.forEach(cb => cb.checked = false);
+
+                const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+
+                // 更新批量操作状态
+                updateBulkActionState();
+
+                console.log('✓ 案例仿真状态已重置');
+
+            } catch (error) {
+                console.error('重置案例仿真状态失败:', error);
+                // 即使API调用失败，也继续进行前端清理
+            }
         }
 
         // ===== 监控面板显示/隐藏逻辑 =====
@@ -999,6 +1112,7 @@
                     if (toggleIcon) {
                         toggleIcon.classList.add('expanded');
                     }
+                    console.log('✓ 监控面板已设置为展开状态');
                 }
             }
 
@@ -1008,7 +1122,11 @@
             }
 
             currentTab = 'monitor';
-            startMonitoring();
+
+            // 等待DOM更新后再启动监控，确保展开状态被检测到
+            setTimeout(() => {
+                startMonitoring();
+            }, 100);
         }
 
         /**
@@ -1151,7 +1269,7 @@
 
                     row.innerHTML = `
                         <td style="width: 40px; text-align: center;">
-                            <input type="checkbox" class="case-checkbox" value="${caseItem.case_id}" onchange="updateBulkActionState()">
+                            <input type="checkbox" class="case-checkbox" value="${caseItem.case_id}" onchange="handleCaseCheckboxChange()">
                         </td>
                         <td><strong>${caseItem.case_id}</strong></td>
                         <td><span style="font-size: 0.85rem; color: #666;">${scenarioIds}</span></td>
@@ -1161,7 +1279,6 @@
                         <td>${createdTime}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-small" onclick="viewCaseDetails('${caseItem.case_id}')">📋 详情</button>
                                 ${caseItem.status === 'created' ?
                                     `<button class="btn-small primary" onclick="startCaseSimulation('${caseItem.case_id}')">▶️ 启动</button>` :
                                     ''}
@@ -1299,12 +1416,6 @@
             }
         };
 
-        /**
-         * 查看案例详情
-         */
-        window.viewCaseDetails = function(caseId) {
-            alert(`案例详情: ${caseId}\n\n该功能将在下一个版本实现`);
-        };
 
         /**
          * 启动案例仿真
@@ -1352,9 +1463,12 @@
                     if (newBatchId) {
                         batchId = newBatchId;
                         window.currentMonitoringCaseId = caseId;
+                        // 对于单个启动，也设置currentMonitoringCaseIds（为数组形式）
+                        window.currentMonitoringCaseIds = [caseId];
 
                         // 保存批次信息到sessionStorage
                         saveBatchInfo(batchId, caseId, scenarioId);
+                        sessionStorage.setItem('currentMonitoringCaseIds', JSON.stringify([caseId]));
 
                         console.log('已设置全局batchId:', batchId);
 
@@ -1475,49 +1589,56 @@
          */
         async function refreshBatchStatus() {
             try {
-                let simulations = [];
-                let stats = { total: 0, completed: 0, in_progress: 0, failed: 0, queued: 0 };
+                let allSimulations = [];
+                let totalStats = { total: 0, completed: 0, in_progress: 0, failed: 0, queued: 0 };
+                let caseDataList = [];  // 存储每个案例的数据
 
-                // 使用 case_id 查询事件场景仿真进度
-                if (window.currentMonitoringCaseId) {
-                    const caseId = window.currentMonitoringCaseId;
-                    try {
-                        console.log('查询事件案例仿真进度, case_id:', caseId);
-                        const response = await api.request(`/simulation/simulation_progress/${caseId}`);
-                        console.log('事件案例进度响应:', response);
+                // 获取所有监控的 case_ids
+                const caseIds = window.currentMonitoringCaseIds || [window.currentMonitoringCaseId];
 
-                        const progressData = response.data || response;
+                if (caseIds && caseIds.length > 0) {
+                    // 并行获取所有案例的进度数据
+                    const promises = caseIds.map(caseId =>
+                        api.request(`/simulation/simulation_progress/${caseId}`)
+                            .then(response => {
+                                const progressData = response.data || response;
+                                return {
+                                    caseId: caseId,
+                                    simulations: progressData.simulations || [],
+                                    stats: progressData.stats
+                                };
+                            })
+                            .catch(err => {
+                                console.error(`获取案例 ${caseId} 的进度失败:`, err);
+                                return {
+                                    caseId: caseId,
+                                    simulations: [],
+                                    stats: { total: 0, completed: 0, in_progress: 0, failed: 0, queued: 0 }
+                                };
+                            })
+                    );
 
-                        // 提取仿真列表
-                        simulations = progressData.simulations || [];
+                    caseDataList = await Promise.all(promises);
 
-                        // 计算统计信息
-                        stats.total = simulations.length;
-                        stats.completed = simulations.filter(s => s.status === 'completed').length;
-                        stats.in_progress = simulations.filter(s => s.status === 'running' || s.status === 'simulating').length;
-                        stats.failed = simulations.filter(s => s.status === 'failed').length;
-                        stats.queued = simulations.filter(s => s.status === 'queued').length;
+                    // 合并所有案例的数据
+                    caseDataList.forEach(caseData => {
+                        allSimulations.push(...caseData.simulations);
+                        if (caseData.stats) {
+                            totalStats.total += caseData.stats.total || 0;
+                            totalStats.completed += caseData.stats.completed || 0;
+                            totalStats.in_progress += caseData.stats.in_progress || 0;
+                            totalStats.failed += caseData.stats.failed || 0;
+                            totalStats.queued += caseData.stats.queued || 0;
+                        }
+                    });
 
-                        console.log('事件案例统计:', stats, '仿真数:', simulations.length);
-
-
-                    } catch (err) {
-                        console.error('获取事件案例进度失败:', err);
-                        console.error('错误详情:', err.message);
-                        // 回退到通用模式获取所有活跃仿真
-                        console.log('回退到通用模式获取仿真');
-                        const result = await getAllActiveSimulations();
-                        simulations = result.simulations;
-                        stats = result.stats;
-                    }
+                    console.log('多案例进度查询完成，总统计:', totalStats, '案例数:', caseDataList.length);
                 } else {
                     // 通用模式: 获取所有活跃仿真
                     console.log('未设置case_id，使用通用模式');
                     const result = await getAllActiveSimulations();
-                    simulations = result.simulations;
-                    stats = result.stats;
-
-
+                    allSimulations = result.simulations;
+                    totalStats = result.stats;
                 }
 
                 // 更新统计信息
@@ -1526,24 +1647,28 @@
                 const runningElement = document.getElementById('runningCount');
                 const failedElement = document.getElementById('failedCount');
 
-                if (totalElement) totalElement.textContent = stats.total;
-                if (completedElement) completedElement.textContent = stats.completed;
-                if (runningElement) runningElement.textContent = stats.in_progress;
-                if (failedElement) failedElement.textContent = stats.failed;
+                if (totalElement) totalElement.textContent = totalStats.total;
+                if (completedElement) completedElement.textContent = totalStats.completed;
+                if (runningElement) runningElement.textContent = totalStats.in_progress;
+                if (failedElement) failedElement.textContent = totalStats.failed;
 
-                // 更新进度条
-                const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                // 更新进度条 - 本地计算进度
+                const progressPercent = totalStats.total > 0 ? Math.round((totalStats.completed / totalStats.total) * 100) : 0;
                 const progressPercentElement = document.getElementById('progressPercent');
                 const progressBarElement = document.getElementById('progressBar');
 
                 if (progressPercentElement) progressPercentElement.textContent = progressPercent + '%';
                 if (progressBarElement) progressBarElement.style.width = progressPercent + '%';
 
-                // 渲染仿真表格
-                renderSimulationTable(simulations);
+                // 渲染多案例的分层表格
+                if (caseDataList.length > 0) {
+                    renderMultiCaseBatchStatus(caseDataList);
+                } else {
+                    renderSimulationTable(allSimulations);
+                }
 
                 // 检查是否全部完成
-                if (stats.queued === 0 && stats.in_progress === 0 && stats.total > 0) {
+                if (totalStats.queued === 0 && totalStats.in_progress === 0 && totalStats.total > 0) {
                     if (monitoringInterval) {
                         clearInterval(monitoringInterval);
                         monitoringInterval = null;
@@ -1556,7 +1681,279 @@
         }
 
         /**
-         * 渲染仿真表格
+         * 渲染多案例批次状态
+         * 未展开：案例行 + 百分比（不显示进度条）
+         * 展开：显示事件信息 + 场景 + simulations
+         */
+        function renderMultiCaseBatchStatus(caseDataList) {
+            const tbody = document.getElementById('simTableBody');
+            if (!tbody) return;
+
+            // 保存当前展开的detail行（刷新前）
+            const expandedDetails = new Set();
+            tbody.querySelectorAll('tr[id^="case-details-"]').forEach(row => {
+                if (row.style.display !== 'none') {
+                    expandedDetails.add(row.id);
+                }
+            });
+
+            tbody.innerHTML = '';
+
+            // 渲染每个案例
+            caseDataList.forEach((caseData, caseIndex) => {
+                const caseId = caseData.caseId;
+                const simulations = caseData.simulations || [];
+
+                // 计算案例统计
+                const caseStats = {
+                    total: simulations.length,
+                    completed: simulations.filter(s => s.status === 'completed').length,
+                    in_progress: simulations.filter(s => s.status === 'running' || s.status === 'simulating').length,
+                    failed: simulations.filter(s => s.status === 'failed').length,
+                    queued: simulations.filter(s => s.status === 'queued').length
+                };
+
+                // 表格中的进度使用平均进度百分比（与详情面板一致）
+                let caseProgressPercent = 0;
+                if (simulations.length > 0) {
+                    const totalProgress = simulations.reduce((sum, sim) => sum + (sim.progress || 0), 0);
+                    caseProgressPercent = Math.round(totalProgress / simulations.length);
+                }
+
+                // 第一行：案例概览（未展开时显示）
+                // 注意：进度列只显示百分比，不显示进度条
+                const caseRow = document.createElement('tr');
+                caseRow.style.backgroundColor = '#e8f5e9';
+                caseRow.style.fontWeight = 'bold';
+
+                caseRow.innerHTML = `
+                    <td><strong>📋 ${caseId}</strong></td>
+                    <td>${caseId}</td>
+                    <td>
+                        <span class="status-badge" style="background-color: #4caf5022; color: #4caf50;">
+                            总: ${caseStats.total} | 进行: ${caseStats.in_progress} | 完成: ${caseStats.completed}
+                        </span>
+                    </td>
+                    <td style="text-align: center; font-weight: bold; font-size: 1.1em; color: #2196f3;">
+                        ${caseProgressPercent}%
+                    </td>
+                    <td>--</td>
+                    <td>
+                        <button class="btn-small" onclick="toggleCaseDetails(${caseIndex})" title="展开/折叠详情">▼ 详情</button>
+                    </td>
+                `;
+                tbody.appendChild(caseRow);
+
+                // 第二行：详情面板（初始隐藏，除非之前展开）
+                const detailsRow = document.createElement('tr');
+                detailsRow.id = `case-details-${caseIndex}`;
+                // 检查这个row是否之前展开过
+                const wasExpanded = expandedDetails.has(`case-details-${caseIndex}`);
+                detailsRow.style.display = wasExpanded ? 'table-row' : 'none';
+
+                // 从caseDataMap中获取event_type（从案例列表加载时已获取）
+                const caseItem = caseDataMap[caseId];
+                const caseEventType = caseItem ? (caseItem.event_type || '--') : '--';
+
+                detailsRow.innerHTML = `
+                    <td colspan="6" style="padding: 0; background: #f9f9f9;">
+                        <div style="padding: 16px; margin-left: 20px;">
+                            ${renderCaseDetailsPanel(caseId, simulations, caseStats, caseEventType)}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(detailsRow);
+            });
+        }
+
+        /**
+         * 渲染案例详情面板
+         * 显示：事件ID、事件类型、仿真开始时间、已用时间、进度条等
+         * @param {string} caseId - 案例ID
+         * @param {Array} simulations - 仿真列表
+         * @param {Object} caseStats - 案例统计信息
+         * @param {string} caseEventType - 事件类型（从API返回）
+         */
+        function renderCaseDetailsPanel(caseId, simulations, caseStats, caseEventType) {
+            // 提取事件ID（从case_id: case_event_XXXX）
+            const eventIdMatch = caseId.match(/case_event_(\d+)/);
+            const eventId = eventIdMatch ? eventIdMatch[1] : '--';
+
+            // 获取事件类型：优先从simulations中的source_scenario.event_type获取中文名称
+            let eventType = caseEventType || '--';
+            if (simulations.length > 0) {
+                const firstSim = simulations[0];
+                if (firstSim.source_scenario && firstSim.source_scenario.event_type) {
+                    // 使用中文事件类型
+                    eventType = firstSim.source_scenario.event_type;
+                }
+            }
+
+            // 计算仿真开始时间和已用时间
+            let startTime = '--';
+            let elapsedTime = '--';
+            let minStartedAt = null;
+            let maxCompletedAt = null;
+            let allSimulationsCompleted = true;
+
+            simulations.forEach(sim => {
+                // 找最早的仿真实际开始时间（started_at）
+                if (sim.started_at) {
+                    const startedTime = new Date(sim.started_at);
+                    if (!minStartedAt || startedTime < minStartedAt) {
+                        minStartedAt = startedTime;
+                    }
+                }
+
+                // 检查是否所有仿真都已完成
+                if (sim.status !== 'completed') {
+                    allSimulationsCompleted = false;
+                }
+
+                // 找最晚的完成时间（仿真完成时）
+                if (sim.completed_at) {
+                    const completedTime = new Date(sim.completed_at);
+                    if (!maxCompletedAt || completedTime > maxCompletedAt) {
+                        maxCompletedAt = completedTime;
+                    }
+                }
+            });
+
+            // 格式化开始时间
+            if (minStartedAt) {
+                startTime = minStartedAt.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                // 计算已用时间：仿真完成时使用completed_at计算，否则用现在时间计算
+                let elapsedEndTime = new Date();  // 默认使用现在时间
+                if (allSimulationsCompleted && maxCompletedAt) {
+                    // 所有仿真都完成，使用最晚的完成时间来固定已用时间
+                    elapsedEndTime = maxCompletedAt;
+                }
+
+                const elapsedSeconds = Math.floor((elapsedEndTime - minStartedAt) / 1000);
+                if (elapsedSeconds >= 0) {
+                    const hours = Math.floor(elapsedSeconds / 3600);
+                    const mins = Math.floor((elapsedSeconds % 3600) / 60);
+                    const secs = elapsedSeconds % 60;
+                    elapsedTime = `${hours}h ${mins}m ${secs}s`;
+                }
+            }
+
+            // 计算批次进度：所有simulation的平均进度百分比
+            let caseProgressPercent = 0;
+            if (simulations.length > 0) {
+                const totalProgress = simulations.reduce((sum, sim) => sum + (sim.progress || 0), 0);
+                caseProgressPercent = Math.round(totalProgress / simulations.length);
+            }
+
+            // 按场景分组 - 先确保每个simulation都有scenario_id
+            const groupByScenario = {};
+            simulations.forEach(sim => {
+                // scenario_id可能在顶级或source_scenario.scenario_id中
+                let scenarioId = sim.scenario_id;
+                if (!scenarioId && sim.source_scenario && sim.source_scenario.scenario_id) {
+                    scenarioId = sim.source_scenario.scenario_id;
+                }
+                scenarioId = scenarioId || '--';  // 最后才用--作为默认值
+
+                // 过滤掉scenario_id为'--'的simulations（完全无效的）
+                if (scenarioId === '--') {
+                    console.warn('发现没有scenario_id的simulation:', sim);
+                    return;  // 跳过这个simulation
+                }
+
+                if (!groupByScenario[scenarioId]) {
+                    groupByScenario[scenarioId] = [];
+                }
+                groupByScenario[scenarioId].push(sim);
+            });
+
+            let html = `
+                <!-- 事件基本信息 -->
+                <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 16px; border-left: 4px solid #2196f3;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 0.95em;">
+                        <div><strong>事件ID:</strong> ${eventId}</div>
+                        <div><strong>事件类型:</strong> ${eventType}</div>
+                        <div><strong>开始时间:</strong> ${startTime}</div>
+                        <div><strong>已用时间:</strong> ${elapsedTime}</div>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span><strong>批次进度</strong></span>
+                            <span style="font-weight: bold; color: #2196f3;">${caseProgressPercent}%</span>
+                        </div>
+                        <div style="background: #e3f2fd; border-radius: 4px; overflow: hidden; height: 24px;">
+                            <div style="width: ${caseProgressPercent}%; height: 100%; background: linear-gradient(90deg, #2196f3, #1976d2); transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 场景详情 -->
+                <div style="margin-top: 16px;">
+            `;
+
+            // 渲染每个场景 - 简化为一行展示，使用橙色区分
+            Object.entries(groupByScenario).forEach(([scenarioId, sims]) => {
+                const scenarioStats = {
+                    total: sims.length,
+                    completed: sims.filter(s => s.status === 'completed').length,
+                    in_progress: sims.filter(s => s.status === 'running' || s.status === 'simulating').length,
+                    failed: sims.filter(s => s.status === 'failed').length,
+                    queued: sims.filter(s => s.status === 'queued').length
+                };
+
+                // 场景进度：使用平均进度（与批次进度保持一致）
+                const scenarioProgressPercent = sims.length > 0 ?
+                    Math.round(sims.reduce((sum, sim) => sum + (sim.progress || 0), 0) / sims.length) : 0;
+
+                // 提取场景显示名称（从scenario_id中）
+                // 格式: scenario_6120705_dhs -> 6120705_dhs 或类似
+                let scenarioDisplayName = scenarioId;
+                if (scenarioId !== '未知') {
+                    // 如果是 scenario_XXXX_TYPE 格式，提取后面的部分
+                    const match = scenarioId.match(/scenario_(.+)/) || scenarioId.match(/(.+)/);
+                    if (match && match[1]) {
+                        scenarioDisplayName = match[1];
+                    }
+                }
+
+                html += `
+                    <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 12px; border-left: 4px solid #ff9800;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong style="color: #ff9800;">场景: ${scenarioDisplayName}</strong>
+                            <span style="font-weight: bold; color: #ff9800;">${scenarioProgressPercent}%</span>
+                        </div>
+                        <div style="background: #fff3e0; border-radius: 4px; overflow: hidden; height: 20px;">
+                            <div style="width: ${scenarioProgressPercent}%; height: 100%; background: linear-gradient(90deg, #ff9800, #f57c00); transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            return html;
+        }
+
+        /**
+         * 切换案例详情的显示/隐藏
+         */
+        window.toggleCaseDetails = function(caseIndex) {
+            const element = document.getElementById(`case-details-${caseIndex}`);
+            if (element) {
+                const isHidden = element.style.display === 'none';
+                element.style.display = isHidden ? 'table-row' : 'none';
+            }
+        };
+
+        /**
+         * 渲染仿真表格（分层展示：按事件案例 -> 按场景）
          */
         function renderSimulationTable(simulations) {
             const tbody = document.getElementById('simTableBody');
@@ -1568,49 +1965,182 @@
 
             tbody.innerHTML = '';
 
+            // 按 case_id 分组
+            const groupByCase = {};
             simulations.forEach(sim => {
-                const row = document.createElement('tr');
-                const progressPercent = sim.progress_percent || 0;
+                const caseId = sim.case_id || '未知案例';
+                if (!groupByCase[caseId]) {
+                    groupByCase[caseId] = {};
+                }
+                // 再按 scenario_id 分组
+                const scenarioId = sim.scenario_id || '未知场景';
+                if (!groupByCase[caseId][scenarioId]) {
+                    groupByCase[caseId][scenarioId] = [];
+                }
+                groupByCase[caseId][scenarioId].push(sim);
+            });
 
-                // 获取状态样式
-                const statusMap = {
-                    'running': { text: '运行中', color: '#f57c00' },
-                    'completed': { text: '已完成', color: '#388e3c' },
-                    'failed': { text: '失败', color: '#d32f2f' },
-                    'queued': { text: '等待中', color: '#999' }
+            // 渲染分层结构
+            Object.entries(groupByCase).forEach(([caseId, scenarios]) => {
+                // 计算案例级别的统计
+                const caseStats = {
+                    total: 0,
+                    completed: 0,
+                    in_progress: 0,
+                    failed: 0,
+                    queued: 0
                 };
 
-                const statusInfo = statusMap[sim.status] || { text: sim.status, color: '#999' };
+                let scenarioRows = [];
 
-                // 格式化时间
-                const elapsedTime = sim.elapsed_seconds ?
-                    `${Math.floor(sim.elapsed_seconds / 60)}m ${Math.round(sim.elapsed_seconds % 60)}s` :
-                    '--';
+                Object.entries(scenarios).forEach(([scenarioId, sims]) => {
+                    // 计算场景级别的统计
+                    const scenarioStats = {
+                        total: sims.length,
+                        completed: sims.filter(s => s.status === 'completed').length,
+                        in_progress: sims.filter(s => s.status === 'running' || s.status === 'simulating').length,
+                        failed: sims.filter(s => s.status === 'failed').length,
+                        queued: sims.filter(s => s.status === 'queued').length
+                    };
 
-                row.innerHTML = `
-                    <td><strong>${sim.simulation_id}</strong></td>
-                    <td>${sim.case_id || '--'}</td>
-                    <td><span class="status-badge" style="background-color: ${statusInfo.color}22; color: ${statusInfo.color};">${statusInfo.text}</span></td>
+                    // 累加到案例级别
+                    Object.keys(caseStats).forEach(key => {
+                        caseStats[key] += scenarioStats[key];
+                    });
+
+                    // 场景进度使用平均进度百分比
+                    let scenarioProgressPercent = 0;
+                    if (sims.length > 0) {
+                        const totalProgress = sims.reduce((sum, sim) => sum + (sim.progress || 0), 0);
+                        scenarioProgressPercent = Math.round(totalProgress / sims.length);
+                    }
+
+                    // 场景行
+                    const scenarioRow = document.createElement('tr');
+                    scenarioRow.style.backgroundColor = '#f5f5f5';
+                    scenarioRow.innerHTML = `
+                        <td style="padding-left: 40px;">
+                            <strong>├─ ${scenarioId}</strong>
+                        </td>
+                        <td>${caseId}</td>
+                        <td>
+                            <span class="status-badge" style="background-color: #f5a62222; color: #f5a622;">
+                                总数: ${scenarioStats.total} | 进行: ${scenarioStats.in_progress} | 完成: ${scenarioStats.completed}
+                            </span>
+                        </td>
+                        <td class="sim-progress-cell">
+                            <div class="sim-progress-bar">
+                                <div class="sim-progress-fill" style="width: ${scenarioProgressPercent}%;" title="${scenarioProgressPercent}%"></div>
+                            </div>
+                            <div class="sim-progress-text">${scenarioProgressPercent}%</div>
+                        </td>
+                        <td>--</td>
+                        <td></td>
+                    `;
+                    tbody.appendChild(scenarioRow);
+
+                    // 场景下的仿真行
+                    sims.forEach(sim => {
+                        const row = document.createElement('tr');
+                        const progressPercent = sim.progress || 0;
+
+                        // 获取状态样式
+                        const statusMap = {
+                            'running': { text: '运行中', color: '#f57c00' },
+                            'simulating': { text: '仿真中', color: '#f57c00' },
+                            'completed': { text: '已完成', color: '#388e3c' },
+                            'failed': { text: '失败', color: '#d32f2f' },
+                            'queued': { text: '等待中', color: '#999' }
+                        };
+
+                        const statusInfo = statusMap[sim.status] || { text: sim.status, color: '#999' };
+
+                        // 格式化已用时间 - 使用started_at计算，仿真完成时固定时间
+                        let elapsedTime = '--';
+                        if (sim.started_at) {
+                            const startedTime = new Date(sim.started_at);
+                            // 仿真完成时使用completed_at固定时间，否则用现在时间
+                            let elapsedEndTime = new Date();
+                            if (sim.status === 'completed' && sim.completed_at) {
+                                elapsedEndTime = new Date(sim.completed_at);
+                            }
+
+                            const elapsedSeconds = Math.floor((elapsedEndTime - startedTime) / 1000);
+                            if (elapsedSeconds >= 0) {
+                                const hours = Math.floor(elapsedSeconds / 3600);
+                                const mins = Math.floor((elapsedSeconds % 3600) / 60);
+                                const secs = elapsedSeconds % 60;
+                                if (hours > 0) {
+                                    elapsedTime = `${hours}h ${mins}m ${secs}s`;
+                                } else {
+                                    elapsedTime = `${mins}m ${secs}s`;
+                                }
+                            }
+                        }
+
+                        row.innerHTML = `
+                            <td style="padding-left: 80px;">└─ ${sim.simulation_id}</td>
+                            <td>${sim.case_id || '--'}</td>
+                            <td><span class="status-badge" style="background-color: ${statusInfo.color}22; color: ${statusInfo.color};">${statusInfo.text}</span></td>
+                            <td class="sim-progress-cell">
+                                <div class="sim-progress-bar">
+                                    <div class="sim-progress-fill" style="width: ${progressPercent}%;" title="${progressPercent}%"></div>
+                                </div>
+                                <div class="sim-progress-text">${progressPercent}%</div>
+                            </td>
+                            <td>${elapsedTime}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn-small" onclick="viewLogs('${sim.simulation_id}')" title="查看日志">📋</button>
+                                    ${sim.status === 'completed' ?
+                                        `<button class="btn-small" onclick="viewResults('${sim.case_id}')" title="查看分析结果">📊</button>` :
+                                        ''}
+                                </div>
+                                <div class="log-viewer" id="logs-${sim.simulation_id}">
+                                    <div class="log-line">日志加载中...</div>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+
+                // 案例级别的总行
+                const caseRow = document.createElement('tr');
+                caseRow.style.backgroundColor = '#e8f5e9';
+                caseRow.style.fontWeight = 'bold';
+
+                // 案例总进度使用平均进度百分比（与多案例模式一致）
+                let caseProgressPercent = 0;
+                if (simulations.length > 0) {
+                    const totalProgress = simulations.reduce((sum, sim) => sum + (sim.progress || 0), 0);
+                    caseProgressPercent = Math.round(totalProgress / simulations.length);
+                }
+
+                caseRow.innerHTML = `
+                    <td><strong>📋 事件案例: ${caseId}</strong></td>
+                    <td>${caseId}</td>
+                    <td>
+                        <span class="status-badge" style="background-color: #4caf5022; color: #4caf50;">
+                            总数: ${caseStats.total} | 进行: ${caseStats.in_progress} | 完成: ${caseStats.completed}
+                        </span>
+                    </td>
                     <td class="sim-progress-cell">
                         <div class="sim-progress-bar">
-                            <div class="sim-progress-fill" style="width: ${progressPercent}%;" title="${progressPercent}%"></div>
+                            <div class="sim-progress-fill" style="width: ${caseProgressPercent}%;" title="${caseProgressPercent}%"></div>
                         </div>
-                        <div class="sim-progress-text">${progressPercent}%</div>
+                        <div class="sim-progress-text"><strong>${caseProgressPercent}%</strong></div>
                     </td>
-                    <td>${elapsedTime}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-small" onclick="viewLogs('${sim.simulation_id}')" title="查看日志">📋</button>
-                            ${sim.status === 'completed' ?
-                                `<button class="btn-small" onclick="viewResults('${sim.case_id}')" title="查看分析结果">📊</button>` :
-                                ''}
-                        </div>
-                        <div class="log-viewer" id="logs-${sim.simulation_id}">
-                            <div class="log-line">日志加载中...</div>
-                        </div>
-                    </td>
+                    <td>--</td>
+                    <td></td>
                 `;
-                tbody.appendChild(row);
+
+                // 将案例行插入到最前面（需要反向插入）
+                if (tbody.children.length === 0) {
+                    tbody.appendChild(caseRow);
+                } else {
+                    tbody.insertBefore(caseRow, tbody.firstChild);
+                }
             });
         }
 
@@ -1651,6 +2181,10 @@
 
         /**
          * 取消批次或仿真
+         *
+         * 处理两种情况：
+         * 1. 批次仿真存在：停止运行中的仿真，重置案例仿真的状态
+         * 2. 批次仿真不存在：直接进入重置案例仿真的状态流程
          */
         window.cancelBatch = async function() {
             if (!confirm('确认要取消仿真吗？此操作将停止所有运行中的仿真任务')) {
@@ -1658,70 +2192,84 @@
             }
 
             try {
-                // 首先尝试恢复批次信息（以防batchId被清空）
-                if (!batchId && !window.currentMonitoringCaseId) {
-                    console.log('尝试从sessionStorage恢复批次信息');
-                    restoreBatchInfo();
-                }
+                console.log('取消批次 - 初始状态: caseId=' + caseId + ', window.currentMonitoringCaseId=' + window.currentMonitoringCaseId);
 
-                let actualBatchId = batchId;
+                // 总是尝试从sessionStorage恢复批次信息
+                restoreBatchInfo();
 
-                // 如果没有 batchId，尝试从 case_id 获取
-                if (!actualBatchId && window.currentMonitoringCaseId) {
-                    console.log('未找到batchId，尝试从case_id获取:', window.currentMonitoringCaseId);
-                    try {
-                        const progressResponse = await api.request(
-                            `/simulation/simulation_progress/${window.currentMonitoringCaseId}`
-                        );
-                        const progressData = progressResponse.data || progressResponse;
+                console.log('恢复后状态: caseId=' + caseId + ', window.currentMonitoringCaseId=' + window.currentMonitoringCaseId);
 
-                        // 从进度响应中查找batch_id
-                        if (progressData.batch_id) {
-                            actualBatchId = progressData.batch_id;
-                            console.log('从进度响应中获取batch_id:', actualBatchId);
-                        } else if (progressData.simulations && progressData.simulations.length > 0) {
-                            // 如果仿真列表中有batch_id，使用第一个
-                            const firstSim = progressData.simulations[0];
-                            if (firstSim.batch_id) {
-                                actualBatchId = firstSim.batch_id;
-                                console.log('从仿真列表中获取batch_id:', actualBatchId);
-                            }
-                        }
-                    } catch (err) {
-                        console.warn('获取进度信息失败:', err.message);
+                // 确定批次ID - 优先级：currentMonitoringCaseId > caseId > 从复选框读取
+                let batchId = window.currentMonitoringCaseId || caseId;
+
+                // 如果仍然没有 case_id，尝试从当前选中的复选框中获取第一个
+                if (!batchId) {
+                    console.log('尝试从复选框中获取案例ID');
+                    const checkedCheckboxes = document.querySelectorAll('input.case-checkbox:checked');
+                    if (checkedCheckboxes && checkedCheckboxes.length > 0) {
+                        batchId = checkedCheckboxes[0].value;
+                        console.log('从第一个选中的复选框获取: ' + batchId);
                     }
                 }
 
-                // 如果仍然没有 batchId，提示用户
-                if (!actualBatchId) {
-                    alert('⚠️ 无法获取批次ID，请检查是否有运行中的仿真');
+                console.log('✓ 确定的批次ID:', batchId);
+
+                // 如果仍然没有 case_id，提示用户
+                if (!batchId) {
+                    console.error('无法确定批次ID - caseId:', caseId, 'window.currentMonitoringCaseId:', window.currentMonitoringCaseId);
+                    alert('⚠️ 无法获取批次ID，请先选择要取消的案例');
                     return;
                 }
 
-                // 发送取消请求
-                console.log('取消批次，batch_id:', actualBatchId);
-                const cancelResponse = await api.request(`/simulation/batch-cancel`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ batch_id: actualBatchId, graceful: true })
-                });
+                // 发送取消请求（case_event_* ID 作为 batch_id）
+                console.log('发送取消请求，batch_id:', batchId);
+                let cancelSuccess = false;
 
-                console.log('取消响应:', cancelResponse);
-                const resultData = cancelResponse.data || cancelResponse;
-                const cancelledCount = resultData.cancelled_count || resultData.data?.cancelled_count || 0;
-                const inFlightCount = resultData.in_flight_count || resultData.data?.in_flight_count || 0;
+                try {
+                    const cancelResponse = await api.request(`/simulation/batch-cancel`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ batch_id: batchId, graceful: true })
+                    });
 
-                alert(`✓ 批次已取消\n已取消: ${cancelledCount} 个仿真\n进行中: ${inFlightCount} 个仿真`);
+                    console.log('取消响应:', cancelResponse);
+                    const resultData = cancelResponse.data || cancelResponse;
+                    const cancelledCount = resultData.cancelled_count || resultData.data?.cancelled_count || 0;
+                    const inFlightCount = resultData.in_flight_count || resultData.data?.in_flight_count || 0;
 
-                // 立即刷新状态
-                if (monitoringInterval) {
-                    clearInterval(monitoringInterval);
-                    monitoringInterval = null;
+                    alert(`✓ 批次已取消\n已取消: ${cancelledCount} 个仿真\n进行中: ${inFlightCount} 个仿真`);
+                    cancelSuccess = true;
+
+                    // 重置案例仿真状态（停止监控、清除UI、隐藏监控面板、取消复选框）
+                    await resetCaseSimulationState();
+
+                } catch (cancelError) {
+                    // 情况2：批次仿真不存在或后端中断
+                    console.error('取消批次失败，可能批次不存在或后端中断:', cancelError.message);
+
+                    // 检查是否是"批次不存在"错误
+                    const errorMsg = cancelError.message || '';
+                    if (errorMsg.includes('批次不存在') || errorMsg.includes('not found') || errorMsg.includes('500')) {
+                        console.log('检测到批次不存在或后端异常，进入重置流程');
+
+                        // 提示用户并重置状态
+                        const shouldReset = confirm(
+                            '⚠️ 无法连接到批次（可能已不存在或后端已中断）\n\n' +
+                            '现在将重置案例仿真的状态，您可以：\n' +
+                            '1. 重新选择案例\n' +
+                            '2. 重新启动仿真\n\n' +
+                            '是否继续？'
+                        );
+
+                        if (shouldReset) {
+                            await resetCaseSimulationState();
+                            alert('✓ 案例仿真状态已重置\n您可以重新选择案例并启动仿真');
+                        }
+                    } else {
+                        // 其他错误，直接抛出
+                        throw cancelError;
+                    }
                 }
-
-                // 等待一秒后刷新状态
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                await refreshBatchStatus();
 
             } catch (error) {
                 console.error('取消仿真失败:', error);
@@ -1907,8 +2455,28 @@
                 caseCheckboxes.forEach(cb => {
                     cb.checked = isChecked;
                 });
-                updateBulkActionState();
+                // 使用handleCaseCheckboxChange确保实时刷新
+                handleCaseCheckboxChange();
             }
+        };
+
+        /**
+         * 处理案例复选框变化事件
+         * 当用户勾选/取消勾选案例时，立即更新监控列表并刷新进度显示
+         */
+        window.handleCaseCheckboxChange = function() {
+            // 1. 更新全局监控案例列表和批量操作状态
+            updateBulkActionState();
+
+            // 2. 立即刷新批次仿真进度显示
+            // 确保进度监测面板实时反映选中/取消选中的案例
+            const batchMonitoring = document.getElementById('batchMonitoring');
+            if (batchMonitoring && batchMonitoring.style.display !== 'none') {
+                // 进度监测面板已打开，立即刷新批次状态
+                refreshBatchStatus();
+            }
+
+            console.log('案例选择状态已更新，已选案例数:', getSelectedCases().length);
         };
 
         /**
@@ -1932,31 +2500,45 @@
                 }
             }
 
-            // 当选中案例时，自动更新全局 caseId 和 scenarioId
+            // 当选中案例时，自动更新全局 caseId 和 scenarioIds（收集所有选中案例的所有场景）
             if (selectedCases.length > 0) {
                 const firstSelectedCaseId = selectedCases[0];
                 const caseData = caseDataMap[firstSelectedCaseId];
 
                 if (caseData) {
-                    // 更新全局 caseId
+                    // 更新全局 caseId（使用第一个选中案例）
                     caseId = firstSelectedCaseId;
 
-                    // 提取并更新 scenarioId
-                    if (caseData.simulations && typeof caseData.simulations === 'object') {
-                        const scenarioIds = Object.keys(caseData.simulations);
-                        if (scenarioIds.length > 0) {
-                            scenarioId = scenarioIds[0];
+                    // 更新 window.currentMonitoringCaseIds - 用于进度监控显示
+                    window.currentMonitoringCaseIds = selectedCases;
+                    window.currentMonitoringCaseId = firstSelectedCaseId;
+
+                    // 收集所有选中案例的所有 scenarioId（用于批量启动）
+                    const allScenarioIds = [];
+                    selectedCases.forEach(caseid => {
+                        const data = caseDataMap[caseid];
+                        if (data && data.simulations && typeof data.simulations === 'object') {
+                            const sids = Object.keys(data.simulations);
+                            allScenarioIds.push(...sids);
                         }
+                    });
+
+                    // 如果有场景ID，保存完整列表
+                    if (allScenarioIds.length > 0) {
+                        scenarioId = allScenarioIds.join(',');  // 保存为逗号分隔的字符串
                     }
 
-                    console.log('✓ 从案例列表获取ID - caseId:', caseId, 'scenarioId:', scenarioId);
+                    console.log('✓ 从案例列表获取ID - caseId:', caseId, '已选案例数:', selectedCases.length, '场景ID数:', allScenarioIds.length, 'scenarioIds:', allScenarioIds.join(','));
                     // 保存案例信息到sessionStorage
                     saveBatchInfo(null, caseId, scenarioId);
+                    sessionStorage.setItem('currentMonitoringCaseIds', JSON.stringify(selectedCases));
                 }
             } else {
                 // 如果没有选中案例，清除caseId和scenarioId
                 caseId = null;
                 scenarioId = null;
+                window.currentMonitoringCaseIds = [];
+                window.currentMonitoringCaseId = null;
                 console.log('已清除caseId和scenarioId');
             }
 
@@ -2064,21 +2646,26 @@
                 const originalContent = bulkActionsArea.innerHTML;
                 bulkActionsArea.innerHTML = '<div style="text-align: center; padding: 10px; color: #1976d2;">启动中...</div>';
 
-                // 从缓存中获取第一个案例的simulations
+                // 从缓存中获取所有选中案例的simulations
                 const firstCaseId = selectedCases[0];
-                const caseItem = caseDataMap[firstCaseId];
-                if (!caseItem) {
-                    throw new Error(`找不到案例数据: ${firstCaseId}`);
-                }
-
-                // 提取simulation_ids
                 const simulationIds = [];
-                if (caseItem.simulations && typeof caseItem.simulations === 'object') {
-                    simulationIds.push(...Object.keys(caseItem.simulations));
+
+                // 遍历所有选中的案例，收集所有simulations
+                for (const caseId of selectedCases) {
+                    const caseItem = caseDataMap[caseId];
+                    if (!caseItem) {
+                        console.warn(`找不到案例数据: ${caseId}`);
+                        continue;
+                    }
+
+                    // 提取该案例的simulation_ids
+                    if (caseItem.simulations && typeof caseItem.simulations === 'object') {
+                        simulationIds.push(...Object.keys(caseItem.simulations));
+                    }
                 }
 
                 if (simulationIds.length === 0) {
-                    throw new Error('案例中没有仿真');
+                    throw new Error('所有案例中都没有仿真');
                 }
 
                 // 调用batch-start API
@@ -2107,14 +2694,15 @@
                     // 设置全局batchId
                     batchId = newBatchId;
 
-                    // 保存当前的case_id（用于查看分析结果）
-                    // 批量启动时的case_ids应该都是同一个事件的，取第一个
+                    // 保存所有选中的case_ids - 支持多个事件的并行监控
                     if (selectedCases.length > 0) {
-                        window.currentMonitoringCaseId = selectedCases[0];
+                        window.currentMonitoringCaseIds = selectedCases;  // 保存所有选中的案例
+                        window.currentMonitoringCaseId = selectedCases[0];  // 保留兼容性，主要ID为第一个
                     }
 
-                    // 保存批次信息到sessionStorage（包括scenarioId）
+                    // 保存批次信息到sessionStorage（包括scenarioId和所有caseIds）
                     saveBatchInfo(batchId, window.currentMonitoringCaseId, scenarioId);
+                    sessionStorage.setItem('currentMonitoringCaseIds', JSON.stringify(selectedCases));
 
                     // 隐藏案例列表，显示监测面板
                     clearSelection();

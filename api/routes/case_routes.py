@@ -117,6 +117,32 @@ async def delete_case_with_reset(case_id: str):
     return create_success_response("案例删除成功", result)
 
 
+@router.post("/case/{case_id}/reset-simulation-status", response_model=BaseResponse)
+@handle_service_errors
+async def reset_case_simulation_status(case_id: str):
+    """
+    重置案例的仿真状态
+
+    将案例状态从 simulating 重置为 created，允许用户重新启动仿真。
+    用于取消批次仿真后恢复案例到可启动状态。
+
+    Args:
+        case_id: 案例ID (e.g., "case_event_6120705")
+
+    Returns:
+        {
+            "success": true,
+            "case_id": "case_event_6120705",
+            "old_status": "simulating",
+            "new_status": "created",
+            "message": "案例仿真状态已重置"
+        }
+    """
+    case_service = CaseService()
+    result = await case_service.reset_case_simulation_status(case_id)
+    return create_success_response("案例仿真状态已重置", result)
+
+
 @router.post("/case/{case_id}/clone", response_model=BaseResponse)
 @handle_service_errors
 async def clone_case(case_id: str, request: CaseCloneRequest):

@@ -23,6 +23,7 @@ from .base_metadata_service import BaseMetadataService
 from .simulation_service import SimulationService
 from .batch_optimization_service import BatchOptimizationService
 from shared.control_tools.batch_simulation_scheduler import BatchSimulationScheduler
+from shared.utilities.config_utils import get_parallel_workers
 
 # 导入仿真服务函数 (用于启动单个仿真)
 from . import start_simulation_service
@@ -63,7 +64,7 @@ class SimulationOrchestrator(BaseService):
         self,
         simulation_ids: List[str],
         case_id: str,
-        parallel_workers: int = 4,
+        parallel_workers: int = None,
         auto_run_analysis: bool = True,
         analysis_types: List[str] = None
     ) -> Dict[str, Any]:
@@ -73,7 +74,7 @@ class SimulationOrchestrator(BaseService):
         Args:
             simulation_ids: 仿真ID列表
             case_id: 案例ID
-            parallel_workers: 并发工作线程数 (2-16)
+            parallel_workers: 并发工作线程数 (2-16)。如不指定，从配置读取默认值
             auto_run_analysis: 完成后自动运行分析
             analysis_types: 分析类型列表 (default: ["summary", "edgedata"])
 
@@ -92,6 +93,11 @@ class SimulationOrchestrator(BaseService):
 
         if not case_id:
             raise ValueError("案例ID不能为空")
+
+        # 如果未指定 parallel_workers，从配置读取默认值
+        if parallel_workers is None:
+            parallel_workers = get_parallel_workers()
+            logger.info(f"使用配置默认的并发数: {parallel_workers}")
 
         # 默认分析类型
         if analysis_types is None:

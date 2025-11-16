@@ -29,9 +29,10 @@
         {
           "case_id": "case_event_10754",
           "case_name": "case_10754_batch",
-          "status": "created",
-          "created_at": "2025-11-16T00:09:24.283768",
-          "source_scenario_id": "scenario_10754_no_control"
+          "status": "completed",
+          "source_scenario": "scenario_10754_no_control",
+          "created_at": "2025-11-16T10:04:13.970763",
+          "updated_at": "2025-11-16T17:15:21.780937"
         }
       ]
     },
@@ -62,9 +63,10 @@
         {
           "case_id": "case_event_10754",
           "case_name": "case_10754_batch",
-          "status": "created",
-          "created_at": "2025-11-16T00:09:24.283768",
-          "source_scenario_id": "scenario_10754_tec"
+          "status": "completed",
+          "source_scenario": "scenario_10754_tec",
+          "created_at": "2025-11-16T10:04:14.081817",
+          "updated_at": "2025-11-16T17:15:21.964679"
         }
       ]
     },
@@ -95,9 +97,10 @@
         {
           "case_id": "case_event_10754",
           "case_name": "case_10754_batch",
-          "status": "created",
-          "created_at": "2025-11-16T00:09:24.283768",
-          "source_scenario_id": "scenario_10754_vss"
+          "status": "completed",
+          "source_scenario": "scenario_10754_vss",
+          "created_at": "2025-11-16T10:04:14.026099",
+          "updated_at": "2025-11-16T17:15:21.818619"
         }
       ]
     },
@@ -124,16 +127,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10762",
-          "case_name": "case_10762_batch",
-          "status": "created",
-          "source_scenario": "scenario_10762_no_control",
-          "created_at": "2025-11-16T00:28:55.516361",
-          "updated_at": "2025-11-16T00:29:17.019057"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10762",
@@ -158,16 +152,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10762",
-          "case_name": "case_10762_batch",
-          "status": "created",
-          "source_scenario": "scenario_10762_tec",
-          "created_at": "2025-11-16T00:28:55.621423",
-          "updated_at": "2025-11-16T00:29:17.139951"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10762",
@@ -192,16 +177,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10762",
-          "case_name": "case_10762_batch",
-          "status": "created",
-          "source_scenario": "scenario_10762_vss",
-          "created_at": "2025-11-16T00:28:55.571126",
-          "updated_at": "2025-11-16T00:29:17.073406"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10807",
@@ -226,15 +202,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10807",
-          "case_name": "case_10807_batch",
-          "status": "created",
-          "created_at": "2025-11-15T23:57:45.569957",
-          "source_scenario_id": "scenario_10807_no_control"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10807",
@@ -259,15 +227,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10807",
-          "case_name": "case_10807_batch",
-          "status": "created",
-          "created_at": "2025-11-15T23:57:45.569957",
-          "source_scenario_id": "scenario_10807_tec"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10807",
@@ -292,15 +252,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10807",
-          "case_name": "case_10807_batch",
-          "status": "created",
-          "created_at": "2025-11-15T23:57:45.569957",
-          "source_scenario_id": "scenario_10807_vss"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10814",
@@ -325,16 +277,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10814",
-          "case_name": "case_10814_batch",
-          "status": "created",
-          "created_at": "2025-11-16T00:05:33.357723",
-          "source_scenario_id": "scenario_10814_no_control",
-          "updated_at": "2025-11-16T00:29:03.176011"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10814",
@@ -359,16 +302,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10814",
-          "case_name": "case_10814_batch",
-          "status": "created",
-          "created_at": "2025-11-16T00:05:33.357723",
-          "source_scenario_id": "scenario_10814_tec",
-          "updated_at": "2025-11-16T00:29:03.276879"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10814",
@@ -393,16 +327,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10814",
-          "case_name": "case_10814_batch",
-          "status": "created",
-          "created_at": "2025-11-16T00:05:33.357723",
-          "source_scenario_id": "scenario_10814_vss",
-          "updated_at": "2025-11-16T00:29:03.230806"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10817",
@@ -427,16 +352,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10817",
-          "case_name": "case_10817_batch",
-          "status": "created",
-          "source_scenario": "scenario_10817_no_control",
-          "created_at": "2025-11-16T00:40:17.471193",
-          "updated_at": "2025-11-16T00:40:34.607850"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10817",
@@ -461,16 +377,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10817",
-          "case_name": "case_10817_batch",
-          "status": "created",
-          "source_scenario": "scenario_10817_tec",
-          "created_at": "2025-11-16T00:40:17.584887",
-          "updated_at": "2025-11-16T00:40:34.717023"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10817",
@@ -495,16 +402,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10817",
-          "case_name": "case_10817_batch",
-          "status": "created",
-          "source_scenario": "scenario_10817_vss",
-          "created_at": "2025-11-16T00:40:17.528608",
-          "updated_at": "2025-11-16T00:40:34.665479"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10848",
@@ -604,16 +502,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10854",
-          "case_name": "case_10854_batch",
-          "status": "created",
-          "source_scenario": "scenario_10854_no_control",
-          "created_at": "2025-11-16T00:47:37.068787",
-          "updated_at": "2025-11-16T00:47:53.510727"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10854",
@@ -638,16 +527,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10854",
-          "case_name": "case_10854_batch",
-          "status": "created",
-          "source_scenario": "scenario_10854_tec",
-          "created_at": "2025-11-16T00:47:37.186122",
-          "updated_at": "2025-11-16T00:47:53.599011"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10854",
@@ -672,16 +552,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10854",
-          "case_name": "case_10854_batch",
-          "status": "created",
-          "source_scenario": "scenario_10854_vss",
-          "created_at": "2025-11-16T00:47:37.130219",
-          "updated_at": "2025-11-16T00:47:53.554774"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10874",
@@ -9256,7 +9127,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_10912",
+          "case_name": "case_10912_batch",
+          "status": "created",
+          "source_scenario": "scenario_10912_no_control",
+          "created_at": "2025-11-16T01:28:44.512490",
+          "updated_at": "2025-11-16T01:29:31.596248"
+        }
+      ]
     },
     {
       "event_id": "10912",
@@ -9281,7 +9161,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_10912",
+          "case_name": "case_10912_batch",
+          "status": "created",
+          "source_scenario": "scenario_10912_tec",
+          "created_at": "2025-11-16T01:28:44.637884",
+          "updated_at": "2025-11-16T01:29:31.718798"
+        }
+      ]
     },
     {
       "event_id": "10912",
@@ -9306,7 +9195,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_10912",
+          "case_name": "case_10912_batch",
+          "status": "created",
+          "source_scenario": "scenario_10912_vss",
+          "created_at": "2025-11-16T01:28:44.583285",
+          "updated_at": "2025-11-16T01:29:31.659796"
+        }
+      ]
     },
     {
       "event_id": "11441",
@@ -10381,15 +10279,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10768",
-          "case_name": "case_10768_batch",
-          "status": "created",
-          "created_at": "2025-11-15T23:53:18.710205",
-          "source_scenario_id": "scenario_10768_no_control"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10768",
@@ -10414,15 +10304,7 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": [
-        {
-          "case_id": "case_event_10768",
-          "case_name": "case_10768_batch",
-          "status": "created",
-          "created_at": "2025-11-15T23:53:18.710205",
-          "source_scenario_id": "scenario_10768_tec"
-        }
-      ]
+      "created_cases": []
     },
     {
       "event_id": "10889",
@@ -11647,7 +11529,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_6120705",
+          "case_name": "case_6120705_batch",
+          "status": "completed",
+          "source_scenario": "scenario_6120705_dhs",
+          "created_at": "2025-11-16T08:33:18.572495",
+          "updated_at": "2025-11-16T17:24:23.636215"
+        }
+      ]
     },
     {
       "event_id": "6120705",
@@ -11672,7 +11563,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_6120705",
+          "case_name": "case_6120705_batch",
+          "status": "completed",
+          "source_scenario": "scenario_6120705_no_control",
+          "created_at": "2025-11-16T08:33:18.391235",
+          "updated_at": "2025-11-16T17:24:23.490080"
+        }
+      ]
     },
     {
       "event_id": "6120705",
@@ -11697,7 +11597,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_6120705",
+          "case_name": "case_6120705_batch",
+          "status": "completed",
+          "source_scenario": "scenario_6120705_tec",
+          "created_at": "2025-11-16T08:33:18.512595",
+          "updated_at": "2025-11-16T17:24:23.583624"
+        }
+      ]
     },
     {
       "event_id": "6120705",
@@ -11722,7 +11631,16 @@
         "traffic_config": "traffic_input_config.json",
         "control_config": "control_strategy_config.json"
       },
-      "created_cases": []
+      "created_cases": [
+        {
+          "case_id": "case_event_6120705",
+          "case_name": "case_6120705_batch",
+          "status": "completed",
+          "source_scenario": "scenario_6120705_vss",
+          "created_at": "2025-11-16T08:33:18.446692",
+          "updated_at": "2025-11-16T17:24:23.533417"
+        }
+      ]
     },
     {
       "event_id": "7180720",

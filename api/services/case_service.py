@@ -840,6 +840,14 @@ class CaseService(BaseService):
                 if 'case_type' in case_data and 'source_type' not in case_data:
                     case_data['source_type'] = case_data['case_type']
 
+                # 从event_scenario中提取event_type到顶级（事件案例）
+                if 'event_scenario' in case_data and isinstance(case_data['event_scenario'], dict):
+                    event_scenario = case_data['event_scenario']
+                    if 'event_type' in event_scenario and 'event_type' not in case_data:
+                        case_data['event_type'] = event_scenario['event_type']
+                    if 'event_id' in event_scenario and 'event_id' not in case_data:
+                        case_data['event_id'] = event_scenario['event_id']
+
                 case_metadata = CaseMetadata(**case_data)
                 case_metadata_list.append(case_metadata)
             
@@ -1024,6 +1032,66 @@ class CaseService(BaseService):
         except Exception as e:
             logger.error(f"删除案例失败: {str(e)}")
             raise Exception(f"删除案例失败: {str(e)}")
+
+    async def reset_case_simulation_status(self, case_id: str) -> Dict[str, Any]:
+        """
+        重置案例的仿真状态 (将status从simulating改为created)
+
+        此方法用于取消批次仿真后，重置案例状态，允许用户重新启动仿真。
+
+        Args:
+            case_id: 案例ID
+
+        Returns:
+            {
+                "success": true,
+                "case_id": "case_event_6120705",
+                "old_status": "simulating",
+                "new_status": "created",
+                "message": "案例仿真状态已重置"
+            }
+        """
+        try:
+            case_dir = self.cases_dir / case_id
+
+            if not case_dir.exists():
+                raise FileNotFoundError(f"案例不存在: {case_id}")
+
+            # 读取元数据
+            metadata_file = case_dir / "metadata.json"
+            if not metadata_file.exists():
+                raise FileNotFoundError(f"案例元数据不存在: {case_id}")
+
+            with open(metadata_file, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+
+            # 记录旧状态
+            old_status = metadata.get("status", "unknown")
+
+            # 更新状态为created，允许重新启动仿真
+            metadata["status"] = CaseStatus.CREATED.value
+            metadata["updated_at"] = datetime.now().isoformat()
+
+            # 保存更新后的元数据
+            with open(metadata_file, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+            logger.info(f"✓ 案例 {case_id} 仿真状态已重置: {old_status} -> {CaseStatus.CREATED.value}")
+
+            return {
+                "success": True,
+                "case_id": case_id,
+                "old_status": old_status,
+                "new_status": CaseStatus.CREATED.value,
+                "message": "案例仿真状态已重置，可以重新启动仿真"
+            }
+
+        except FileNotFoundError as e:
+            logger.error(f"重置案例状态失败: {str(e)}")
+            raise FileNotFoundError(str(e))
+        except Exception as e:
+            logger.error(f"重置案例状态失败: {str(e)}")
+            raise Exception(f"重置案例仿真状态失败: {str(e)}")
 
     async def clone_case(self, case_id: str, request: CaseCloneRequest) -> Dict[str, Any]:
         """克隆案例"""
@@ -1962,3 +2030,8 @@ async def delete_case_service(case_id: str) -> Dict[str, Any]:
 async def clone_case_service(case_id: str, request: CaseCloneRequest) -> Dict[str, Any]:
     """克隆案例服务函数"""
     return await case_service.clone_case(case_id, request)
+
+
+async def reset_case_simulation_status_service(case_id: str) -> Dict[str, Any]:
+    """重置案例仿真状态服务函数"""
+    return await case_service.reset_case_simulation_status(case_id)
