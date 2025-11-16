@@ -1576,29 +1576,73 @@
          * 取消批次或仿真
          */
         window.cancelBatch = async function() {
-            if (!confirm('确认要取消仿真吗？')) {
+            if (!confirm('确认要取消仿真吗？此操作将停止所有运行中的仿真任务')) {
                 return;
             }
 
             try {
-                if (batchId) {
-                    // 批次模式
-                    await api.request(`/simulation/batch-cancel`, {
-                        method: 'POST',
-                        body: JSON.stringify({ batch_id: batchId, graceful: true })
-                    });
-                    alert('✓ 批次已取消');
-                } else {
-                    alert('ℹ️ 请在案例管理中取消单个仿真');
+                let actualBatchId = batchId;
+
+                // 如果没有 batchId，尝试从 case_id 获取
+                if (!actualBatchId && window.currentMonitoringCaseId) {
+                    console.log('未找到batchId，尝试从case_id获取:', window.currentMonitoringCaseId);
+                    try {
+                        const progressResponse = await api.request(
+                            `/simulation/simulation_progress/${window.currentMonitoringCaseId}`
+                        );
+                        const progressData = progressResponse.data || progressResponse;
+
+                        // 从进度响应中查找batch_id
+                        if (progressData.batch_id) {
+                            actualBatchId = progressData.batch_id;
+                            console.log('从进度响应中获取batch_id:', actualBatchId);
+                        } else if (progressData.simulations && progressData.simulations.length > 0) {
+                            // 如果仿真列表中有batch_id，使用第一个
+                            const firstSim = progressData.simulations[0];
+                            if (firstSim.batch_id) {
+                                actualBatchId = firstSim.batch_id;
+                                console.log('从仿真列表中获取batch_id:', actualBatchId);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('获取进度信息失败:', err.message);
+                    }
+                }
+
+                // 如果仍然没有 batchId，提示用户
+                if (!actualBatchId) {
+                    alert('⚠️ 无法获取批次ID，请检查是否有运行中的仿真');
                     return;
                 }
 
+                // 发送取消请求
+                console.log('取消批次，batch_id:', actualBatchId);
+                const cancelResponse = await api.request(`/simulation/batch-cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batch_id: actualBatchId, graceful: true })
+                });
+
+                console.log('取消响应:', cancelResponse);
+                const resultData = cancelResponse.data || cancelResponse;
+                const cancelledCount = resultData.cancelled_count || resultData.data?.cancelled_count || 0;
+                const inFlightCount = resultData.in_flight_count || resultData.data?.in_flight_count || 0;
+
+                alert(`✓ 批次已取消\n已取消: ${cancelledCount} 个仿真\n进行中: ${inFlightCount} 个仿真`);
+
+                // 立即刷新状态
                 if (monitoringInterval) {
                     clearInterval(monitoringInterval);
+                    monitoringInterval = null;
                 }
+
+                // 等待一秒后刷新状态
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 await refreshBatchStatus();
+
             } catch (error) {
-                alert('✗ 取消失败: ' + error.message);
+                console.error('取消仿真失败:', error);
+                alert(`✗ 取消失败: ${error.message}`);
             }
         };
 
