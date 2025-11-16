@@ -886,10 +886,19 @@
 
         const api = new APIClient();
         const eventBatchManager = new EventBatchManager(api);
-        let batchId = new URLSearchParams(window.location.search).get('batch_id');
-        let caseId = new URLSearchParams(window.location.search).get('case_id');
+        // 从URL参数中提取所有相关ID
+        const urlParams = new URLSearchParams(window.location.search);
+        let batchId = urlParams.get('batch_id');
+        let caseId = urlParams.get('case_id');
+        let caseEventId = urlParams.get('case_event_id');  // 事件案例ID
+        let scenarioId = urlParams.get('scenario_id');     // 场景ID
         let currentTab = 'cases';
         let monitoringInterval = null;
+
+        // 如果有 case_event_id，优先使用它作为 caseId
+        if (caseEventId && !caseId) {
+            caseId = caseEventId;
+        }
 
         // 案例列表状态
         let caseListState = {
@@ -2080,7 +2089,7 @@
 
 
         // 页面加载
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // 添加搜索框事件监听（防抖）
             const searchBox = document.getElementById('searchCases');
             if (searchBox) {
@@ -2097,6 +2106,8 @@
             // 首先恢复之前保存的批次信息
             restoreBatchInfo();
 
+            console.log('页面初始化 - caseId:', caseId, 'batchId:', batchId);
+
             // 总是显示案例列表
             currentTab = 'cases';
             const casesTab = document.getElementById('cases-tab');
@@ -2104,7 +2115,26 @@
 
             // 加载初始数据
             updateCaseStats();
-            loadCases();
+            await loadCases();  // 等待案例加载完成
+
+            // 如果URL中有 case_event_id 或 caseId，在加载后自动选择该案例
+            if (caseId) {
+                console.log('URL参数中指定了案例ID:', caseId);
+                // 再等待一次确保DOM更新
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // 查找对应的复选框（通过value属性）
+                const caseCheckbox = document.querySelector(`input.case-checkbox[value="${caseId}"]`);
+                if (caseCheckbox) {
+                    caseCheckbox.checked = true;
+                    // 触发选择事件来更新UI
+                    updateBulkActionState();
+                    console.log('✓ 已自动选择案例:', caseId);
+                } else {
+                    console.warn('✗ 未找到案例复选框，caseId:', caseId);
+                    console.log('可用的案例复选框:', document.querySelectorAll('input.case-checkbox').length);
+                }
+            }
 
             // 根据URL参数或恢复的batchId决定是否显示监控面板
             const activeTab = new URLSearchParams(window.location.search).get('activeTab') || 'cases';
