@@ -9,25 +9,16 @@
       "validation_status": "validated",
       "region_count": 5,
       "total_connections": 2698
-    },"TAZ_5_validated": {
-      "name": "TAZ_5_validated.add.xml",
-      "description": "验证过的TAZ文件，包含整个示范区域的定义",
-      "file_path": "TAZ_5_validated.add.xml",
+    },
+    "TAZ_7": {
+      "name": "TAZ_7.add.xml",
+      "description": "最新的TAZ文件，包含完整区域定义",
+      "file_path": "TAZ_7.add.xml",
       "version": "1.0",
-      "created_date": "2025-01-08",
+      "created_date": "2025-11-16",
       "validation_status": "validated",
       "region_count": 5,
       "total_connections": 2698
-    },
-    "TAZ_4": {
-      "name": "TAZ_4.add.xml",
-      "description": "基础TAZ文件，包含绕城区域的定义",
-      "file_path": "TAZ_4.add.xml",
-      "version": "1.0",
-      "created_date": "2025-01-08",
-      "validation_status": "basic",
-      "region_count": 4,
-      "total_connections": 355
     }
   },
   "default_template": "TAZ_6.add.xml",
@@ -35,4 +26,4 @@
     "required_fields": ["id", "shape", "center"],
     "optional_fields": ["color", "fill", "name"]
   }
-} 
+}

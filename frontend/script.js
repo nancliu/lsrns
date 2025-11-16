@@ -9,12 +9,13 @@
  * - 历史结果查看与报告生成
  * 
  * 默认配置：
- * - TAZ文件：TAZ_6.add.xml
- * - 网络文件：sichuan202510v8.net.xml
+ * - TAZ文件：TAZ_7.add.xml
+ * - 网络文件：sichuan202510v9.net.xml
+ * - 车型配置：vehicle_types2.json
  * - 时间范围：当前日期 08:00-08:15
  * 
  * 更新记录：
- * - 2025-01-XX: 更新默认网络文件为sichuan202510v8.net.xml
+ * - 2025-11-16: 更新默认配置为TAZ_7、sichuan202510v9.net.xml、vehicle_types2.json
  */
 
 // API基础URL - 动态获取当前服务器地址，支持远程访问
@@ -220,7 +221,7 @@ async function processODData(e) {
         end_time: toBackendTime(document.getElementById('end-time').value),
         taz_file: document.getElementById('taz-file').value,
         net_file: document.getElementById('network-file').value,
-        vehicle_template: document.getElementById('vehicle-template').value || 'vehicle_types.json',
+        vehicle_template: document.getElementById('vehicle-template').value || 'vehicle_types2.json',
         interval_minutes: parseInt(document.getElementById('interval-minutes').value || '5', 10),
         case_name: document.getElementById('case-name').value,
         description: document.getElementById('case-description').value,
@@ -1270,9 +1271,9 @@ function updateTemplateSelects() {
             opt.textContent = t.name;
             tazSelect.appendChild(opt);
         });
-        // 默认选择 TAZ_6.add.xml
-        const taz6 = Array.from(tazSelect.options).find(o => /TAZ_6\.add\.xml/i.test(o.textContent) || /TAZ_6\.add\.xml/i.test(o.value));
-        if (taz6) tazSelect.value = taz6.value; else if (tazSelect.options[1]) tazSelect.selectedIndex = 1;
+        // 默认选择 TAZ_7.add.xml
+        const taz7 = Array.from(tazSelect.options).find(o => /TAZ_7\.add\.xml/i.test(o.textContent) || /TAZ_7\.add\.xml/i.test(o.value));
+        if (taz7) tazSelect.value = taz7.value; else if (tazSelect.options[1]) tazSelect.selectedIndex = 1;
     }
     const netSelect = document.getElementById('network-file');
     if (netSelect && currentTemplates.network) {
@@ -1283,9 +1284,9 @@ function updateTemplateSelects() {
             opt.textContent = t.name;
             netSelect.appendChild(opt);
         });
-        // 默认选择 sichuan202510v8.net.xml
-        const v8 = Array.from(netSelect.options).find(o => /sichuan202510v8\.net\.xml/i.test(o.textContent) || /sichuan202510v8\.net\.xml/i.test(o.value));
-        if (v8) netSelect.value = v8.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
+        // 默认选择 sichuan202510v9.net.xml
+        const v9 = Array.from(netSelect.options).find(o => /sichuan202510v9\.net\.xml/i.test(o.textContent) || /sichuan202510v9\.net\.xml/i.test(o.value));
+        if (v9) netSelect.value = v9.value; else if (netSelect.options[1]) netSelect.selectedIndex = 1;
     }
     const vehicleSelect = document.getElementById('vehicle-template');
     if (vehicleSelect && currentTemplates.vehicle) {
@@ -1296,8 +1297,8 @@ function updateTemplateSelects() {
             opt.textContent = t.name;
             vehicleSelect.appendChild(opt);
         });
-        // 默认选择 vehicle_types.json
-        const defaultVehicle = Array.from(vehicleSelect.options).find(o => o.value === 'vehicle_types.json');
+        // 默认选择 vehicle_types2.json
+        const defaultVehicle = Array.from(vehicleSelect.options).find(o => o.value === 'vehicle_types2.json');
         if (defaultVehicle) vehicleSelect.value = defaultVehicle.value; else if (vehicleSelect.options[0]) vehicleSelect.selectedIndex = 0;
     }
 }
