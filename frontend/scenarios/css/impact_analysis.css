@@ -239,11 +239,29 @@ body {
 
 .strategy-card {
     background: linear-gradient(135deg, var(--color-white) 0%, var(--color-light-gray) 100%);
-    border: 2px solid var(--color-gray);
+    border: 1px solid var(--color-gray);
+    border-left: 4px solid var(--color-gray);
     border-radius: var(--radius-md);
     padding: var(--spacing-lg);
     transition: all var(--transition-normal);
     cursor: pointer;
+}
+
+/* Strategy-specific card border colors */
+.strategy-card[data-strategy="DHS"] {
+    border-left-color: #388e3c;
+}
+
+.strategy-card[data-strategy="TEC"] {
+    border-left-color: #f57c00;
+}
+
+.strategy-card[data-strategy="VSS"] {
+    border-left-color: #1976d2;
+}
+
+.strategy-card[data-strategy="NO_CONTROL"] {
+    border-left-color: #999;
 }
 
 .strategy-card:hover {
@@ -266,6 +284,23 @@ body {
     font-weight: 600;
     color: var(--color-black);
     margin: 0;
+}
+
+/* Strategy-specific header colors */
+.strategy-card[data-strategy="DHS"] .strategy-name {
+    color: #388e3c;
+}
+
+.strategy-card[data-strategy="TEC"] .strategy-name {
+    color: #f57c00;
+}
+
+.strategy-card[data-strategy="VSS"] .strategy-name {
+    color: #1976d2;
+}
+
+.strategy-card[data-strategy="NO_CONTROL"] .strategy-name {
+    color: #666;
 }
 
 .baseline-badge {
