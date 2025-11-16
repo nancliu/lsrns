@@ -323,9 +323,16 @@
         const api = new APIClient();
         const urlParams = new URLSearchParams(window.location.search);
         let caseId = urlParams.get('case_id');
+        let caseIds = null;  // For multi-case comparison
         let batchId = urlParams.get('batch_id');
         let simulationId = urlParams.get('simulation_id');
         let analysisData = null;
+
+        // Parse case_ids parameter for multi-case comparison (comma-separated)
+        const caseIdsParam = urlParams.get('case_ids');
+        if (caseIdsParam) {
+            caseIds = caseIdsParam.split(',').map(id => id.trim()).filter(id => id);
+        }
 
         // 切换标签页
         window.switchTab = function(tabName) {
@@ -341,6 +348,45 @@
             document.getElementById(`tab-${tabName}`).classList.add('active');
             event.target.classList.add('active');
         };
+
+        /**
+         * 渲染多案例比较摘要
+         */
+        function renderMultiCaseComparison() {
+            if (!analysisData || !analysisData.cases) return;
+
+            const summaryContainer = document.getElementById('summaryMetrics');
+            summaryContainer.innerHTML = '';
+
+            const cases = analysisData.cases;
+
+            // 为每个案例创建摘要卡片
+            cases.forEach((caseData) => {
+                const summary = caseData.summary || {};
+                const caseId = caseData.case_id;
+
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                card.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #1976d2;">${caseId}</div>
+                    <div class="metric-label">已完成仿真</div>
+                    <div class="metric-value">${summary.completed || 0}</div>
+                    <div class="metric-label" style="margin-top: 10px;">总仿真数</div>
+                    <div class="metric-value">${summary.total_simulations || 0}</div>
+                    <div class="metric-label" style="margin-top: 10px;">失败仿真</div>
+                    <div class="metric-value" style="color: #f44336;">${summary.failed || 0}</div>
+                `;
+                summaryContainer.appendChild(card);
+            });
+
+            // 切换到对比分析标签页
+            setTimeout(() => {
+                const comparisonTab = document.querySelector('[onclick="switchTab(\'comparison\')"]');
+                if (comparisonTab) {
+                    comparisonTab.click();
+                }
+            }, 100);
+        }
 
         // 渲染仿真详情表格
         function renderSimulationDetails(simulations) {
@@ -397,11 +443,74 @@
             });
         }
 
+        /**
+         * 加载多案例的分析数据并合并
+         */
+        async function loadComparisonData(caseIdsArray) {
+            const analyses = [];
+
+            for (const id of caseIdsArray) {
+                try {
+                    const response = await api.request(`/analysis/results/${id}?case_id=${id}`);
+                    const data = response.data || response;
+                    analyses.push({ case_id: id, ...data });
+                    console.log(`加载案例 ${id} 的分析结果成功`);
+                } catch (error) {
+                    console.warn(`加载案例 ${id} 的分析结果失败: ${error.message}`);
+                    // 使用备选方案获取基本信息
+                    try {
+                        const progressResponse = await api.request(`/simulation/simulation_progress/${id}`);
+                        const progressData = progressResponse.data || progressResponse;
+                        analyses.push({
+                            case_id: id,
+                            summary: {
+                                case_id: id,
+                                total_simulations: progressData.simulations?.length || 0,
+                                completed: progressData.simulations?.filter(s => s.status === 'completed').length || 0,
+                                failed: progressData.simulations?.filter(s => s.status === 'failed').length || 0
+                            },
+                            simulations: progressData.simulations || []
+                        });
+                    } catch (fallbackError) {
+                        console.error(`案例 ${id} 完全加载失败:`, fallbackError);
+                    }
+                }
+            }
+
+            return analyses;
+        }
+
+        /**
+         * 合并多个案例的分析数据用于对比
+         */
+        function mergeComparisonAnalyses(analysesArray) {
+            if (!analysesArray || analysesArray.length === 0) return null;
+
+            // 对于比较分析，保持原有的结构，但标记为多案例模式
+            return {
+                is_multi_case: true,
+                cases: analysesArray,
+                case_ids: analysesArray.map(a => a.case_id),
+                // 组合摘要数据
+                summary: {
+                    total_cases: analysesArray.length,
+                    completed_cases: analysesArray.filter(a => a.summary?.completed > 0).length
+                }
+            };
+        }
+
         // 加载分析结果
         async function loadAnalysisResults() {
             try {
-                // 优先使用 case_id (用于批量分析结果)
-                if (caseId) {
+                // 优先使用 case_ids (用于多案例比较)
+                if (caseIds && caseIds.length > 0) {
+                    console.log(`加载多案例比较数据: ${caseIds.join(', ')}`);
+                    const comparisonAnalyses = await loadComparisonData(caseIds);
+                    analysisData = mergeComparisonAnalyses(comparisonAnalyses);
+                    console.log('多案例比较数据:', analysisData);
+                }
+                // 其次使用 case_id (用于批量分析结果)
+                else if (caseId) {
                     // 使用 case_id 加载批量分析结果
                     // 如果有 batch_id，使用具体的批次ID；否则使用 case_id 作为批次标识
                     const batchIdentifier = batchId || caseId;
@@ -449,6 +558,12 @@
         // 渲染结果
         function renderResults() {
             if (!analysisData) return;
+
+            // 处理多案例比较模式
+            if (analysisData.is_multi_case) {
+                renderMultiCaseComparison();
+                return;
+            }
 
             // 概览数据 - 支持两种格式：单仿真和批量仿真
             if (analysisData.summary) {
