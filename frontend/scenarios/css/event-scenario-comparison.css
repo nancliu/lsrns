@@ -365,3 +365,32 @@
 .deterioration:hover {
     transform: scale(1.1);
 }
+
+/* ========== 多案例选择复选框 ========== */
+
+.case-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.case-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.case-checkbox:checked {
+    background-color: #667eea;
+}
+
+#selectAllCheckbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+#selectAllCheckbox:hover {
+    background-color: #f0f0f0;
+}

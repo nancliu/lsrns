@@ -698,7 +698,7 @@
                     <div class="stats-grid">
                         <div class="stats-card">
                             <div class="stats-number" id="totalCases">0</div>
-                            <div class="stats-label">总案例数</div>
+                            <div class="stats-label">总场景数</div>
                         </div>
                         <div class="stats-card">
                             <div class="stats-number" id="simulatingCases">0</div>
@@ -846,6 +846,9 @@
                                     <table class="simulation-table">
                                         <thead>
                                             <tr>
+                                                <th style="width: 50px;">
+                                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" title="全选">
+                                                </th>
                                                 <th>仿真ID</th>
                                                 <th>案例ID</th>
                                                 <th>状态</th>
@@ -856,7 +859,7 @@
                                         </thead>
                                         <tbody id="simTableBody">
                                             <tr>
-                                                <td colspan="6" style="text-align: center; color: #999;">
+                                                <td colspan="7" style="text-align: center; color: #999;">
                                                     无活跃仿真，请先从案例创建仿真
                                                 </td>
                                             </tr>
@@ -898,6 +901,7 @@
         let scenarioId = urlParams.get('scenario_id');     // 场景ID
         let currentTab = 'cases';
         let monitoringInterval = null;
+        let selectedCases = new Set();  // Track selected case_ids for analysis comparison
 
         // 如果有 case_event_id，优先使用它作为 caseId
         if (caseEventId && !caseId) {
@@ -2078,7 +2082,14 @@
                             }
                         }
 
+                        // Checkbox - only enabled for completed simulations
+                        const checkboxDisabled = sim.status !== 'completed' ? 'disabled' : '';
+                        const checkboxCell = sim.status === 'completed'
+                            ? `<input type="checkbox" class="case-checkbox" data-case-id="${sim.case_id}" onchange="updateCaseSelection()" ${checkboxDisabled}>`
+                            : '--';
+
                         row.innerHTML = `
+                            <td style="text-align: center;">${checkboxCell}</td>
                             <td style="padding-left: 80px;">└─ ${sim.simulation_id}</td>
                             <td>${sim.case_id || '--'}</td>
                             <td><span class="status-badge" style="background-color: ${statusInfo.color}22; color: ${statusInfo.color};">${statusInfo.text}</span></td>
@@ -2922,7 +2933,73 @@
                 </td></tr>`;
             }
         }
-        
+
+        /**
+         * Update case selection tracking when a checkbox changes
+         */
+        function updateCaseSelection() {
+            const checkboxes = document.querySelectorAll('.case-checkbox:checked');
+            selectedCases.clear();
+            checkboxes.forEach(checkbox => {
+                const caseId = checkbox.getAttribute('data-case-id');
+                if (caseId) {
+                    selectedCases.add(caseId);
+                }
+            });
+
+            // Update "View Analysis" button visibility
+            const viewAnalysisBtn = document.getElementById('viewAnalysisBtn');
+            if (viewAnalysisBtn) {
+                if (selectedCases.size > 0) {
+                    viewAnalysisBtn.style.display = 'inline-block';
+                } else {
+                    viewAnalysisBtn.style.display = 'none';
+                }
+            }
+
+            // Update "Select All" checkbox state
+            const allCheckboxes = document.querySelectorAll('.case-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = allCheckboxes.length > 0 && allCheckboxes.length === checkboxes.length;
+            }
+        }
+
+        /**
+         * Toggle select all checkboxes in the table
+         */
+        function toggleSelectAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const allCheckboxes = document.querySelectorAll('.case-checkbox');
+
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+
+            updateCaseSelection();
+        }
+
+        /**
+         * Navigate to analysis viewer with selected cases
+         */
+        function viewAnalysisResults() {
+            if (selectedCases.size === 0) {
+                alert('请先选择至少一个案例');
+                return;
+            }
+
+            const caseIds = Array.from(selectedCases);
+
+            if (caseIds.length === 1) {
+                // Single case - direct navigation with case_id parameter
+                window.location.href = `analysis_viewer.html?case_id=${caseIds[0]}`;
+            } else {
+                // Multi-case comparison - navigate with case_ids parameter
+                const caseIdsParam = caseIds.join(',');
+                window.location.href = `analysis_viewer.html?case_ids=${caseIdsParam}`;
+            }
+        }
+
         /**
          * 初始化监控面板的展开/折叠状态
          */
