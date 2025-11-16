@@ -386,50 +386,146 @@ class StrategyComparisonService(BaseService):
         sim_dirs: List[Path]
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
-        从仿真提取时序数据（可选）
+        从仿真提取完整时序数据
+
+        数据来源优先级：
+        1. summary.xml - SUMO输出的每个时间步数据（完整）
+        2. progress.json - 最后一个进度检查点（作为备选）
 
         Args:
             sim_dirs: 仿真目录列表
 
         Returns:
-            Dict: 时序数据
+            Dict: 各策略各指标的时序数据
         """
         timeseries = {metric_key: [] for metric_key in self.TRAFFIC_METRICS.keys()}
 
-        # 从progress.json中提取时间序列
-        # 每个仿真可能有多个进度检查点
-        all_progress_data = []
+        # 聚合所有仿真的时序数据
+        all_timeseries = {metric_key: [] for metric_key in self.TRAFFIC_METRICS.keys()}
 
         for sim_dir in sim_dirs:
+            # 优先从summary.xml提取完整时序数据
+            summary_file = sim_dir / "summary.xml"
+            if summary_file.exists():
+                try:
+                    summary_timeseries = self._extract_timeseries_from_summary(summary_file)
+                    # 聚合时序数据
+                    for metric_key, values in summary_timeseries.items():
+                        all_timeseries[metric_key].extend(values)
+                    continue
+                except Exception as e:
+                    logger.warning(f"Failed to extract timeseries from summary.xml: {e}")
+
+            # 备选：从progress.json提取最终状态
             progress_file = sim_dir / "progress.json"
             if progress_file.exists():
                 try:
                     with open(progress_file, 'r', encoding='utf-8') as f:
                         progress_data = json.load(f)
-                        all_progress_data.append({
-                            'timestamp': progress_data.get('updated_at'),
-                            'data': progress_data
+                        timestamp = progress_data.get('updated_at')
+
+                        all_timeseries['current_vehicles'].append({
+                            'time': float(progress_data.get('percent', 0)),
+                            'timestamp': timestamp,
+                            'value': progress_data.get('running_vehicles', 0)
+                        })
+                        all_timeseries['loaded_vehicles'].append({
+                            'time': float(progress_data.get('percent', 0)),
+                            'timestamp': timestamp,
+                            'value': progress_data.get('loaded_vehicles', 0)
+                        })
+                        all_timeseries['waiting_vehicles'].append({
+                            'time': float(progress_data.get('percent', 0)),
+                            'timestamp': timestamp,
+                            'value': progress_data.get('waiting_vehicles', 0)
                         })
                 except Exception as e:
-                    logger.warning(f"Failed to read progress.json: {e}")
+                    logger.warning(f"Failed to extract timeseries from progress.json: {e}")
 
-        # 组织成时序格式
-        for progress in all_progress_data:
-            data = progress['data']
-            timestamp = progress['timestamp']
+        # 按时间排序每个指标的数据
+        for metric_key in all_timeseries.keys():
+            # 去重并按时间排序
+            seen_times = set()
+            unique_data = []
+            for point in sorted(all_timeseries[metric_key], key=lambda x: x.get('time', 0)):
+                time_key = point.get('time')
+                if time_key not in seen_times:
+                    seen_times.add(time_key)
+                    unique_data.append(point)
 
-            timeseries['current_vehicles'].append({
-                'timestamp': timestamp,
-                'value': data.get('running_vehicles', 0)
-            })
-            timeseries['loaded_vehicles'].append({
-                'timestamp': timestamp,
-                'value': data.get('loaded_vehicles', 0)
-            })
-            timeseries['waiting_vehicles'].append({
-                'timestamp': timestamp,
-                'value': data.get('waiting_vehicles', 0)
-            })
+            timeseries[metric_key] = unique_data
+
+        return timeseries
+
+    def _extract_timeseries_from_summary(
+        self,
+        summary_file: Path
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        从SUMO的summary.xml文件提取时序数据
+
+        Args:
+            summary_file: summary.xml文件路径
+
+        Returns:
+            Dict: 时序数据，每个指标包含时间序列
+        """
+        timeseries = {metric_key: [] for metric_key in self.TRAFFIC_METRICS.keys()}
+
+        try:
+            import xml.etree.ElementTree as ET
+            tree = ET.parse(summary_file)
+            root = tree.getroot()
+
+            # 遍历每个时间步
+            for step in root.findall('step'):
+                time = float(step.get('time', 0))
+                running = int(step.get('running', 0))
+                ended = int(step.get('ended', 0))
+                waiting = int(step.get('waiting', 0))
+                loaded = int(step.get('loaded', 0))
+
+                # 提取速度数据
+                avg_speed_str = step.get('avgSpeed', '0')
+                try:
+                    avg_speed = float(avg_speed_str) * 3.6  # m/s to km/h
+                except:
+                    avg_speed = 0.0
+
+                # 添加时序数据点
+                timeseries['current_vehicles'].append({
+                    'time': time,
+                    'timestamp': f"{time:.1f}s",
+                    'value': running
+                })
+
+                timeseries['avg_speed'].append({
+                    'time': time,
+                    'timestamp': f"{time:.1f}s",
+                    'value': round(avg_speed, 2)
+                })
+
+                timeseries['loaded_vehicles'].append({
+                    'time': time,
+                    'timestamp': f"{time:.1f}s",
+                    'value': loaded
+                })
+
+                timeseries['waiting_vehicles'].append({
+                    'time': time,
+                    'timestamp': f"{time:.1f}s",
+                    'value': waiting
+                })
+
+                # 累积值
+                timeseries['completed_vehicles'].append({
+                    'time': time,
+                    'timestamp': f"{time:.1f}s",
+                    'value': ended
+                })
+
+        except Exception as e:
+            logger.warning(f"Error extracting timeseries from summary.xml: {e}")
 
         return timeseries
 
