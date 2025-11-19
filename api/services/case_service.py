@@ -1163,11 +1163,14 @@ class CaseService(BaseService):
             # 动态导入QuickCaseCreator
             import sys
             from pathlib import Path
+            
+            # 动态添加 scripts 目录到 Python 路径（运行时需要）
             scripts_path = Path(__file__).parent.parent.parent / "scripts"
             if str(scripts_path) not in sys.path:
                 sys.path.insert(0, str(scripts_path))
 
-            from initialize_scenario_library import QuickCaseCreator
+            # 使用绝对导入路径，避免静态分析工具警告
+            from scripts.initialize_scenario_library import QuickCaseCreator  # type: ignore
 
             # 生成case_id（如果未提供）
             case_id = request.case_id or self.generate_unique_id("case_event")
@@ -1270,6 +1273,21 @@ class CaseService(BaseService):
         except Exception as e:
             raise Exception(f"从事件场景创建案例失败: {str(e)}")
 
+    def _validate_vehicle_template(self, vehicle_template: str) -> str:
+        """验证车型模板文件是否存在并返回完整路径"""
+        if not vehicle_template:
+            vehicle_template = "vehicle_types.json"
+
+        # 构建完整路径
+        vehicle_dir = self.templates_dir / "config_templates" / "vehicle_templates"
+        vehicle_template_path = vehicle_dir / vehicle_template
+
+        # 验证文件是否存在
+        if not vehicle_template_path.exists():
+            raise Exception(f"选择的车型配置文件不存在: {vehicle_template}")
+
+        return str(vehicle_template_path)
+
     async def _start_od_generation_async(
         self,
         case_id: str,
@@ -1319,6 +1337,19 @@ class CaseService(BaseService):
                 schema_name = "dwd"
                 table_name = od_file_ref
 
+            # 尝试从case元数据中读取vehicle_template
+            vehicle_template = "vehicle_types.json"  # 默认值
+            metadata_file = case_path / "metadata.json"
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata = json.load(f)
+                        templates_section = metadata.get('templates', {})
+                        vehicle_template = templates_section.get('vehicle_template', vehicle_template)
+                        logger.info(f"从case元数据读取vehicle_template: {vehicle_template}")
+                except Exception as e:
+                    logger.warning(f"读取case元数据中的vehicle_template失败: {e}，使用默认值")
+
             # 创建OD处理请求（为事件场景提供默认TAZ文件）
             od_request = TimeRangeRequest(
                 start_time=start_time,
@@ -1327,7 +1358,8 @@ class CaseService(BaseService):
                 schemas_name=schema_name,
                 net_file=None,
                 taz_file="templates/taz_files/TAZ_6.add.xml",  # 使用默认TAZ文件
-                interval_minutes=5  # 使用默认5分钟间隔（而不是30分钟）
+                interval_minutes=5,  # 使用默认5分钟间隔（而不是30分钟）
+                vehicle_template=vehicle_template  # 使用从元数据读取的或默认值
             )
 
             # 在后台线程启动OD生成（不阻塞）
@@ -1389,8 +1421,9 @@ class CaseService(BaseService):
                 except Exception as e:
                     logger.error(f"Failed to copy TAZ file: {e}")
 
-            # 验证车型模板
-            vehicle_template_path = "templates/config_templates/vehicle_templates/vehicle_types.json"
+            # 验证车型模板（使用 od_request 中的 vehicle_template）
+            vehicle_template = od_request.vehicle_template or "vehicle_types.json"
+            vehicle_template_path = self._validate_vehicle_template(vehicle_template)
 
             # 创建OD处理器
             od_processor = ODProcessor(vehicle_config_path=vehicle_template_path)
